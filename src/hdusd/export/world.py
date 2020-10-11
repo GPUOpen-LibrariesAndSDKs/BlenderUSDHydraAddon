@@ -17,6 +17,7 @@ from typing import Tuple
 
 import numpy as np
 import math
+from pathlib import Path
 
 import bpy
 import mathutils
@@ -282,11 +283,52 @@ class WorldData:
 
 
 def sync(obj_prim, world: bpy.types.World):
+    if not world.use_nodes:
+        return
+
+    color = world.color
+    ibl_path = ""
+    if world.use_nodes:
+        output = world.node_tree.get_output_node('ALL')
+        if not output:
+            output = world.node_tree.get_output_node('CYCLES')
+
+        if not output or not output.inputs['Surface'].is_linked:
+            return
+
+        linked_node = output.inputs['Surface'].links[0].from_node
+        if linked_node.type != 'BACKGROUND':
+            return
+
+        color = linked_node.inputs['Color'].default_value
+        if linked_node.inputs['Color'].is_linked:
+            color_node = linked_node.inputs['Color'].links[0].from_node
+            if color_node.type != 'TEX_ENVIRONMENT':
+                return
+            if not color_node.image or not color_node.image.filepath:
+                return
+            img_path = color_node.image.filepath_from_user()
+            if not Path(img_path).is_file():
+                return
+
+            ibl_path = str(img_path)
+
     stage = obj_prim.GetStage()
 
     usd_light = UsdLux.DomeLight.Define(
         stage, f"{obj_prim.GetPath()}/{sdf_path(world.name)}")
 
-    usd_light.CreateColorAttr((0.5, 0.5, 0.5))
+    # usd_light.CreateColorAttr((0.5, 0.5, 0.5))
+    log.info(f"file_attr.GetName(): {file_attr.GetName()}")
+    log.info(f"file_attr.GetDescription(): {file_attr.GetDescription()}")
+    log.info(f"file_attr.GetDocumentation(): {file_attr.GetDocumentation()}")
+    # Usd.Prim(</Scene/World>).GetAttribute('texture:file')
+    # <class 'pxr.Usd.Attribute'>
+    # texture:file
+    if ibl_path:
+        from pxr import Sdf
+        p = Sdf.AssetPath(ibl_path)
+        usd_light.CreateTextureFileAttr(p)
+
     # data = WorldData.init_from_world(world)
     # data.export(rpr_context)
