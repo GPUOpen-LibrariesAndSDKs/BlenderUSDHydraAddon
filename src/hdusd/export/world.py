@@ -282,7 +282,7 @@ class WorldData:
         rpr_context.scene.environment_light.set_group_id(0)
 
 
-def sync(obj_prim, world: bpy.types.World):
+def sync(obj_prim, world: bpy.types.World, **kwargs):
     if not world.use_nodes:
         return
 
@@ -315,20 +315,16 @@ def sync(obj_prim, world: bpy.types.World):
 
     stage = obj_prim.GetStage()
 
-    usd_light = UsdLux.DomeLight.Define(
-        stage, f"{obj_prim.GetPath()}/{sdf_path(world.name)}")
+    try:
+        usd_light = UsdLux.DomeLight.Define(
+            stage, f"{obj_prim.GetPath()}/{sdf_path(world.name)}")
 
-    # usd_light.CreateColorAttr((0.5, 0.5, 0.5))
-    log.info(f"file_attr.GetName(): {file_attr.GetName()}")
-    log.info(f"file_attr.GetDescription(): {file_attr.GetDescription()}")
-    log.info(f"file_attr.GetDocumentation(): {file_attr.GetDocumentation()}")
-    # Usd.Prim(</Scene/World>).GetAttribute('texture:file')
-    # <class 'pxr.Usd.Attribute'>
-    # texture:file
-    if ibl_path:
-        from pxr import Sdf
-        p = Sdf.AssetPath(ibl_path)
-        usd_light.CreateTextureFileAttr(p)
+        if ibl_path:
+            from pxr import Sdf
+            p = Sdf.AssetPath(ibl_path)
+            usd_light.CreateTextureFileAttr(p)
+    except Exception as e:
+        log.warn(f"World export error: {str(e)}")
 
     # data = WorldData.init_from_world(world)
     # data.export(rpr_context)
