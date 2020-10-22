@@ -1,0 +1,15 @@
+__pycache__
+venv
+.idea
+.vscode
+.vs
+*.pyproj
+*.user
+*.sln
+
+.DS_Store
+
+*.cmd
+*.log
+/src/hdusd/configdev.py
+

@@ -117,5 +117,5 @@ def time_str(val):
 
 
 def usd_temp_path(*dep_objects):
-    h = hash("".join(str(hash(o)) for o in dep_objects))
-    return temp_pid_dir() / f"tmp{abs(h)}.usda"
+    h = hash("".join(str(hash(o)) for o in dep_objects)) & 0xffffff
+    return temp_pid_dir() / f"tmp{h:x}.usda"

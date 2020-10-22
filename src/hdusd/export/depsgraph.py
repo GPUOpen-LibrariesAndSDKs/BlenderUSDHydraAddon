@@ -51,7 +51,7 @@ def sync(depsgraph: bpy.types.Depsgraph, **kwargs):
     test_break = kwargs.get('test_break')
     space_data = kwargs.get('space_data')
     use_scene_lights = kwargs.get('use_scene_lights', True)
-    engine = kwargs['engine']
+    engine = kwargs.get('engine')
 
     stage = Usd.Stage.CreateNew(str(_usd_path(depsgraph, engine)))
     UsdGeom.SetStageMetersPerUnit(stage, 1)

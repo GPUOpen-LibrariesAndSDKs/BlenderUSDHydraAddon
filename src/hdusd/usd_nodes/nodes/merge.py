@@ -49,7 +49,7 @@ class MergeNode(USDNode):
         if len(ref_stages) == 1:
             return ref_stages[0]
 
-        engine = kwargs['engine']
+        engine = kwargs.get('engine')
         stage = Usd.Stage.CreateNew(
             str(utils.usd_temp_path(self, engine)))
         UsdGeom.SetStageMetersPerUnit(stage, 1)
