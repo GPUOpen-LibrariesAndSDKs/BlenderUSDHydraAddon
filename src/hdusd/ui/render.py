@@ -26,11 +26,11 @@ class HDUSD_RENDER_PT_delegate_final(HDUSD_Panel):
         layout = self.layout
 
         scene = context.scene
-        layout.prop(scene.hd_final, "delegate")
+        layout.prop(scene.hdusd.final, "delegate")
 
         # use the USD nodegraph if present
         row = layout.row()
-        row.prop(scene.hd_final, "use_usd_nodegraph")
+        row.prop(scene.hdusd.final, "use_usd_nodegraph")
         row.enabled = get_usd_nodetree() is not None
 
 class HDUSD_RENDER_PT_delegate_viewport(HDUSD_Panel):
@@ -44,9 +44,9 @@ class HDUSD_RENDER_PT_delegate_viewport(HDUSD_Panel):
         layout = self.layout
 
         scene = context.scene
-        layout.prop(scene.hd_viewport, "delegate")
+        layout.prop(scene.hdusd.viewport, "delegate")
 
         # use the USD nodegraph if present
         row = layout.row()
-        row.prop(scene.hd_viewport, "use_usd_nodegraph")
+        row.prop(scene.hdusd.viewport, "use_usd_nodegraph")
         row.enabled = get_usd_nodetree() is not None

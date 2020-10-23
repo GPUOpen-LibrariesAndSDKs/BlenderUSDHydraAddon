@@ -28,13 +28,15 @@ class HydraRenderNode(USDNode):
         layout.prop(self, 'render_type')
 
     def draw_buttons_ext(self, context, layout):
-        self.draw_buttons(context, layout)
+        pass
+        # self.draw_buttons(context, layout)
 
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
         return stage
 
     def update(self):
+        print(self)
         context = bpy.context
         depsgraph = context.evaluated_depsgraph_get()
 

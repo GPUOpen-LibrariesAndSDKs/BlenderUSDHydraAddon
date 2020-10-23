@@ -29,10 +29,17 @@ bl_info = {
     "wiki_url": "",
     "category": "Render"
 }
-
 version_build = ""
 
+
 from . import config
+from .utils import logging
+
+
+log = logging.Log(tag='init')
+log("Loading USD Hydra addon {}".format(bl_info['version']))
+
+
 from .engine import final_engine, viewport_engine, preview_engine
 from . import (
     properties,
@@ -41,10 +48,8 @@ from . import (
     usd_nodes,
 )
 
-from .utils import logging
-log = logging.Log(tag='init')
 
-log("Loading USD Hydra addon {}".format(bl_info['version']))
+
 
 
 class HdEngine(bpy.types.RenderEngine):

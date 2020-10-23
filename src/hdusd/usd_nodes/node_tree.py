@@ -18,6 +18,9 @@ class USDTree(bpy.types.ShaderNodeTree):
         return next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
                      node.render_type == render_type), None)
 
+    def update(self):
+        print(self)
+
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
     """
