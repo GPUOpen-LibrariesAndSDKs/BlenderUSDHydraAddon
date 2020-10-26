@@ -45,8 +45,28 @@ class RenderDelegate(bpy.types.PropertyGroup):
         return self.use_usd_nodegraph and get_usd_nodetree() is not None
 
 
+class UsdItem(bpy.types.PropertyGroup):
+    """Group of properties representing an item in the list."""
+    name: bpy.props.StringProperty(
+        name="Name",
+        description="A name for this item",
+        default="Untitled"
+    )
+    random_prop: bpy.props.StringProperty(
+        name="Any other property you want",
+        description="",
+        default=""
+    )
+
+
 class SceneProperties(HdUSDProperties):
     bl_type = bpy.types.Scene
 
     final: bpy.props.PointerProperty(type=RenderDelegate)
     viewport: bpy.props.PointerProperty(type=RenderDelegate)
+
+    usd: bpy.props.CollectionProperty(type=UsdItem)
+    usd_index = bpy.props.IntProperty(
+        name="Index for my_list",
+        default=0
+    )

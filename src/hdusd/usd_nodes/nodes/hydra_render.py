@@ -32,12 +32,11 @@ class HydraRenderNode(USDNode):
         stage = self.get_input_link('Input', **kwargs)
         return stage
 
-    def update(self):
-        print(self)
+    def update_(self):
         context = bpy.context
         depsgraph = context.evaluated_depsgraph_get()
 
-        stage = self.get_input_link('Input',
+        stage = self.final_compute('Input',
             depsgraph=depsgraph)
 
         scene_collection = context.scene.collection

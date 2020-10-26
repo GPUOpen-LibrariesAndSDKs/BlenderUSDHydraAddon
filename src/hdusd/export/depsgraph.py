@@ -57,10 +57,10 @@ def sync(depsgraph: bpy.types.Depsgraph, **kwargs):
     UsdGeom.SetStageMetersPerUnit(stage, 1)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
-    root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}", 'Xform')
+    root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}")
     stage.SetDefaultPrim(root_prim)
 
-    objects_prim = stage.DefinePrim(f"{root_prim.GetPath()}/objects", 'Xform')
+    objects_prim = stage.DefinePrim(f"{root_prim.GetPath()}/objects")
 
     objects_len = len(depsgraph.objects)
     for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights)):

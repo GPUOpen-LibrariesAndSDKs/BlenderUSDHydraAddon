@@ -19,11 +19,9 @@ class WriteFileNode(USDNode):
         layout.prop(self, 'file_path')
 
     def compute(self, **kwargs):
-        if not self.file_path:
-            return None
-
         stage = self.get_input_link('Input', **kwargs)
-        if stage:
+
+        if stage and self.file_path:
             file_path = bpy.path.abspath(self.file_path)
             stage.Export(file_path)
 

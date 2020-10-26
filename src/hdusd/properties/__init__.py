@@ -39,6 +39,7 @@ class HdUSDProperties(bpy.types.PropertyGroup):
 from . import scene, object
 register, unregister = bpy.utils.register_classes_factory((
     scene.RenderDelegate,
+    scene.UsdItem,
     scene.SceneProperties,
 
     object.ObjectProperties
