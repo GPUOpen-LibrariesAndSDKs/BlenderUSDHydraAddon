@@ -36,7 +36,6 @@ class HdUSDProperties(bpy.types.PropertyGroup):
         del cls.bl_type.hdusd
 
 
-# Register/unregister all required classes of HdUSD properties in one go
 from . import scene, object
 register, unregister = bpy.utils.register_classes_factory((
     scene.RenderDelegate,

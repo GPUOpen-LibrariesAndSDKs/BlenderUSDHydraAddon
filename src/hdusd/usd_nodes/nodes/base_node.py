@@ -77,7 +77,7 @@ class USDNode(NodeParser):
     """Base class for all USD nodes"""
     @classmethod
     def poll(cls, tree: bpy.types.NodeTree):
-        return tree.bl_idname == 'usd.USDTree'
+        return tree.bl_idname == 'hdusd.USDTree'
 
 
 class RenderTaskNode(NodeParser):
