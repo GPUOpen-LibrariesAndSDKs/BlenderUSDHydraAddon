@@ -114,7 +114,7 @@ from . import (
     render,
     light,
     material,
-    usd,
+    usd_tree,
 )
 
 
@@ -129,8 +129,10 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_PT_displacement,
     material.HDUSD_MATERIAL_PT_volume,
 
-    usd.USD_UL_List,
-    usd.HDUSD_RENDER_PT_usd,
+    usd_tree.MyListTreeItem_Expand,
+    usd_tree.MyListTreeItem_Debug,
+    usd_tree.MYLISTTREEITEM_UL_basic,
+    usd_tree.HDUSD_RENDER_PT_usd,
 ])
 
 

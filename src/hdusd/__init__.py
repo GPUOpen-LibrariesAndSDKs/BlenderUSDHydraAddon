@@ -49,9 +49,6 @@ from . import (
 )
 
 
-
-
-
 class HdEngine(bpy.types.RenderEngine):
     """
     Main class of Radeon ProRender render engine for Blender v2.80+
@@ -183,6 +180,11 @@ def register():
     bpy.app.handlers.save_pre.append(on_save_pre)
     bpy.app.handlers.load_pre.append(on_load_pre)
     bpy.app.handlers.version_update.append(on_version_update)
+
+    from .properties.usd_tree import SetupNodeData
+    from .ui.usd_tree import SetupListFromNodeData
+    SetupNodeData()
+    SetupListFromNodeData()
 
 
 def unregister():

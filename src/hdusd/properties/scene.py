@@ -16,7 +16,7 @@ import bpy
 from pxr import UsdImagingGL
 
 from ..usd_nodes.node_tree import get_usd_nodetree
-from . import HdUSDProperties, log
+from . import HdUSDProperties, usd_tree, log
 
 
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
@@ -45,28 +45,12 @@ class RenderDelegate(bpy.types.PropertyGroup):
         return self.use_usd_nodegraph and get_usd_nodetree() is not None
 
 
-class UsdItem(bpy.types.PropertyGroup):
-    """Group of properties representing an item in the list."""
-    name: bpy.props.StringProperty(
-        name="Name",
-        description="A name for this item",
-        default="Untitled"
-    )
-    random_prop: bpy.props.StringProperty(
-        name="Any other property you want",
-        description="",
-        default=""
-    )
-
-
 class SceneProperties(HdUSDProperties):
     bl_type = bpy.types.Scene
 
     final: bpy.props.PointerProperty(type=RenderDelegate)
     viewport: bpy.props.PointerProperty(type=RenderDelegate)
 
-    usd: bpy.props.CollectionProperty(type=UsdItem)
-    usd_index = bpy.props.IntProperty(
-        name="Index for my_list",
-        default=0
-    )
+    myNodes: bpy.props.CollectionProperty(type=usd_tree.MyListTreeNode)
+    myListTree: bpy.props.CollectionProperty(type=usd_tree.MyListTreeItem)
+    myListTree_index: bpy.props.IntProperty()

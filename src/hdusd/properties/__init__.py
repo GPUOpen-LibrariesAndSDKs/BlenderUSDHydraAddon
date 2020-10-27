@@ -36,10 +36,12 @@ class HdUSDProperties(bpy.types.PropertyGroup):
         del cls.bl_type.hdusd
 
 
-from . import scene, object
+from . import scene, object, usd_tree
 register, unregister = bpy.utils.register_classes_factory((
+    usd_tree.MyListTreeNode,
+    usd_tree.MyListTreeItem,
+
     scene.RenderDelegate,
-    scene.UsdItem,
     scene.SceneProperties,
 
     object.ObjectProperties
