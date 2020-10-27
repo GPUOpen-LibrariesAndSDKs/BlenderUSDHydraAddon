@@ -26,26 +26,37 @@ class UsdTreeItem_Expand(HdUSD_Operator):
     index: bpy.props.IntProperty(default=0)
 
     def execute(self, context):
-        items = context.scene.hdusd.usd_tree.items
+        usd_tree = context.scene.hdusd.usd_tree
+        items = usd_tree.items
         item = items[self.index]
 
         if item.expanded:
             next_index = self.index + 1
             item_indent = item.indent
+            removed_items = 0
             while True:
                 if next_index >= len(items):
                     break
                 if items[next_index].indent <= item_indent:
                     break
                 items.remove(next_index)
+                removed_items += 1
+
+            if usd_tree.item_index > self.index:
+                usd_tree.item_index = max(self.index, usd_tree.item_index - removed_items)
 
         else:
             stage, prim = item.get_stage_prim()
 
+            added_items = 0
             for child_index, child_prim in enumerate(prim.GetChildren(), self.index + 1):
                 child_item = items.add()
                 child_item.sdf_path = str(child_prim.GetPath())
                 items.move(len(items) - 1, child_index)
+                added_items += 1
+
+            if usd_tree.item_index > self.index:
+                usd_tree.item_index += added_items
 
         item.expanded = not item.expanded
 
@@ -100,16 +111,13 @@ class HDUSD_RENDER_PT_usd(HdUSD_Panel):
     # bl_region_type = "UI"
     # bl_category = "USD"
 
-    @classmethod
-    def poll(cls, context):
-        return super().poll(context)
-
     def draw(self, context):
         usd_tree = context.scene.hdusd.usd_tree
         layout = self.layout
 
         row = layout.row()
         row.prop(usd_tree, 'usd_file')
+
         row = layout.row()
         row.template_list(
             "HDUSD_UL_tree_item", "",

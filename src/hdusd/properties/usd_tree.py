@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+from pathlib import Path
 import bpy
 from pxr import Usd
 
@@ -46,12 +47,19 @@ class UsdTree(bpy.types.PropertyGroup):
     usd_file: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
 
     def get_stage(self):
+        if not Path(self.usd_file).exists():
+            return None
+
         return Usd.Stage.Open(self.usd_file)
 
     def reload(self):
         self.items.clear()
         self.item_index = -1
+
         stage = self.get_stage()
+        if not stage:
+            return
+
         root = stage.GetPseudoRoot()
         for prim in root.GetChildren():
             item = self.items.add()

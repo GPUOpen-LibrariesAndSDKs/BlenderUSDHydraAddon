@@ -11,7 +11,6 @@ if utils.HDUSD_DEBUG_MODE:
     os.environ['PXR_PLUGINPATH_NAME'] = str(utils.USD_PLUGIN_ROOT / "plugin")
 
     sys.path.append(str(utils.USD_INSTALL_ROOT / "lib/python"))
-    sys.path.append(str(utils.USD_PLUGIN_ROOT / "lib/python"))
 else:
     # use local path
     os.environ['PATH'] = f"{utils.PLUGIN_ROOT_DIR / 'libs/usd'};{utils.PLUGIN_ROOT_DIR / 'libs/plugins'};" \
@@ -19,7 +18,3 @@ else:
     os.environ['PXR_PLUGINPATH_NAME'] = str(utils.PLUGIN_ROOT_DIR / "libs/plugins")
 
     sys.path.append(str(utils.PLUGIN_ROOT_DIR / "libs/usd/python"))
-    sys.path.append(str(utils.PLUGIN_ROOT_DIR / "libs/usd/python/pxr"))
-    sys.path.append(str(utils.PLUGIN_ROOT_DIR / "libs/plugins"))
-    sys.path.append(str(utils.PLUGIN_ROOT_DIR / "libs/hdrpr/python"))
-    sys.path.append(str(utils.PLUGIN_ROOT_DIR / "libs/hdrpr/python/rprUsdviewMenu"))
