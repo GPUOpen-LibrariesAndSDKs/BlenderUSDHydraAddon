@@ -44,7 +44,6 @@ from .engine import final_engine, viewport_engine, preview_engine
 from . import (
     properties,
     ui,
-    operators,
     usd_nodes,
 )
 
@@ -173,7 +172,6 @@ def register():
 
     bpy.utils.register_class(HdEngine)
     properties.register()
-    operators.register()
     ui.register()
     usd_nodes.register()
 

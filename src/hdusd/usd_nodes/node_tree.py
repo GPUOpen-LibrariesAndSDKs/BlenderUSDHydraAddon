@@ -35,7 +35,6 @@ class USDTree(bpy.types.ShaderNodeTree):
                      node.render_type == render_type), None)
 
     def update(self):
-        USD_COLLECTION_NAME = "USD Data"
         context = bpy.context
         usd_list = context.scene.hdusd.usd
 

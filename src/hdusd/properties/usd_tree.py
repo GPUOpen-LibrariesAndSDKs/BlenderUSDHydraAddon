@@ -22,7 +22,7 @@ class MyListTreeNode(bpy.types.PropertyGroup):
     childCount: bpy.props.IntProperty(default=0)
 
 
-class MyListTreeItem(bpy.types.PropertyGroup):
+class UsdTreeItem(bpy.types.PropertyGroup):
     indent: bpy.props.IntProperty(default=0)
     expanded: bpy.props.BoolProperty(default=False)
     nodeIndex: bpy.props.IntProperty(default=-1) #index into the real tree data.

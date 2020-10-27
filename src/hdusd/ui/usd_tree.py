@@ -14,7 +14,7 @@
 #********************************************************************
 import bpy
 
-from . import HDUSD_Panel
+from . import HDUSD_Panel, HdUSD_Operator
 
 
 def NewListItem(treeList, node):
@@ -26,7 +26,7 @@ def NewListItem(treeList, node):
 
 
 def SetupListFromNodeData():
-    treeList = bpy.context.scene.hdusd.myListTree
+    treeList = bpy.context.scene.hdusd.usd_tree
     treeList.clear()
 
     myNodes = bpy.context.scene.hdusd.myNodes
@@ -38,7 +38,7 @@ def SetupListFromNodeData():
 
 
 #
-#   Inserts a new item into myListTree at position item_index
+#   Inserts a new item into usd_tree at position item_index
 #   by copying data from node
 #
 def InsertBeneath(treeList, parentIndex, parentIndent, node):
@@ -63,15 +63,15 @@ def IsChild(child_node_index, parent_node_index, node_list):
 #
 #   Operation to Expand a list item.
 #
-class MyListTreeItem_Expand(bpy.types.Operator):
-    bl_idname = "object.mylisttree_expand"  # NOT SURE WHAT TO PUT HERE.
+class UsdTreeItem_Expand(HdUSD_Operator):
+    bl_idname = "hdusd.usdtreeitem_expand"
     bl_label = "Tool Name"
 
     button_id: bpy.props.IntProperty(default=0)
 
     def execute(self, context):
         item_index = self.button_id
-        item_list = context.scene.hdusd.myListTree
+        item_list = context.scene.hdusd.usd_tree
         item = item_list[item_index]
         item_indent = item.indent
 
@@ -121,20 +121,14 @@ class MyListTreeItem_Debug(bpy.types.Operator):
             SetupListFromNodeData()
         elif "clear" == action:
             print("=== Debug Clear ====")
-            bpy.context.scene.hdusd.myListTree.clear()
+            bpy.context.scene.hdusd.usd_tree.clear()
         else:
             print("unknown debug action: " + action)
 
         return {'FINISHED'}
 
 
-#
-#   My List UI class to draw my MyListTreeItem
-#   (The most important thing it does is show how to draw a list item)
-#
-# note this naming convention is important. For more info search for _UL_ in:
-# https://wiki.blender.org/wiki/Reference/Release_Notes/2.80/Python_API/Addons
-class MYLISTTREEITEM_UL_basic(bpy.types.UIList):
+class USDTREEITEM_UL_basic(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         scene = data
@@ -148,16 +142,16 @@ class MYLISTTREEITEM_UL_basic(bpy.types.UIList):
 
             # print("item:{} childCount:{}".format(item.name, item.childCount))
             if item.childCount == 0:
-                op = col.operator("object.mylisttree_expand", text="", icon='DOT')
+                op = col.operator("hdusd.usdtreeitem_expand", text="", icon='DOT')
                 op.button_id = index
                 col.enabled = False
             # if False:
             #    pass
             elif item.expanded:
-                op = col.operator("object.mylisttree_expand", text="", icon='TRIA_DOWN')
+                op = col.operator("hdusd.usdtreeitem_expand", text="", icon='TRIA_DOWN')
                 op.button_id = index
             else:
-                op = col.operator("object.mylisttree_expand", text="", icon='TRIA_RIGHT')
+                op = col.operator("hdusd.usdtreeitem_expand", text="", icon='TRIA_RIGHT')
                 op.button_id = index
 
             col = layout.column()
@@ -165,25 +159,24 @@ class MYLISTTREEITEM_UL_basic(bpy.types.UIList):
 
 
 class HDUSD_RENDER_PT_usd(HDUSD_Panel):
-    bl_label = "My List Tree"
-    bl_context = 'render'
+    bl_label = "USD Tree"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "USD"
 
-    # bl_space_type = "VIEW_3D"
-    # bl_region_type = "UI"
-    # bl_category = "My Category"
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context)
 
     def draw(self, context):
-        scn = context.scene.hdusd
+        scene_hdusd = context.scene.hdusd
         layout = self.layout
 
         row = layout.row()
         row.template_list(
-            "MYLISTTREEITEM_UL_basic",
-            "",
-            scn,
-            "myListTree",
-            scn,
-            "myListTree_index",
+            "USDTREEITEM_UL_basic", "",
+            scene_hdusd, "usd_tree",
+            scene_hdusd, "usd_tree_index",
             sort_lock=True
         )
 

@@ -46,6 +46,16 @@ class HDUSD_Panel(bpy.types.Panel):
         return column1, column2, is_row
 
 
+class HdUSD_Operator(bpy.types.Operator):
+    bl_idname = 'hdusd.operator'
+    bl_label = "HdUSD Operator"
+    COMPAT_ENGINES = {'HdUSD'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine in cls.COMPAT_ENGINES
+
+
 def get_panels():
     # follow the Cycles model of excluding panels we don't want
 
@@ -129,9 +139,9 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_PT_displacement,
     material.HDUSD_MATERIAL_PT_volume,
 
-    usd_tree.MyListTreeItem_Expand,
+    usd_tree.UsdTreeItem_Expand,
     usd_tree.MyListTreeItem_Debug,
-    usd_tree.MYLISTTREEITEM_UL_basic,
+    usd_tree.USDTREEITEM_UL_basic,
     usd_tree.HDUSD_RENDER_PT_usd,
 ])
 
