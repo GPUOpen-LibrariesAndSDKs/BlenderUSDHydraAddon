@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from . import HDUSD_Panel
+from . import HdUSD_Panel
 
 
-class HDUSD_LIGHT_PT_light(HDUSD_Panel):
+class HDUSD_LIGHT_PT_light(HdUSD_Panel):
     """
     Physical light sources
     """

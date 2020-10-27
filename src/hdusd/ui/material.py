@@ -13,11 +13,11 @@
 # limitations under the License.
 #********************************************************************
 
-from . import HDUSD_Panel
+from . import HdUSD_Panel
 from hdusd.export.material import get_material_output_node
 
 
-class HDUSD_MATERIAL_PT_context(HDUSD_Panel):
+class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
     bl_options = {'HIDE_HEADER'}
@@ -81,7 +81,7 @@ class HDUSD_MATERIAL_PT_context(HDUSD_Panel):
             split.separator()
 
 
-class HDUSD_MATERIAL_PT_preview(HDUSD_Panel):
+class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
     bl_label = "Preview"
     bl_context = "material"
     bl_options = {'DEFAULT_CLOSED'}
@@ -94,7 +94,7 @@ class HDUSD_MATERIAL_PT_preview(HDUSD_Panel):
         self.layout.template_preview(context.material)
 
 
-class HDUSD_MaterialOutputSocket(HDUSD_Panel):
+class HDUSD_MaterialOutputSocket(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
 

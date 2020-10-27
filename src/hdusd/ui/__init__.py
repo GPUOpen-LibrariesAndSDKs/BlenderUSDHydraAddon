@@ -18,7 +18,7 @@ import bpy
 PANEL_WIDTH_FOR_COLUMN = 200
 
 
-class HDUSD_Panel(bpy.types.Panel):
+class HdUSD_Panel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'render'
@@ -27,23 +27,6 @@ class HDUSD_Panel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
-
-    @staticmethod
-    def create_ui_autosize_column(context, column, single=False):
-        if context.region.width > PANEL_WIDTH_FOR_COLUMN:
-            row = column.row()
-            split = row.split(factor=0.5)
-            column1 = split.column(align=True)
-            split = split.split()
-            column2 = split.column(align=True)
-            is_row = False
-        else:
-            column1 = column.row().column(align=True)
-            if not single:
-                column.separator()
-            column2 = column.row().column(align=True)
-            is_row = True
-        return column1, column2, is_row
 
 
 class HdUSD_Operator(bpy.types.Operator):
@@ -140,8 +123,8 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_PT_volume,
 
     usd_tree.UsdTreeItem_Expand,
-    usd_tree.MyListTreeItem_Debug,
-    usd_tree.USDTREEITEM_UL_basic,
+    usd_tree.UsdTree_Debug,
+    usd_tree.HDUSD_UL_tree_item,
     usd_tree.HDUSD_RENDER_PT_usd,
 ])
 

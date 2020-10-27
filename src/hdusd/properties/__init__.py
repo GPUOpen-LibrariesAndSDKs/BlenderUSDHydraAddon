@@ -38,8 +38,8 @@ class HdUSDProperties(bpy.types.PropertyGroup):
 
 from . import scene, object, usd_tree
 register, unregister = bpy.utils.register_classes_factory((
-    usd_tree.MyListTreeNode,
     usd_tree.UsdTreeItem,
+    usd_tree.UsdTree,
 
     scene.RenderDelegate,
     scene.SceneProperties,

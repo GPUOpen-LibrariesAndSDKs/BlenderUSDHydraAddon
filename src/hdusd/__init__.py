@@ -179,11 +179,6 @@ def register():
     bpy.app.handlers.load_pre.append(on_load_pre)
     bpy.app.handlers.version_update.append(on_version_update)
 
-    from .properties.usd_tree import SetupNodeData
-    from .ui.usd_tree import SetupListFromNodeData
-    SetupNodeData()
-    SetupListFromNodeData()
-
 
 def unregister():
     """ Unregister all addon classes from Blender """

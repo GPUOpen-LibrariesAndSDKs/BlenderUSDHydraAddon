@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from . import HDUSD_Panel
+from . import HdUSD_Panel
 from ..usd_nodes.node_tree import get_usd_nodetree
 
-class HDUSD_RENDER_PT_delegate_final(HDUSD_Panel):
+class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
     """
     Final Render Delegate and settings
     """
@@ -34,7 +34,7 @@ class HDUSD_RENDER_PT_delegate_final(HDUSD_Panel):
         row.enabled = get_usd_nodetree() is not None
 
 
-class HDUSD_RENDER_PT_delegate_viewport(HDUSD_Panel):
+class HDUSD_RENDER_PT_delegate_viewport(HdUSD_Panel):
     """
     Viewport Render Delegate and settings
     """

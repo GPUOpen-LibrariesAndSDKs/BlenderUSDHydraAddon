@@ -13,69 +13,46 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-
-
-class MyListTreeNode(bpy.types.PropertyGroup):
-    name: ""
-    selfIndex: bpy.props.IntProperty(default=-1)
-    parentIndex: bpy.props.IntProperty(default=-1)
-    childCount: bpy.props.IntProperty(default=0)
+from pxr import Usd
 
 
 class UsdTreeItem(bpy.types.PropertyGroup):
-    indent: bpy.props.IntProperty(default=0)
+    sdf_path: bpy.props.StringProperty(name='USD Path', default="")
     expanded: bpy.props.BoolProperty(default=False)
-    nodeIndex: bpy.props.IntProperty(default=-1) #index into the real tree data.
-    childCount: bpy.props.IntProperty(default=0) #should equal myNodes[nodeIndex].childCount
+
+    @property
+    def indent(self):
+        return self.sdf_path.count('/') - 1
+
+    @property
+    def child_count(self):
+        stage, prim = self.get_stage_prim()
+        return len(prim.GetChildren())
+
+    @property
+    def prim_name(self):
+        stage, prim = self.get_stage_prim()
+        return prim.GetName()
+
+    def get_stage_prim(self):
+        stage = bpy.context.scene.hdusd.usd_tree.get_stage()
+        prim = stage.GetPrimAtPath(self.sdf_path)
+        return stage, prim
 
 
-def SetupNodeData():
-    myNodes = bpy.context.scene.hdusd.myNodes
-    myNodes.clear()
+class UsdTree(bpy.types.PropertyGroup):
+    items: bpy.props.CollectionProperty(type=UsdTreeItem)
+    item_index: bpy.props.IntProperty()
+    usd_file: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
 
-    for i in range(5):
-        node = myNodes.add()
-        node.name = "node {}".format(i)
-        node.selfIndex = len(myNodes) - 1
+    def get_stage(self):
+        return Usd.Stage.Open(self.usd_file)
 
-    for i in range(4):
-        node = myNodes.add()
-        node.name = "subnode {}".format(i)
-        node.selfIndex = len(myNodes) - 1
-        node.parentIndex = 2
-
-    parentIndex = len(myNodes) - 2
-
-    for i in range(2):
-        node = myNodes.add()
-        node.name = "subnode {}".format(i)
-        node.selfIndex = len(myNodes) - 1
-        node.parentIndex = parentIndex
-
-    parentIndex = len(myNodes) - 3
-
-    for i in range(2):
-        node = myNodes.add()
-        node.name = "subnode {}".format(i)
-        node.selfIndex = len(myNodes) - 1
-        node.parentIndex = parentIndex
-
-    parentIndex = len(myNodes) - 1
-
-    for i in range(2):
-        node = myNodes.add()
-        node.name = "subnode {}".format(i)
-        node.selfIndex = len(myNodes) - 1
-        node.parentIndex = parentIndex
-
-    # calculate childCount for all nodes
-    for node in myNodes:
-        if node.parentIndex != -1:
-            parent = myNodes[node.parentIndex]
-            parent.childCount = parent.childCount + 1
-
-    print("++++ SetupNodeData ++++")
-    print("Node count: {}".format(len(myNodes)))
-    for i in range(len(myNodes)):
-        node = myNodes[i]
-        print("{} node:{} child:{}".format(i, node.name, node.childCount))
+    def reload(self):
+        self.items.clear()
+        self.item_index = -1
+        stage = self.get_stage()
+        root = stage.GetPseudoRoot()
+        for prim in root.GetChildren():
+            item = self.items.add()
+            item.sdf_path = str(prim.GetPath())

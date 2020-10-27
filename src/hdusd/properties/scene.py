@@ -51,6 +51,4 @@ class SceneProperties(HdUSDProperties):
     final: bpy.props.PointerProperty(type=RenderDelegate)
     viewport: bpy.props.PointerProperty(type=RenderDelegate)
 
-    myNodes: bpy.props.CollectionProperty(type=usd_tree.MyListTreeNode)
-    usd_tree: bpy.props.CollectionProperty(type=usd_tree.UsdTreeItem)
-    usd_tree_index: bpy.props.IntProperty()
+    usd_tree: bpy.props.PointerProperty(type=usd_tree.UsdTree)
