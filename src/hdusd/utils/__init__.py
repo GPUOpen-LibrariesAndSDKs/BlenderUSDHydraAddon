@@ -40,7 +40,7 @@ BLENDER_ROOT_DIR = (Path(sys.executable).parent / "../Resources") if IS_MAC \
                    else Path(sys.executable).parent
 BLENDER_DATA_DIR = next(BLENDER_ROOT_DIR.glob("2.*/datafiles"))
 
-HDUSD_DEBUG_MODE = bool(os.environ.get('HDUSD_BLENDER_DEBUG', 0))
+HDUSD_DEBUG_MODE = bool(int(os.environ.get('HDUSD_BLENDER_DEBUG', 0)))
 if HDUSD_DEBUG_MODE:
     USD_INSTALL_ROOT = Path(os.environ['USD_INSTALL_ROOT'])
     USD_PLUGIN_ROOT = Path(os.environ['USD_PLUGIN_ROOT'])
@@ -117,5 +117,5 @@ def time_str(val):
 
 
 def usd_temp_path(*dep_objects):
-    h = hash("".join(str(hash(o)) for o in dep_objects))
-    return temp_pid_dir() / f"tmp{abs(h)}.usda"
+    h = hash("".join(str(hash(o)) for o in dep_objects)) & 0xffffff
+    return temp_pid_dir() / f"tmp{h:x}.usda"

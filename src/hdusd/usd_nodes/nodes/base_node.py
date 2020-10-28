@@ -8,10 +8,15 @@ class USDError(BaseException):
     pass
 
 
-class NodeParser(bpy.types.Node):
+class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
     bl_compatibility = {'HdUSD'}
+    tree_idname = 'hdusd.USDTree'
+
+    @classmethod
+    def poll(cls, tree: bpy.types.NodeTree):
+        return tree.bl_idname == cls.tree_idname
 
     def __hash__(self):
         return self.as_pointer()
@@ -40,7 +45,7 @@ class NodeParser(bpy.types.Node):
         3. Store group node reference if new one passed
         """
         # Keep reference for group node if present
-        if not isinstance(node, NodeParser):
+        if not isinstance(node, USDNode):
             log.warn("Ignoring unsupported node", node)
             return None
 
@@ -66,22 +71,13 @@ class NodeParser(bpy.types.Node):
 
         link = socket_in.links[0]
         if not link.is_valid:
-            raise USDError("Invalid link found", link, socket_in, self)
+            log.error("Invalid link found", link, socket_in, self)
 
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)
         return self._compute_node(link.from_node, link.from_socket, **kwargs)
 
 
-class USDNode(NodeParser):
-    """Base class for all USD nodes"""
-    @classmethod
-    def poll(cls, tree: bpy.types.NodeTree):
-        return tree.bl_idname == 'usd.USDTree'
-
-
-class RenderTaskNode(NodeParser):
+class RenderTaskNode(USDNode):
     """Base class for all hydra render task nodes"""
-    @classmethod
-    def poll(cls, tree: bpy.types.NodeTree):
-        return tree.bl_idname == 'usd.RenderTaskTree'
+    tree_idname = 'hdusd.RenderTaskTree'

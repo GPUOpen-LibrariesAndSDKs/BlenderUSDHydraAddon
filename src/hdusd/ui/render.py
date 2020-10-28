@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from . import HDUSD_Panel
+from . import HdUSD_Panel
 from ..usd_nodes.node_tree import get_usd_nodetree
 
-class HDUSD_RENDER_PT_delegate_final(HDUSD_Panel):
+class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
     """
     Final Render Delegate and settings
     """
@@ -26,14 +26,15 @@ class HDUSD_RENDER_PT_delegate_final(HDUSD_Panel):
         layout = self.layout
 
         scene = context.scene
-        layout.prop(scene.hd_final, "delegate")
+        layout.prop(scene.hdusd.final, "delegate")
 
         # use the USD nodegraph if present
         row = layout.row()
-        row.prop(scene.hd_final, "use_usd_nodegraph")
+        row.prop(scene.hdusd.final, "use_usd_nodegraph")
         row.enabled = get_usd_nodetree() is not None
 
-class HDUSD_RENDER_PT_delegate_viewport(HDUSD_Panel):
+
+class HDUSD_RENDER_PT_delegate_viewport(HdUSD_Panel):
     """
     Viewport Render Delegate and settings
     """
@@ -44,9 +45,9 @@ class HDUSD_RENDER_PT_delegate_viewport(HDUSD_Panel):
         layout = self.layout
 
         scene = context.scene
-        layout.prop(scene.hd_viewport, "delegate")
+        layout.prop(scene.hdusd.viewport, "delegate")
 
         # use the USD nodegraph if present
         row = layout.row()
-        row.prop(scene.hd_viewport, "use_usd_nodegraph")
+        row.prop(scene.hdusd.viewport, "use_usd_nodegraph")
         row.enabled = get_usd_nodetree() is not None

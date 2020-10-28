@@ -22,7 +22,7 @@ log = logging.Log(tag='export.Material')
 
 
 def usd_path(material: bpy.types.Material, input_socket_key='Surface'):
-    mat_key = f"/Scene/materials/{sdf_path(material.name_full)}"
+    mat_key = f"/Scene/_materials/{sdf_path(material.name_full)}"
 
     if input_socket_key != 'Surface':
         mat_key = f"{mat_key}/{sdf_path(input_socket_key)}"

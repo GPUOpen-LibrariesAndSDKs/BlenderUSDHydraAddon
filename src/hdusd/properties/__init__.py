@@ -12,27 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-""" property classes should be self contained.  They may include:
-    PropertyGroup class
-        with properties that can be attached to a blender ID type
-        methods for syncing these properties
-    And panel classes for displaying these properties
-
-    The idea here is to keep all the properties syncing, data, display etc in one place.
-    Basically a "model/view" type pattern where we bring them together for ease of maintenance.
-    Slightly inspired by vue.js
-"""
 import bpy
 
 from ..utils import logging
 log = logging.Log(tag='properties')
 
-# Register/unregister all required classes of HdUSD properties in one go
-from . import (
-    render,
-)
+
+class HdUSDProperties(bpy.types.PropertyGroup):
+    bl_type = None
+
+    @classmethod
+    def register(cls):
+        log("Register", cls)
+        cls.bl_type.hdusd = bpy.props.PointerProperty(
+            name="HdUSD properties",
+            description="HdUSD properties",
+            type=cls,
+        )
+
+    @classmethod
+    def unregister(cls):
+        log("Unregister", cls)
+        del cls.bl_type.hdusd
 
 
-register, unregister = bpy.utils.register_classes_factory([
-    render.HdUSD_RenderDelegate,
-])
+from . import scene, object, usd_tree
+register, unregister = bpy.utils.register_classes_factory((
+    usd_tree.UsdTreeItem,
+    usd_tree.UsdTree,
+
+    scene.RenderDelegate,
+    scene.SceneProperties,
+
+    object.ObjectProperties
+))

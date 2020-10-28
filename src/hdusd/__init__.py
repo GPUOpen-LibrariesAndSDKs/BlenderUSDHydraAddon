@@ -29,22 +29,23 @@ bl_info = {
     "wiki_url": "",
     "category": "Render"
 }
-
 version_build = ""
 
+
 from . import config
+from .utils import logging
+
+
+log = logging.Log(tag='init')
+log("Loading USD Hydra addon {}".format(bl_info['version']))
+
+
 from .engine import final_engine, viewport_engine, preview_engine
 from . import (
     properties,
     ui,
-    operators,
     usd_nodes,
 )
-
-from .utils import logging
-log = logging.Log(tag='init')
-
-log("Loading USD Hydra addon {}".format(bl_info['version']))
 
 
 class HdEngine(bpy.types.RenderEngine):
@@ -165,18 +166,24 @@ def on_load_pre(*args, **kwargs):
     utils.clear_temp_dir()
 
 
+@bpy.app.handlers.persistent
+def on_load_post(*args, **kwargs):
+    """ Handler on loading a blend file (after) """
+    log("on_load_post")
+    bpy.context.scene.hdusd.usd_tree.set_stage(None)
+
 def register():
     """ Register all addon classes in Blender """
     log("register")
 
     bpy.utils.register_class(HdEngine)
     properties.register()
-    operators.register()
     ui.register()
     usd_nodes.register()
 
     bpy.app.handlers.save_pre.append(on_save_pre)
     bpy.app.handlers.load_pre.append(on_load_pre)
+    bpy.app.handlers.load_post.append(on_load_post)
     bpy.app.handlers.version_update.append(on_version_update)
 
 
@@ -190,6 +197,5 @@ def unregister():
 
     usd_nodes.unregister()
     ui.unregister()
-    operators.unregister()
     properties.unregister()
     bpy.utils.unregister_class(HdEngine)

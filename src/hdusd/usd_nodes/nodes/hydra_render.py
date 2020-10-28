@@ -1,6 +1,3 @@
-import numpy as np
-import time
-
 import bpy
 from .base_node import USDNode
 from . import log
@@ -23,10 +20,13 @@ class HydraRenderNode(USDNode):
     
     def init(self, context):
         self.inputs.new(name="Input", type="NodeSocketShader")
-    
+
     def draw_buttons(self, context, layout):
         layout.prop(self, 'render_type')
 
+    def draw_buttons_ext(self, context, layout):
+        pass
+        # self.draw_buttons(context, layout)
 
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)

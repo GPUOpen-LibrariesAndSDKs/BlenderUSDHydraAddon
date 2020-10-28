@@ -1,5 +1,22 @@
+# **********************************************************************
+# Copyright 2020 Advanced Micro Devices, Inc
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ********************************************************************
 import bpy
+
 from .nodes.hydra_render import HydraRenderNode
+from ..utils import usd_temp_path
+
 
 class USDTree(bpy.types.ShaderNodeTree):
     """
@@ -11,12 +28,26 @@ class USDTree(bpy.types.ShaderNodeTree):
     When nodes or tree is updated, the node computation is re-run
     """
     bl_label = "USD"
-    bl_icon = "NODETREE"
-    bl_idname = "usd.USDTree"
+    bl_icon = 'NODETREE'
+    bl_idname = 'hdusd.USDTree'
 
     def get_output_node(self, render_type='BOTH'):
         return next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
                      node.render_type == render_type), None)
+
+    def update(self):
+        usd_tree = bpy.context.scene.hdusd.usd_tree
+        usd_tree.set_stage(None)
+
+        # calculating USD stage
+        stage = None
+        output_node = self.get_output_node()
+        if output_node:
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            stage = output_node.final_compute('Input',
+                depsgraph=depsgraph)
+
+        usd_tree.set_stage(stage)
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
@@ -34,13 +65,3 @@ class RenderTaskTree(bpy.types.ShaderNodeTree):
 def get_usd_nodetree():
     ''' return first USD nodetree found '''
     return next((ng for ng in bpy.data.node_groups if isinstance(ng, USDTree)), None)
-
-
-def register():
-    bpy.utils.register_class(USDTree)
-    # bpy.utils.register_class(RenderTaskTree)
-
-
-def unregister():
-    bpy.utils.unregister_class(USDTree)
-    # bpy.utils.unregister_class(RenderTaskTree)

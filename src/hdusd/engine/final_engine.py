@@ -65,8 +65,8 @@ class FinalEngine(Engine):
 
         # creating renderer
         renderer = UsdImagingGL.Engine()
-        log("Hydra render:", scene.hd_final.delegate)
-        renderer.SetRendererPlugin(scene.hd_final.delegate)
+        log("Hydra render:", scene.hdusd.final.delegate)
+        renderer.SetRendererPlugin(scene.hdusd.final.delegate)
 
         # setting camera
         usd_camera = UsdAppUtils.GetCameraAtPath(
@@ -108,7 +108,7 @@ class FinalEngine(Engine):
     def _render(self, scene):
         # creating renderer
         renderer = UsdImagingLite.Engine()
-        renderer.SetRendererPlugin(scene.hd_final.delegate)
+        renderer.SetRendererPlugin(scene.hdusd.final.delegate)
         renderer.SetRenderViewport((0, 0, self.width, self.height))
         renderer.SetRendererAov('color')
 
@@ -150,7 +150,7 @@ class FinalEngine(Engine):
 
         scene = depsgraph.scene
         log(f"Start render [{self.width}, {self.height}]. "
-            f"Hydra delegate: {scene.hd_final.delegate}")
+            f"Hydra delegate: {scene.hdusd.final.delegate}")
         if self.render_engine.bl_use_gpu_context:
             self._render_gl(scene)
         else:
@@ -161,7 +161,7 @@ class FinalEngine(Engine):
     def sync(self, depsgraph):
         scene = depsgraph.scene
         view_layer = depsgraph.view_layer
-        self.is_gl_delegate = scene.hd_final.is_opengl
+        self.is_gl_delegate = scene.hdusd.final.is_opengl
         self.render_layer_name = view_layer.name
         self.status_title = f"{scene.name}: {self.render_layer_name}"
         self.notify_status(0.0, "Start syncing")
@@ -187,7 +187,7 @@ class FinalEngine(Engine):
         def test_break():
             return self.render_engine.test_break()
 
-        if scene.hd_final.is_usd_nodegraph:
+        if scene.hdusd.final.is_usd_nodegraph:
             self.stage = nodegraph.sync(
                 get_usd_nodetree(),
                 depsgraph=depsgraph,
