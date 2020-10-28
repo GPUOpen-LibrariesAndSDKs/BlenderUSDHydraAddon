@@ -37,6 +37,7 @@ class USDTree(bpy.types.ShaderNodeTree):
 
     def update(self):
         usd_tree = bpy.context.scene.hdusd.usd_tree
+        usd_tree.set_stage(None)
 
         # calculating USD stage
         stage = None
@@ -46,13 +47,7 @@ class USDTree(bpy.types.ShaderNodeTree):
             stage = output_node.final_compute('Input',
                 depsgraph=depsgraph)
 
-        usd_file = ""
-        if stage:
-            usd_file = str(usd_temp_path(self))
-            stage.Export(usd_file)
-
-        usd_tree.usd_file = usd_file
-
+        usd_tree.set_stage(stage)
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):

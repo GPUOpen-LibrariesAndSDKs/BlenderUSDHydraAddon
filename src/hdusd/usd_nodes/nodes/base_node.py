@@ -71,7 +71,7 @@ class USDNode(bpy.types.Node):
 
         link = socket_in.links[0]
         if not link.is_valid:
-            raise USDError("Invalid link found", link, socket_in, self)
+            log.error("Invalid link found", link, socket_in, self)
 
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)

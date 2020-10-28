@@ -166,6 +166,12 @@ def on_load_pre(*args, **kwargs):
     utils.clear_temp_dir()
 
 
+@bpy.app.handlers.persistent
+def on_load_post(*args, **kwargs):
+    """ Handler on loading a blend file (after) """
+    log("on_load_post")
+    bpy.context.scene.hdusd.usd_tree.set_stage(None)
+
 def register():
     """ Register all addon classes in Blender """
     log("register")
@@ -177,6 +183,7 @@ def register():
 
     bpy.app.handlers.save_pre.append(on_save_pre)
     bpy.app.handlers.load_pre.append(on_load_pre)
+    bpy.app.handlers.load_post.append(on_load_post)
     bpy.app.handlers.version_update.append(on_version_update)
 
 
@@ -190,6 +197,5 @@ def unregister():
 
     usd_nodes.unregister()
     ui.unregister()
-    operators.unregister()
     properties.unregister()
     bpy.utils.unregister_class(HdEngine)

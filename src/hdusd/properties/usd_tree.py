@@ -17,6 +17,9 @@ import bpy
 from pxr import Usd
 
 
+_stage_cache = Usd.StageCache()
+
+
 class UsdTreeItem(bpy.types.PropertyGroup):
     sdf_path: bpy.props.StringProperty(name='USD Path', default="")
     expanded: bpy.props.BoolProperty(default=False)
@@ -32,22 +35,21 @@ class UsdTreeItem(bpy.types.PropertyGroup):
 
 
 class UsdTree(bpy.types.PropertyGroup):
-    def update_usd_file(self, context):
+    items: bpy.props.CollectionProperty(type=UsdTreeItem)
+    item_index: bpy.props.IntProperty(default=-1)
+    usd_id: bpy.props.IntProperty(default=-1)
+
+    def set_stage(self, stage):
+        _stage_cache.Clear()
+        if stage:
+            self.usd_id = _stage_cache.Insert(stage).ToLongInt()
+        else:
+            self.usd_id = -1
+
         self.reload()
 
-    items: bpy.props.CollectionProperty(type=UsdTreeItem)
-    item_index: bpy.props.IntProperty()
-    usd_file: bpy.props.StringProperty(
-        name="USD File",
-        subtype='FILE_PATH',
-        update=update_usd_file,
-    )
-
     def get_stage(self):
-        if not self.usd_file or not Path(self.usd_file).exists():
-            return None
-
-        return Usd.Stage.Open(self.usd_file)
+        return _stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
 
     def reload(self):
         self.items.clear()
