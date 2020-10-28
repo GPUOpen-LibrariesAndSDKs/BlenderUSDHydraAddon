@@ -15,6 +15,7 @@
 import bpy
 
 from .nodes.hydra_render import HydraRenderNode
+from ..utils import usd_temp_path
 
 
 class USDTree(bpy.types.ShaderNodeTree):
@@ -35,23 +36,23 @@ class USDTree(bpy.types.ShaderNodeTree):
                      node.render_type == render_type), None)
 
     def update(self):
-        pass
-        # context = bpy.context
-        # usd_list = context.scene.hdusd.usd
-        #
-        # # calculating USD stage
-        # stage = None
-        # output_node = self.get_output_node()
-        # if output_node:
-        #     depsgraph = context.evaluated_depsgraph_get()
-        #     stage = output_node.final_compute('Input',
-        #         depsgraph=depsgraph)
-        #
-        # usd_list.clear()
-        # if stage:
-        #     for prim in stage.Traverse():
-        #         item = usd_list.add()
-        #         item.name = str(prim.GetPath())
+        usd_tree = bpy.context.scene.hdusd.usd_tree
+
+        # calculating USD stage
+        stage = None
+        output_node = self.get_output_node()
+        if output_node:
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            stage = output_node.final_compute('Input',
+                depsgraph=depsgraph)
+
+        usd_file = ""
+        if stage:
+            usd_file = str(usd_temp_path(self))
+            stage.Export(usd_file)
+
+        usd_tree.usd_file = usd_file
+
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):

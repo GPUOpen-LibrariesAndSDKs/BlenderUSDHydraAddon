@@ -25,29 +25,26 @@ class UsdTreeItem(bpy.types.PropertyGroup):
     def indent(self):
         return self.sdf_path.count('/') - 1
 
-    @property
-    def child_count(self):
-        stage, prim = self.get_stage_prim()
-        return len(prim.GetChildren())
-
-    @property
-    def prim_name(self):
-        stage, prim = self.get_stage_prim()
-        return prim.GetName()
-
     def get_stage_prim(self):
         stage = bpy.context.scene.hdusd.usd_tree.get_stage()
-        prim = stage.GetPrimAtPath(self.sdf_path)
+        prim = stage.GetPrimAtPath(self.sdf_path) if stage else None
         return stage, prim
 
 
 class UsdTree(bpy.types.PropertyGroup):
+    def update_usd_file(self, context):
+        self.reload()
+
     items: bpy.props.CollectionProperty(type=UsdTreeItem)
     item_index: bpy.props.IntProperty()
-    usd_file: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
+    usd_file: bpy.props.StringProperty(
+        name="USD File",
+        subtype='FILE_PATH',
+        update=update_usd_file,
+    )
 
     def get_stage(self):
-        if not Path(self.usd_file).exists():
+        if not self.usd_file or not Path(self.usd_file).exists():
             return None
 
         return Usd.Stage.Open(self.usd_file)

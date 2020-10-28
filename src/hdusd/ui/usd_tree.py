@@ -65,21 +65,31 @@ class UsdTreeItem_Expand(HdUSD_Operator):
 
 class HDUSD_UL_tree_item(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            for i in range(item.indent):
-                layout.split(factor=0.1)
+        if self.layout_type not in {'DEFAULT', 'COMPACT'}:
+            return
 
-            col = layout.column()
-            if item.child_count == 0:
-                icon = 'DOT'
-                col.enabled = False
-            else:
-                icon = 'TRIA_DOWN' if item.expanded else 'TRIA_RIGHT'
+        for i in range(item.indent):
+            layout.split(factor=0.1)
 
-            col.operator("hdusd.usdtreeitem_expand", text="", icon=icon).index = index
+        stage, prim = item.get_stage_prim()
+        if not prim:
+            return
 
-            col = layout.column()
-            col.label(text=item.prim_name)
+        col = layout.column()
+        if not prim.GetChildren():
+            icon = 'DOT'
+            col.enabled = False
+        else:
+            icon = 'TRIA_DOWN' if item.expanded else 'TRIA_RIGHT'
+
+        col.operator("hdusd.usdtreeitem_expand", text="", icon=icon).index = index
+
+        col = layout.column()
+        col.label(text=prim.GetName())
+
+        col = layout.column()
+        col.alignment = 'RIGHT'
+        col.label(text=prim.GetTypeName())
 
 
 class UsdTree_Debug(bpy.types.Operator):
@@ -115,8 +125,8 @@ class HDUSD_RENDER_PT_usd(HdUSD_Panel):
         usd_tree = context.scene.hdusd.usd_tree
         layout = self.layout
 
-        row = layout.row()
-        row.prop(usd_tree, 'usd_file')
+        # row = layout.row()
+        # row.prop(usd_tree, 'usd_file')
 
         row = layout.row()
         row.template_list(
@@ -126,7 +136,16 @@ class HDUSD_RENDER_PT_usd(HdUSD_Panel):
             sort_lock=True
         )
 
-        grid = layout.grid_flow(columns=2)
-        grid.operator("hdusd.usdtree_debug", text="Reload").action = 'reload'
-        grid.operator("hdusd.usdtree_debug", text="Clear").action = 'clear'
-        grid.operator("hdusd.usdtree_debug", text="Print").action = 'print'
+        if usd_tree.item_index >= 0:
+            item = usd_tree.items[usd_tree.item_index]
+            stage, prim = item.get_stage_prim()
+
+            col = layout.column()
+            col.label(text=f"Name: {prim.GetName()}")
+            col.label(text=f"Path: {prim.GetPath()}")
+            col.label(text=f"Type: {prim.GetTypeName()}")
+            
+        # grid = layout.grid_flow(columns=2)
+        # grid.operator("hdusd.usdtree_debug", text="Reload").action = 'reload'
+        # grid.operator("hdusd.usdtree_debug", text="Clear").action = 'clear'
+        # grid.operator("hdusd.usdtree_debug", text="Print").action = 'print'
