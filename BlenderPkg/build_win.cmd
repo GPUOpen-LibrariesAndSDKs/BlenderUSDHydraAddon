@@ -15,8 +15,4 @@ REM  See the License for the specific language governing permissions and
 REM  limitations under the License.
 REM  *******************************************************************
 
-pushd ..
-call build.cmd
-popd
-
 call py -3.7 create_zip_addon.py

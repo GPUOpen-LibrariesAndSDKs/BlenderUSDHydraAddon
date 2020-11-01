@@ -119,33 +119,6 @@ class HdEngine(bpy.types.RenderEngine):
         except Exception as e:
             log.error(e, 'EXCEPTION:', traceback.format_exc())
 
-    # view layer AOVs
-    def update_render_passes(self, render_scene=None, render_layer=None):
-        """
-        Update 'Render Layers' compositor node with active render passes info.
-        Called by Blender.
-        """
-        # aovs = properties.view_layer.RPR_ViewLayerProperites.aovs_info
-        #
-        # scene = render_scene if render_scene else bpy.context.scene
-        # layer = render_layer if render_scene else bpy.context.view_layer
-        #
-        # for index, enabled in enumerate(layer.rpr.enable_aovs):
-        #     if enabled:
-        #         pass_channel = aovs[index]['channel']
-        #         pass_name = aovs[index]['name']
-        #         pass_channels_size = len(pass_channel)
-        #
-        #         # convert from channel to blender type
-        #         blender_type = 'VALUE'
-        #         if pass_channel in ('RGB', 'RGBA'):
-        #             blender_type = 'COLOR'
-        #         elif pass_channel in {'XYZ', 'UVA'}:
-        #             blender_type = 'VECTOR'
-        #
-        #         self.register_pass(scene, layer,
-        #                            pass_name, pass_channels_size, pass_channel, blender_type)
-
 
 @bpy.app.handlers.persistent
 def on_version_update(*args, **kwargs):
