@@ -30,12 +30,8 @@ if not os.path.isfile(script_py):
     print(f"Wrong or empty Python script file path: {script_py}")
     exit(1)
 
-if 'USD_INSTALL_ROOT' not in os.environ:
-    print("Please set USD_INSTALL_ROOT environment variable")
-    exit(1)
-
-if 'USD_PLUGIN_ROOT' not in os.environ:
-    print("Please set USD_PLUGIN_ROOT environment variable")
+if 'HDUSD_LIBS_DIR' not in os.environ:
+    print("Please set HDUSD_LIBS_DIR environment variable")
     exit(1)
 
 # Note: Only the OSX run script sets the debugger from the command line currently

@@ -10,6 +10,3 @@ venv
 .DS_Store
 
 *.cmd
-*.log
-/src/hdusd/configdev.py
-

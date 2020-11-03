@@ -41,9 +41,8 @@ BLENDER_ROOT_DIR = (Path(sys.executable).parent / "../Resources") if IS_MAC \
 BLENDER_DATA_DIR = next(BLENDER_ROOT_DIR.glob("2.*/datafiles"))
 
 HDUSD_DEBUG_MODE = bool(int(os.environ.get('HDUSD_BLENDER_DEBUG', 0)))
-if HDUSD_DEBUG_MODE:
-    USD_INSTALL_ROOT = Path(os.environ['USD_INSTALL_ROOT'])
-    USD_PLUGIN_ROOT = Path(os.environ['USD_PLUGIN_ROOT'])
+HDUSD_LIBS_DIR = Path(os.environ['HDUSD_LIBS_DIR']) if HDUSD_DEBUG_MODE else \
+                 PLUGIN_ROOT_DIR / 'libs'
 
 
 from . import logging
