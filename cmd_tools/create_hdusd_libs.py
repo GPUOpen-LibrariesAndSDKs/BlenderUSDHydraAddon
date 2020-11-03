@@ -72,14 +72,18 @@ def main():
                     help="USD dir")
     ap.add_argument("-hdrpr", required=True, metavar="",
                     help="HdRPR dir")
-    ap.add_argument("-libs", required=False, metavar="", default=os.environ['HDUSD_LIBS_DIR'],
+    ap.add_argument("-libs", required=False, metavar="",
                     help="Libs dir")
     args = ap.parse_args()
+
+    if not args.libs:
+        args.libs = os.environ['HDUSD_LIBS_DIR']
 
     libs_dir = Path(args.libs)
     if libs_dir.is_dir():
         shutil.rmtree(str(libs_dir))
 
+    print("Copying libs to:", libs_dir)
     for f, relative in enumerate_libs(Path(args.usd), Path(args.hdrpr)):
         print(f, '->', relative)
 
