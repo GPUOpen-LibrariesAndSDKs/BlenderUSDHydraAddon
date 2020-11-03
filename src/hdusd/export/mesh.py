@@ -208,8 +208,11 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
     usd_mesh.CreatePointsAttr(data.vertices)
     usd_mesh.CreateFaceVertexIndicesAttr(data.vertex_indices)
     usd_mesh.CreateFaceVertexCountsAttr(data.num_face_vertices)
+
+    usd_mesh.CreateSubdivisionSchemeAttr(UsdGeom.Tokens.none)
     usd_mesh.CreateNormalsAttr(data.normals)
     usd_mesh.SetNormalsInterpolation(UsdGeom.Tokens.faceVarying)
+
     for name, uv_layer in data.uv_layers.items():
         uv_primvar = usd_mesh.CreatePrimvar(sdf_path(name),
                                             Sdf.ValueTypeNames.TexCoord2fArray,
