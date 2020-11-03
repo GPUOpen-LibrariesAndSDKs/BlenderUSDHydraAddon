@@ -77,7 +77,8 @@ def main():
     args = ap.parse_args()
 
     libs_dir = Path(args.libs)
-    shutil.rmtree(str(libs_dir))
+    if libs_dir.is_dir():
+        shutil.rmtree(str(libs_dir))
 
     for f, relative in enumerate_libs(Path(args.usd), Path(args.hdrpr)):
         print(f, '->', relative)
