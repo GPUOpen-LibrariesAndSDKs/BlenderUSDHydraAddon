@@ -58,6 +58,7 @@ def sync(obj_prim, world: bpy.types.World, **kwargs):
     color = world.color
     ibl_path = ""
     if world.use_nodes:
+        # Parse simplest environment IBL image nodes config
         output = world.node_tree.get_output_node('ALL')
         if not output:
             output = world.node_tree.get_output_node('CYCLES')
