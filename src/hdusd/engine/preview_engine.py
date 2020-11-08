@@ -12,17 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import bpy
+
 from .engine import Engine
+from .final_engine import FinalEngine
 
 from ..utils import logging
 log = logging.Log(tag='PreviewEngine')
 
 
-class PreviewEngine(Engine):
+class PreviewEngine(FinalEngine):
     TYPE = 'PREVIEW'
 
     def render(self, scene):
         return
 
     def sync(self, depsgraph):
+        scene = depsgraph.scene
+        settings_scene = bpy.context.scene
+
+        resolution = (scene.render.resolution_x, scene.render.resolution_y)
+
         return
