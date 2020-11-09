@@ -52,6 +52,9 @@ def set_light_rotation(rpr_light, rotation: Tuple[float]) -> np.array:
 
 
 def sync(obj_prim, world: bpy.types.World, **kwargs):
+    is_gl_mode = kwargs.get('is_gl_delegate', False)
+
+    # TODO add RPR Environment settings support as an option
     if not world.use_nodes:
         return
 
@@ -85,7 +88,19 @@ def sync(obj_prim, world: bpy.types.World, **kwargs):
 
     stage = obj_prim.GetStage()
 
-    try:
+
+    if is_gl_mode:
+        try:
+            usd_light = UsdLux.DomeLight.Define(
+                stage, f"{obj_prim.GetPath()}/{sdf_path(world.name)}")
+
+            if ibl_path:
+                from pxr import Sdf
+                p = Sdf.AssetPath(ibl_path)
+                usd_light.CreateTextureFileAttr(p)
+        except Exception as e:
+            log.warn(f"World export error: {type(e)};\n\t{str(e)}\n")
+    else:
         usd_light = UsdLux.DomeLight.Define(
             stage, f"{obj_prim.GetPath()}/{sdf_path(world.name)}")
 
@@ -93,8 +108,6 @@ def sync(obj_prim, world: bpy.types.World, **kwargs):
             from pxr import Sdf
             p = Sdf.AssetPath(ibl_path)
             usd_light.CreateTextureFileAttr(p)
-    except Exception as e:
-        log.warn(f"World export error: {str(e)}")
 
     # data = WorldData.init_from_world(world)
     # data.export(rpr_context)

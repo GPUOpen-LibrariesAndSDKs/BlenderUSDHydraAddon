@@ -75,7 +75,7 @@ def sync(depsgraph: bpy.types.Depsgraph, **kwargs):
         except Exception as e:
             log.error(e)
 
-    world.sync(root_prim, depsgraph.scene.world)
+    world.sync(root_prim, depsgraph.scene.world, **kwargs)
 
     return stage
 
