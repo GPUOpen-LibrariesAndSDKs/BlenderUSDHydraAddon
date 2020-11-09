@@ -40,6 +40,7 @@ class WorldData:
 
     @dataclass(eq=True)
     class IblData:
+        color: tuple = (0, 0, 0)
         image: str = None
         studio_light: str = None
         rotation: tuple = (0, 0, 0)
@@ -48,7 +49,7 @@ class WorldData:
         def init_from_cycles(world: bpy.types.World):
             data = WorldData.IblData()
 
-            data.color = world.color
+            data.color = world.color[:3]
 
             if not world.use_nodes:
                 return data
@@ -67,7 +68,7 @@ class WorldData:
             if background_node.type != 'BACKGROUND':
                 return data
 
-            data.color = background_node.inputs['Color'].default_value
+            data.color = background_node.inputs['Color'].default_value[:3]
 
             # Environment Image node => image file info
             if not background_node.inputs['Color'].is_linked:
