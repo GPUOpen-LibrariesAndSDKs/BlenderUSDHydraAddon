@@ -22,7 +22,7 @@ from pathlib import Path
 import bpy
 import mathutils
 
-from pxr import Sdf, UsdLux
+from pxr import Gf, Sdf, UsdGeom, UsdLux
 
 from . import image, sdf_path
 
@@ -86,9 +86,9 @@ class WorldData:
 
             # Mapping node => rotation info
             mapping_node = environment_node.inputs['Vector'].links[0].from_node
-            if mapping_node.type != 'BACKGROUND':
+            if mapping_node.type != 'MAPPING':
                 return data
-            data.rotation = tuple(mapping_node.inputs[1])
+            data.rotation = tuple(mapping_node.inputs[2].default_value)
 
             return data
 
@@ -112,7 +112,21 @@ class WorldData:
         return data
 
 
-def sync(obj_prim, world: bpy.types.World, **kwargs):
+def set_light_rotation(xform, rotation: Tuple[float]) -> np.array:
+    """ Calculates rotation matrix from gizmo rotation """
+    matrix = np.identity(4)
+    euler = mathutils.Euler((-rotation[0], -rotation[1] + np.pi, -rotation[2] - np.pi / 2))
+
+    rotation_matrix = np.array(euler.to_matrix(), dtype=np.float32)
+
+    matrix[:3, :3] = rotation_matrix[:, :]
+
+    xform.ClearXformOpOrder()
+    xform.AddTransformOp().Set(Gf.Matrix4d(matrix))
+    return matrix
+
+
+def sync(root_prim, world: bpy.types.World, **kwargs):
     is_gl_mode = kwargs.get('is_gl_delegate', False)
 
     # TODO export correct Dome light with texture for GL mode
@@ -122,15 +136,26 @@ def sync(obj_prim, world: bpy.types.World, **kwargs):
     data = WorldData.init_from_world(world)
     log.info(f"world data: {data}")
 
-    stage = obj_prim.GetStage()
+    stage = root_prim.GetStage()
 
-    if data.cycles_ibl.image:
-        usd_light = UsdLux.DomeLight.Define(
-            stage, f"{obj_prim.GetPath()}/{sdf_path(world.name)}")
+    if not data.cycles_ibl.image:
+        # TODO use color data if no image present
+        return
 
-        p = Sdf.AssetPath(data.cycles_ibl.image)
-        usd_light.CreateTextureFileAttr(p)
-        usd_light.OrientToStageUpAxis()
+    xform = UsdGeom.Xform.Define(stage, f"{root_prim.GetPath()}/_world")
+    obj_prim = xform.GetPrim()
 
-        # TODO apply rotation
-    # TODO use color data if no image present
+    usd_light = UsdLux.DomeLight.Define(
+        stage, f"{obj_prim.GetPath()}/_world/{sdf_path(world.name)}")
+
+    p = Sdf.AssetPath(data.cycles_ibl.image)
+    usd_light.CreateTextureFileAttr(p)
+    usd_light.CreateTextureFormatAttr(UsdLux.Tokens.mirroredBall)
+    usd_light.ClearXformOpOrder()
+    usd_light.OrientToStageUpAxis()
+
+    # TODO apply rotation
+    if not is_gl_mode:
+        set_light_rotation(xform, data.cycles_ibl.rotation)
+
+
