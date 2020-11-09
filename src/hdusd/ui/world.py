@@ -15,7 +15,7 @@
 
 from bpy_extras.node_utils import find_node_input
 
-from . import HDUSD_Panel
+from . import HdUSD_Panel
 
 
 def panel_node_draw(layout, id_data, output_type, input_name):
@@ -39,7 +39,7 @@ def panel_node_draw(layout, id_data, output_type, input_name):
     return True
 
 
-class HDUSD_WORLD_PT_preview(HDUSD_Panel):
+class HDUSD_WORLD_PT_preview(HdUSD_Panel):
     bl_label = "Preview"
     bl_context = "world"
     bl_options = {'DEFAULT_CLOSED'}
@@ -52,7 +52,7 @@ class HDUSD_WORLD_PT_preview(HDUSD_Panel):
         self.layout.template_preview(context.world)
 
 
-class HDUSD_WORLD_PT_surface(HDUSD_Panel):
+class HDUSD_WORLD_PT_surface(HdUSD_Panel):
     bl_label = "Surface"
     bl_context = "world"
 
