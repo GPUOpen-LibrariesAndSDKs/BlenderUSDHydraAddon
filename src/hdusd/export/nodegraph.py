@@ -16,5 +16,8 @@
 
 def sync(nodetree, **kwargs):
     output_node = nodetree.get_output_node()
+    if not output_node:
+        return None
+
     stage = output_node.final_compute('Input', **kwargs)
     return stage
