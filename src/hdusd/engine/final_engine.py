@@ -197,6 +197,8 @@ class FinalEngine(Engine):
                 test_break=test_break,
                 engine=self,
             )
+            if not self.stage:
+                log.warn(f"Stage is empty, nothing to render. Check the USD nodegraph.")
 
         else:
             self.stage = dg.sync(
