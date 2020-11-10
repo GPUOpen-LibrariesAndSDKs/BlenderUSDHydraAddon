@@ -148,12 +148,12 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
 
     usd_light = UsdLux.DomeLight.Define(
         stage, f"{obj_prim.GetPath()}/_world/{sdf_path(world.name)}")
+    usd_light.ClearXformOpOrder()
+    usd_light.OrientToStageUpAxis()
 
     p = Sdf.AssetPath(data.cycles_ibl.image)
     usd_light.CreateTextureFileAttr(p)
     usd_light.CreateTextureFormatAttr(UsdLux.Tokens.mirroredBall)
-    usd_light.ClearXformOpOrder()
-    usd_light.OrientToStageUpAxis()
 
     # TODO apply rotation
     if not is_gl_mode:
