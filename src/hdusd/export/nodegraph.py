@@ -13,10 +13,14 @@
 # limitations under the License.
 #********************************************************************
 
+from ..utils import logging
+log = logging.Log(tag='export.nodegraph')
+
 
 def sync(nodetree, **kwargs):
     output_node = nodetree.get_output_node()
     if not output_node:
+        log.warn(f"Unable to find any suitable Output node in the USD Nodegraph.")
         return None
 
     stage = output_node.final_compute('Input', **kwargs)
