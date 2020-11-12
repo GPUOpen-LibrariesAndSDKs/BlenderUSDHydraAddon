@@ -14,8 +14,10 @@
 # ********************************************************************
 import bpy
 
-from .nodes.hydra_render import HydraRenderNode
 from .nodes.base_node import USDNode
+from .nodes.hydra_render import HydraRenderNode
+from .nodes.print_file import PrintFileNode
+from .nodes.write_file import WriteFileNode
 from ..utils import usd_temp_path
 
 
@@ -33,8 +35,18 @@ class USDTree(bpy.types.ShaderNodeTree):
     bl_idname = 'hdusd.USDTree'
 
     def get_output_node(self, render_type='BOTH'):
-        return next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
-                     node.render_type == render_type), None)
+        output_node = next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
+                            node.render_type == render_type), None)
+
+        if output_node:
+            return output_node
+
+        # try other output nodes
+        secondary_output_node = next(
+            (node for node in self.nodes if isinstance(node, (PrintFileNode, WriteFileNode))),
+            None)
+
+        return secondary_output_node
 
     def update(self):
         output_node = self.get_output_node()

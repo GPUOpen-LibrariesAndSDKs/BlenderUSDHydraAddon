@@ -198,7 +198,7 @@ class FinalEngine(Engine):
                 engine=self,
             )
 
-        else:
+        if not self.stage:
             self.stage = dg.sync(
                 depsgraph,
                 screen_ratio=screen_ratio,
