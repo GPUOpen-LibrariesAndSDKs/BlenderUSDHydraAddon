@@ -35,7 +35,7 @@ class USDNode(bpy.types.Node):
         This function does some useful preparation before and after calling compute() function.
         """
         log("compute", self, socket_out, group_nodes)
-        self.hdusd.usd_list.clear_stage()
+        self.hdusd.usd_list.set_stage(None)
         stage = self.compute(socket_out=socket_out, group_nodes=group_nodes, **kwargs)
         self.hdusd.usd_list.set_stage(stage)
         return stage

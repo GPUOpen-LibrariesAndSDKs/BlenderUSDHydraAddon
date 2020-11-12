@@ -15,6 +15,7 @@
 import bpy
 
 from .nodes.hydra_render import HydraRenderNode
+from .nodes.base_node import USDNode
 from ..utils import usd_temp_path
 
 
@@ -41,6 +42,12 @@ class USDTree(bpy.types.ShaderNodeTree):
             depsgraph = bpy.context.evaluated_depsgraph_get()
             output_node.final_compute(depsgraph=depsgraph)
 
+    def reset(self):
+        for node in self.nodes:
+            node.hdusd.usd_list.set_stage(None)
+
+        self.update()
+
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
     """
@@ -57,3 +64,9 @@ class RenderTaskTree(bpy.types.ShaderNodeTree):
 def get_usd_nodetree():
     ''' return first USD nodetree found '''
     return next((ng for ng in bpy.data.node_groups if isinstance(ng, USDTree)), None)
+
+
+def reset():
+    for group in bpy.data.node_groups:
+        if isinstance(group, USDTree):
+            group.reset()

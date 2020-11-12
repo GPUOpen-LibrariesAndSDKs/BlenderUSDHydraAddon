@@ -36,9 +36,11 @@ class UsdList(bpy.types.PropertyGroup):
     def set_stage(self, stage):
         self.items.clear()
         self.item_index = -1
+        if self.usd_id > 0:
+            _stage_cache.Erase(Usd.StageCache.Id.FromLongInt(self.usd_id))
+            self.usd_id = -1
 
         if not stage:
-            self.usd_id = -1
             return
 
         self.usd_id = _stage_cache.Insert(stage).ToLongInt()
@@ -48,10 +50,6 @@ class UsdList(bpy.types.PropertyGroup):
 
     def get_stage(self):
         return _stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
-
-    def clear_stage(self):
-        if self.usd_id > 0:
-            _stage_cache.Erase(Usd.StageCache.Id.FromLongInt(self.usd_id))
 
     def get_prim(self, item):
         stage = self.get_stage()
