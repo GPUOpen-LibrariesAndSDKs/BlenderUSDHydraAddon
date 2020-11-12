@@ -36,8 +36,8 @@ class USDTree(bpy.types.ShaderNodeTree):
                      node.render_type == render_type), None)
 
     def update(self):
-        usd_tree = bpy.context.scene.hdusd.usd_tree
-        usd_tree.set_stage(None)
+        usd_list = bpy.context.scene.hdusd.usd_list
+        usd_list.set_stage(None)
 
         # calculating USD stage
         stage = None
@@ -47,7 +47,7 @@ class USDTree(bpy.types.ShaderNodeTree):
             stage = output_node.final_compute('Input',
                 depsgraph=depsgraph)
 
-        usd_tree.set_stage(stage)
+        usd_list.set_stage(stage)
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):

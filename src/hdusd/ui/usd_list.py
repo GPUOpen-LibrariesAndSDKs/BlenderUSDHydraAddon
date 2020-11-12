@@ -18,7 +18,7 @@ from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
 
-class UsdTreeItem_Expand(HdUSD_Operator):
+class UsdListItem_Expand(HdUSD_Operator):
     """Operation to Expand a list item"""
 
     bl_idname = "hdusd.usdtreeitem_expand"
@@ -28,8 +28,8 @@ class UsdTreeItem_Expand(HdUSD_Operator):
 
     def execute(self, context):
         node = context.active_node
-        usd_tree = node.hdusd.usd_tree
-        items = usd_tree.items
+        usd_list = node.hdusd.usd_list
+        items = usd_list.items
         item = items[self.index]
 
         if item.expanded:
@@ -44,8 +44,8 @@ class UsdTreeItem_Expand(HdUSD_Operator):
                 items.remove(next_index)
                 removed_items += 1
 
-            if usd_tree.item_index > self.index:
-                usd_tree.item_index = max(self.index, usd_tree.item_index - removed_items)
+            if usd_list.item_index > self.index:
+                usd_list.item_index = max(self.index, usd_list.item_index - removed_items)
 
         else:
             stage, prim = item.get_stage_prim()
@@ -57,15 +57,15 @@ class UsdTreeItem_Expand(HdUSD_Operator):
                 items.move(len(items) - 1, child_index)
                 added_items += 1
 
-            if usd_tree.item_index > self.index:
-                usd_tree.item_index += added_items
+            if usd_list.item_index > self.index:
+                usd_list.item_index += added_items
 
         item.expanded = not item.expanded
 
         return {'FINISHED'}
 
 
-class HDUSD_UL_tree_item(bpy.types.UIList):
+class HDUSD_UL_usd_list_item(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type not in {'DEFAULT', 'COMPACT'}:
             return
@@ -94,31 +94,8 @@ class HDUSD_UL_tree_item(bpy.types.UIList):
         col.label(text=prim.GetTypeName())
 
 
-class UsdTree_Debug(bpy.types.Operator):
-    """Several debug operations"""
-    bl_idname = "hdusd.usdtree_debug"
-    bl_label = "Debug"
-
-    action: bpy.props.StringProperty(default="default")
-
-    def execute(self, context):
-        usd_tree = bpy.context.active_node.hdusd.usd_tree
-        if self.action == 'print':
-            print("=== Debug Print ====")
-        elif self.action == 'reload':
-            print("=== Debug Reload ====")
-            usd_tree.reload()
-        elif self.action == 'clear':
-            print("=== Debug Clear ====")
-            usd_tree.items.clear()
-        else:
-            raise NotImplemented("Unknown debug action:", self.action)
-
-        return {'FINISHED'}
-
-
-class HDUSD_RENDER_PT_usd(HdUSD_Panel):
-    bl_label = "USD Tree"
+class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
+    bl_label = "USD List"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -130,19 +107,19 @@ class HDUSD_RENDER_PT_usd(HdUSD_Panel):
 
     def draw(self, context):
         node = context.active_node
-        usd_tree = node.hdusd.usd_tree
+        usd_list = node.hdusd.usd_list
         layout = self.layout
 
         row = layout.row()
         row.template_list(
-            "HDUSD_UL_tree_item", "",
-            usd_tree, "items",
-            usd_tree, "item_index",
+            "HDUSD_UL_usd_list_item", "",
+            usd_list, "items",
+            usd_list, "item_index",
             sort_lock=True
         )
 
-        if usd_tree.item_index >= 0:
-            item = usd_tree.items[usd_tree.item_index]
+        if usd_list.item_index >= 0:
+            item = usd_list.items[usd_list.item_index]
             stage, prim = item.get_stage_prim()
 
             col = layout.column()
@@ -157,4 +134,4 @@ class HDUSD_RENDER_PT_usd(HdUSD_Panel):
 
         col = layout.column()
         col.prop(node, 'name')
-        col.prop(usd_tree, 'item_index')
+        col.prop(usd_list, 'item_index')

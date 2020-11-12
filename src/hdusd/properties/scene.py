@@ -16,7 +16,7 @@ import bpy
 from pxr import UsdImagingGL
 
 from ..usd_nodes.node_tree import get_usd_nodetree
-from . import HdUSDProperties, usd_tree, log
+from . import HdUSDProperties, usd_list, log
 
 
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
@@ -51,4 +51,4 @@ class SceneProperties(HdUSDProperties):
     final: bpy.props.PointerProperty(type=RenderDelegate)
     viewport: bpy.props.PointerProperty(type=RenderDelegate)
 
-    usd_tree: bpy.props.PointerProperty(type=usd_tree.UsdTree)
+    usd_list: bpy.props.PointerProperty(type=usd_list.UsdList)

@@ -143,7 +143,7 @@ def on_load_pre(*args, **kwargs):
 def on_load_post(*args, **kwargs):
     """ Handler on loading a blend file (after) """
     log("on_load_post")
-    bpy.context.scene.hdusd.usd_tree.set_stage(None)
+    bpy.context.scene.hdusd.usd_list.set_stage(None)
 
 def register():
     """ Register all addon classes in Blender """

@@ -79,14 +79,14 @@ class USDNode(bpy.types.Node):
 
     def update(self):
         print(self)
-        usd_tree = self.hdusd.usd_tree
-        usd_tree.set_stage(None)
+        usd_list = self.hdusd.usd_list
+        usd_list.set_stage(None)
 
         # calculating USD stage
         depsgraph = bpy.context.evaluated_depsgraph_get()
         stage = self.final_compute(depsgraph=depsgraph)
 
-        usd_tree.set_stage(stage)
+        usd_list.set_stage(stage)
 
 
 class RenderTaskNode(USDNode):

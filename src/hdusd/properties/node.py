@@ -14,10 +14,10 @@
 # ********************************************************************
 import bpy
 from . import HdUSDProperties
-from .usd_tree import UsdTree
+from .usd_list import UsdList
 
 
 class NodeProperties(HdUSDProperties):
     bl_type = bpy.types.Node
 
-    usd_tree: bpy.props.PointerProperty(type=UsdTree)
+    usd_list: bpy.props.PointerProperty(type=UsdList)
