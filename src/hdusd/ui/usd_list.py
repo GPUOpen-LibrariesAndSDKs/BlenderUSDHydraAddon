@@ -18,12 +18,9 @@ from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
 
-class UsdListItem_Expand(HdUSD_Operator):
+class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
     """Operation to Expand a list item"""
-
-    bl_idname = "hdusd.usdtreeitem_expand"
-    bl_label = "Tool Name"
-
+    bl_idname = "hdusd.usd_list_item_expand"
     index: bpy.props.IntProperty(default=0)
 
     def execute(self, context):
@@ -48,7 +45,7 @@ class UsdListItem_Expand(HdUSD_Operator):
                 usd_list.item_index = max(self.index, usd_list.item_index - removed_items)
 
         else:
-            stage, prim = item.get_stage_prim()
+            prim = usd_list.get_prim(item)
 
             added_items = 0
             for child_index, child_prim in enumerate(prim.GetChildren(), self.index + 1):
@@ -73,7 +70,7 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         for i in range(item.indent):
             layout.split(factor=0.1)
 
-        stage, prim = item.get_stage_prim()
+        prim = data.get_prim(item)
         if not prim:
             return
 
@@ -84,7 +81,8 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         else:
             icon = 'TRIA_DOWN' if item.expanded else 'TRIA_RIGHT'
 
-        col.operator("hdusd.usdtreeitem_expand", text="", icon=icon).index = index
+        expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon)
+        expand_op.index = index
 
         col = layout.column()
         col.label(text=prim.GetName())
@@ -94,11 +92,29 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         col.label(text=prim.GetTypeName())
 
 
+def draw_usd_list(usd_list, layout):
+    col = layout.column()
+    col.template_list(
+        "HDUSD_UL_usd_list_item", "",
+        usd_list, "items",
+        usd_list, "item_index",
+        sort_lock=True
+    )
+
+    if usd_list.item_index >= 0:
+        item = usd_list.items[usd_list.item_index]
+        prim = usd_list.get_prim(item)
+
+        col.label(text=f"Name: {prim.GetName()}")
+        col.label(text=f"Path: {prim.GetPath()}")
+        col.label(text=f"Type: {prim.GetTypeName()}")
+
+
 class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
     bl_label = "USD List"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
-    bl_category = "Item"
+    bl_category = "Tool"
 
     @classmethod
     def poll(cls, context):
@@ -110,28 +126,5 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         usd_list = node.hdusd.usd_list
         layout = self.layout
 
-        row = layout.row()
-        row.template_list(
-            "HDUSD_UL_usd_list_item", "",
-            usd_list, "items",
-            usd_list, "item_index",
-            sort_lock=True
-        )
+        draw_usd_list(usd_list, layout)
 
-        if usd_list.item_index >= 0:
-            item = usd_list.items[usd_list.item_index]
-            stage, prim = item.get_stage_prim()
-
-            col = layout.column()
-            col.label(text=f"Name: {prim.GetName()}")
-            col.label(text=f"Path: {prim.GetPath()}")
-            col.label(text=f"Type: {prim.GetTypeName()}")
-            
-        # grid = layout.grid_flow(columns=2)
-        # grid.operator("hdusd.usdtree_debug", text="Reload").action = 'reload'
-        # grid.operator("hdusd.usdtree_debug", text="Clear").action = 'clear'
-        # grid.operator("hdusd.usdtree_debug", text="Print").action = 'print'
-
-        col = layout.column()
-        col.prop(node, 'name')
-        col.prop(usd_list, 'item_index')

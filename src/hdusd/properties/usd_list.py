@@ -27,11 +27,6 @@ class UsdListItem(bpy.types.PropertyGroup):
     def indent(self):
         return self.sdf_path.count('/') - 1
 
-    def get_stage_prim(self):
-        stage = bpy.context.scene.hdusd.usd_list.get_stage()
-        prim = stage.GetPrimAtPath(self.sdf_path) if stage else None
-        return stage, prim
-
 
 class UsdList(bpy.types.PropertyGroup):
     items: bpy.props.CollectionProperty(type=UsdListItem)
@@ -39,26 +34,25 @@ class UsdList(bpy.types.PropertyGroup):
     usd_id: bpy.props.IntProperty(default=-1)
 
     def set_stage(self, stage):
-        _stage_cache.Clear()
-        if stage:
-            self.usd_id = _stage_cache.Insert(stage).ToLongInt()
-        else:
-            self.usd_id = -1
+        self.items.clear()
+        self.item_index = -1
 
-        self.reload()
+        if not stage:
+            self.usd_id = -1
+            return
+
+        self.usd_id = _stage_cache.Insert(stage).ToLongInt()
+        for prim in stage.GetPseudoRoot().GetChildren():
+            item = self.items.add()
+            item.sdf_path = str(prim.GetPath())
 
     def get_stage(self):
         return _stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
 
-    def reload(self):
-        self.items.clear()
-        self.item_index = -1
+    def clear_stage(self):
+        if self.usd_id > 0:
+            _stage_cache.Erase(Usd.StageCache.Id.FromLongInt(self.usd_id))
 
+    def get_prim(self, item):
         stage = self.get_stage()
-        if not stage:
-            return
-
-        root = stage.GetPseudoRoot()
-        for prim in root.GetChildren():
-            item = self.items.add()
-            item.sdf_path = str(prim.GetPath())
+        return stage.GetPrimAtPath(item.sdf_path) if stage else None
