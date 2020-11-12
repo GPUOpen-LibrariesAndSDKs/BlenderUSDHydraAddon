@@ -13,7 +13,7 @@
 # limitations under the License.
 #********************************************************************
 from . import HdUSD_Panel
-from ..usd_nodes.node_tree import get_usd_nodetree
+
 
 class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
     """
@@ -23,6 +23,8 @@ class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
     bl_context = 'render'
 
     def draw(self, context):
+        from ..usd_nodes.node_tree import get_usd_nodetree
+
         layout = self.layout
 
         scene = context.scene
@@ -42,6 +44,8 @@ class HDUSD_RENDER_PT_delegate_viewport(HdUSD_Panel):
     bl_context = 'render'
 
     def draw(self, context):
+        from ..usd_nodes.node_tree import get_usd_nodetree
+
         layout = self.layout
 
         scene = context.scene

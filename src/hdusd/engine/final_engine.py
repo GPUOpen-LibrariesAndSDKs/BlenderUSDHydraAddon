@@ -22,7 +22,6 @@ import bgl
 
 from .engine import Engine
 from ..export import depsgraph as dg, nodegraph, sdf_path
-from ..usd_nodes.node_tree import get_usd_nodetree
 from ..utils import gl, time_str
 
 from ..utils import logging
@@ -188,6 +187,7 @@ class FinalEngine(Engine):
             return self.render_engine.test_break()
 
         if scene.hdusd.final.is_usd_nodegraph:
+            from ..usd_nodes.node_tree import get_usd_nodetree
             self.stage = nodegraph.sync(
                 get_usd_nodetree(),
                 depsgraph=depsgraph,

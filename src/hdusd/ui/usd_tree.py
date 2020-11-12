@@ -15,6 +15,7 @@
 import bpy
 
 from . import HdUSD_Panel, HdUSD_Operator
+from ..usd_nodes.nodes.base_node import USDNode
 
 
 class UsdTreeItem_Expand(HdUSD_Operator):
@@ -26,7 +27,8 @@ class UsdTreeItem_Expand(HdUSD_Operator):
     index: bpy.props.IntProperty(default=0)
 
     def execute(self, context):
-        usd_tree = context.scene.hdusd.usd_tree
+        node = context.active_node
+        usd_tree = node.hdusd.usd_tree
         items = usd_tree.items
         item = items[self.index]
 
@@ -100,7 +102,7 @@ class UsdTree_Debug(bpy.types.Operator):
     action: bpy.props.StringProperty(default="default")
 
     def execute(self, context):
-        usd_tree = bpy.context.scene.hdusd.usd_tree
+        usd_tree = bpy.context.active_node.hdusd.usd_tree
         if self.action == 'print':
             print("=== Debug Print ====")
         elif self.action == 'reload':
@@ -117,16 +119,19 @@ class UsdTree_Debug(bpy.types.Operator):
 
 class HDUSD_RENDER_PT_usd(HdUSD_Panel):
     bl_label = "USD Tree"
-    # bl_space_type = "NODE_EDITOR"
-    # bl_region_type = "UI"
-    # bl_category = "USD"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "Item"
+
+    @classmethod
+    def poll(cls, context):
+        node = context.active_node
+        return node and isinstance(node, USDNode)
 
     def draw(self, context):
-        usd_tree = context.scene.hdusd.usd_tree
+        node = context.active_node
+        usd_tree = node.hdusd.usd_tree
         layout = self.layout
-
-        # row = layout.row()
-        # row.prop(usd_tree, 'usd_file')
 
         row = layout.row()
         row.template_list(
@@ -149,3 +154,7 @@ class HDUSD_RENDER_PT_usd(HdUSD_Panel):
         # grid.operator("hdusd.usdtree_debug", text="Reload").action = 'reload'
         # grid.operator("hdusd.usdtree_debug", text="Clear").action = 'clear'
         # grid.operator("hdusd.usdtree_debug", text="Print").action = 'print'
+
+        col = layout.column()
+        col.prop(node, 'name')
+        col.prop(usd_tree, 'item_index')
