@@ -25,9 +25,8 @@ from pxr import UsdImagingGL
 from .engine import Engine
 from ..export import depsgraph as dg, nodegraph, camera, material, object, sdf_path
 from .. import utils
-from ..usd_nodes.node_tree import get_usd_nodetree
 
-from hdusd.utils import logging
+from ..utils import logging
 log = logging.Log(tag='viewport_engine')
 
 
@@ -205,6 +204,7 @@ class ViewportEngine(Engine):
         self.renderer.SetRendererPlugin(prop.delegate)
 
         if self.is_usd_nodegraph:
+            from ..usd_nodes.node_tree import get_usd_nodetree
             self.stage_nodegraph = nodegraph.sync(
                 get_usd_nodetree(),
                 depsgraph=depsgraph,

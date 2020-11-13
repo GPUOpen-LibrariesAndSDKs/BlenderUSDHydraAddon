@@ -30,8 +30,7 @@ class HdUSD_Panel(bpy.types.Panel):
 
 
 class HdUSD_Operator(bpy.types.Operator):
-    bl_idname = 'hdusd.operator'
-    bl_label = "HdUSD Operator"
+    bl_label = ""
     COMPAT_ENGINES = {'HdUSD'}
 
     @classmethod
@@ -107,7 +106,7 @@ from . import (
     render,
     light,
     material,
-    usd_tree,
+    usd_list,
 )
 
 
@@ -122,10 +121,9 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_PT_displacement,
     material.HDUSD_MATERIAL_PT_volume,
 
-    usd_tree.UsdTreeItem_Expand,
-    usd_tree.UsdTree_Debug,
-    usd_tree.HDUSD_UL_tree_item,
-    usd_tree.HDUSD_RENDER_PT_usd,
+    usd_list.HDUSD_OP_usd_list_item_expand,
+    usd_list.HDUSD_UL_usd_list_item,
+    usd_list.HDUSD_NODE_PT_usd_list,
 ])
 
 
