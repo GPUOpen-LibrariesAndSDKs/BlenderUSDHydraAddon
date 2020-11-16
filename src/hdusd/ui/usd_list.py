@@ -29,7 +29,7 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
         items = usd_list.items
         item = items[self.index]
 
-        if item.expanded:
+        if len(items) > self.index + 1 and items[self.index + 1].indent > item.indent:
             next_index = self.index + 1
             item_indent = item.indent
             removed_items = 0
@@ -57,8 +57,6 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
             if usd_list.item_index > self.index:
                 usd_list.item_index += added_items
 
-        item.expanded = not item.expanded
-
         return {'FINISHED'}
 
 
@@ -70,6 +68,7 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         for i in range(item.indent):
             layout.split(factor=0.1)
 
+        items = data.items
         prim = data.get_prim(item)
         if not prim:
             return
@@ -78,8 +77,10 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         if not prim.GetChildren():
             icon = 'DOT'
             col.enabled = False
+        elif len(items) > index + 1 and items[index + 1].indent > item.indent:
+            icon = 'TRIA_DOWN'
         else:
-            icon = 'TRIA_DOWN' if item.expanded else 'TRIA_RIGHT'
+            icon = 'TRIA_RIGHT'
 
         expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon)
         expand_op.index = index

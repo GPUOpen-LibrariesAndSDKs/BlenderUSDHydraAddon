@@ -21,7 +21,6 @@ _stage_cache = Usd.StageCache()
 
 class UsdListItem(bpy.types.PropertyGroup):
     sdf_path: bpy.props.StringProperty(name='USD Path', default="")
-    expanded: bpy.props.BoolProperty(default=False)
 
     @property
     def indent(self):
