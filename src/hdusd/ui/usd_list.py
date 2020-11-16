@@ -93,24 +93,6 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         col.label(text=prim.GetTypeName())
 
 
-def draw_usd_list(usd_list, layout):
-    col = layout.column()
-    col.template_list(
-        "HDUSD_UL_usd_list_item", "",
-        usd_list, "items",
-        usd_list, "item_index",
-        sort_lock=True
-    )
-
-    if usd_list.item_index >= 0:
-        item = usd_list.items[usd_list.item_index]
-        prim = usd_list.get_prim(item)
-
-        col.label(text=f"Name: {prim.GetName()}")
-        col.label(text=f"Path: {prim.GetPath()}")
-        col.label(text=f"Type: {prim.GetTypeName()}")
-
-
 class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
     bl_label = "USD List"
     bl_space_type = "NODE_EDITOR"
@@ -127,5 +109,19 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         usd_list = node.hdusd.usd_list
         layout = self.layout
 
-        draw_usd_list(usd_list, layout)
+        layout.template_list(
+            "HDUSD_UL_usd_list_item", "",
+            usd_list, "items",
+            usd_list, "item_index",
+            sort_lock=True
+        )
 
+        prop_layout = layout.column()
+        prop_layout.use_property_split = True
+        for prop in usd_list.prim_properties:
+            if prop.type == 0:
+                row = prop_layout.row()
+                row.enabled = False
+                row.prop(prop, 'value_str', text=prop.name)
+            else:
+                prop_layout.prop(prop, 'value_float', text=prop.name)
