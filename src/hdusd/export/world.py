@@ -54,7 +54,7 @@ class WorldData:
             if not world.use_nodes:
                 return data
 
-            # Parse simplest environment IBL image nodes config:
+            # Parse the simplest environment IBL image nodes config:
             # Mapping -> Environment Image -> Background -> World Output
             output = world.node_tree.get_output_node('ALL')
             if not output:
@@ -79,13 +79,15 @@ class WorldData:
             if not environment_node.image or not environment_node.image.filepath:
                 return data
             img_path = environment_node.image.filepath_from_user()
-            if not Path(img_path).is_file():
-                return data
 
             # TODO extract studio lights and packed images
+            if not Path(img_path).is_file():
+                return data
             data.image = str(img_path)
 
             # Mapping node => rotation info
+            if not environment_node.inputs['Vector'].is_linked:
+                return data
             mapping_node = environment_node.inputs['Vector'].links[0].from_node
             if mapping_node.type != 'MAPPING':
                 return data
@@ -130,8 +132,8 @@ def set_light_rotation(xform, rotation: Tuple[float]) -> np.array:
 def sync(root_prim, world: bpy.types.World, **kwargs):
     is_gl_mode = kwargs.get('is_gl_delegate', False)
 
-    # TODO export correct Dome light with texture for GL mode
     if is_gl_mode:
+        # TODO export correct Dome light with texture for GL mode
         return
 
     data = WorldData.init_from_world(world)
@@ -140,7 +142,7 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
     stage = root_prim.GetStage()
 
     if not data.cycles_ibl.image:
-        # TODO use color data if no image present
+        # TODO create image from environment color data if no image used
         return
 
     xform = UsdGeom.Xform.Define(stage, f"{root_prim.GetPath()}/_world")
@@ -153,10 +155,7 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
 
     p = Sdf.AssetPath(data.cycles_ibl.image)
     usd_light.CreateTextureFileAttr(p)
-    usd_light.CreateTextureFormatAttr(UsdLux.Tokens.mirroredBall)
 
-    # TODO apply rotation
-    if not is_gl_mode:
-        set_light_rotation(xform, data.cycles_ibl.rotation)
+    set_light_rotation(xform, data.cycles_ibl.rotation)
 
 
