@@ -25,9 +25,8 @@ from pxr import UsdImagingGL
 from .engine import Engine
 from ..export import depsgraph as dg, nodegraph, camera, material, object, sdf_path
 from .. import utils
-from ..usd_nodes.node_tree import get_usd_nodetree
 
-from hdusd.utils import logging
+from ..utils import logging
 log = logging.Log(tag='viewport_engine')
 
 
@@ -205,6 +204,7 @@ class ViewportEngine(Engine):
         self.renderer.SetRendererPlugin(prop.delegate)
 
         if self.is_usd_nodegraph:
+            from ..usd_nodes.node_tree import get_usd_nodetree
             self.stage_nodegraph = nodegraph.sync(
                 get_usd_nodetree(),
                 depsgraph=depsgraph,
@@ -213,8 +213,9 @@ class ViewportEngine(Engine):
                 use_scene_lights = self.shading_data.use_scene_lights,
                 engine=self,
             )
-            self.stage = dg.get_stage(depsgraph, self)
-        else:
+
+        if not self.stage_nodegraph:
+            # self.is_usd_nodegraph = False
             self.stage = dg.sync(
                 depsgraph,
                 is_gl_delegate=self.is_gl_delegate,
@@ -222,6 +223,8 @@ class ViewportEngine(Engine):
                 use_scene_lights=self.shading_data.use_scene_lights,
                 engine=self,
             )
+        else:
+            self.stage = dg.get_stage(depsgraph, self)
 
         self.is_synced = True
 
@@ -353,6 +356,9 @@ class ViewportEngine(Engine):
         if not self.is_synced:
             return
 
+        if not self.stage_nodegraph and not self.stage:
+            return
+
         view_settings = ViewSettings(context)
         if view_settings.width * view_settings.height == 0:
             return
@@ -382,7 +388,7 @@ class ViewportEngine(Engine):
         bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
         self.render_engine.bind_display_space_shader(context.scene)
 
-        stage = self.stage_nodegraph if self.is_usd_nodegraph else self.stage
+        stage = self.stage_nodegraph if self.is_usd_nodegraph and self.stage_nodegraph else self.stage
         try:
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
         except Exception as e:

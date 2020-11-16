@@ -27,15 +27,18 @@ class USDNode(bpy.types.Node):
         Main compute function which should be overridable in child classes.
         It should return Prim object or None.
         """
-        pass
+        return None
 
-    def final_compute(self, socket_out: bpy.types.NodeSocket, group_nodes=(), **kwargs):
+    def final_compute(self, socket_out: bpy.types.NodeSocket = None, group_nodes=(), **kwargs):
         """
-        This is the entry point of NodeParser classes.
+        This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
         log("compute", self, socket_out, group_nodes)
-        return self.compute(socket_out=socket_out, group_nodes=group_nodes, **kwargs)
+        self.hdusd.usd_list.set_stage(None)
+        stage = self.compute(socket_out=socket_out, group_nodes=group_nodes, **kwargs)
+        self.hdusd.usd_list.set_stage(stage)
+        return stage
 
     def _compute_node(self, node, socket_out, group_node=None, **kwargs):
         """
@@ -76,6 +79,12 @@ class USDNode(bpy.types.Node):
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)
         return self._compute_node(link.from_node, link.from_socket, **kwargs)
+
+    def get_stage(self):
+        return self.hdusd.usd_list.get_stage()
+
+    def free(self):
+        self.hdusd.usd_list.clear_stage()
 
 
 class RenderTaskNode(USDNode):

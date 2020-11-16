@@ -14,7 +14,10 @@
 # ********************************************************************
 import bpy
 
+from .nodes.base_node import USDNode
 from .nodes.hydra_render import HydraRenderNode
+from .nodes.print_file import PrintFileNode
+from .nodes.write_file import WriteFileNode
 from ..utils import usd_temp_path
 
 
@@ -32,22 +35,30 @@ class USDTree(bpy.types.ShaderNodeTree):
     bl_idname = 'hdusd.USDTree'
 
     def get_output_node(self, render_type='BOTH'):
-        return next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
-                     node.render_type == render_type), None)
+        output_node = next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
+                            node.render_type == render_type), None)
+
+        if output_node:
+            return output_node
+
+        # try other output nodes
+        secondary_output_node = next(
+            (node for node in self.nodes if isinstance(node, (PrintFileNode, WriteFileNode))),
+            None)
+
+        return secondary_output_node
 
     def update(self):
-        usd_tree = bpy.context.scene.hdusd.usd_tree
-        usd_tree.set_stage(None)
-
-        # calculating USD stage
-        stage = None
         output_node = self.get_output_node()
         if output_node:
             depsgraph = bpy.context.evaluated_depsgraph_get()
-            stage = output_node.final_compute('Input',
-                depsgraph=depsgraph)
+            output_node.final_compute(depsgraph=depsgraph)
 
-        usd_tree.set_stage(stage)
+    def reset(self):
+        for node in self.nodes:
+            node.hdusd.usd_list.set_stage(None)
+
+        self.update()
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
@@ -65,3 +76,9 @@ class RenderTaskTree(bpy.types.ShaderNodeTree):
 def get_usd_nodetree():
     ''' return first USD nodetree found '''
     return next((ng for ng in bpy.data.node_groups if isinstance(ng, USDTree)), None)
+
+
+def reset():
+    for group in bpy.data.node_groups:
+        if isinstance(group, USDTree):
+            group.reset()
