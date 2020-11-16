@@ -12,25 +12,66 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import bpy
+from bpy.types import PropertyGroup
+from bpy.props import (
+    CollectionProperty,
+    StringProperty,
+    IntProperty,
+    FloatProperty,
+)
 from pxr import Usd
 
 
 _stage_cache = Usd.StageCache()
 
 
-class UsdListItem(bpy.types.PropertyGroup):
-    sdf_path: bpy.props.StringProperty(name='USD Path', default="")
+class PrimPropertyItem(PropertyGroup):
+    def value_float_update(self, context):
+        pass
+
+    name: StringProperty(name='Name', default="")
+    type: IntProperty(default=0)
+    value_str: StringProperty(name='Str', default="")
+    value_float: FloatProperty(name='Float', default=0.0, update=value_float_update)
+
+
+class UsdListItem(PropertyGroup):
+    sdf_path: StringProperty(name='USD Path', default="")
 
     @property
     def indent(self):
         return self.sdf_path.count('/') - 1
 
 
-class UsdList(bpy.types.PropertyGroup):
-    items: bpy.props.CollectionProperty(type=UsdListItem)
-    item_index: bpy.props.IntProperty(default=-1)
-    usd_id: bpy.props.IntProperty(default=-1)
+class UsdList(PropertyGroup):
+    def item_index_update(self, context):
+        self.prim_properties.clear()
+        if self.item_index == -1:
+            return
+
+        item = self.items[self.item_index]
+        prim = self.get_prim(item)
+
+        def add_prop(name, value):
+            prop = self.prim_properties.add()
+            prop.name = name
+            if isinstance(value, str):
+                prop.value_str = value
+                prop.type = 0
+            else:
+                prop.value_float = value
+                prop.type = 1
+
+        add_prop("Name", prim.GetName())
+        add_prop("Path", str(prim.GetPath()))
+        add_prop("Type", str(prim.GetTypeName()))
+        add_prop('location_x', 0.0)
+
+    items: CollectionProperty(type=UsdListItem)
+    item_index: IntProperty(default=-1, update=item_index_update)
+    usd_id: IntProperty(default=-1)
+
+    prim_properties: CollectionProperty(type=PrimPropertyItem)
 
     def set_stage(self, stage):
         self.items.clear()
