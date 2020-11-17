@@ -123,7 +123,22 @@ def get_blender_prim_object(context):
         log("Collection created", collection)
 
         obj = bpy.data.objects.new("/", None)
+        obj.hdusd.is_usd = True
         collection.objects.link(obj)
         log("Object created", obj)
 
     return collection.objects[0]
+
+
+
+def depsgraph_update(depsgraph):
+    if len(depsgraph.updates) != 1:
+        return
+
+    upd = depsgraph.updates[0]
+    obj = upd.id
+    if not isinstance(obj, bpy.types.Object) or not obj.hdusd.is_usd:
+        return
+
+    print(obj)
+    

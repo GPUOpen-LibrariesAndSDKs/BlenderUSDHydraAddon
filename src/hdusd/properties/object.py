@@ -14,13 +14,9 @@
 #********************************************************************
 import bpy
 from . import HdUSDProperties
-from .usd_list import UsdList
 
 
 class ObjectProperties(HdUSDProperties):
     bl_type = bpy.types.Object
 
-    def usd_list_update(self, context):
-        print("usd_list_update")
-
-    usd_list = None
+    is_usd: bpy.props.BoolProperty(default=False)
