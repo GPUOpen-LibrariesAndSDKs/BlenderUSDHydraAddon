@@ -128,3 +128,20 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
 
         draw_usd_list(usd_list, layout)
 
+
+class HDUSD_OP_usd_nodetree_add_basic_nodes(HdUSD_Operator):
+    bl_idname = "hdusd.usd_nodetree_add_basic_nodes"
+
+    scene_source: bpy.props.EnumProperty(
+        items=(
+            ('SCENE', 'Scene', 'Render current scene'),
+            ('USD_FILE', 'USD File', 'Load and render scene from USD file'),
+        ),
+        default='SCENE',
+    )
+
+    def execute(self, context):
+        tree = context.space_data.edit_tree
+        tree.add_basic_nodes(self.scene_source)
+        return {'FINISHED'}
+

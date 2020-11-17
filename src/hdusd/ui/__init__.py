@@ -124,6 +124,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     usd_list.HDUSD_OP_usd_list_item_expand,
     usd_list.HDUSD_UL_usd_list_item,
     usd_list.HDUSD_NODE_PT_usd_list,
+    usd_list.HDUSD_OP_usd_nodetree_add_basic_nodes,
 ])
 
 
