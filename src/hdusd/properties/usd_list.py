@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+import bpy
 from bpy.types import PropertyGroup
 from bpy.props import (
     CollectionProperty,
@@ -19,7 +20,8 @@ from bpy.props import (
     IntProperty,
     FloatProperty,
 )
-from pxr import Usd
+from pxr import Usd, UsdGeom
+from . import log
 
 
 _stage_cache = Usd.StageCache()
@@ -27,12 +29,27 @@ _stage_cache = Usd.StageCache()
 
 class PrimPropertyItem(PropertyGroup):
     def value_float_update(self, context):
-        pass
+        if not self.name:
+            # property is not initialized yet
+            return
 
-    name: StringProperty(name='Name', default="")
-    type: IntProperty(default=0)
-    value_str: StringProperty(name='Str', default="")
-    value_float: FloatProperty(name='Float', default=0.0, update=value_float_update)
+        if self.name == 'location_x':
+            log(self, self.name)
+
+    name: StringProperty(name="Name", default="")
+    type: StringProperty(default="str")
+    value_str: StringProperty(name="Value", default="")
+    value_float: FloatProperty(name="Float", default=0.0, update=value_float_update)
+
+    def init(self, name, value):
+        if isinstance(value, str):
+            self.value_str = value
+            self.type = 'str'
+        else:
+            self.value_float = value
+            self.type = 'float'
+
+        self.name = name
 
 
 class UsdListItem(PropertyGroup):
@@ -45,8 +62,11 @@ class UsdListItem(PropertyGroup):
 
 class UsdList(PropertyGroup):
     def item_index_update(self, context):
+        prim_obj = get_blender_prim_object(context)
+
         self.prim_properties.clear()
         if self.item_index == -1:
+            prim_obj.name = "/"
             return
 
         item = self.items[self.item_index]
@@ -54,18 +74,17 @@ class UsdList(PropertyGroup):
 
         def add_prop(name, value):
             prop = self.prim_properties.add()
-            prop.name = name
-            if isinstance(value, str):
-                prop.value_str = value
-                prop.type = 0
-            else:
-                prop.value_float = value
-                prop.type = 1
+            prop.init(name, value)
 
         add_prop("Name", prim.GetName())
         add_prop("Path", str(prim.GetPath()))
         add_prop("Type", str(prim.GetTypeName()))
-        add_prop('location_x', 0.0)
+
+        if str(prim.GetTypeName()) == 'Xform':
+            xform = UsdGeom.Xform(prim)
+            prim_obj.name = str(prim.GetPath())
+            op = xform.GetOrderedXformOps()[0]
+            prim_obj.matrix_world = op.Get()
 
     items: CollectionProperty(type=UsdListItem)
     item_index: IntProperty(default=-1, update=item_index_update)
@@ -94,3 +113,17 @@ class UsdList(PropertyGroup):
     def get_prim(self, item):
         stage = self.get_stage()
         return stage.GetPrimAtPath(item.sdf_path) if stage else None
+
+
+def get_blender_prim_object(context):
+    collection = bpy.data.collections.get("USD")
+    if not collection:
+        collection = bpy.data.collections.new("USD")
+        context.scene.collection.children.link(collection)
+        log("Collection created", collection)
+
+        obj = bpy.data.objects.new("/", None)
+        collection.objects.link(obj)
+        log("Object created", obj)
+
+    return collection.objects[0]
