@@ -60,6 +60,21 @@ class USDTree(bpy.types.ShaderNodeTree):
 
         self.update()
 
+    def add_basic_nodes(self, source='SCENE'):
+        """ Reset basic node tree structure using scene or USD file as an input """
+        self.nodes.clear()
+
+        if source == 'USD_FILE':
+            input_node = self.nodes.new("usd.ReadUsdFileNode")
+        else:  # default 'SCENE'
+            input_node = self.nodes.new("usd.ReadBlendDataNode")
+        input_node.location = (input_node.location[0] - 125, input_node.location[1])
+
+        hydra_output = self.nodes.new("usd.HydraRenderNode")
+        hydra_output.location = (hydra_output.location[0] + 125, hydra_output.location[1])
+
+        self.links.new(input_node.outputs[0], hydra_output.inputs[0])
+
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
     """
