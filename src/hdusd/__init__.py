@@ -121,30 +121,28 @@ class HdEngine(bpy.types.RenderEngine):
 
 
 @bpy.app.handlers.persistent
-def on_version_update(*args, **kwargs):
-    """ On scene loading update old RPR data to current version """
-    log("on_version_update")
-
-
-@bpy.app.handlers.persistent
-def on_save_pre(*args, **kwargs):
-    """ Handler on saving a blend file (before) """
-    log("on_save_pre")
-
-
-@bpy.app.handlers.persistent
-def on_load_pre(*args, **kwargs):
+def on_load_pre(*args):
     """ Handler on loading a blend file (before) """
-    log("on_load_pre")
+    log("on_load_pre", args)
     utils.clear_temp_dir()
 
 
 @bpy.app.handlers.persistent
-def on_load_post(*args, **kwargs):
+def on_load_post(*args):
     """ Handler on loading a blend file (after) """
-    log("on_load_post")
+    log("on_load_post", args)
     from .usd_nodes import node_tree
     node_tree.reset()
+
+    from .properties.usd_list import get_blender_prim_object
+    get_blender_prim_object(bpy.context)
+
+
+@bpy.app.handlers.persistent
+def on_depsgraph_update_post(scene, depsgraph):
+    log("on_depsgraph_update_post", scene, depsgraph)
+    log(depsgraph.updates)
+    pass
 
 
 def register():
@@ -156,19 +154,18 @@ def register():
     ui.register()
     usd_nodes.register()
 
-    bpy.app.handlers.save_pre.append(on_save_pre)
     bpy.app.handlers.load_pre.append(on_load_pre)
     bpy.app.handlers.load_post.append(on_load_post)
-    bpy.app.handlers.version_update.append(on_version_update)
+    bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
 
 
 def unregister():
     """ Unregister all addon classes from Blender """
     log("unregister")
 
-    bpy.app.handlers.version_update.remove(on_version_update)
     bpy.app.handlers.load_pre.remove(on_load_pre)
-    bpy.app.handlers.save_pre.remove(on_save_pre)
+    bpy.app.handlers.load_post.remove(on_load_post)
+    bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
 
     usd_nodes.unregister()
     ui.unregister()

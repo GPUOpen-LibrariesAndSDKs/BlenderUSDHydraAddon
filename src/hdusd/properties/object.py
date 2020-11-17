@@ -14,13 +14,13 @@
 #********************************************************************
 import bpy
 from . import HdUSDProperties
+from .usd_list import UsdList
 
 
 class ObjectProperties(HdUSDProperties):
     bl_type = bpy.types.Object
 
-    sdf_path: bpy.props.StringProperty(
-        name="Sdf Path",
-        description="Sdf Path",
-        default="",
-    )
+    def usd_list_update(self, context):
+        print("usd_list_update")
+
+    usd_list = None

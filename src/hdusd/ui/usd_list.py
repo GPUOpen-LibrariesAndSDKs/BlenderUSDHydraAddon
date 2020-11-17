@@ -119,9 +119,9 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         prop_layout = layout.column()
         prop_layout.use_property_split = True
         for prop in usd_list.prim_properties:
-            if prop.type == 0:
+            if prop.type == 'str' and prop.value_str:
                 row = prop_layout.row()
                 row.enabled = False
                 row.prop(prop, 'value_str', text=prop.name)
-            else:
+            elif prop.type == 'float':
                 prop_layout.prop(prop, 'value_float', text=prop.name)
