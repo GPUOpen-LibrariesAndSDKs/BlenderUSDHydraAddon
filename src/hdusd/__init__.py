@@ -140,9 +140,8 @@ def on_load_post(*args):
 
 @bpy.app.handlers.persistent
 def on_depsgraph_update_post(scene, depsgraph):
-    log("on_depsgraph_update_post", scene, depsgraph)
-    log(depsgraph.updates)
-    pass
+    from .properties.usd_list import depsgraph_update
+    depsgraph_update(depsgraph)
 
 
 def register():
