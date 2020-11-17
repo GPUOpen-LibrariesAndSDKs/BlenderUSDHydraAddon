@@ -145,3 +145,25 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(HdUSD_Operator):
         tree.add_basic_nodes(self.scene_source)
         return {'FINISHED'}
 
+
+class HDUSD_NODE_PT_node_tree_operations(HdUSD_Panel):
+    bl_label = "Setup basic USD Node Tree"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "USD"
+
+    @classmethod
+    def poll(cls, context):
+        tree = context.space_data.edit_tree
+        return super().poll(context) and tree and tree.bl_idname == "hdusd.USDTree"
+
+    def draw(self, context):
+        col = self.layout.column()
+        col.label(text="Replace current tree using")
+
+        add_scene_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="Current scene")
+        add_scene_nodes_op.scene_source = "SCENE"
+
+        add_file_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="USD file")
+        add_file_nodes_op.scene_source = "USD_FILE"
+
