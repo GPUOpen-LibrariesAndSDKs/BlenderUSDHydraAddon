@@ -60,6 +60,20 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
         return {'FINISHED'}
 
 
+class HDUSD_OP_usd_list_item_show_hide(HdUSD_Operator):
+    """Operation to Expand a list item"""
+    bl_idname = "hdusd.usd_list_item_show_hide"
+    index: bpy.props.IntProperty(default=0)
+
+    def execute(self, context):
+        node = context.active_node
+        usd_list = node.hdusd.usd_list
+        items = usd_list.items
+        item = items[self.index]
+
+        prim = usd_list.get_prim(item)
+
+
 class HDUSD_UL_usd_list_item(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type not in {'DEFAULT', 'COMPACT'}:
@@ -91,6 +105,10 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         col = layout.column()
         col.alignment = 'RIGHT'
         col.label(text=prim.GetTypeName())
+
+        col = layout.column()
+        col.alignment = 'RIGHT'
+        col.operator("hdusd.usd_list_item_show_hide", text="", icon='EYEDROPPER')
 
 
 class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
