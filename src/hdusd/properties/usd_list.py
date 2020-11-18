@@ -13,6 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
+import mathutils
 from bpy.types import PropertyGroup
 from bpy.props import (
     CollectionProperty,
@@ -63,14 +64,15 @@ class UsdListItem(PropertyGroup):
 class UsdList(PropertyGroup):
     def item_index_update(self, context):
         prim_obj = get_blender_prim_object(context)
-
+        
         self.prim_properties.clear()
         if self.item_index == -1:
-            prim_obj.name = "/"
+            prim_obj.hdusd.sync(None)
             return
 
         item = self.items[self.item_index]
         prim = self.get_prim(item)
+        prim_obj.hdusd.sync(prim)
 
         def add_prop(name, value):
             prop = self.prim_properties.add()
@@ -79,12 +81,6 @@ class UsdList(PropertyGroup):
         add_prop("Name", prim.GetName())
         add_prop("Path", str(prim.GetPath()))
         add_prop("Type", str(prim.GetTypeName()))
-
-        if str(prim.GetTypeName()) == 'Xform':
-            xform = UsdGeom.Xform(prim)
-            prim_obj.name = str(prim.GetPath())
-            op = xform.GetOrderedXformOps()[0]
-            prim_obj.matrix_world = op.Get()
 
     items: CollectionProperty(type=UsdListItem)
     item_index: IntProperty(default=-1, update=item_index_update)
@@ -116,9 +112,9 @@ class UsdList(PropertyGroup):
 
 
 def get_blender_prim_object(context):
-    collection = bpy.data.collections.get("USD")
+    collection = bpy.data.collections.get("HdUSD")
     if not collection:
-        collection = bpy.data.collections.new("USD")
+        collection = bpy.data.collections.new("HdUSD")
         context.scene.collection.children.link(collection)
         log("Collection created", collection)
 
@@ -130,7 +126,6 @@ def get_blender_prim_object(context):
     return collection.objects[0]
 
 
-
 def depsgraph_update(depsgraph):
     if len(depsgraph.updates) != 1:
         return
@@ -140,5 +135,5 @@ def depsgraph_update(depsgraph):
     if not isinstance(obj, bpy.types.Object) or not obj.hdusd.is_usd:
         return
 
-    print(obj)
+    obj.hdusd.update_prim()
     
