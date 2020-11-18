@@ -115,20 +115,6 @@ class WorldData:
         return data
 
 
-def set_light_rotation(xform, rotation: Tuple[float]) -> np.array:
-    """ Calculates rotation matrix from gizmo rotation """
-    matrix = np.identity(4)
-    euler = mathutils.Euler((-rotation[0], -rotation[1] + np.pi, -rotation[2] - np.pi / 2))
-
-    rotation_matrix = np.array(euler.to_matrix(), dtype=np.float32)
-
-    matrix[:3, :3] = rotation_matrix[:, :]
-
-    xform.ClearXformOpOrder()
-    xform.AddTransformOp().Set(Gf.Matrix4d(matrix))
-    return matrix
-
-
 def sync(root_prim, world: bpy.types.World, **kwargs):
     is_gl_mode = kwargs.get('is_gl_delegate', False)
 
@@ -136,6 +122,7 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
         # TODO export correct Dome light with texture for GL mode
         return
 
+    # get the World IBL image
     data = WorldData.init_from_world(world)
     log.info(f"world data: {data}")
 
@@ -145,6 +132,7 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
         # TODO create image from environment color data if no image used
         return
 
+    # create Dome light
     xform = UsdGeom.Xform.Define(stage, f"{root_prim.GetPath()}/_world")
     obj_prim = xform.GetPrim()
 
@@ -156,6 +144,14 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
     p = Sdf.AssetPath(data.cycles_ibl.image)
     usd_light.CreateTextureFileAttr(p)
 
-    set_light_rotation(xform, data.cycles_ibl.rotation)
+    # set correct Dome light rotation
+    matrix = np.identity(4)
+    rotation = data.cycles_ibl.rotation
+    euler = mathutils.Euler((-rotation[0], -rotation[1] + np.pi, -rotation[2] - np.pi / 2))
 
+    rotation_matrix = np.array(euler.to_matrix(), dtype=np.float32)
 
+    matrix[:3, :3] = rotation_matrix[:, :]
+
+    xform.ClearXformOpOrder()
+    xform.AddTransformOp().Set(Gf.Matrix4d(matrix))

@@ -14,29 +14,9 @@
 #********************************************************************
 
 from bpy_extras.node_utils import find_node_input
+from cycles.ui import panel_node_draw
 
 from . import HdUSD_Panel
-
-
-def panel_node_draw(layout, id_data, output_type, input_name):
-    """ Draw Cycles world shader panel """
-    if not id_data.use_nodes:
-        layout.operator("cycles.use_shading_nodes", icon='NODETREE')
-        return False
-
-    ntree = id_data.node_tree
-
-    node = ntree.get_output_node('CYCLES')
-    if node:
-        input = find_node_input(node, input_name)
-        if input:
-            layout.template_node_view(ntree, node, input)
-        else:
-            layout.label(text="Incompatible output node")
-    else:
-        layout.label(text="No output node")
-
-    return True
 
 
 class HDUSD_WORLD_PT_preview(HdUSD_Panel):
