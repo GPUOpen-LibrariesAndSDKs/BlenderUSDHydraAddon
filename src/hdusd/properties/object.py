@@ -13,10 +13,45 @@
 # limitations under the License.
 #********************************************************************
 import bpy
+import mathutils
+
+from pxr import Usd, UsdGeom, Gf
+
 from . import HdUSDProperties
+from . import usd_list
+from ..export.object import get_transform
 
 
 class ObjectProperties(HdUSDProperties):
     bl_type = bpy.types.Object
 
     is_usd: bpy.props.BoolProperty(default=False)
+    usd_id: bpy.props.IntProperty(default=-1)
+    sdf_path: bpy.props.StringProperty(default="/")
+
+    def sync(self, prim):
+        obj = self.id_data
+
+        if not prim or str(prim.GetTypeName()) != 'Xform':
+            self.usd_id = -1
+            obj.name = self.sdf_path = "/"
+            obj.matrix_world = mathutils.Matrix.Identity(4)
+            obj.hide_viewport = True
+            return
+
+        self.usd_id = usd_list._stage_cache.GetId(prim.GetStage()).ToLongInt()
+        obj.name = self.sdf_path = str(prim.GetPath())
+        obj.matrix_world = UsdGeom.Xform(prim).GetOrderedXformOps()[0].Get()
+        obj.hide_viewport = False
+
+    def update_prim(self):
+        if self.usd_id == -1:
+            return
+
+        obj = self.id_data
+        stage = usd_list._stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
+        prim = stage.GetPrimAtPath(self.sdf_path)
+
+        xform = UsdGeom.Xform(prim)
+        xform.ClearXformOpOrder()
+        xform.AddTransformOp().Set(Gf.Matrix4d(get_transform(obj)))
