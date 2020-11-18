@@ -150,7 +150,7 @@ class HDUSD_NODE_PT_node_tree_operations(HdUSD_Panel):
     bl_label = "Setup basic USD Node Tree"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
-    bl_category = "USD"
+    bl_category = "Tool"
 
     @classmethod
     def poll(cls, context):
