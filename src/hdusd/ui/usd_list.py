@@ -14,6 +14,8 @@
 #********************************************************************
 import bpy
 
+from pxr import UsdGeom
+
 from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
@@ -72,6 +74,13 @@ class HDUSD_OP_usd_list_item_show_hide(HdUSD_Operator):
         item = items[self.index]
 
         prim = usd_list.get_prim(item)
+        im = UsdGeom.Imageable(prim)
+        if im.ComputeVisibility() == 'invisible':
+            im.MakeVisible()
+        else:
+            im.MakeInvisible()
+
+        return {'FINISHED'}
 
 
 class HDUSD_UL_usd_list_item(bpy.types.UIList):
@@ -108,7 +117,10 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
 
         col = layout.column()
         col.alignment = 'RIGHT'
-        col.operator("hdusd.usd_list_item_show_hide", text="", icon='EYEDROPPER')
+        visible = UsdGeom.Imageable(prim).ComputeVisibility() != 'invisible'
+        visible_op = col.operator("hdusd.usd_list_item_show_hide", text="",
+                                  icon='HIDE_OFF' if visible else 'HIDE_ON')
+        visible_op.index = index
 
 
 class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
