@@ -29,7 +29,7 @@ class ObjectProperties(HdUSDProperties):
     usd_id: bpy.props.IntProperty(default=-1)
     sdf_path: bpy.props.StringProperty(default="/")
 
-    def sync(self, prim):
+    def sync_from_prim(self, prim):
         context = bpy.context
         prim_obj = self.id_data
 
@@ -48,7 +48,12 @@ class ObjectProperties(HdUSDProperties):
 
         self.usd_id = usd_list._stage_cache.GetId(prim.GetStage()).ToLongInt()
         prim_obj.name = self.sdf_path = str(prim.GetPath())
-        prim_obj.matrix_world = UsdGeom.Xform(prim).GetOrderedXformOps()[0].Get()
+        xform = UsdGeom.Xform(prim)
+        ops = xform.GetOrderedXformOps()
+        if ops:
+            prim_obj.matrix_world = mathutils.Matrix(ops[0].Get()).transposed()
+        else:
+            prim_obj.matrix_world = mathutils.Matrix.Identity(4)
 
         # showing, activating and selecting prim object
         prim_obj.hide_viewport = False
@@ -58,7 +63,7 @@ class ObjectProperties(HdUSDProperties):
                 context.selected_objects[0].select_set(False)
             prim_obj.select_set(True)
 
-    def update_prim(self):
+    def sync_to_prim(self):
         if self.usd_id == -1:
             return
 

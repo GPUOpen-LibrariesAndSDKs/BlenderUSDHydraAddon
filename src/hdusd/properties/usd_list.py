@@ -67,12 +67,12 @@ class UsdList(PropertyGroup):
         
         self.prim_properties.clear()
         if self.item_index == -1:
-            prim_obj.hdusd.sync(None)
+            prim_obj.hdusd.sync_from_prim(None)
             return
 
         item = self.items[self.item_index]
         prim = self.get_prim(item)
-        prim_obj.hdusd.sync(prim)
+        prim_obj.hdusd.sync_from_prim(prim)
 
         def add_prop(name, value):
             prop = self.prim_properties.add()
@@ -135,5 +135,4 @@ def depsgraph_update(depsgraph):
     if not isinstance(obj, bpy.types.Object) or not obj.hdusd.is_usd:
         return
 
-    obj.hdusd.update_prim()
-    
+    obj.hdusd.sync_to_prim()
