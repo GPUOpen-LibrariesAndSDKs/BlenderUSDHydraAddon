@@ -96,6 +96,8 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         if not prim:
             return
 
+        visible = UsdGeom.Imageable(prim).ComputeVisibility() != 'invisible'
+
         col = layout.column()
         if not prim.GetChildren():
             icon = 'DOT'
@@ -105,21 +107,30 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         else:
             icon = 'TRIA_RIGHT'
 
-        expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon)
+        expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon,
+                                 emboss=False, depress=False)
         expand_op.index = index
 
         col = layout.column()
         col.label(text=prim.GetName())
+        col.enabled = visible
 
         col = layout.column()
         col.alignment = 'RIGHT'
         col.label(text=prim.GetTypeName())
+        col.enabled = visible
 
         col = layout.column()
         col.alignment = 'RIGHT'
-        visible = UsdGeom.Imageable(prim).ComputeVisibility() != 'invisible'
-        visible_op = col.operator("hdusd.usd_list_item_show_hide", text="",
-                                  icon='HIDE_OFF' if visible else 'HIDE_ON')
+
+        if prim.GetTypeName() == 'Xform':
+            icon = 'HIDE_OFF' if visible else 'HIDE_ON'
+        else:
+            col.enabled = False
+            icon = 'DOT'
+
+        visible_op = col.operator("hdusd.usd_list_item_show_hide", text="", icon=icon,
+                                  emboss=False, depress=False)
         visible_op.index = index
 
 
