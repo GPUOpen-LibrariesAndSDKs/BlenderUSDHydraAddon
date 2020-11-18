@@ -112,9 +112,9 @@ class UsdList(PropertyGroup):
 
 
 def get_blender_prim_object(context):
-    collection = bpy.data.collections.get("HdUSD")
+    collection = bpy.data.collections.get("HDUSD")
     if not collection:
-        collection = bpy.data.collections.new("HdUSD")
+        collection = bpy.data.collections.new("HDUSD")
         context.scene.collection.children.link(collection)
         log("Collection created", collection)
 

@@ -30,19 +30,33 @@ class ObjectProperties(HdUSDProperties):
     sdf_path: bpy.props.StringProperty(default="/")
 
     def sync(self, prim):
-        obj = self.id_data
+        context = bpy.context
+        prim_obj = self.id_data
 
         if not prim or str(prim.GetTypeName()) != 'Xform':
             self.usd_id = -1
-            obj.name = self.sdf_path = "/"
-            obj.matrix_world = mathutils.Matrix.Identity(4)
-            obj.hide_viewport = True
+            prim_obj.name = self.sdf_path = "/"
+            prim_obj.matrix_world = mathutils.Matrix.Identity(4)
+
+            # hiding, deactivating and deselecting prim object
+            prim_obj.hide_viewport = True
+            if prim_obj in context.selected_objects:
+                prim_obj.select_set(False)
+            if bpy.context.view_layer.objects.active == prim_obj:
+                bpy.context.view_layer.objects.active = None
             return
 
         self.usd_id = usd_list._stage_cache.GetId(prim.GetStage()).ToLongInt()
-        obj.name = self.sdf_path = str(prim.GetPath())
-        obj.matrix_world = UsdGeom.Xform(prim).GetOrderedXformOps()[0].Get()
-        obj.hide_viewport = False
+        prim_obj.name = self.sdf_path = str(prim.GetPath())
+        prim_obj.matrix_world = UsdGeom.Xform(prim).GetOrderedXformOps()[0].Get()
+
+        # showing, activating and selecting prim object
+        prim_obj.hide_viewport = False
+        context.view_layer.objects.active = prim_obj
+        if len(context.selected_objects) < 2:
+            if context.selected_objects:
+                context.selected_objects[0].select_set(False)
+            prim_obj.select_set(True)
 
     def update_prim(self):
         if self.usd_id == -1:
