@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from dataclasses import dataclass, field
-from typing import Tuple
+from dataclasses import dataclass
 
 import numpy as np
-import math
+
 from pathlib import Path
 
 import bpy
@@ -24,7 +23,7 @@ import mathutils
 
 from pxr import Gf, Sdf, UsdGeom, UsdLux
 
-from . import image, sdf_path
+from . import sdf_path
 
 from ..utils import logging
 log = logging.Log(tag='export.world')

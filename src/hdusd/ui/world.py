@@ -13,7 +13,6 @@
 # limitations under the License.
 #********************************************************************
 
-from bpy_extras.node_utils import find_node_input
 from cycles.ui import panel_node_draw
 
 from . import HdUSD_Panel
