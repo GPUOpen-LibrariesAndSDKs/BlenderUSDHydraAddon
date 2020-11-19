@@ -85,6 +85,10 @@ def sync(stage, material: bpy.types.Material, input_socket_key='Surface', *,
         create_principled_shader(stage, usd_material, mat_path, node)
     elif node.bl_idname == 'ShaderNodeEmission':
         create_emission_shader(stage, usd_material, mat_path, node)
+    elif node.bl_idname == 'ShaderNodeBsdfDiffuse':  # used by Material Preview
+        create_diffuse_shader(stage, usd_material, mat_path, node)
+    else:
+        log.info(f"unsupported node {node.bl_idname} of material {material.name_full}")
 
     # TODO export volumetric and displacement
 
@@ -124,6 +128,17 @@ def create_principled_shader(stage, usd_material, mat_key, node):
     pbr_shader.CreateInput("emissiveColor", Sdf.ValueTypeNames.Float3).Set(get_input_default(node, 'Emission'))
     pbr_shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(get_input_default(node, 'IOR'))
     pbr_shader.CreateInput("opacity", Sdf.ValueTypeNames.Float).Set(1.0 - get_input_default(node, 'Transmission'))
+
+    usd_material.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
+
+
+def create_diffuse_shader(stage, usd_material, mat_key, node):
+    shader_key = f"{mat_key}/DiffuseShader"
+
+    pbr_shader = UsdShade.Shader.Define(stage, shader_key)
+    pbr_shader.CreateIdAttr("UsdPreviewSurface")
+    pbr_shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Float3).Set(get_input_default(node, 'Color',))
+    pbr_shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(get_input_default(node, 'Roughness'))
 
     usd_material.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
 
