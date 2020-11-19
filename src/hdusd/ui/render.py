@@ -15,6 +15,7 @@
 import bpy
 
 from . import HdUSD_Panel
+from ..usd_nodes.node_tree import get_usd_nodetree
 
 
 class HDUSD_OP_render_source_select(bpy.types.Operator):
@@ -34,16 +35,19 @@ class HDUSD_MT_render_source(bpy.types.Menu):
     bl_idname = "HDUSD_MT_render_source"
     bl_label = "Render Source"
 
-    def draw(self, _):
+    def draw(self, context):
         layout = self.layout
         node_groups = bpy.data.node_groups
         op_idname = HDUSD_OP_render_source_select.bl_idname
 
-        layout.operator(op_idname, text="Blender Data").source_name = ""
+        layout.operator(op_idname, text=context.scene.name, icon='SCENE_DATA').source_name = ""
         for ng in node_groups:
+            if ng.bl_idname != 'hdusd.USDTree':
+                continue
+
             row = layout.row()
-            row.operator(op_idname, text=ng.name).source_name = ng.name
-            row.enabled = False
+            row.operator(op_idname, text=ng.name, icon='NODETREE').source_name = ng.name
+            row.enabled = ng.get_output_node() is not None
 
 
 class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
@@ -54,10 +58,9 @@ class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
     bl_context = 'render'
 
     def draw(self, context):
-        from ..usd_nodes.node_tree import get_usd_nodetree
-
         layout = self.layout
-
+        layout.use_property_split = True
+        layout.use_property_decorate = False
 
         scene = context.scene
         layout.prop(scene.hdusd.final, "delegate")
@@ -67,8 +70,14 @@ class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
         row.prop(scene.hdusd.final, "use_usd_nodegraph")
         row.enabled = get_usd_nodetree() is not None
 
-        layout.menu(HDUSD_MT_render_source.bl_idname,
-                    text=scene.hdusd.source_name if scene.hdusd.source_name else "Blender Data")
+        row = layout.row()
+        col = row.column()
+        col.alignment = 'RIGHT'
+        col.label(text="Render Source")
+        col = row.column()
+        col.menu(HDUSD_MT_render_source.bl_idname,
+                 text=scene.hdusd.source_name if scene.hdusd.source_name else scene.name,
+                 icon='NODETREE' if scene.hdusd.source_name else 'SCENE_DATA')
 
 
 class HDUSD_RENDER_PT_delegate_viewport(HdUSD_Panel):
