@@ -32,6 +32,7 @@ class FinalEngine(Engine):
     """ Final render engine """
 
     TYPE = 'FINAL'
+    SAMPLES_NUMBER = 200
 
     def __init__(self, render_engine):
         super().__init__(render_engine)
@@ -111,7 +112,7 @@ class FinalEngine(Engine):
         self._set_scene_camera(renderer, scene)
 
         params = UsdImagingLite.RenderParams()
-        params.samples = 200
+        params.samples = self.SAMPLES_NUMBER
         render_images = {
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }

@@ -27,6 +27,7 @@ class PreviewEngine(FinalEngine):
     """ Render engine for preview material, lights, environment """
 
     TYPE = 'PREVIEW'
+    SAMPLES_NUMBER = 50
 
     def _set_scene_camera(self, renderer, scene):
         usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path('Camera.002'))
@@ -45,7 +46,7 @@ class PreviewEngine(FinalEngine):
         scene = depsgraph.scene
         self.render_layer_name = depsgraph.view_layer.name
 
-        self.is_gl_delegate = scene.hdusd.final.is_opengl
+        self.is_gl_delegate = False  # TODO fix Preview in the HdStorm mode
 
         self.width = scene.render.resolution_x
         self.height = scene.render.resolution_y
