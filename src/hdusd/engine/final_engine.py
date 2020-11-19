@@ -68,11 +68,7 @@ class FinalEngine(Engine):
         renderer.SetRendererPlugin(scene.hdusd.final.delegate)
 
         # setting camera
-        usd_camera = UsdAppUtils.GetCameraAtPath(
-            self.stage, sdf_path(scene.camera.name))
-        gf_camera = usd_camera.GetCamera()
-        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
-                                gf_camera.frustum.ComputeProjectionMatrix())
+        self._set_scene_camera(renderer, scene)
 
         renderer.SetRenderViewport((0, 0, self.width, self.height))
         renderer.SetRendererAov('color')
@@ -112,10 +108,7 @@ class FinalEngine(Engine):
         renderer.SetRendererAov('color')
 
         # setting camera
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path(scene.camera.name))
-        gf_camera = usd_camera.GetCamera()
-        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
-                                gf_camera.frustum.ComputeProjectionMatrix())
+        self._set_scene_camera(renderer, scene)
 
         params = UsdImagingLite.RenderParams()
         params.samples = 200
@@ -142,6 +135,12 @@ class FinalEngine(Engine):
         self.update_render_result(render_images)
 
         renderer = None
+
+    def _set_scene_camera(self, renderer, scene):
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path(scene.camera.name))
+        gf_camera = usd_camera.GetCamera()
+        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
+                                gf_camera.frustum.ComputeProjectionMatrix())
 
     def render(self, depsgraph):
         if not self.stage:
