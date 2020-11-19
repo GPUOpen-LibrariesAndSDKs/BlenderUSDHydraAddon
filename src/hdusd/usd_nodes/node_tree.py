@@ -49,8 +49,7 @@ class USDTree(bpy.types.ShaderNodeTree):
     def update(self):
         output_node = self.get_output_node()
         if output_node:
-            depsgraph = bpy.context.evaluated_depsgraph_get()
-            output_node.final_compute(depsgraph=depsgraph)
+            output_node.final_compute()
 
     def reset(self):
         for node in self.nodes:

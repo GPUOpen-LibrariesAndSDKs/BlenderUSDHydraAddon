@@ -16,14 +16,14 @@ import bpy
 
 from pxr import UsdGeom
 
-from . import HdUSD_Panel, HdUSD_Operator
+from . import HdUSD_Panel
 from ..usd_nodes.nodes.base_node import USDNode
 
 
-class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
-    """Operation to Expand a list item"""
+class HDUSD_OP_usd_list_item_expand(bpy.types.Operator):
+    """Expand USD item"""
     bl_idname = "hdusd.usd_list_item_expand"
-    bl_description = "Expand USD item"
+    bl_label = "Expand"
 
     index: bpy.props.IntProperty(default=-1)
 
@@ -67,10 +67,10 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
         return {'FINISHED'}
 
 
-class HDUSD_OP_usd_list_item_show_hide(HdUSD_Operator):
-    """Operation to change show/hide USD item"""
+class HDUSD_OP_usd_list_item_show_hide(bpy.types.Operator):
+    """Show/Hide USD item"""
     bl_idname = "hdusd.usd_list_item_show_hide"
-    bl_description = "Show/Hide USD item"
+    bl_label = "Show/Hide"
 
     index: bpy.props.IntProperty(default=-1)
 
@@ -117,7 +117,7 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         else:
             icon = 'TRIA_RIGHT'
 
-        expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon,
+        expand_op = col.operator(HDUSD_OP_usd_list_item_expand.bl_idname, text="", icon=icon,
                                  emboss=False, depress=False)
         expand_op.index = index
 
@@ -138,7 +138,7 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
             col.enabled = False
             icon = 'NONE'
 
-        visible_op = col.operator("hdusd.usd_list_item_show_hide", text="", icon=icon,
+        visible_op = col.operator(HDUSD_OP_usd_list_item_show_hide.bl_idname, text="", icon=icon,
                                   emboss=False, depress=False)
         visible_op.index = index
 

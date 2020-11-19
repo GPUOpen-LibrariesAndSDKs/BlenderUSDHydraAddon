@@ -23,7 +23,6 @@ class HdUSDProperties(bpy.types.PropertyGroup):
 
     @classmethod
     def register(cls):
-        log("Register", cls)
         cls.bl_type.hdusd = bpy.props.PointerProperty(
             name="HdUSD properties",
             description="HdUSD properties",
@@ -32,7 +31,6 @@ class HdUSDProperties(bpy.types.PropertyGroup):
 
     @classmethod
     def unregister(cls):
-        log("Unregister", cls)
         del cls.bl_type.hdusd
 
 

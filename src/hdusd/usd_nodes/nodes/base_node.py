@@ -84,7 +84,7 @@ class USDNode(bpy.types.Node):
         return self.hdusd.usd_list.get_stage()
 
     def free(self):
-        self.hdusd.usd_list.clear_stage()
+        self.hdusd.usd_list.set_stage(None)
 
 
 class RenderTaskNode(USDNode):

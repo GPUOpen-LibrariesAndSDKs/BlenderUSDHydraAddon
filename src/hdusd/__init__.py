@@ -37,7 +37,7 @@ from .utils import logging
 
 
 log = logging.Log(tag='init')
-log("Loading USD Hydra addon {}".format(bl_info['version']))
+log.info("Loading USD Hydra addon {}".format(bl_info['version']))
 
 
 from .engine import final_engine, viewport_engine, preview_engine
@@ -50,7 +50,7 @@ from . import (
 
 class HdEngine(bpy.types.RenderEngine):
     """
-    Main class of Radeon ProRender render engine for Blender v2.80+
+    Main class of USD Hydra render engine for Blender
     """
     bl_idname = "HdUSD"
     bl_label = "USD Hydra"

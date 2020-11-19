@@ -28,12 +28,10 @@ register_trees, unregister_trees = bpy.utils.register_classes_factory([
 
 
 def register():
-    log("Register")
     register_trees()
     nodes.register()
 
 
 def unregister():
-    log("Unregister")
     unregister_trees()
     nodes.unregister()

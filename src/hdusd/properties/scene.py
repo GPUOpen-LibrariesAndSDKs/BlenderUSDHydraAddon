@@ -50,3 +50,5 @@ class SceneProperties(HdUSDProperties):
 
     final: bpy.props.PointerProperty(type=RenderDelegate)
     viewport: bpy.props.PointerProperty(type=RenderDelegate)
+
+    source_name: bpy.props.StringProperty(default="")

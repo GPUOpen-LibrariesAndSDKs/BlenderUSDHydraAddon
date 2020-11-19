@@ -12,7 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import bpy
+
 from . import HdUSD_Panel
+
+
+class HDUSD_OP_render_source_select(bpy.types.Operator):
+    """Select render source"""
+    bl_idname = "hdusd.render_source_select"
+    bl_label = "Render Source"
+
+    source_name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        context.scene.hdusd.source_name = self.source_name
+        return {"FINISHED"}
+
+
+class HDUSD_MT_render_source(bpy.types.Menu):
+    """Select render source"""
+    bl_idname = "HDUSD_MT_render_source"
+    bl_label = "Render Source"
+
+    def draw(self, _):
+        layout = self.layout
+        node_groups = bpy.data.node_groups
+        op_idname = HDUSD_OP_render_source_select.bl_idname
+
+        layout.operator(op_idname, text="Blender Data").source_name = ""
+        for ng in node_groups:
+            row = layout.row()
+            row.operator(op_idname, text=ng.name).source_name = ng.name
+            row.enabled = False
 
 
 class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
@@ -27,6 +58,7 @@ class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
 
         layout = self.layout
 
+
         scene = context.scene
         layout.prop(scene.hdusd.final, "delegate")
 
@@ -34,6 +66,9 @@ class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
         row = layout.row()
         row.prop(scene.hdusd.final, "use_usd_nodegraph")
         row.enabled = get_usd_nodetree() is not None
+
+        layout.menu(HDUSD_MT_render_source.bl_idname,
+                    text=scene.hdusd.source_name if scene.hdusd.source_name else "Blender Data")
 
 
 class HDUSD_RENDER_PT_delegate_viewport(HdUSD_Panel):
