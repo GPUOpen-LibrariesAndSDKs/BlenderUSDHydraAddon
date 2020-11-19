@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-
-import numpy as np
-
 from pxr import UsdGeom, Gf
 import bpy
 
@@ -29,7 +26,7 @@ def sdf_name(obj: bpy.types.Object):
 
 
 def get_transform(obj: bpy.types.Object):
-    return np.transpose(np.array(obj.matrix_world).reshape(4, 4))
+    return obj.matrix_world.transposed()
 
 
 def sync(root_prim, obj: bpy.types.Object, **kwargs):
