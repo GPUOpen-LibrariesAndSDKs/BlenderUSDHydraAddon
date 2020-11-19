@@ -72,6 +72,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     light = obj.data
     stage = obj_prim.GetStage()
     is_gl_mode = kwargs.get('is_gl_delegate', False)
+    is_preview_render = kwargs.get('is_preview_render', False)
     log("sync", light, obj)
 
     light_path = f"{obj_prim.GetPath()}/{sdf_path(light.name)}"
@@ -132,6 +133,11 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         raise ValueError("Unsupported light type", light, light.type)
 
     power = get_radiant_power(light, is_gl_mode)
+
+    # Material Previews are overly bright, that's why
+    # decreasing light intensity for material preview by 10 times
+    if is_preview_render:
+        power *= 0.1
 
     usd_light.CreateColorAttr(tuple(power))
 

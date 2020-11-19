@@ -115,6 +115,7 @@ class PreviewEngine(FinalEngine):
                 notify_callback=notify_callback,
                 test_break=test_break,
                 engine=self,
+                is_preview_render=True,
             )
 
         self.render_engine.bl_use_gpu_context = self.is_gl_delegate
