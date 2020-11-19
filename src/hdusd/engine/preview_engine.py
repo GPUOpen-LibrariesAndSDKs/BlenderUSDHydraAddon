@@ -16,10 +16,11 @@ import bpy
 
 from .engine import Engine
 from .final_engine import FinalEngine
-from ..export import depsgraph as dg
+from ..export import depsgraph as dg, sdf_path, camera
 
 import numpy as np
 
+from pxr import UsdAppUtils
 from pxr import UsdImagingGL, UsdImagingLite
 
 from ..utils import logging
@@ -30,8 +31,9 @@ class PreviewEngine(FinalEngine):
     """ Render engine for preview material, lights, environment """
 
     TYPE = 'PREVIEW'
+    NUMBER_SAMPLES = 5
 
-    def _render(self, scene, camera):
+    def _render(self, scene):
         # creating renderer
         renderer = UsdImagingLite.Engine()
         renderer.SetRendererPlugin(scene.hdusd.final.delegate)
@@ -39,10 +41,18 @@ class PreviewEngine(FinalEngine):
         renderer.SetRendererAov('color')
 
         # get Preview camera
+        try:
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path('Camera.002'))
+        except Exception as e:
+            log.warn(f"Unable to get Preview camera:\n{str(e)}")
+            return
+        gf_camera = usd_camera.GetCamera()
+        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
+                                gf_camera.frustum.ComputeProjectionMatrix())
 
         # setup render params
         params = UsdImagingLite.RenderParams()
-        params.samples = 20
+        params.samples = self.NUMBER_SAMPLES
         render_images = {
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }
@@ -73,11 +83,10 @@ class PreviewEngine(FinalEngine):
             return
 
         scene = depsgraph.scene
-        camera = depsgraph.objects[depsgraph.scene.camera.name]
         log(f"Start render [{self.width}, {self.height}]. "
             f"Hydra delegate: {scene.hdusd.final.delegate}")
 
-        self._render(scene, camera)
+        self._render(scene)
 
     def sync(self, depsgraph):
 
@@ -88,10 +97,10 @@ class PreviewEngine(FinalEngine):
             return self.render_engine.test_break()
 
         scene = depsgraph.scene
-        view_layer = depsgraph.view_layer
+        self.render_layer_name = depsgraph.view_layer.name
         settings_scene = bpy.context.scene
+
         self.is_gl_delegate = scene.hdusd.final.is_opengl
-        self.render_layer_name = view_layer.name
 
         self.width = scene.render.resolution_x
         self.height = scene.render.resolution_y
