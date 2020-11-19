@@ -23,9 +23,14 @@ from ..usd_nodes.nodes.base_node import USDNode
 class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
     """Operation to Expand a list item"""
     bl_idname = "hdusd.usd_list_item_expand"
-    index: bpy.props.IntProperty(default=0)
+    bl_description = "Expand USD item"
+
+    index: bpy.props.IntProperty(default=-1)
 
     def execute(self, context):
+        if self.index == -1:
+            return {'CANCELLED'}
+
         node = context.active_node
         usd_list = node.hdusd.usd_list
         items = usd_list.items
@@ -63,11 +68,16 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
 
 
 class HDUSD_OP_usd_list_item_show_hide(HdUSD_Operator):
-    """Operation to Expand a list item"""
+    """Operation to change show/hide USD item"""
     bl_idname = "hdusd.usd_list_item_show_hide"
-    index: bpy.props.IntProperty(default=0)
+    bl_description = "Show/Hide USD item"
+
+    index: bpy.props.IntProperty(default=-1)
 
     def execute(self, context):
+        if self.index == -1:
+            return {'CANCELLED'}
+
         node = context.active_node
         usd_list = node.hdusd.usd_list
         items = usd_list.items
@@ -122,12 +132,11 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
 
         col = layout.column()
         col.alignment = 'RIGHT'
-
         if prim.GetTypeName() == 'Xform':
             icon = 'HIDE_OFF' if visible else 'HIDE_ON'
         else:
             col.enabled = False
-            icon = 'DOT'
+            icon = 'NONE'
 
         visible_op = col.operator("hdusd.usd_list_item_show_hide", text="", icon=icon,
                                   emboss=False, depress=False)

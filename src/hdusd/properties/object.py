@@ -72,5 +72,4 @@ class ObjectProperties(HdUSDProperties):
         prim = stage.GetPrimAtPath(self.sdf_path)
 
         xform = UsdGeom.Xform(prim)
-        xform.ClearXformOpOrder()
-        xform.AddTransformOp().Set(Gf.Matrix4d(get_transform(obj)))
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform(obj)))

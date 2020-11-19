@@ -83,7 +83,7 @@ class UsdList(PropertyGroup):
         add_prop("Type", str(prim.GetTypeName()))
 
     items: CollectionProperty(type=UsdListItem)
-    item_index: IntProperty(default=-1, update=item_index_update)
+    item_index: IntProperty(name="USD Item", default=-1, update=item_index_update)
     usd_id: IntProperty(default=-1)
 
     prim_properties: CollectionProperty(type=PrimPropertyItem)

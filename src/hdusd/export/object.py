@@ -38,7 +38,7 @@ def sync(root_prim, obj: bpy.types.Object, **kwargs):
     obj_prim = xform.GetPrim()
 
     # setting transform
-    xform.AddTransformOp().Set(Gf.Matrix4d(get_transform(obj)))
+    xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform(obj)))
 
     if obj.type == 'MESH':
         if obj.mode == 'OBJECT':
@@ -77,8 +77,7 @@ def sync_update(root_prim, obj: bpy.types.Object, is_updated_geometry, is_update
 
     if is_updated_transform:
         xform = UsdGeom.Xform(obj_prim)
-        xform.ClearXformOpOrder()
-        xform.AddTransformOp().Set(Gf.Matrix4d(get_transform(obj)))
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform(obj)))
 
     if is_updated_geometry:
         if obj.type == 'MESH':
