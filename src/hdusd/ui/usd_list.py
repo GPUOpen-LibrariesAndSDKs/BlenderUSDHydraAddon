@@ -14,6 +14,8 @@
 #********************************************************************
 import bpy
 
+from pxr import UsdGeom
+
 from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
@@ -29,7 +31,7 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
         items = usd_list.items
         item = items[self.index]
 
-        if item.expanded:
+        if len(items) > self.index + 1 and items[self.index + 1].indent > item.indent:
             next_index = self.index + 1
             item_indent = item.indent
             removed_items = 0
@@ -57,7 +59,26 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
             if usd_list.item_index > self.index:
                 usd_list.item_index += added_items
 
-        item.expanded = not item.expanded
+        return {'FINISHED'}
+
+
+class HDUSD_OP_usd_list_item_show_hide(HdUSD_Operator):
+    """Operation to Expand a list item"""
+    bl_idname = "hdusd.usd_list_item_show_hide"
+    index: bpy.props.IntProperty(default=0)
+
+    def execute(self, context):
+        node = context.active_node
+        usd_list = node.hdusd.usd_list
+        items = usd_list.items
+        item = items[self.index]
+
+        prim = usd_list.get_prim(item)
+        im = UsdGeom.Imageable(prim)
+        if im.ComputeVisibility() == 'invisible':
+            im.MakeVisible()
+        else:
+            im.MakeInvisible()
 
         return {'FINISHED'}
 
@@ -70,44 +91,47 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         for i in range(item.indent):
             layout.split(factor=0.1)
 
+        items = data.items
         prim = data.get_prim(item)
         if not prim:
             return
+
+        visible = UsdGeom.Imageable(prim).ComputeVisibility() != 'invisible'
 
         col = layout.column()
         if not prim.GetChildren():
             icon = 'DOT'
             col.enabled = False
+        elif len(items) > index + 1 and items[index + 1].indent > item.indent:
+            icon = 'TRIA_DOWN'
         else:
-            icon = 'TRIA_DOWN' if item.expanded else 'TRIA_RIGHT'
+            icon = 'TRIA_RIGHT'
 
-        expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon)
+        expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon,
+                                 emboss=False, depress=False)
         expand_op.index = index
 
         col = layout.column()
         col.label(text=prim.GetName())
+        col.enabled = visible
 
         col = layout.column()
         col.alignment = 'RIGHT'
         col.label(text=prim.GetTypeName())
+        col.enabled = visible
 
+        col = layout.column()
+        col.alignment = 'RIGHT'
 
-def draw_usd_list(usd_list, layout):
-    col = layout.column()
-    col.template_list(
-        "HDUSD_UL_usd_list_item", "",
-        usd_list, "items",
-        usd_list, "item_index",
-        sort_lock=True
-    )
+        if prim.GetTypeName() == 'Xform':
+            icon = 'HIDE_OFF' if visible else 'HIDE_ON'
+        else:
+            col.enabled = False
+            icon = 'DOT'
 
-    if usd_list.item_index >= 0:
-        item = usd_list.items[usd_list.item_index]
-        prim = usd_list.get_prim(item)
-
-        col.label(text=f"Name: {prim.GetName()}")
-        col.label(text=f"Path: {prim.GetPath()}")
-        col.label(text=f"Type: {prim.GetTypeName()}")
+        visible_op = col.operator("hdusd.usd_list_item_show_hide", text="", icon=icon,
+                                  emboss=False, depress=False)
+        visible_op.index = index
 
 
 class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
@@ -126,5 +150,19 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         usd_list = node.hdusd.usd_list
         layout = self.layout
 
-        draw_usd_list(usd_list, layout)
+        layout.template_list(
+            "HDUSD_UL_usd_list_item", "",
+            usd_list, "items",
+            usd_list, "item_index",
+            sort_lock=True
+        )
 
+        prop_layout = layout.column()
+        prop_layout.use_property_split = True
+        for prop in usd_list.prim_properties:
+            if prop.type == 'str' and prop.value_str:
+                row = prop_layout.row()
+                row.enabled = False
+                row.prop(prop, 'value_str', text=prop.name)
+            elif prop.type == 'float':
+                prop_layout.prop(prop, 'value_float', text=prop.name)

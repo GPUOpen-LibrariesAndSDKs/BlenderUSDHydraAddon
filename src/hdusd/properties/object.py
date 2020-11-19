@@ -13,14 +13,64 @@
 # limitations under the License.
 #********************************************************************
 import bpy
+import mathutils
+
+from pxr import Usd, UsdGeom, Gf
+
 from . import HdUSDProperties
+from . import usd_list
+from ..export.object import get_transform
 
 
 class ObjectProperties(HdUSDProperties):
     bl_type = bpy.types.Object
 
-    sdf_path: bpy.props.StringProperty(
-        name="Sdf Path",
-        description="Sdf Path",
-        default="",
-    )
+    is_usd: bpy.props.BoolProperty(default=False)
+    usd_id: bpy.props.IntProperty(default=-1)
+    sdf_path: bpy.props.StringProperty(default="/")
+
+    def sync_from_prim(self, prim):
+        context = bpy.context
+        prim_obj = self.id_data
+
+        if not prim or str(prim.GetTypeName()) != 'Xform':
+            self.usd_id = -1
+            prim_obj.name = self.sdf_path = "/"
+            prim_obj.matrix_world = mathutils.Matrix.Identity(4)
+
+            # hiding, deactivating and deselecting prim object
+            prim_obj.hide_viewport = True
+            if prim_obj in context.selected_objects:
+                prim_obj.select_set(False)
+            if bpy.context.view_layer.objects.active == prim_obj:
+                bpy.context.view_layer.objects.active = None
+            return
+
+        self.usd_id = usd_list._stage_cache.GetId(prim.GetStage()).ToLongInt()
+        prim_obj.name = self.sdf_path = str(prim.GetPath())
+        xform = UsdGeom.Xform(prim)
+        ops = xform.GetOrderedXformOps()
+        if ops:
+            prim_obj.matrix_world = mathutils.Matrix(ops[0].Get()).transposed()
+        else:
+            prim_obj.matrix_world = mathutils.Matrix.Identity(4)
+
+        # showing, activating and selecting prim object
+        prim_obj.hide_viewport = False
+        context.view_layer.objects.active = prim_obj
+        if len(context.selected_objects) < 2:
+            if context.selected_objects:
+                context.selected_objects[0].select_set(False)
+            prim_obj.select_set(True)
+
+    def sync_to_prim(self):
+        if self.usd_id == -1:
+            return
+
+        obj = self.id_data
+        stage = usd_list._stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
+        prim = stage.GetPrimAtPath(self.sdf_path)
+
+        xform = UsdGeom.Xform(prim)
+        xform.ClearXformOpOrder()
+        xform.AddTransformOp().Set(Gf.Matrix4d(get_transform(obj)))
