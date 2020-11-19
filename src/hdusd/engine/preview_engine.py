@@ -31,8 +31,53 @@ class PreviewEngine(FinalEngine):
 
     TYPE = 'PREVIEW'
 
-    def render(self, scene):
-        return
+    def _render(self, scene, camera):
+        # creating renderer
+        renderer = UsdImagingLite.Engine()
+        renderer.SetRendererPlugin(scene.hdusd.final.delegate)
+        renderer.SetRenderViewport((0, 0, self.width, self.height))
+        renderer.SetRendererAov('color')
+
+        # get Preview camera
+
+        # setup render params
+        params = UsdImagingLite.RenderParams()
+        params.samples = 20
+        render_images = {
+            'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
+        }
+
+        renderer.Render(self.stage.GetPseudoRoot(), params)
+
+        log(f"_render()")
+
+        while True:
+            if self.render_engine.test_break():
+                break
+
+            if renderer.IsConverged():
+                break
+
+            renderer.GetRendererAov('color', render_images['Combined'].ctypes.data)
+            self.update_render_result(render_images)
+
+        renderer.GetRendererAov('color', render_images['Combined'].ctypes.data)
+        self.update_render_result(render_images)
+
+        log(f"_render finished")
+
+        renderer = None
+
+    def render(self, depsgraph):
+        if not self.stage:
+            return
+
+        scene = depsgraph.scene
+        camera = depsgraph.objects[depsgraph.scene.camera.name]
+        log(f"Start render [{self.width}, {self.height}]. "
+            f"Hydra delegate: {scene.hdusd.final.delegate}")
+
+        self._render(scene, camera)
 
     def sync(self, depsgraph):
 
