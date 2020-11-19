@@ -14,14 +14,10 @@
 #********************************************************************
 import bpy
 
-from .engine import Engine
 from .final_engine import FinalEngine
-from ..export import depsgraph as dg, sdf_path, camera
-
-import numpy as np
+from ..export import depsgraph as dg, sdf_path
 
 from pxr import UsdAppUtils
-from pxr import UsdImagingGL, UsdImagingLite
 
 from ..utils import logging
 log = logging.Log(tag='PreviewEngine')
@@ -31,62 +27,12 @@ class PreviewEngine(FinalEngine):
     """ Render engine for preview material, lights, environment """
 
     TYPE = 'PREVIEW'
-    NUMBER_SAMPLES = 5
 
-    def _render(self, scene):
-        # creating renderer
-        renderer = UsdImagingLite.Engine()
-        renderer.SetRendererPlugin(scene.hdusd.final.delegate)
-        renderer.SetRenderViewport((0, 0, self.width, self.height))
-        renderer.SetRendererAov('color')
-
-        # get Preview camera
-        try:
-            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path('Camera.002'))
-        except Exception as e:
-            log.warn(f"Unable to get Preview camera:\n{str(e)}")
-            return
+    def _set_scene_camera(self, renderer, scene):
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path('Camera.002'))
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
-
-        # setup render params
-        params = UsdImagingLite.RenderParams()
-        params.samples = self.NUMBER_SAMPLES
-        render_images = {
-            'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
-        }
-
-        renderer.Render(self.stage.GetPseudoRoot(), params)
-
-        log(f"_render()")
-
-        while True:
-            if self.render_engine.test_break():
-                break
-
-            if renderer.IsConverged():
-                break
-
-            renderer.GetRendererAov('color', render_images['Combined'].ctypes.data)
-            self.update_render_result(render_images)
-
-        renderer.GetRendererAov('color', render_images['Combined'].ctypes.data)
-        self.update_render_result(render_images)
-
-        log(f"_render finished")
-
-        renderer = None
-
-    def render(self, depsgraph):
-        if not self.stage:
-            return
-
-        scene = depsgraph.scene
-        log(f"Start render [{self.width}, {self.height}]. "
-            f"Hydra delegate: {scene.hdusd.final.delegate}")
-
-        self._render(scene)
 
     def sync(self, depsgraph):
 
@@ -98,14 +44,12 @@ class PreviewEngine(FinalEngine):
 
         scene = depsgraph.scene
         self.render_layer_name = depsgraph.view_layer.name
-        settings_scene = bpy.context.scene
 
         self.is_gl_delegate = scene.hdusd.final.is_opengl
 
         self.width = scene.render.resolution_x
         self.height = scene.render.resolution_y
         screen_ratio = self.width / self.height
-        log(f"screen {self.width}x{self.height}, ratio {screen_ratio}")
 
         if not self.stage:
             self.stage = dg.sync(
