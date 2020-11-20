@@ -24,6 +24,11 @@ class HDUSD_OP_render_source_select(bpy.types.Operator):
     bl_label = "Render Source"
 
     source_name: bpy.props.StringProperty(default="")
+    engine_type: bpy.props.EnumProperty(
+        items=(('FINAL', "Final", "For final render"),
+               ('VIEWPORT', "Viewport", "For viewport render")),
+        default='FINAL'
+    )
 
     def execute(self, context):
         context.scene.hdusd.source_name = self.source_name

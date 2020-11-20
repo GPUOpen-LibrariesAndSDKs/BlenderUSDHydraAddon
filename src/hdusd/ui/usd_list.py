@@ -147,7 +147,7 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
     bl_label = "USD List"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
-    bl_category = "Tool"
+    bl_category = "Item"
 
     @classmethod
     def poll(cls, context):
@@ -169,11 +169,11 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         prop_layout = layout.column()
         prop_layout.use_property_split = True
         for prop in usd_list.prim_properties:
-            if prop.type == 'str' and prop.value_str:
+            if prop.type == 'STR' and prop.value_str:
                 row = prop_layout.row()
                 row.enabled = False
                 row.prop(prop, 'value_str', text=prop.name)
-            elif prop.type == 'float':
+            elif prop.type == 'FLOAT':
                 prop_layout.prop(prop, 'value_float', text=prop.name)
 
 
@@ -183,10 +183,8 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
     bl_label = "Add Basic Nodes"
 
     scene_source: bpy.props.EnumProperty(
-        items=(
-            ('SCENE', 'Scene', 'Render current scene'),
-            ('USD_FILE', 'USD File', 'Load and render scene from USD file'),
-        ),
+        items=(('SCENE', 'Scene', 'Render current scene'),
+               ('USD_FILE', 'USD File', 'Load and render scene from USD file')),
         default='SCENE',
     )
 
