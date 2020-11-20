@@ -35,6 +35,7 @@ class MeshData:
     vertices: np.array
     normals: np.array
     uv_layers: dir
+    uv_indices: np.array
     vertex_indices: np.array
     normal_indices: np.array
     num_face_vertices: np.array
@@ -74,6 +75,7 @@ class MeshData:
                                                   (len_loop_triangles * 3,), np.int32)
             if len(uvs) > 0:
                 data.uv_layers[uv_layer.name] = (uvs, uv_indices)
+                data.uv_indices = uv_indices
 
         data.num_face_vertices = np.full((tris_len,), 3, dtype=np.int32)
         data.vertex_indices = get_data_from_collection(mesh.loop_triangles, 'vertices',

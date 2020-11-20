@@ -44,6 +44,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     light.HDUSD_LIGHT_PT_light,
 
     material.HDUSD_MATERIAL_PT_context,
+    material.HDUSD_MATERIAL_PT_preview,
     material.HDUSD_MATERIAL_PT_surface,
     material.HDUSD_MATERIAL_PT_displacement,
     material.HDUSD_MATERIAL_PT_volume,
@@ -52,6 +53,8 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     usd_list.HDUSD_OP_usd_list_item_show_hide,
     usd_list.HDUSD_UL_usd_list_item,
     usd_list.HDUSD_NODE_PT_usd_list,
+    usd_list.HDUSD_OP_usd_nodetree_add_basic_nodes,
+    usd_list.HDUSD_NODE_PT_node_tree_operations,
 ])
 
 

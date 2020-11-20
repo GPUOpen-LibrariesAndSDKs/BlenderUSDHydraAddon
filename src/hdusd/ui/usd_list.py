@@ -175,3 +175,43 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
                 row.prop(prop, 'value_str', text=prop.name)
             elif prop.type == 'float':
                 prop_layout.prop(prop, 'value_float', text=prop.name)
+
+
+class HDUSD_OP_usd_nodetree_add_basic_nodes(HdUSD_Operator):
+    bl_idname = "hdusd.usd_nodetree_add_basic_nodes"
+
+    scene_source: bpy.props.EnumProperty(
+        items=(
+            ('SCENE', 'Scene', 'Render current scene'),
+            ('USD_FILE', 'USD File', 'Load and render scene from USD file'),
+        ),
+        default='SCENE',
+    )
+
+    def execute(self, context):
+        tree = context.space_data.edit_tree
+        tree.add_basic_nodes(self.scene_source)
+        return {'FINISHED'}
+
+
+class HDUSD_NODE_PT_node_tree_operations(HdUSD_Panel):
+    bl_label = "Setup basic USD Node Tree"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "Tool"
+
+    @classmethod
+    def poll(cls, context):
+        tree = context.space_data.edit_tree
+        return super().poll(context) and tree and tree.bl_idname == "hdusd.USDTree"
+
+    def draw(self, context):
+        col = self.layout.column()
+        col.label(text="Replace current tree using")
+
+        add_scene_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="Current scene")
+        add_scene_nodes_op.scene_source = "SCENE"
+
+        add_file_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="USD file")
+        add_file_nodes_op.scene_source = "USD_FILE"
+
