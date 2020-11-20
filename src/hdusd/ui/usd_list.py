@@ -177,8 +177,10 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
                 prop_layout.prop(prop, 'value_float', text=prop.name)
 
 
-class HDUSD_OP_usd_nodetree_add_basic_nodes(HdUSD_Operator):
+class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
+    """Add basic USD nodes"""
     bl_idname = "hdusd.usd_nodetree_add_basic_nodes"
+    bl_label = "Add Basic Nodes"
 
     scene_source: bpy.props.EnumProperty(
         items=(
@@ -194,7 +196,7 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(HdUSD_Operator):
         return {'FINISHED'}
 
 
-class HDUSD_NODE_PT_node_tree_operations(HdUSD_Panel):
+class HDUSD_NODE_PT_usd_nodetree_operations(HdUSD_Panel):
     bl_label = "Setup basic USD Node Tree"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
@@ -209,9 +211,6 @@ class HDUSD_NODE_PT_node_tree_operations(HdUSD_Panel):
         col = self.layout.column()
         col.label(text="Replace current tree using")
 
-        add_scene_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="Current scene")
-        add_scene_nodes_op.scene_source = "SCENE"
-
-        add_file_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="USD file")
-        add_file_nodes_op.scene_source = "USD_FILE"
-
+        op_idname = HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname
+        col.operator(op_idname, text="Current Scene").scene_source = "SCENE"
+        col.operator(op_idname, text="USD file").scene_source = "USD_FILE"
