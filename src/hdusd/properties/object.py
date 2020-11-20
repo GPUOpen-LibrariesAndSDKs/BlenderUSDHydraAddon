@@ -29,8 +29,7 @@ class ObjectProperties(HdUSDProperties):
     usd_id: bpy.props.IntProperty(default=-1)
     sdf_path: bpy.props.StringProperty(default="/")
 
-    def sync_from_prim(self, prim):
-        context = bpy.context
+    def sync_from_prim(self, prim, context):
         prim_obj = self.id_data
 
         if not prim or str(prim.GetTypeName()) != 'Xform':
@@ -40,10 +39,9 @@ class ObjectProperties(HdUSDProperties):
 
             # hiding, deactivating and deselecting prim object
             prim_obj.hide_viewport = True
-            if prim_obj in context.selected_objects:
-                prim_obj.select_set(False)
-            if bpy.context.view_layer.objects.active == prim_obj:
-                bpy.context.view_layer.objects.active = None
+            prim_obj.select_set(False)
+            if context.view_layer.objects.active == prim_obj:
+                context.view_layer.objects.active = None
             return
 
         self.usd_id = usd_list._stage_cache.GetId(prim.GetStage()).ToLongInt()

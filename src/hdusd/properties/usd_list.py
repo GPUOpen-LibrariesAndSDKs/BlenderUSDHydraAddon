@@ -72,12 +72,12 @@ class UsdList(PropertyGroup):
         
         self.prim_properties.clear()
         if self.item_index == -1:
-            prim_obj.hdusd.sync_from_prim(None)
+            prim_obj.hdusd.sync_from_prim(None, context)
             return
 
         item = self.items[self.item_index]
         prim = self.get_prim(item)
-        prim_obj.hdusd.sync_from_prim(prim)
+        prim_obj.hdusd.sync_from_prim(prim, context)
 
         def add_prop(name, value):
             prop = self.prim_properties.add()

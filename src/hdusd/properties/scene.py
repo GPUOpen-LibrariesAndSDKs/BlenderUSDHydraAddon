@@ -34,7 +34,7 @@ class RenderSettings(bpy.types.PropertyGroup):
     data_source: bpy.props.StringProperty(name="Data Source", default="")
 
     @property
-    def is_opengl(self):
+    def is_gl_delegate(self):
         return self.delegate == 'HdStormRendererPlugin'
 
     @property

@@ -18,6 +18,7 @@ import numpy as np
 from pxr import Usd, UsdAppUtils, Glf
 from pxr import UsdImagingGL, UsdImagingLite
 
+import bpy
 import bgl
 
 from .engine import Engine
@@ -43,8 +44,6 @@ class FinalEngine(Engine):
         self.render_layer_name = None
 
         self.status_title = ""
-
-        self.is_gl_delegate = False
 
     def notify_status(self, progress, info):
         """ Display export/render status """
@@ -159,8 +158,9 @@ class FinalEngine(Engine):
 
     def sync(self, depsgraph):
         scene = depsgraph.scene
+        settings = scene.hdusd.final
         view_layer = depsgraph.view_layer
-        self.is_gl_delegate = scene.hdusd.final.is_opengl
+
         self.render_layer_name = view_layer.name
         self.status_title = f"{scene.name}: {self.render_layer_name}"
         self.notify_status(0.0, "Start syncing")
@@ -186,13 +186,12 @@ class FinalEngine(Engine):
         def test_break():
             return self.render_engine.test_break()
 
-        if scene.hdusd.final.is_usd_nodegraph:
-            from ..usd_nodes.node_tree import get_usd_nodetree
+        if settings.data_source:
+            nodetree = bpy.data.node_groups[settings.data_source]
             self.stage = nodegraph.sync(
-                get_usd_nodetree(),
-                depsgraph=depsgraph,
+                nodetree,
                 screen_ratio=screen_ratio,
-                is_gl_delegate=self.is_gl_delegate,
+                is_gl_delegate=settings.is_gl_delegate,
                 notify_callback=notify_callback,
                 test_break=test_break,
                 engine=self,
@@ -202,7 +201,7 @@ class FinalEngine(Engine):
             self.stage = dg.sync(
                 depsgraph,
                 screen_ratio=screen_ratio,
-                is_gl_delegate=self.is_gl_delegate,
+                is_gl_delegate=settings.is_gl_delegate,
                 notify_callback=notify_callback,
                 test_break=test_break,
                 engine=self,
@@ -213,7 +212,7 @@ class FinalEngine(Engine):
             return
 
         # setting enabling/disabling gpu context in render() method
-        self.render_engine.bl_use_gpu_context = self.is_gl_delegate
+        self.render_engine.bl_use_gpu_context = settings.is_gl_delegate
 
         log.info("Scene synchronization time:", time_str(time.perf_counter() - time_begin))
         self.notify_status(0.0, "Start render")

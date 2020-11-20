@@ -187,10 +187,10 @@ class ViewportEngine(Engine):
         log('Start sync')
 
         scene = depsgraph.scene
-        prop = scene.hdusd.viewport
+        settings = scene.hdusd.viewport
 
-        self.is_gl_delegate = prop.is_opengl
-        self.is_usd_nodegraph = prop.is_usd_nodegraph
+        self.is_gl_delegate = settings.is_gl_delegate
+        self.is_usd_nodegraph = settings.is_usd_nodegraph
 
         self.space_data = context.space_data
         self.shading_data = ShadingData(context)
@@ -201,7 +201,7 @@ class ViewportEngine(Engine):
         self.render_params.clearColor = (0, 0, 0, 0)
 
         self.renderer = UsdImagingGL.Engine()
-        self.renderer.SetRendererPlugin(prop.delegate)
+        self.renderer.SetRendererPlugin(settings.delegate)
 
         if self.is_usd_nodegraph:
             from ..usd_nodes.node_tree import get_usd_nodetree
@@ -404,8 +404,8 @@ class ViewportEngine(Engine):
 
     def update_render(self, scene):
         prop = scene.hdusd.viewport
-        if self.is_gl_delegate != prop.is_opengl:
-            self.is_gl_delegate = prop.is_opengl
+        if self.is_gl_delegate != prop.is_gl_delegate:
+            self.is_gl_delegate = prop.is_gl_delegate
 
             # update all scene lights since on renderer change
             self.resync_scene_lights(scene)
