@@ -42,7 +42,7 @@ register, unregister = bpy.utils.register_classes_factory((
 
     node.NodeProperties,
 
-    scene.RenderDelegate,
+    scene.RenderSettings,
     scene.SceneProperties,
 
     object.ObjectProperties

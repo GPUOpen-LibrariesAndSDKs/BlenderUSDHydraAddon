@@ -36,10 +36,11 @@ from . import (
 
 
 register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    render.HDUSD_OP_render_source_select,
-    render.HDUSD_MT_render_source,
-    render.HDUSD_RENDER_PT_delegate_final,
-    render.HDUSD_RENDER_PT_delegate_viewport,
+    render.HDUSD_OP_data_source,
+    render.HDUSD_MT_data_source_final,
+    render.HDUSD_MT_data_source_viewport,
+    render.HDUSD_RENDER_PT_render_settings_final,
+    render.HDUSD_RENDER_PT_render_settings_viewport,
 
     light.HDUSD_LIGHT_PT_light,
 

@@ -24,17 +24,14 @@ _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
 log("Render Delegates", _render_delegates)
 
 
-class RenderDelegate(bpy.types.PropertyGroup):
+class RenderSettings(bpy.types.PropertyGroup):
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=((name, display_name, f"Hydra render delegate: {display_name}")
                for name, display_name in _render_delegates.items()),
         default='HdRprPlugin',
     )
-    use_usd_nodegraph: bpy.props.BoolProperty(
-        name="Use USD Nodegraph",
-        default=True
-    )    
+    data_source: bpy.props.StringProperty(name="Data Source", default="")
 
     @property
     def is_opengl(self):
@@ -48,7 +45,5 @@ class RenderDelegate(bpy.types.PropertyGroup):
 class SceneProperties(HdUSDProperties):
     bl_type = bpy.types.Scene
 
-    final: bpy.props.PointerProperty(type=RenderDelegate)
-    viewport: bpy.props.PointerProperty(type=RenderDelegate)
-
-    source_name: bpy.props.StringProperty(default="")
+    final: bpy.props.PointerProperty(type=RenderSettings)
+    viewport: bpy.props.PointerProperty(type=RenderSettings)

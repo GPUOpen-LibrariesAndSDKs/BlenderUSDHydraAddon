@@ -18,12 +18,12 @@ from . import HdUSD_Panel
 from ..usd_nodes.node_tree import get_usd_nodetree
 
 
-class HDUSD_OP_render_source_select(bpy.types.Operator):
+class HDUSD_OP_data_source(bpy.types.Operator):
     """Select render source"""
-    bl_idname = "hdusd.render_source_select"
-    bl_label = "Render Source"
+    bl_idname = "hdusd.data_source"
+    bl_label = "Data Source"
 
-    source_name: bpy.props.StringProperty(default="")
+    data_source: bpy.props.StringProperty(default="")
     engine_type: bpy.props.EnumProperty(
         items=(('FINAL', "Final", "For final render"),
                ('VIEWPORT', "Viewport", "For viewport render")),
@@ -31,76 +31,82 @@ class HDUSD_OP_render_source_select(bpy.types.Operator):
     )
 
     def execute(self, context):
-        context.scene.hdusd.source_name = self.source_name
+        settings = context.scene.hdusd.final if self.engine_type == 'FINAL' else\
+                   context.scene.hdusd.viewport
+        settings.data_source = self.data_source
         return {"FINISHED"}
 
 
-class HDUSD_MT_render_source(bpy.types.Menu):
-    """Select render source"""
-    bl_idname = "HDUSD_MT_render_source"
-    bl_label = "Render Source"
+class DataSourceMenu(bpy.types.Menu):
+    bl_label = "Data Source"
+    engine_type = None
 
     def draw(self, context):
         layout = self.layout
         node_groups = bpy.data.node_groups
-        op_idname = HDUSD_OP_render_source_select.bl_idname
+        op_idname = HDUSD_OP_data_source.bl_idname
 
-        layout.operator(op_idname, text=context.scene.name, icon='SCENE_DATA').source_name = ""
+        op = layout.operator(op_idname, text=context.scene.name, icon='SCENE_DATA')
+        op.data_source = ""
+        op.engine_type = self.engine_type
+
         for ng in node_groups:
             if ng.bl_idname != 'hdusd.USDTree':
                 continue
 
             row = layout.row()
-            row.operator(op_idname, text=ng.name, icon='NODETREE').source_name = ng.name
-            row.enabled = ng.get_output_node() is not None
+            row.enabled = bool(ng.get_output_node())
+            op = row.operator(op_idname, text=ng.name, icon='NODETREE')
+            op.data_source = ng.name
+            op.engine_type = self.engine_type
 
 
-class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
-    """
-    Final Render Delegate and settings
-    """
-    bl_label = "Final Renderer"
+class HDUSD_MT_data_source_final(DataSourceMenu):
+    """Select data source"""
+    bl_idname = "HDUSD_MT_data_source_final"
+    engine_type = 'FINAL'
+
+
+class HDUSD_MT_data_source_viewport(DataSourceMenu):
+    """Select render source"""
+    bl_idname = "HDUSD_MT_data_source_viewport"
+    engine_type = 'VIEWPORT'
+
+
+class RenderSettingsPanel(HdUSD_Panel):
     bl_context = 'render'
+    engine_type = None
 
     def draw(self, context):
+        scene = context.scene
+        settings = scene.hdusd.final if self.engine_type == 'FINAL' else scene.hdusd.viewport
+
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        scene = context.scene
-        layout.prop(scene.hdusd.final, "delegate")
-
-        # use the USD nodegraph if present
-        row = layout.row()
-        row.prop(scene.hdusd.final, "use_usd_nodegraph")
-        row.enabled = get_usd_nodetree() is not None
-
-        row = layout.row()
-        col = row.column()
+        row = layout.row(align=True)
+        s = row.split(factor=0.4)
+        col = s.column()
         col.alignment = 'RIGHT'
-        col.label(text="Render Source")
-        col = row.column()
-        col.menu(HDUSD_MT_render_source.bl_idname,
-                 text=scene.hdusd.source_name if scene.hdusd.source_name else scene.name,
-                 icon='NODETREE' if scene.hdusd.source_name else 'SCENE_DATA')
+        col.label(text="Data Source")
+        col = s.column()
+        col.menu(HDUSD_MT_data_source_final.bl_idname if self.engine_type == 'FINAL' else
+                 HDUSD_MT_data_source_viewport.bl_idname,
+                 text=settings.data_source if settings.data_source else scene.name,
+                 icon='NODETREE' if settings.data_source else 'SCENE_DATA')
+
+        layout.prop(settings, "delegate")
 
 
-class HDUSD_RENDER_PT_delegate_viewport(HdUSD_Panel):
-    """
-    Viewport Render Delegate and settings
-    """
-    bl_label = "Viewport Renderer"
-    bl_context = 'render'
+class HDUSD_RENDER_PT_render_settings_final(RenderSettingsPanel):
+    """Final render delegate and settings"""
+    bl_label = "Final Render Settings"
+    engine_type = 'FINAL'
 
-    def draw(self, context):
-        from ..usd_nodes.node_tree import get_usd_nodetree
 
-        layout = self.layout
 
-        scene = context.scene
-        layout.prop(scene.hdusd.viewport, "delegate")
-
-        # use the USD nodegraph if present
-        row = layout.row()
-        row.prop(scene.hdusd.viewport, "use_usd_nodegraph")
-        row.enabled = get_usd_nodetree() is not None
+class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):
+    """Viewport render delegate and settings"""
+    bl_label = "Viewport Render Settings"
+    engine_type = 'VIEWPORT'
