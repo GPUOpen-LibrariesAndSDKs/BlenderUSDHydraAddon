@@ -106,6 +106,7 @@ from . import (
     render,
     light,
     material,
+    world,
     usd_list,
 )
 
@@ -121,6 +122,8 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_PT_surface,
     material.HDUSD_MATERIAL_PT_displacement,
     material.HDUSD_MATERIAL_PT_volume,
+
+    world.HDUSD_WORLD_PT_surface,
 
     usd_list.HDUSD_OP_usd_list_item_expand,
     usd_list.HDUSD_OP_usd_list_item_show_hide,
