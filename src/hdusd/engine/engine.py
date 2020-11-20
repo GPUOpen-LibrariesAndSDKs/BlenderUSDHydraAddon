@@ -13,6 +13,12 @@
 # limitations under the License.
 #********************************************************************
 import weakref
+import traceback
+
+import bpy
+
+from ..utils import logging
+log = logging.Log(tag='engine')
 
 
 class Engine:
@@ -26,3 +32,78 @@ class Engine:
 
     def __hash__(self):
         return self.render_engine.as_pointer()
+
+
+from . import final_engine, viewport_engine, preview_engine
+
+
+class HdEngine(bpy.types.RenderEngine):
+    """
+    Main class of USD Hydra render engine for Blender
+    """
+    bl_idname = "HdUSD"
+    bl_label = "USD Hydra"
+    bl_use_preview = True
+    bl_use_shading_nodes = True
+    bl_use_shading_nodes_custom = False
+    bl_use_gpu_context = False
+    bl_info = "USD Hydra rendering plugin"
+
+    engine = None
+
+    def __del__(self):
+        log('__del__', self.as_pointer())
+
+    def update(self, data, depsgraph):
+        """ Called for final render """
+        log('update', self.as_pointer())
+
+        try:
+            if self.is_preview:
+                engine_cls = preview_engine.PreviewEngine
+
+            else:
+                engine_cls = final_engine.FinalEngine
+
+            self.engine = engine_cls(self)
+            self.engine.sync(depsgraph)
+
+        except Exception as e:
+            log.error(e, 'EXCEPTION:', traceback.format_exc())
+            self.error_set(f"ERROR | {e}. Please see log for more details.")
+
+    def render(self, depsgraph):
+        """ Called with for final render """
+        log("render", self.as_pointer())
+        try:
+            self.engine.render(depsgraph)
+
+        except Exception as e:
+            log.error(e, 'EXCEPTION:', traceback.format_exc())
+            self.error_set(f"ERROR | {e}. Please see log for more details.")
+
+    # viewport render
+    def view_update(self, context, depsgraph):
+        """ Called when data is updated for viewport """
+        log('view_update', self.as_pointer())
+
+        try:
+            if self.engine:
+                self.engine.sync_update(context, depsgraph)
+                return
+
+            self.engine = viewport_engine.ViewportEngine(self)
+            self.engine.sync(context, depsgraph)
+
+        except Exception as e:
+            log.error(e, 'EXCEPTION:', traceback.format_exc())
+
+    def view_draw(self, context, depsgraph):
+        """ called when viewport is to be drawn """
+        log('view_draw', self.as_pointer())
+
+        try:
+            self.engine.draw(context)
+
+        except Exception as e:
+            log.error(e, 'EXCEPTION:', traceback.format_exc())

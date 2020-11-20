@@ -26,7 +26,7 @@ from ..export import depsgraph as dg, nodegraph, sdf_path
 from ..utils import gl, time_str
 
 from ..utils import logging
-log = logging.Log(tag='RenderEngine')
+log = logging.Log(tag='final_engine')
 
 
 class FinalEngine(Engine):

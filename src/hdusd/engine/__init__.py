@@ -15,6 +15,8 @@
 import os
 import sys
 
+import bpy
+
 from .. import utils
 
 
@@ -23,3 +25,22 @@ os.environ['PATH'] = f"{utils.HDUSD_LIBS_DIR / 'usd'};{utils.HDUSD_LIBS_DIR / 'p
 os.environ['PXR_PLUGINPATH_NAME'] = str(utils.HDUSD_LIBS_DIR / 'plugins')
 
 sys.path.append(str(utils.HDUSD_LIBS_DIR / 'usd/python'))
+
+
+from . import engine, handlers
+
+
+def register():
+    bpy.utils.register_class(engine.HdEngine)
+
+    bpy.app.handlers.load_pre.append(handlers.on_load_pre)
+    bpy.app.handlers.load_post.append(handlers.on_load_post)
+    bpy.app.handlers.depsgraph_update_post.append(handlers.on_depsgraph_update_post)
+
+
+def unregister():
+    bpy.utils.unregister_class(engine.HdEngine)
+
+    bpy.app.handlers.load_pre.remove(handlers.on_load_pre)
+    bpy.app.handlers.load_post.remove(handlers.on_load_post)
+    bpy.app.handlers.depsgraph_update_post.remove(handlers.on_depsgraph_update_post)

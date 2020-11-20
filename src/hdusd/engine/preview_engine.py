@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import bpy
-
 from .final_engine import FinalEngine
 from ..export import depsgraph as dg, sdf_path
 
 from pxr import UsdAppUtils
 
 from ..utils import logging
-log = logging.Log(tag='PreviewEngine')
+log = logging.Log(tag='preview_engine')
 
 
 class PreviewEngine(FinalEngine):
@@ -46,7 +44,7 @@ class PreviewEngine(FinalEngine):
         scene = depsgraph.scene
         self.render_layer_name = depsgraph.view_layer.name
 
-        self.is_gl_delegate = False  # TODO fix Preview in the HdStorm mode
+        is_gl_delegate = False  # TODO fix Preview in the HdStorm mode
 
         self.width = scene.render.resolution_x
         self.height = scene.render.resolution_y
@@ -56,13 +54,13 @@ class PreviewEngine(FinalEngine):
             self.stage = dg.sync(
                 depsgraph,
                 screen_ratio=screen_ratio,
-                is_gl_delegate=self.is_gl_delegate,
+                is_gl_delegate=is_gl_delegate,
                 notify_callback=notify_callback,
                 test_break=test_break,
                 engine=self,
                 is_preview_render=True,
             )
 
-        self.render_engine.bl_use_gpu_context = self.is_gl_delegate
+        self.render_engine.bl_use_gpu_context = is_gl_delegate
 
         log(f"Sync finished")
