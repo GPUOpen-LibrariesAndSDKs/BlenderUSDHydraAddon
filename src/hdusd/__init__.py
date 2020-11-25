@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import traceback
-
-import bpy
-
 
 bl_info = {
     "name": "USD Hydra",
@@ -37,136 +33,28 @@ from .utils import logging
 
 
 log = logging.Log(tag='init')
-log("Loading USD Hydra addon {}".format(bl_info['version']))
+log.info("Loading USD Hydra addon {}".format(bl_info['version']))
 
 
-from .engine import final_engine, viewport_engine, preview_engine
-from . import (
-    properties,
-    ui,
-    usd_nodes,
-)
-
-
-class HdEngine(bpy.types.RenderEngine):
-    """
-    Main class of Radeon ProRender render engine for Blender v2.80+
-    """
-    bl_idname = "HdUSD"
-    bl_label = "USD Hydra"
-    bl_use_preview = True
-    bl_use_shading_nodes = True
-    bl_use_shading_nodes_custom = False
-    bl_use_gpu_context = False
-    bl_info = "USD Hydra rendering plugin"
-
-    engine = None
-
-    def __del__(self):
-        log('__del__', self.as_pointer())
-
-    def update(self, data, depsgraph):
-        """ Called for final render """
-        log('update', self.as_pointer())
-
-        try:
-            if self.is_preview:
-                engine_cls = preview_engine.PreviewEngine
-
-            else:
-                engine_cls = final_engine.FinalEngine
-
-            self.engine = engine_cls(self)
-            self.engine.sync(depsgraph)
-
-        except Exception as e:
-            log.error(e, 'EXCEPTION:', traceback.format_exc())
-            self.error_set(f"ERROR | {e}. Please see log for more details.")
-
-    def render(self, depsgraph):
-        """ Called with for final render """
-        log("render", self.as_pointer())
-        try:
-            self.engine.render(depsgraph)
-
-        except Exception as e:
-            log.error(e, 'EXCEPTION:', traceback.format_exc())
-            self.error_set(f"ERROR | {e}. Please see log for more details.")
-
-    # viewport render
-    def view_update(self, context, depsgraph):
-        """ Called when data is updated for viewport """
-        log('view_update', self.as_pointer())
-
-        try:
-            if self.engine:
-                self.engine.sync_update(context, depsgraph)
-                return
-
-            self.engine = viewport_engine.ViewportEngine(self)
-            self.engine.sync(context, depsgraph)
-
-        except Exception as e:
-            log.error(e, 'EXCEPTION:', traceback.format_exc())
-
-    def view_draw(self, context, depsgraph):
-        """ called when viewport is to be drawn """
-        log('view_draw', self.as_pointer())
-
-        try:
-            self.engine.draw(context)
-
-        except Exception as e:
-            log.error(e, 'EXCEPTION:', traceback.format_exc())
-
-
-@bpy.app.handlers.persistent
-def on_load_pre(*args):
-    """ Handler on loading a blend file (before) """
-    log("on_load_pre", args)
-    utils.clear_temp_dir()
-
-
-@bpy.app.handlers.persistent
-def on_load_post(*args):
-    """ Handler on loading a blend file (after) """
-    log("on_load_post", args)
-    from .usd_nodes import node_tree
-    node_tree.reset()
-
-    from .properties.usd_list import get_blender_prim_object
-    get_blender_prim_object(bpy.context)
-
-
-@bpy.app.handlers.persistent
-def on_depsgraph_update_post(scene, depsgraph):
-    from .properties.usd_list import depsgraph_update
-    depsgraph_update(depsgraph)
+from . import engine, properties, ui, usd_nodes
 
 
 def register():
     """ Register all addon classes in Blender """
     log("register")
 
-    bpy.utils.register_class(HdEngine)
+    engine.register()
     properties.register()
     ui.register()
     usd_nodes.register()
 
-    bpy.app.handlers.load_pre.append(on_load_pre)
-    bpy.app.handlers.load_post.append(on_load_post)
-    bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
 
 
 def unregister():
     """ Unregister all addon classes from Blender """
     log("unregister")
 
-    bpy.app.handlers.load_pre.remove(on_load_pre)
-    bpy.app.handlers.load_post.remove(on_load_post)
-    bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
-
     usd_nodes.unregister()
     ui.unregister()
     properties.unregister()
-    bpy.utils.unregister_class(HdEngine)
+    engine.unregister()

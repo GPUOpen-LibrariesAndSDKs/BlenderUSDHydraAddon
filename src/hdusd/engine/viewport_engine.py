@@ -167,7 +167,7 @@ class ViewportEngine(Engine):
         self.shading_data = None
 
         self.is_gl_delegate = False
-        self.is_usd_nodegraph = False
+        self.data_source = False
         self.stage_nodegraph = None
 
     def __del__(self):
@@ -187,10 +187,10 @@ class ViewportEngine(Engine):
         log('Start sync')
 
         scene = depsgraph.scene
-        prop = scene.hdusd.viewport
+        settings = scene.hdusd.viewport
 
-        self.is_gl_delegate = prop.is_opengl
-        self.is_usd_nodegraph = prop.is_usd_nodegraph
+        self.is_gl_delegate = settings.is_gl_delegate
+        self.data_source = settings.data_source
 
         self.space_data = context.space_data
         self.shading_data = ShadingData(context)
@@ -201,13 +201,12 @@ class ViewportEngine(Engine):
         self.render_params.clearColor = (0, 0, 0, 0)
 
         self.renderer = UsdImagingGL.Engine()
-        self.renderer.SetRendererPlugin(prop.delegate)
+        self.renderer.SetRendererPlugin(settings.delegate)
 
-        if self.is_usd_nodegraph:
-            from ..usd_nodes.node_tree import get_usd_nodetree
+        if self.data_source:
+            nodetree = bpy.data.node_groups[self.data_source]
             self.stage_nodegraph = nodegraph.sync(
-                get_usd_nodetree(),
-                depsgraph=depsgraph,
+                nodetree,
                 is_gl_delegate=self.is_gl_delegate,
                 space_data = self.space_data,
                 use_scene_lights = self.shading_data.use_scene_lights,
@@ -340,7 +339,7 @@ class ViewportEngine(Engine):
         if self.renderer.IsPauseRendererSupported():
             self.renderer.PauseRenderer()
 
-        if self.is_usd_nodegraph:
+        if self.data_source:
             self._sync_update_nodegraph(context, depsgraph)
         else:
             self._sync_update_blend(context, depsgraph)
@@ -388,7 +387,7 @@ class ViewportEngine(Engine):
         bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
         self.render_engine.bind_display_space_shader(context.scene)
 
-        stage = self.stage_nodegraph if self.is_usd_nodegraph and self.stage_nodegraph else self.stage
+        stage = self.stage_nodegraph if self.data_source and self.stage_nodegraph else self.stage
         try:
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
         except Exception as e:
@@ -404,8 +403,8 @@ class ViewportEngine(Engine):
 
     def update_render(self, scene):
         prop = scene.hdusd.viewport
-        if self.is_gl_delegate != prop.is_opengl:
-            self.is_gl_delegate = prop.is_opengl
+        if self.is_gl_delegate != prop.is_gl_delegate:
+            self.is_gl_delegate = prop.is_gl_delegate
 
             # update all scene lights since on renderer change
             self.resync_scene_lights(scene)
@@ -413,7 +412,7 @@ class ViewportEngine(Engine):
         self.renderer.SetRendererPlugin(prop.delegate)
 
     def resync_scene_lights(self, scene):
-        if self.is_usd_nodegraph or not self.shading_data.use_scene_lights:
+        if self.data_source or not self.shading_data.use_scene_lights:
             return
 
         for obj in scene.objects:

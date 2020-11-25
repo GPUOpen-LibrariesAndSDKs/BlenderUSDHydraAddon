@@ -12,46 +12,100 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import bpy
+
 from . import HdUSD_Panel
+from ..usd_nodes.node_tree import get_usd_nodetree
 
 
-class HDUSD_RENDER_PT_delegate_final(HdUSD_Panel):
-    """
-    Final Render Delegate and settings
-    """
-    bl_label = "Final Renderer"
-    bl_context = 'render'
+class HDUSD_OP_data_source(bpy.types.Operator):
+    """Select render source"""
+    bl_idname = "hdusd.data_source"
+    bl_label = "Data Source"
 
-    def draw(self, context):
-        from ..usd_nodes.node_tree import get_usd_nodetree
+    data_source: bpy.props.StringProperty(default="")
+    engine_type: bpy.props.EnumProperty(
+        items=(('FINAL', "Final", "For final render"),
+               ('VIEWPORT', "Viewport", "For viewport render")),
+        default='FINAL'
+    )
 
-        layout = self.layout
-
-        scene = context.scene
-        layout.prop(scene.hdusd.final, "delegate")
-
-        # use the USD nodegraph if present
-        row = layout.row()
-        row.prop(scene.hdusd.final, "use_usd_nodegraph")
-        row.enabled = get_usd_nodetree() is not None
+    def execute(self, context):
+        settings = context.scene.hdusd.final if self.engine_type == 'FINAL' else\
+                   context.scene.hdusd.viewport
+        settings.data_source = self.data_source
+        return {"FINISHED"}
 
 
-class HDUSD_RENDER_PT_delegate_viewport(HdUSD_Panel):
-    """
-    Viewport Render Delegate and settings
-    """
-    bl_label = "Viewport Renderer"
-    bl_context = 'render'
+class DataSourceMenu(bpy.types.Menu):
+    bl_label = "Data Source"
+    engine_type = None
 
     def draw(self, context):
-        from ..usd_nodes.node_tree import get_usd_nodetree
+        layout = self.layout
+        node_groups = bpy.data.node_groups
+        op_idname = HDUSD_OP_data_source.bl_idname
+
+        op = layout.operator(op_idname, text=context.scene.name, icon='SCENE_DATA')
+        op.data_source = ""
+        op.engine_type = self.engine_type
+
+        for ng in node_groups:
+            if ng.bl_idname != 'hdusd.USDTree':
+                continue
+
+            row = layout.row()
+            row.enabled = bool(ng.get_output_node())
+            op = row.operator(op_idname, text=ng.name, icon='NODETREE')
+            op.data_source = ng.name
+            op.engine_type = self.engine_type
+
+
+class HDUSD_MT_data_source_final(DataSourceMenu):
+    """Select data source"""
+    bl_idname = "HDUSD_MT_data_source_final"
+    engine_type = 'FINAL'
+
+
+class HDUSD_MT_data_source_viewport(DataSourceMenu):
+    """Select render source"""
+    bl_idname = "HDUSD_MT_data_source_viewport"
+    engine_type = 'VIEWPORT'
+
+
+class RenderSettingsPanel(HdUSD_Panel):
+    bl_context = 'render'
+    engine_type = None
+
+    def draw(self, context):
+        scene = context.scene
+        settings = scene.hdusd.final if self.engine_type == 'FINAL' else scene.hdusd.viewport
 
         layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
 
-        scene = context.scene
-        layout.prop(scene.hdusd.viewport, "delegate")
+        layout.prop(settings, "delegate")
 
-        # use the USD nodegraph if present
-        row = layout.row()
-        row.prop(scene.hdusd.viewport, "use_usd_nodegraph")
-        row.enabled = get_usd_nodetree() is not None
+        split = layout.row(align=True).split(factor=0.4)
+        col = split.column()
+        col.alignment = 'RIGHT'
+        col.label(text="Data Source")
+        col = split.column()
+        col.menu(HDUSD_MT_data_source_final.bl_idname if self.engine_type == 'FINAL' else
+                 HDUSD_MT_data_source_viewport.bl_idname,
+                 text=settings.data_source if settings.data_source else scene.name,
+                 icon='NODETREE' if settings.data_source else 'SCENE_DATA')
+
+
+class HDUSD_RENDER_PT_render_settings_final(RenderSettingsPanel):
+    """Final render delegate and settings"""
+    bl_label = "Final Render Settings"
+    engine_type = 'FINAL'
+
+
+
+class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):
+    """Viewport render delegate and settings"""
+    bl_label = "Viewport Render Settings"
+    engine_type = 'VIEWPORT'

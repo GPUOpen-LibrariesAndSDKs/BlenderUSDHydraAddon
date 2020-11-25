@@ -12,26 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-from ..utils import logging
-log = logging.Log("usd_nodes")
-
 import bpy
 
-from . import node_tree
-from . import nodes
+from .. import utils
+from .engine import log
 
 
-register_trees, unregister_trees = bpy.utils.register_classes_factory([
-    node_tree.USDTree,
-    # node_tree.RenderTaskTree,
-])
+@bpy.app.handlers.persistent
+def on_load_pre(*args):
+    """ Handler on loading a blend file (before) """
+    log("on_load_pre", args)
+    utils.clear_temp_dir()
 
 
-def register():
-    register_trees()
-    nodes.register()
+@bpy.app.handlers.persistent
+def on_load_post(*args):
+    """ Handler on loading a blend file (after) """
+    log("on_load_post", args)
+    from ..usd_nodes import node_tree
+    node_tree.reset()
+
+    from ..properties.usd_list import get_blender_prim_object
+    get_blender_prim_object(bpy.context)
 
 
-def unregister():
-    unregister_trees()
-    nodes.unregister()
+@bpy.app.handlers.persistent
+def on_depsgraph_update_post(scene, depsgraph):
+    from ..properties.usd_list import depsgraph_update
+    depsgraph_update(depsgraph)

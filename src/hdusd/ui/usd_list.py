@@ -16,16 +16,21 @@ import bpy
 
 from pxr import UsdGeom
 
-from . import HdUSD_Panel, HdUSD_Operator
+from . import HdUSD_Panel
 from ..usd_nodes.nodes.base_node import USDNode
 
 
-class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
-    """Operation to Expand a list item"""
+class HDUSD_OP_usd_list_item_expand(bpy.types.Operator):
+    """Expand USD item"""
     bl_idname = "hdusd.usd_list_item_expand"
-    index: bpy.props.IntProperty(default=0)
+    bl_label = "Expand"
+
+    index: bpy.props.IntProperty(default=-1)
 
     def execute(self, context):
+        if self.index == -1:
+            return {'CANCELLED'}
+
         node = context.active_node
         usd_list = node.hdusd.usd_list
         items = usd_list.items
@@ -62,12 +67,17 @@ class HDUSD_OP_usd_list_item_expand(HdUSD_Operator):
         return {'FINISHED'}
 
 
-class HDUSD_OP_usd_list_item_show_hide(HdUSD_Operator):
-    """Operation to Expand a list item"""
+class HDUSD_OP_usd_list_item_show_hide(bpy.types.Operator):
+    """Show/Hide USD item"""
     bl_idname = "hdusd.usd_list_item_show_hide"
-    index: bpy.props.IntProperty(default=0)
+    bl_label = "Show/Hide"
+
+    index: bpy.props.IntProperty(default=-1)
 
     def execute(self, context):
+        if self.index == -1:
+            return {'CANCELLED'}
+
         node = context.active_node
         usd_list = node.hdusd.usd_list
         items = usd_list.items
@@ -107,7 +117,7 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
         else:
             icon = 'TRIA_RIGHT'
 
-        expand_op = col.operator("hdusd.usd_list_item_expand", text="", icon=icon,
+        expand_op = col.operator(HDUSD_OP_usd_list_item_expand.bl_idname, text="", icon=icon,
                                  emboss=False, depress=False)
         expand_op.index = index
 
@@ -122,14 +132,13 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
 
         col = layout.column()
         col.alignment = 'RIGHT'
-
         if prim.GetTypeName() == 'Xform':
             icon = 'HIDE_OFF' if visible else 'HIDE_ON'
         else:
             col.enabled = False
-            icon = 'DOT'
+            icon = 'NONE'
 
-        visible_op = col.operator("hdusd.usd_list_item_show_hide", text="", icon=icon,
+        visible_op = col.operator(HDUSD_OP_usd_list_item_show_hide.bl_idname, text="", icon=icon,
                                   emboss=False, depress=False)
         visible_op.index = index
 
@@ -138,7 +147,7 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
     bl_label = "USD List"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
-    bl_category = "Tool"
+    bl_category = "Item"
 
     @classmethod
     def poll(cls, context):
@@ -160,22 +169,22 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         prop_layout = layout.column()
         prop_layout.use_property_split = True
         for prop in usd_list.prim_properties:
-            if prop.type == 'str' and prop.value_str:
+            if prop.type == 'STR' and prop.value_str:
                 row = prop_layout.row()
                 row.enabled = False
                 row.prop(prop, 'value_str', text=prop.name)
-            elif prop.type == 'float':
+            elif prop.type == 'FLOAT':
                 prop_layout.prop(prop, 'value_float', text=prop.name)
 
 
-class HDUSD_OP_usd_nodetree_add_basic_nodes(HdUSD_Operator):
+class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
+    """Add basic USD nodes"""
     bl_idname = "hdusd.usd_nodetree_add_basic_nodes"
+    bl_label = "Add Basic Nodes"
 
     scene_source: bpy.props.EnumProperty(
-        items=(
-            ('SCENE', 'Scene', 'Render current scene'),
-            ('USD_FILE', 'USD File', 'Load and render scene from USD file'),
-        ),
+        items=(('SCENE', 'Scene', 'Render current scene'),
+               ('USD_FILE', 'USD File', 'Load and render scene from USD file')),
         default='SCENE',
     )
 
@@ -185,7 +194,7 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(HdUSD_Operator):
         return {'FINISHED'}
 
 
-class HDUSD_NODE_PT_node_tree_operations(HdUSD_Panel):
+class HDUSD_NODE_PT_usd_nodetree_operations(HdUSD_Panel):
     bl_label = "Setup basic USD Node Tree"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
@@ -200,9 +209,6 @@ class HDUSD_NODE_PT_node_tree_operations(HdUSD_Panel):
         col = self.layout.column()
         col.label(text="Replace current tree using")
 
-        add_scene_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="Current scene")
-        add_scene_nodes_op.scene_source = "SCENE"
-
-        add_file_nodes_op = col.operator("hdusd.usd_nodetree_add_basic_nodes", text="USD file")
-        add_file_nodes_op.scene_source = "USD_FILE"
-
+        op_idname = HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname
+        col.operator(op_idname, text="Current Scene").scene_source = "SCENE"
+        col.operator(op_idname, text="USD file").scene_source = "USD_FILE"

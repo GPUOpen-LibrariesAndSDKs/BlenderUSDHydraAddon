@@ -20,6 +20,7 @@ from bpy.props import (
     StringProperty,
     IntProperty,
     FloatProperty,
+    EnumProperty,
 )
 from pxr import Usd, UsdGeom
 from . import log
@@ -34,21 +35,25 @@ class PrimPropertyItem(PropertyGroup):
             # property is not initialized yet
             return
 
-        if self.name == 'location_x':
-            log(self, self.name)
+        # TODO: implementation
+        pass
 
     name: StringProperty(name="Name", default="")
-    type: StringProperty(default="str")
+    type: EnumProperty(
+        items=(('STR', "String", "String value"),
+               ('FLOAT', "Float", "Float value")),
+        default='STR'
+    )
     value_str: StringProperty(name="Value", default="")
     value_float: FloatProperty(name="Float", default=0.0, update=value_float_update)
 
     def init(self, name, value):
         if isinstance(value, str):
             self.value_str = value
-            self.type = 'str'
+            self.type = 'STR'
         else:
             self.value_float = value
-            self.type = 'float'
+            self.type = 'FLOAT'
 
         self.name = name
 
@@ -67,12 +72,12 @@ class UsdList(PropertyGroup):
         
         self.prim_properties.clear()
         if self.item_index == -1:
-            prim_obj.hdusd.sync_from_prim(None)
+            prim_obj.hdusd.sync_from_prim(None, context)
             return
 
         item = self.items[self.item_index]
         prim = self.get_prim(item)
-        prim_obj.hdusd.sync_from_prim(prim)
+        prim_obj.hdusd.sync_from_prim(prim, context)
 
         def add_prop(name, value):
             prop = self.prim_properties.add()
@@ -83,7 +88,7 @@ class UsdList(PropertyGroup):
         add_prop("Type", str(prim.GetTypeName()))
 
     items: CollectionProperty(type=UsdListItem)
-    item_index: IntProperty(default=-1, update=item_index_update)
+    item_index: IntProperty(name="USD Item", default=-1, update=item_index_update)
     usd_id: IntProperty(default=-1)
 
     prim_properties: CollectionProperty(type=PrimPropertyItem)
