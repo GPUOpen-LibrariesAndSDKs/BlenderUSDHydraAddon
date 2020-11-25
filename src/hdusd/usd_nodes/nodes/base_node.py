@@ -80,8 +80,9 @@ class USDNode(bpy.types.Node):
         kwargs.pop('socket_out', None)
         return self._compute_node(link.from_node, link.from_socket, **kwargs)
 
-    def get_stage(self):
-        return self.hdusd.usd_list.get_stage()
+    @property
+    def stage_cache(self):
+        return self.hdusd.usd_list
 
     def free(self):
         self.hdusd.usd_list.set_stage(None)

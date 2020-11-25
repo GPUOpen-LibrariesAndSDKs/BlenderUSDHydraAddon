@@ -13,7 +13,6 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-import mathutils
 from bpy.types import PropertyGroup
 from bpy.props import (
     CollectionProperty,
@@ -22,11 +21,9 @@ from bpy.props import (
     FloatProperty,
     EnumProperty,
 )
-from pxr import Usd, UsdGeom
+
+from ..utils.stage_cache import StageCacheProp
 from . import log
-
-
-_stage_cache = Usd.StageCache()
 
 
 class PrimPropertyItem(PropertyGroup):
@@ -66,7 +63,7 @@ class UsdListItem(PropertyGroup):
         return self.sdf_path.count('/') - 1
 
 
-class UsdList(PropertyGroup):
+class UsdList(PropertyGroup, StageCacheProp):
     def item_index_update(self, context):
         prim_obj = get_blender_prim_object(context)
         
@@ -89,27 +86,19 @@ class UsdList(PropertyGroup):
 
     items: CollectionProperty(type=UsdListItem)
     item_index: IntProperty(name="USD Item", default=-1, update=item_index_update)
-    usd_id: IntProperty(default=-1)
 
     prim_properties: CollectionProperty(type=PrimPropertyItem)
 
     def set_stage(self, stage):
         self.items.clear()
         self.item_index = -1
-        if self.usd_id > 0:
-            _stage_cache.Erase(Usd.StageCache.Id.FromLongInt(self.usd_id))
-            self.usd_id = -1
 
-        if not stage:
-            return
+        super().set_stage(stage)
 
-        self.usd_id = _stage_cache.Insert(stage).ToLongInt()
-        for prim in stage.GetPseudoRoot().GetChildren():
-            item = self.items.add()
-            item.sdf_path = str(prim.GetPath())
-
-    def get_stage(self):
-        return _stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
+        if stage:
+            for prim in stage.GetPseudoRoot().GetChildren():
+                item = self.items.add()
+                item.sdf_path = str(prim.GetPath())
 
     def get_prim(self, item):
         stage = self.get_stage()
