@@ -28,7 +28,7 @@ class PreviewEngine(FinalEngine):
     SAMPLES_NUMBER = 50
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path('Camera.002'))
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.cstage(), sdf_path('Camera.002'))
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
@@ -50,7 +50,7 @@ class PreviewEngine(FinalEngine):
         self.height = scene.render.resolution_y
         screen_ratio = self.width / self.height
 
-        stage = self.stage_cache.create_stage()
+        stage = self.cstage.create()
         dg.sync(
             stage, depsgraph,
             screen_ratio=screen_ratio,

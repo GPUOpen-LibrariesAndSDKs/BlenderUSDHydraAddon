@@ -20,9 +20,10 @@ from bpy.props import (
     IntProperty,
     FloatProperty,
     EnumProperty,
+    PointerProperty,
 )
 
-from ..utils.stage_cache import StageCacheProp
+from . import CachedStageProp
 from . import log
 
 
@@ -63,7 +64,7 @@ class UsdListItem(PropertyGroup):
         return self.sdf_path.count('/') - 1
 
 
-class UsdList(PropertyGroup, StageCacheProp):
+class UsdList(PropertyGroup):
     def item_index_update(self, context):
         prim_obj = get_blender_prim_object(context)
         
@@ -88,19 +89,20 @@ class UsdList(PropertyGroup, StageCacheProp):
     item_index: IntProperty(name="USD Item", default=-1, update=item_index_update)
 
     prim_properties: CollectionProperty(type=PrimPropertyItem)
+    cstage: PointerProperty(type=CachedStageProp)
 
     def update_items(self):
         self.items.clear()
         self.item_index = -1
 
-        stage = self.stage
+        stage = self.cstage()
         if stage:
             for prim in stage.GetPseudoRoot().GetChildren():
                 item = self.items.add()
                 item.sdf_path = str(prim.GetPath())
 
     def get_prim(self, item):
-        stage = self.stage
+        stage = self.cstage()
         return stage.GetPrimAtPath(item.sdf_path) if stage else None
 
 

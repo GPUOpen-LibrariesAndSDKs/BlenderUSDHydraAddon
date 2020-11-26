@@ -17,7 +17,7 @@ import traceback
 
 import bpy
 
-from ..utils.stage_cache import StageCache
+from ..utils.stage_cache import CachedStage
 
 from ..utils import logging
 log = logging.Log(tag='engine')
@@ -30,11 +30,7 @@ class Engine:
 
     def __init__(self, render_engine):
         self.render_engine = weakref.proxy(render_engine)
-        self.stage_cache = StageCache()
-
-    @property
-    def stage(self):
-        return self.stage_cache.stage
+        self.cstage = CachedStage()
 
     def __hash__(self):
         return self.render_engine.as_pointer()

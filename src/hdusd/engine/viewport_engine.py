@@ -211,9 +211,9 @@ class ViewportEngine(Engine):
                 use_scene_lights = self.shading_data.use_scene_lights,
                 engine=self,
             )
-            self.stage_cache.assign_stage(stage)
+            self.cstage.assign(stage)
         else:
-            stage = self.stage_cache.create_stage()
+            stage = self.cstage.create()
             dg.sync(
                 stage, depsgraph,
                 is_gl_delegate=self.is_gl_delegate,
@@ -228,7 +228,7 @@ class ViewportEngine(Engine):
     def _sync_update_blend(self, context, depsgraph):
         scene = depsgraph.scene
 
-        root_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}")
+        root_prim = self.cstage().GetPrimAtPath(f"/{sdf_path(scene.name)}")
         objects_prim = root_prim.GetChild("objects")
 
         # get supported updates and sort by priorities
@@ -336,7 +336,7 @@ class ViewportEngine(Engine):
         if not self.is_synced:
             return
 
-        stage = self.stage
+        stage = self.cstage()
         if not stage:
             return
 
@@ -398,14 +398,14 @@ class ViewportEngine(Engine):
 
         for obj in scene.objects:
             if obj.type == 'LIGHT':
-                root_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}")
+                root_prim = self.cstage().GetPrimAtPath(f"/{sdf_path(scene.name)}")
                 objects_prim = root_prim.GetChild("objects")
                 object.sync_update(objects_prim, obj, True, False,
                                    is_gl_delegate=self.is_gl_delegate)
 
     def sync_objects_collection(self, depsgraph):
         scene = depsgraph.scene
-        objects_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}/objects")
+        objects_prim = self.cstage().GetPrimAtPath(f"/{sdf_path(scene.name)}/objects")
 
         def depsgraph_objects():
             yield from dg.depsgraph_objects(depsgraph, self.space_data,
@@ -419,7 +419,7 @@ class ViewportEngine(Engine):
         if keys_to_remove:
             log("Object keys to remove", keys_to_remove)
             for key in keys_to_remove:
-                self.stage.RemovePrim(f"{objects_prim.GetPath()}/{key}")
+                self.cstage().RemovePrim(f"{objects_prim.GetPath()}/{key}")
 
         if keys_to_add:
             log("Object keys to add", keys_to_add)

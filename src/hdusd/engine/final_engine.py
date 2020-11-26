@@ -116,7 +116,7 @@ class FinalEngine(Engine):
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }
 
-        renderer.Render(self.stage.GetPseudoRoot(), params)
+        renderer.Render(self.cstage().GetPseudoRoot(), params)
 
         time_begin = time.perf_counter()
         while True:
@@ -138,13 +138,13 @@ class FinalEngine(Engine):
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path(scene.camera.name))
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.cstage(), sdf_path(scene.camera.name))
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
 
     def render(self, depsgraph):
-        if not self.stage:
+        if not self.cstage():
             return
 
         scene = depsgraph.scene
@@ -155,7 +155,7 @@ class FinalEngine(Engine):
         else:
             self._render(scene)
 
-        self.stage_cache.clear_stage()
+        self.cstage.clear()
         self.notify_status(1.0, "Finish render")
 
     def sync(self, depsgraph):
@@ -198,10 +198,10 @@ class FinalEngine(Engine):
                 test_break=test_break,
                 engine=self,
             )
-            self.stage_cache.assign_stage(stage)
+            self.cstage.assign(stage)
 
         else:
-            stage = self.stage_cache.create_stage()
+            stage = self.cstage.create()
             dg.sync(
                 stage, depsgraph,
                 screen_ratio=screen_ratio,

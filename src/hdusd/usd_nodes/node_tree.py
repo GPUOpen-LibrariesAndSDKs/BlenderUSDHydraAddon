@@ -58,7 +58,7 @@ class USDTree(bpy.types.ShaderNodeTree):
 
     def reset(self):
         for node in self.nodes:
-            node.hdusd.usd_list.clear_stage()
+            node.cstage.clear()
 
         self.update()
 
