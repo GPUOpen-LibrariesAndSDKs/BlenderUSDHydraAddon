@@ -228,7 +228,7 @@ class ViewportEngine(Engine):
     def _sync_update_blend(self, context, depsgraph):
         scene = depsgraph.scene
 
-        root_prim = self.cstage().GetPrimAtPath(f"/{sdf_path(scene.name)}")
+        root_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}")
         objects_prim = root_prim.GetChild("objects")
 
         # get supported updates and sort by priorities
@@ -309,7 +309,18 @@ class ViewportEngine(Engine):
             self.sync_objects_collection(depsgraph)
 
     def _sync_update_nodegraph(self, context, depsgraph):
-        pass
+        # get supported updates and sort by priorities
+        updates = []
+        for obj_type in (bpy.types.Scene,):
+            updates.extend(update for update in depsgraph.updates
+                           if isinstance(update.id, obj_type))
+
+        for update in updates:
+            obj = update.id
+            log("sync_update", obj)
+            if isinstance(obj, bpy.types.Scene):
+                self.update_render(obj)
+                continue
 
     def sync_update(self, context, depsgraph):
         """ sync just the updated things """
@@ -336,7 +347,7 @@ class ViewportEngine(Engine):
         if not self.is_synced:
             return
 
-        stage = self.cstage()
+        stage = self.stage
         if not stage:
             return
 
@@ -398,14 +409,14 @@ class ViewportEngine(Engine):
 
         for obj in scene.objects:
             if obj.type == 'LIGHT':
-                root_prim = self.cstage().GetPrimAtPath(f"/{sdf_path(scene.name)}")
+                root_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}")
                 objects_prim = root_prim.GetChild("objects")
                 object.sync_update(objects_prim, obj, True, False,
                                    is_gl_delegate=self.is_gl_delegate)
 
     def sync_objects_collection(self, depsgraph):
         scene = depsgraph.scene
-        objects_prim = self.cstage().GetPrimAtPath(f"/{sdf_path(scene.name)}/objects")
+        objects_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}/objects")
 
         def depsgraph_objects():
             yield from dg.depsgraph_objects(depsgraph, self.space_data,
@@ -419,7 +430,7 @@ class ViewportEngine(Engine):
         if keys_to_remove:
             log("Object keys to remove", keys_to_remove)
             for key in keys_to_remove:
-                self.cstage().RemovePrim(f"{objects_prim.GetPath()}/{key}")
+                self.stage.RemovePrim(f"{objects_prim.GetPath()}/{key}")
 
         if keys_to_add:
             log("Object keys to add", keys_to_add)

@@ -116,7 +116,7 @@ class FinalEngine(Engine):
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }
 
-        renderer.Render(self.cstage().GetPseudoRoot(), params)
+        renderer.Render(self.stage.GetPseudoRoot(), params)
 
         time_begin = time.perf_counter()
         while True:
@@ -138,13 +138,13 @@ class FinalEngine(Engine):
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.cstage(), sdf_path(scene.camera.name))
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path(scene.camera.name))
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
 
     def render(self, depsgraph):
-        if not self.cstage():
+        if not self.stage:
             return
 
         scene = depsgraph.scene
