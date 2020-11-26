@@ -49,7 +49,6 @@ def register():
     usd_nodes.register()
 
 
-
 def unregister():
     """ Unregister all addon classes from Blender """
     log("unregister")

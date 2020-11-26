@@ -155,6 +155,7 @@ class FinalEngine(Engine):
         else:
             self._render(scene)
 
+        self.stage_cache.clear_stage()
         self.notify_status(1.0, "Finish render")
 
     def sync(self, depsgraph):
@@ -198,7 +199,8 @@ class FinalEngine(Engine):
                 engine=self,
             )
             self.stage_cache.assign_stage(stage)
-        if not self.stage:
+
+        else:
             stage = self.stage_cache.create_stage()
             dg.sync(
                 stage, depsgraph,

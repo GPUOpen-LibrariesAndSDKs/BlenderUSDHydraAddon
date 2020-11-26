@@ -50,16 +50,16 @@ class PreviewEngine(FinalEngine):
         self.height = scene.render.resolution_y
         screen_ratio = self.width / self.height
 
-        if not self.stage:
-            self.stage = dg.sync(
-                depsgraph,
-                screen_ratio=screen_ratio,
-                is_gl_delegate=is_gl_delegate,
-                notify_callback=notify_callback,
-                test_break=test_break,
-                engine=self,
-                is_preview_render=True,
-            )
+        stage = self.stage_cache.create_stage()
+        dg.sync(
+            stage, depsgraph,
+            screen_ratio=screen_ratio,
+            is_gl_delegate=is_gl_delegate,
+            notify_callback=notify_callback,
+            test_break=test_break,
+            engine=self,
+            is_preview_render=True,
+        )
 
         self.render_engine.bl_use_gpu_context = is_gl_delegate
 
