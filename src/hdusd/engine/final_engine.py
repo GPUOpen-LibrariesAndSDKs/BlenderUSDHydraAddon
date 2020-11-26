@@ -155,7 +155,6 @@ class FinalEngine(Engine):
         else:
             self._render(scene)
 
-        self.cstage.clear()
         self.notify_status(1.0, "Finish render")
 
     def sync(self, depsgraph):

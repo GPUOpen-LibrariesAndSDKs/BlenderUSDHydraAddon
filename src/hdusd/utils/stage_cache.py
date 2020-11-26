@@ -14,7 +14,6 @@
 # ********************************************************************
 import tempfile
 
-import bpy
 from pxr import Usd
 
 from . import temp_pid_dir

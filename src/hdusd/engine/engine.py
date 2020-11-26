@@ -25,15 +25,11 @@ log = logging.Log(tag='engine')
 
 class Engine:
     """ This is the basic Engine class """
-
     TYPE = None
 
     def __init__(self, render_engine):
         self.render_engine = weakref.proxy(render_engine)
         self.cstage = CachedStage()
-
-    def __hash__(self):
-        return self.render_engine.as_pointer()
 
 
 from . import final_engine, viewport_engine, preview_engine
