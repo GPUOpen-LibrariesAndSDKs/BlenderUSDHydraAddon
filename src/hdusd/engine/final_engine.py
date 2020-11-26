@@ -187,7 +187,6 @@ class FinalEngine(Engine):
         def test_break():
             return self.render_engine.test_break()
 
-        stage = None
         if settings.data_source:
             nodetree = bpy.data.node_groups[settings.data_source]
             stage = nodegraph.sync(
@@ -198,16 +197,17 @@ class FinalEngine(Engine):
                 test_break=test_break,
                 engine=self,
             )
+            self.stage_cache.assign_stage(stage)
         if not self.stage:
-            stage = dg.sync(
-                depsgraph,
+            stage = self.stage_cache.create_stage()
+            dg.sync(
+                stage, depsgraph,
                 screen_ratio=screen_ratio,
                 is_gl_delegate=settings.is_gl_delegate,
                 notify_callback=notify_callback,
                 test_break=test_break,
                 engine=self,
             )
-        self.stage_cache.assign_stage(stage)
 
         if self.render_engine.test_break():
             log.warn("Syncing stopped by user termination")

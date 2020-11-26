@@ -25,36 +25,55 @@ _stage_cache = Usd.StageCache()
 
 class StageCache:
     usd_id = -1
+    is_owner = False
 
     def create_stage(self):
+        self.clear_stage()
         stage = Usd.Stage.CreateNew(tempfile.mktemp(".usda", "tmp", temp_pid_dir()))
-        self.set_stage(stage)
+        self.usd_id = _stage_cache.Insert(stage).ToLongInt()
+        self.is_owner = True
         return stage
 
-    def set_stage(self, stage):
-        if self.usd_id > 0:
-            _stage_cache.Erase(Usd.StageCache.Id.FromLongInt(self.usd_id))
-            self.usd_id = -1
+    def insert_stage(self, stage):
+        self.clear_stage()
+        self.usd_id = _stage_cache.Insert(stage).ToLongInt()
+        self.is_owner = True
+        return stage
 
-        if stage:
-            self.usd_id = _stage_cache.Insert(stage).ToLongInt()
-
-    def get_stage(self):
+    @property
+    def stage(self):
         if self.usd_id == -1:
             return None
 
-        return _stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
+        stage = _stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.usd_id))
+        if not stage:
+            self.usd_id = -1
+            self.is_owner = False
+
+        return stage
 
     def assign_stage(self, stage):
-        if stage:
-            self.usd_id = _stage_cache.GetId(stage).ToLongInt()
+        if self.usd_id == _stage_cache.GetId(stage).ToLongInt():
+            return
+
+        self.clear_stage()
+        self.usd_id = _stage_cache.GetId(stage).ToLongInt()
+
+    def clear_stage(self):
+        if self.is_owner:
+            _stage_cache.Erase(Usd.StageCache.Id.FromLongInt(self.usd_id))
+            self.usd_id = -1
+            self.is_owner = False
         else:
             self.usd_id = -1
+
+    def __del__(self):
+        self.clear_stage()
 
 
 class StageCacheProp(StageCache):
     usd_id: bpy.props.IntProperty(default=-1)
+    is_owner: bpy.props.BoolProperty(default=False)
 
-
-
-
+    def __del__(self):
+        pass

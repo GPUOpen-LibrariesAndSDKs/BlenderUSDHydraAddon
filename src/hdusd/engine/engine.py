@@ -34,7 +34,7 @@ class Engine:
 
     @property
     def stage(self):
-        return self.stage_cache.get_stage()
+        return self.stage_cache.stage
 
     def __hash__(self):
         return self.render_engine.as_pointer()

@@ -31,4 +31,5 @@ class ReadUsdFileNode(USDNode):
             return None
 
         stage = Usd.Stage.Open(file_path)
+        self.stage_cache.insert_stage(stage)
         return stage

@@ -62,7 +62,7 @@ class ObjectProperties(HdUSDProperties, StageCacheProp):
             prim_obj.select_set(True)
 
     def sync_to_prim(self):
-        stage = self.get_stage()
+        stage = self.stage
         if not stage:
             return
 

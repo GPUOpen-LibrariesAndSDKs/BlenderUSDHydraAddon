@@ -89,19 +89,18 @@ class UsdList(PropertyGroup, StageCacheProp):
 
     prim_properties: CollectionProperty(type=PrimPropertyItem)
 
-    def set_stage(self, stage):
+    def update_items(self):
         self.items.clear()
         self.item_index = -1
 
-        super().set_stage(stage)
-
+        stage = self.stage
         if stage:
             for prim in stage.GetPseudoRoot().GetChildren():
                 item = self.items.add()
                 item.sdf_path = str(prim.GetPath())
 
     def get_prim(self, item):
-        stage = self.get_stage()
+        stage = self.stage
         return stage.GetPrimAtPath(item.sdf_path) if stage else None
 
 
