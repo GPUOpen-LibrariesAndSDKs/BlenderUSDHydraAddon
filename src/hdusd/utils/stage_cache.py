@@ -19,12 +19,14 @@ from pxr import Usd
 from . import temp_pid_dir
 
 
+ID_NO_STAGE = -1
+
 _stage_cache = Usd.StageCache()
 
 
 class CachedStage:
-    id: int = -1
-    is_owner: bool = False
+    id = ID_NO_STAGE
+    is_owner = False
 
     def create(self):
         self.clear()
@@ -49,18 +51,17 @@ class CachedStage:
     def clear(self):
         if self.is_owner:
             _stage_cache.Erase(Usd.StageCache.Id.FromLongInt(self.id))
-            self.id = -1
             self.is_owner = False
-        else:
-            self.id = -1
+
+        self.id = ID_NO_STAGE
 
     def __call__(self):
-        if self.id == -1:
+        if self.id == ID_NO_STAGE:
             return None
 
         stage = _stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.id))
         if not stage:
-            self.id = -1
+            self.id = ID_NO_STAGE
             self.is_owner = False
 
         return stage
