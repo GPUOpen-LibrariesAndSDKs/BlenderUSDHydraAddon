@@ -14,6 +14,8 @@
 #********************************************************************
 import bpy
 
+from ..utils import stage_cache
+
 from ..utils import logging
 log = logging.Log(tag='properties')
 
@@ -34,8 +36,18 @@ class HdUSDProperties(bpy.types.PropertyGroup):
         del cls.bl_type.hdusd
 
 
+class CachedStageProp(bpy.types.PropertyGroup, stage_cache.CachedStage):
+    id: bpy.props.IntProperty(default=stage_cache.ID_NO_STAGE)
+    is_owner: bpy.props.BoolProperty(default=False)
+
+    def __del__(self):
+        pass
+
+
 from . import scene, object, node, usd_list
 register, unregister = bpy.utils.register_classes_factory((
+    CachedStageProp,
+
     usd_list.PrimPropertyItem,
     usd_list.UsdListItem,
     usd_list.UsdList,

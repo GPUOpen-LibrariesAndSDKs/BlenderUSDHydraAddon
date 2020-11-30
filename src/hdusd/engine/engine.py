@@ -17,21 +17,23 @@ import traceback
 
 import bpy
 
+from ..utils.stage_cache import CachedStage
+
 from ..utils import logging
 log = logging.Log(tag='engine')
 
 
 class Engine:
     """ This is the basic Engine class """
-
     TYPE = None
 
     def __init__(self, render_engine):
         self.render_engine = weakref.proxy(render_engine)
-        self.stage = None
+        self.cached_stage = CachedStage()
 
-    def __hash__(self):
-        return self.render_engine.as_pointer()
+    @property
+    def stage(self):
+        return self.cached_stage()
 
 
 from . import final_engine, viewport_engine, preview_engine

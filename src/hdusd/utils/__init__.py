@@ -113,8 +113,3 @@ def is_zero(val):
 def time_str(val):
     """ Convert perfcounter difference to time string minutes:seconds.milliseconds """
     return f"{math.floor(val / 60):02}:{math.floor(val % 60):02}.{math.floor((val % 1) * 100):02}"
-
-
-def usd_temp_path(*dep_objects):
-    h = hash("".join(str(hash(o)) for o in dep_objects)) & 0xffffff
-    return temp_pid_dir() / f"tmp{h:x}.usda"

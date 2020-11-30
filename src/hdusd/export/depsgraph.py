@@ -40,20 +40,14 @@ def depsgraph_objects(depsgraph, space_data, use_scene_lights):
         yield obj
 
 
-def _usd_path(depsgraph, engine):
-    return utils.usd_temp_path(depsgraph, engine)
-
-
-def sync(depsgraph: bpy.types.Depsgraph, **kwargs):
+def sync(stage, depsgraph: bpy.types.Depsgraph, **kwargs):
     log("sync", depsgraph)
 
     sync_callback = kwargs.get('sync_callback')
     test_break = kwargs.get('test_break')
     space_data = kwargs.get('space_data')
     use_scene_lights = kwargs.get('use_scene_lights', True)
-    engine = kwargs.get('engine')
 
-    stage = Usd.Stage.CreateNew(str(_usd_path(depsgraph, engine)))
     UsdGeom.SetStageMetersPerUnit(stage, 1)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
@@ -76,13 +70,3 @@ def sync(depsgraph: bpy.types.Depsgraph, **kwargs):
             log.error(e)
 
     world.sync(root_prim, depsgraph.scene.world, **kwargs)
-
-    return stage
-
-
-def get_stage(depsgraph, engine):
-    path = _usd_path(depsgraph, engine)
-    if not path.is_file():
-        return None
-
-    return Usd.Stage.Open(str(path))

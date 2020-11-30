@@ -134,6 +134,7 @@ class FinalEngine(Engine):
         renderer.GetRendererAov('color', render_images['Combined'].ctypes.data)
         self.update_render_result(render_images)
 
+        # its important to clear data explicitly
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
@@ -188,7 +189,7 @@ class FinalEngine(Engine):
 
         if settings.data_source:
             nodetree = bpy.data.node_groups[settings.data_source]
-            self.stage = nodegraph.sync(
+            stage = nodegraph.sync(
                 nodetree,
                 screen_ratio=screen_ratio,
                 is_gl_delegate=settings.is_gl_delegate,
@@ -196,10 +197,12 @@ class FinalEngine(Engine):
                 test_break=test_break,
                 engine=self,
             )
+            self.cached_stage.assign(stage)
 
-        if not self.stage:
-            self.stage = dg.sync(
-                depsgraph,
+        else:
+            stage = self.cached_stage.create()
+            dg.sync(
+                stage, depsgraph,
                 screen_ratio=screen_ratio,
                 is_gl_delegate=settings.is_gl_delegate,
                 notify_callback=notify_callback,

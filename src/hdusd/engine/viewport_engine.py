@@ -168,7 +168,6 @@ class ViewportEngine(Engine):
 
         self.is_gl_delegate = False
         self.data_source = False
-        self.stage_nodegraph = None
 
     def __del__(self):
         # explicit renderer deletion
@@ -205,28 +204,25 @@ class ViewportEngine(Engine):
 
         if self.data_source:
             nodetree = bpy.data.node_groups[self.data_source]
-            self.stage_nodegraph = nodegraph.sync(
+            stage = nodegraph.sync(
                 nodetree,
                 is_gl_delegate=self.is_gl_delegate,
                 space_data = self.space_data,
                 use_scene_lights = self.shading_data.use_scene_lights,
                 engine=self,
             )
-
-        if not self.stage_nodegraph:
-            # self.is_usd_nodegraph = False
-            self.stage = dg.sync(
-                depsgraph,
+            self.cached_stage.assign(stage)
+        else:
+            stage = self.cached_stage.create()
+            dg.sync(
+                stage, depsgraph,
                 is_gl_delegate=self.is_gl_delegate,
                 space_data=self.space_data,
                 use_scene_lights=self.shading_data.use_scene_lights,
                 engine=self,
             )
-        else:
-            self.stage = dg.get_stage(depsgraph, self)
 
         self.is_synced = True
-
         log('Finish sync')
 
     def _sync_update_blend(self, context, depsgraph):
@@ -313,10 +309,6 @@ class ViewportEngine(Engine):
             self.sync_objects_collection(depsgraph)
 
     def _sync_update_nodegraph(self, context, depsgraph):
-        if self.stage:
-            self._sync_update_blend(context, depsgraph)
-            return
-
         # get supported updates and sort by priorities
         updates = []
         for obj_type in (bpy.types.Scene,):
@@ -355,7 +347,8 @@ class ViewportEngine(Engine):
         if not self.is_synced:
             return
 
-        if not self.stage_nodegraph and not self.stage:
+        stage = self.stage
+        if not stage:
             return
 
         view_settings = ViewSettings(context)
@@ -387,7 +380,6 @@ class ViewportEngine(Engine):
         bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
         self.render_engine.bind_display_space_shader(context.scene)
 
-        stage = self.stage_nodegraph if self.data_source and self.stage_nodegraph else self.stage
         try:
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
         except Exception as e:

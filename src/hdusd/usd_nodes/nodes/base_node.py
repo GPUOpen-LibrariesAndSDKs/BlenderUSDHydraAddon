@@ -35,9 +35,10 @@ class USDNode(bpy.types.Node):
         This function does some useful preparation before and after calling compute() function.
         """
         log("compute", self, socket_out, group_nodes)
-        self.hdusd.usd_list.set_stage(None)
         stage = self.compute(socket_out=socket_out, group_nodes=group_nodes, **kwargs)
-        self.hdusd.usd_list.set_stage(stage)
+
+        self.cached_stage.assign(stage)
+        self.hdusd.usd_list.update_items()
         return stage
 
     def _compute_node(self, node, socket_out, group_node=None, **kwargs):
@@ -80,11 +81,12 @@ class USDNode(bpy.types.Node):
         kwargs.pop('socket_out', None)
         return self._compute_node(link.from_node, link.from_socket, **kwargs)
 
-    def get_stage(self):
-        return self.hdusd.usd_list.get_stage()
+    @property
+    def cached_stage(self):
+        return self.hdusd.usd_list.cached_stage
 
     def free(self):
-        self.hdusd.usd_list.set_stage(None)
+        self.cached_stage.clear()
 
 
 class RenderTaskNode(USDNode):

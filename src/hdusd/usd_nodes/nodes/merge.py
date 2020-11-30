@@ -49,9 +49,7 @@ class MergeNode(USDNode):
         if len(ref_stages) == 1:
             return ref_stages[0]
 
-        engine = kwargs.get('engine')
-        stage = Usd.Stage.CreateNew(
-            str(utils.usd_temp_path(self, engine)))
+        stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
         merge_prim = stage.DefinePrim(f"/merge")

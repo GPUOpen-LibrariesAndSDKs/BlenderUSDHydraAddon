@@ -31,6 +31,11 @@ class USDTree(bpy.types.ShaderNodeTree):
     bl_label = "USD"
     bl_icon = 'NODETREE'
     bl_idname = 'hdusd.USDTree'
+    COMPAT_ENGINES = {'HdUSD'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine in cls.COMPAT_ENGINES
 
     def get_output_node(self, render_type='BOTH'):
         output_node = next((node for node in self.nodes if isinstance(node, HydraRenderNode) and \
@@ -53,7 +58,7 @@ class USDTree(bpy.types.ShaderNodeTree):
 
     def reset(self):
         for node in self.nodes:
-            node.hdusd.usd_list.set_stage(None)
+            node.cached_stage.clear()
 
         self.update()
 
