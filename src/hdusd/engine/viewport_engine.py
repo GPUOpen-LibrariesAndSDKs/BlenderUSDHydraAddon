@@ -211,9 +211,9 @@ class ViewportEngine(Engine):
                 use_scene_lights = self.shading_data.use_scene_lights,
                 engine=self,
             )
-            self.cstage.assign(stage)
+            self.cached_stage.assign(stage)
         else:
-            stage = self.cstage.create()
+            stage = self.cached_stage.create()
             dg.sync(
                 stage, depsgraph,
                 is_gl_delegate=self.is_gl_delegate,

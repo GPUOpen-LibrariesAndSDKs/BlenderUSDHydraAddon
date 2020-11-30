@@ -26,13 +26,13 @@ class ObjectProperties(HdUSDProperties):
 
     is_usd: bpy.props.BoolProperty(default=False)
     sdf_path: bpy.props.StringProperty(default="/")
-    cstage: bpy.props.PointerProperty(type=CachedStageProp)
+    cached_stage: bpy.props.PointerProperty(type=CachedStageProp)
 
     def sync_from_prim(self, prim, context):
         prim_obj = self.id_data
 
         if not prim or str(prim.GetTypeName()) != 'Xform':
-            self.cstage.clear()
+            self.cached_stage.clear()
             prim_obj.name = self.sdf_path = "/"
             prim_obj.matrix_world = mathutils.Matrix.Identity(4)
 
@@ -43,7 +43,7 @@ class ObjectProperties(HdUSDProperties):
                 context.view_layer.objects.active = None
             return
 
-        self.cstage.assign(prim.GetStage())
+        self.cached_stage.assign(prim.GetStage())
         prim_obj.name = self.sdf_path = str(prim.GetPath())
         xform = UsdGeom.Xform(prim)
         ops = xform.GetOrderedXformOps()
@@ -61,7 +61,7 @@ class ObjectProperties(HdUSDProperties):
             prim_obj.select_set(True)
 
     def sync_to_prim(self):
-        stage = self.cstage()
+        stage = self.cached_stage()
         if not stage:
             return
 

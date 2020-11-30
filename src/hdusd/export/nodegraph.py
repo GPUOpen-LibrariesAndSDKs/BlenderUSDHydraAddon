@@ -23,7 +23,7 @@ def sync(nodetree, **kwargs):
         log.warn(f"Unable to find any suitable Output node in the USD Nodegraph.")
         return None
 
-    stage = output_node.cstage()
+    stage = output_node.cached_stage()
     if not stage:
         stage = output_node.final_compute('Input', **kwargs)
 

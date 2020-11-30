@@ -50,7 +50,7 @@ class PreviewEngine(FinalEngine):
         self.height = scene.render.resolution_y
         screen_ratio = self.width / self.height
 
-        stage = self.cstage.create()
+        stage = self.cached_stage.create()
         dg.sync(
             stage, depsgraph,
             screen_ratio=screen_ratio,

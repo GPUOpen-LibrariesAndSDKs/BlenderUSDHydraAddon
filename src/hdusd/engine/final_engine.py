@@ -197,10 +197,10 @@ class FinalEngine(Engine):
                 test_break=test_break,
                 engine=self,
             )
-            self.cstage.assign(stage)
+            self.cached_stage.assign(stage)
 
         else:
-            stage = self.cstage.create()
+            stage = self.cached_stage.create()
             dg.sync(
                 stage, depsgraph,
                 screen_ratio=screen_ratio,

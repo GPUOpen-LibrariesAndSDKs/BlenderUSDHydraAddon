@@ -29,11 +29,11 @@ class Engine:
 
     def __init__(self, render_engine):
         self.render_engine = weakref.proxy(render_engine)
-        self.cstage = CachedStage()
+        self.cached_stage = CachedStage()
 
     @property
     def stage(self):
-        return self.cstage()
+        return self.cached_stage()
 
 
 from . import final_engine, viewport_engine, preview_engine

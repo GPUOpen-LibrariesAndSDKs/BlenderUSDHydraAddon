@@ -89,20 +89,20 @@ class UsdList(PropertyGroup):
     item_index: IntProperty(name="USD Item", default=-1, update=item_index_update)
 
     prim_properties: CollectionProperty(type=PrimPropertyItem)
-    cstage: PointerProperty(type=CachedStageProp)
+    cached_stage: PointerProperty(type=CachedStageProp)
 
     def update_items(self):
         self.items.clear()
         self.item_index = -1
 
-        stage = self.cstage()
+        stage = self.cached_stage()
         if stage:
             for prim in stage.GetPseudoRoot().GetChildren():
                 item = self.items.add()
                 item.sdf_path = str(prim.GetPath())
 
     def get_prim(self, item):
-        stage = self.cstage()
+        stage = self.cached_stage()
         return stage.GetPrimAtPath(item.sdf_path) if stage else None
 
 

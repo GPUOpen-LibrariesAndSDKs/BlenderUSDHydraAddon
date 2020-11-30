@@ -43,7 +43,7 @@ class ReadBlendDataNode(USDNode):
             flow.prop(self, 'object_to_export')
 
     def compute(self, **kwargs):
-        stage = self.cstage.create()
+        stage = self.cached_stage.create()
         print(stage)
         depsgraph = bpy.context.evaluated_depsgraph_get()
         dp.sync(stage, depsgraph, **kwargs)

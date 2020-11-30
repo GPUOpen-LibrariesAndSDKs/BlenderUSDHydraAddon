@@ -23,8 +23,8 @@ _stage_cache = Usd.StageCache()
 
 
 class CachedStage:
-    id = -1
-    is_owner = False
+    id: int = -1
+    is_owner: bool = False
 
     def create(self):
         self.clear()

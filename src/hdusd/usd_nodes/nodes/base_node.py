@@ -37,7 +37,7 @@ class USDNode(bpy.types.Node):
         log("compute", self, socket_out, group_nodes)
         stage = self.compute(socket_out=socket_out, group_nodes=group_nodes, **kwargs)
 
-        self.cstage.assign(stage)
+        self.cached_stage.assign(stage)
         self.hdusd.usd_list.update_items()
         return stage
 
@@ -82,11 +82,11 @@ class USDNode(bpy.types.Node):
         return self._compute_node(link.from_node, link.from_socket, **kwargs)
 
     @property
-    def cstage(self):
-        return self.hdusd.usd_list.cstage
+    def cached_stage(self):
+        return self.hdusd.usd_list.cached_stage
 
     def free(self):
-        self.cstage.clear()
+        self.cached_stage.clear()
 
 
 class RenderTaskNode(USDNode):
