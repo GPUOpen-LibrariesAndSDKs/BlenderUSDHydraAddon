@@ -18,8 +18,44 @@ class USDNode(bpy.types.Node):
     def poll(cls, tree: bpy.types.NodeTree):
         return tree.bl_idname == cls.tree_idname
 
-    def __hash__(self):
-        return self.as_pointer()
+    @property
+    def cached_stage(self):
+        return self.hdusd.usd_list.cached_stage
+
+    def free(self):
+        """Clean up node on removal"""
+        self.cached_stage.clear()
+
+    def update(self):
+        """Update on node graph topology changes (adding or removing nodes and links)"""
+        pass
+
+    @property
+    def stage(self):
+        if not self.cached_stage:
+            self.compute_stage()
+
+        return self.cached_stage()
+
+    def get_input_node(self, socket_key: [str, int]):
+        """Returns linked parsed node or None if nothing is linked or not link is not valid"""
+
+        socket_in = self.inputs[socket_key]
+        if not socket_in.links:
+            return None
+
+        link = socket_in.links[0]
+        if not link.is_valid:
+            log.error("Invalid link found", link, socket_in, self)
+
+        return link.from_node
+
+    def compute_stage(self):
+        """
+        Main compute function which should be overridable in child classes.
+        It should return create or assign stage to cached_stage.
+        """
+        pass
 
     # COMPUTE FUNCTION
     def compute(self, **kwargs) -> [Usd.Stage, None]:
@@ -80,13 +116,6 @@ class USDNode(bpy.types.Node):
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)
         return self._compute_node(link.from_node, link.from_socket, **kwargs)
-
-    @property
-    def cached_stage(self):
-        return self.hdusd.usd_list.cached_stage
-
-    def free(self):
-        self.cached_stage.clear()
 
 
 class RenderTaskNode(USDNode):

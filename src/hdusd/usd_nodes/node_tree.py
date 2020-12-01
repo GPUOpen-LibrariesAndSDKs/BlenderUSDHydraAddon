@@ -52,6 +52,7 @@ class USDTree(bpy.types.ShaderNodeTree):
         return secondary_output_node
 
     def update(self):
+        print("update tree", self)
         output_node = self.get_output_node()
         if output_node:
             output_node.final_compute()

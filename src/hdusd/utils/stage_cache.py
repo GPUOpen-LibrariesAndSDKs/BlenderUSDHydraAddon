@@ -42,6 +42,10 @@ class CachedStage:
         return stage
 
     def assign(self, stage):
+        if not stage:
+            self.clear()
+            return
+
         if self.id == _stage_cache.GetId(stage).ToLongInt():
             return
 
@@ -68,3 +72,6 @@ class CachedStage:
 
     def __del__(self):
         self.clear()
+
+    def __bool__(self):
+        return self.id != ID_NO_STAGE
