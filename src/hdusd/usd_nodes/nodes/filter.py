@@ -10,10 +10,6 @@ class FilterNode(USDNode):
 
     filter_path: bpy.props.StringProperty(name='USD Path', default='*')
 
-    def init(self, context):
-        self.inputs.new(name="Input", type="NodeSocketShader")
-        self.outputs.new(name="Output", type="NodeSocketShader")
-
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filter_path')
 

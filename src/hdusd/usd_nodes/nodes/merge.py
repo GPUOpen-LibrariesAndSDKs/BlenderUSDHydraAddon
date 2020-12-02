@@ -10,6 +10,8 @@ class MergeNode(USDNode):
     bl_idname = 'usd.MergeNode'
     bl_label = "Merge USD"
 
+    input_names = ()
+
     def update_inputs_number(self, context):
         if len(self.inputs) < self.inputs_number:
             for i in range(len(self.inputs), self.inputs_number):
@@ -26,8 +28,8 @@ class MergeNode(USDNode):
     )
 
     def init(self, context):
+        super().init(context)
         self.update_inputs_number(context)
-        self.outputs.new(name="Output", type="NodeSocketShader")
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'inputs_number')

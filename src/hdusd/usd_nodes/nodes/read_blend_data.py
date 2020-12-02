@@ -9,6 +9,8 @@ class ReadBlendDataNode(USDNode):
     bl_idname = 'usd.ReadBlendDataNode'
     bl_label = "Read Blend Data"
 
+    input_names = ()
+
     export_type: bpy.props.EnumProperty(
         name='Data to Read',
         items=(('SCENE', 'Scene', 'Read entire scene'),
@@ -25,9 +27,6 @@ class ReadBlendDataNode(USDNode):
     object_to_export: bpy.props.PointerProperty(
         name='Object', type=bpy.types.Object
     )
-
-    def init(self, context):
-        self.outputs.new(name="Output", type="NodeSocketShader")
 
     def draw_buttons(self, context, layout):
         col = layout.column(align=True)

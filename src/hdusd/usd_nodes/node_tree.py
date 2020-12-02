@@ -52,15 +52,19 @@ class USDTree(bpy.types.ShaderNodeTree):
         return secondary_output_node
 
     def update(self):
-        output_node = self.get_output_node()
-        if output_node:
-            output_node.final_compute()
+        for node in self.nodes:
+            if node.inputs:
+                node.cached_stage.clear()
+
+        for node in self.nodes:
+            node.final_compute()
 
     def reset(self):
         for node in self.nodes:
             node.cached_stage.clear()
 
-        self.update()
+        for node in self.nodes:
+            node.final_compute()
 
     def add_basic_nodes(self, source='SCENE'):
         """ Reset basic node tree structure using scene or USD file as an input """

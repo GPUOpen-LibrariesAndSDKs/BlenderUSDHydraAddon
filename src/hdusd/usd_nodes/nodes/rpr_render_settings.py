@@ -18,10 +18,6 @@ class RprRenderSettingsNode(USDNode):
     max_samples: bpy.props.IntProperty(name='Max Samples', min=1, default=256)
     adaptive_threshold: bpy.props.FloatProperty(name='Noise Threshold', min=0, max=1.0, default=0.005)
 
-    def init(self, context):
-        self.inputs.new(name="Input", type="NodeSocketShader")
-        self.outputs.new(name="Output", type="NodeSocketShader")
-
     def draw_buttons(self, context, layout):
         layout.prop(self, 'render_mode')
         layout.prop(self, 'max_samples')

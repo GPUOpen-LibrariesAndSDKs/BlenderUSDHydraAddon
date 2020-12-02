@@ -1,8 +1,6 @@
 import bpy
 from .base_node import USDNode
 
-from . import log
-
 
 class WriteFileNode(USDNode):
     """Writes stream out to USD file"""
@@ -10,10 +8,6 @@ class WriteFileNode(USDNode):
     bl_label = "Write USD File"
 
     file_path: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
-
-    def init(self, context):
-        self.inputs.new(name="Input", type="NodeSocketShader")
-        self.outputs.new(name="Output", type="NodeSocketShader")
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'file_path')

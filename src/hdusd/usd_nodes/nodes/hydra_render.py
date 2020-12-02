@@ -9,6 +9,8 @@ class HydraRenderNode(USDNode):
     bl_idname = 'usd.HydraRenderNode'
     bl_label = "Render USD via Hydra"
 
+    output_name = ""
+
     render_type: bpy.props.EnumProperty(
         name='Type',
         items=(('FINAL', 'Final', 'Final Render'),
@@ -17,16 +19,6 @@ class HydraRenderNode(USDNode):
         ),
         default='BOTH'
     )
-    
-    def init(self, context):
-        self.inputs.new(name="Input", type="NodeSocketShader")
-
-    def draw_buttons(self, context, layout):
-        layout.prop(self, 'render_type')
-
-    def draw_buttons_ext(self, context, layout):
-        pass
-        # self.draw_buttons(context, layout)
 
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
