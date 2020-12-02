@@ -33,7 +33,7 @@ class MergeNode(USDNode):
         layout.prop(self, 'inputs_number')
 
     def compute(self, **kwargs):
-        from pxr import Usd, UsdGeom
+        from pxr import UsdGeom
 
         log("MergeNode")
 
@@ -54,6 +54,48 @@ class MergeNode(USDNode):
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
         merge_prim = stage.DefinePrim(f"/merge")
         stage.SetDefaultPrim(merge_prim)
+
+        for i, ref_stage in enumerate(ref_stages, 1):
+            ref = stage.DefinePrim(f"/merge/ref{i}", 'Xform')
+            default_prim = ref_stage.GetDefaultPrim()
+            override_prim = stage.OverridePrim(str(ref.GetPath()) + '/' + default_prim.GetName())
+            override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath)
+
+        return stage
+
+    def compute_stage(self):
+        from pxr import UsdGeom
+
+        log("MergeNode")
+
+        ref_stages = []
+        for i in range(self.inputs_number):
+            node = self.get_input_node(i)
+            if not node or not node.stage:
+                continue
+
+            ref_stages.append(node.stage)
+
+        if not ref_stages:
+            self.cached_stage.clear()
+            return
+
+        if len(ref_stages) == 1:
+            self.cached_stage.assign(ref_stages[0])
+            return
+
+        if not self.cached_stage:
+            stage = self.cached_stage.create()
+            UsdGeom.SetStageMetersPerUnit(stage, 1)
+            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+            merge_prim = stage.DefinePrim("/merge")
+            stage.SetDefaultPrim(merge_prim)
+        else:
+            stage = self.cached_stage()
+            merge_prim = stage.GetPrimAtPath("/merge")
+
+        for prim in merge_prim.GetAllChildren():
+            stage.RemovePrim(prim.GetPath())
 
         for i, ref_stage in enumerate(ref_stages, 1):
             ref = stage.DefinePrim(f"/merge/ref{i}", 'Xform')

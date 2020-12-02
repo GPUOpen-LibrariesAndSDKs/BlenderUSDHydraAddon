@@ -47,3 +47,8 @@ class ReadBlendDataNode(USDNode):
         depsgraph = bpy.context.evaluated_depsgraph_get()
         dp.sync(stage, depsgraph, **kwargs)
         return stage
+
+    def compute_stage(self):
+        stage = self.cached_stage.create()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        dp.sync(stage, depsgraph)

@@ -31,3 +31,14 @@ class HydraRenderNode(USDNode):
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
         return stage
+
+    def compute_stage(self):
+        node = self.get_input_node('Input')
+        if not node:
+            self.cached_stage.clear()
+            return
+
+        self.cached_stage.assign(node.stage)
+
+    def update(self):
+        stage = self.stage

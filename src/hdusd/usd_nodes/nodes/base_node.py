@@ -34,6 +34,7 @@ class USDNode(bpy.types.Node):
     def stage(self):
         if not self.cached_stage:
             self.compute_stage()
+            self.hdusd.usd_list.update_items()
 
         return self.cached_stage()
 
