@@ -66,6 +66,11 @@ class USDTree(bpy.types.ShaderNodeTree):
         for node in self.nodes:
             node.final_compute()
 
+    def depsgraph_update(self, depsgraph):
+        for node in self.nodes:
+            if node.bl_idname == 'usd.ReadBlendDataNode':
+                node.depsgraph_update(depsgraph)
+
     def add_basic_nodes(self, source='SCENE'):
         """ Reset basic node tree structure using scene or USD file as an input """
         self.nodes.clear()
@@ -103,3 +108,9 @@ def reset():
     for group in bpy.data.node_groups:
         if isinstance(group, USDTree):
             group.reset()
+
+
+def depsgraph_update(depsgraph):
+    for group in bpy.data.node_groups:
+        if isinstance(group, USDTree):
+            group.depsgraph_update(depsgraph)
