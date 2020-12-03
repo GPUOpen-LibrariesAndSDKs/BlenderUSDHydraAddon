@@ -70,3 +70,54 @@ def sync(stage, depsgraph: bpy.types.Depsgraph, **kwargs):
             log.error(e)
 
     world.sync(root_prim, depsgraph.scene.world, **kwargs)
+
+
+def sync_update(stage, depsgraph, **kwargs):
+    scene = depsgraph.scene
+
+    root_prim = stage.GetPrimAtPath(f"/{sdf_path(scene.name)}")
+    objects_prim = root_prim.GetChild("objects")
+
+    # get supported updates and sort by priorities
+    updates = []
+    for obj_type in (bpy.types.Material, bpy.types.Object, bpy.types.Collection):
+        updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
+
+    sync_collection = False
+    for update in updates:
+        obj = update.id
+        log("sync_update", obj)
+
+        if isinstance(obj, bpy.types.Object):
+            object.sync_update(objects_prim, obj,
+                               update.is_updated_geometry,
+                               update.is_updated_transform)
+            continue
+
+        if isinstance(obj, bpy.types.Collection):
+            sync_collection = True
+            continue
+
+    if sync_collection:
+        space_data = kwargs.get('space_data')
+        use_scene_lights = kwargs.get('use_scene_lights', True)
+
+        depsgraph_keys = set(object.sdf_name(obj)
+                             for obj in depsgraph_objects(depsgraph, space_data, use_scene_lights))
+        usd_object_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
+        keys_to_remove = usd_object_keys - depsgraph_keys
+        keys_to_add = depsgraph_keys - usd_object_keys
+
+        if keys_to_remove:
+            log("Object keys to remove", keys_to_remove)
+            for key in keys_to_remove:
+                stage.RemovePrim(f"{objects_prim.GetPath()}/{key}")
+
+        if keys_to_add:
+            log("Object keys to add", keys_to_add)
+            for obj in depsgraph_objects():
+                obj_key = object.sdf_name(obj)
+                if obj_key not in keys_to_add:
+                    continue
+
+                object.sync(objects_prim, obj)

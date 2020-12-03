@@ -17,6 +17,8 @@ import bpy
 from .base_node import USDNode
 from ...export import depsgraph as dp
 
+from . import log
+
 
 class ReadBlendDataNode(USDNode):
     """Blender data to USD can export whole scene, one collection or object"""
@@ -62,5 +64,9 @@ class ReadBlendDataNode(USDNode):
         return stage
 
     def depsgraph_update(self, depsgraph):
-        nodetree = self.id_data
-        print(self, nodetree, depsgraph)
+        stage = self.cached_stage()
+        if not stage:
+            self.final_compute()
+            return
+
+        dp.sync_update(stage, depsgraph)
