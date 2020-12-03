@@ -37,10 +37,17 @@ class USDNode(bpy.types.Node):
 
     def init(self, context):
         for name in self.input_names:
-            self.inputs.new(name=name, type="NodeSocketShader")
+            self.safe_op(self.inputs.new, name=name, type="NodeSocketShader")
 
         if self.output_name:
-            self.outputs.new(name=self.output_name, type="NodeSocketShader")
+            self.safe_op(self.outputs.new, name=self.output_name, type="NodeSocketShader")
+
+    def safe_op(self, op, *args, **kwargs):
+        self.id_data.is_node_safe_op = True
+        try:
+            op(*args, **kwargs)
+        finally:
+            self.id_data.is_node_safe_op = False
 
     # COMPUTE FUNCTION
     def compute(self, **kwargs) -> [Usd.Stage, None]:

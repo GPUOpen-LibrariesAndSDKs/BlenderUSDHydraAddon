@@ -33,6 +33,9 @@ class USDTree(bpy.types.ShaderNodeTree):
     bl_idname = 'hdusd.USDTree'
     COMPAT_ENGINES = {'HdUSD'}
 
+    is_updating = False
+    is_node_safe_op = False
+
     @classmethod
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
@@ -52,21 +55,38 @@ class USDTree(bpy.types.ShaderNodeTree):
         return secondary_output_node
 
     def update(self):
+        if self.is_node_safe_op:
+            return
+
+        self.is_updating = True
+
         for node in self.nodes:
             if node.inputs:
                 node.cached_stage.clear()
 
         for node in self.nodes:
             node.final_compute()
+            
+        self.is_updating = False
 
     def reset(self):
+        if self.is_node_safe_op:
+            return
+
+        self.is_updating = True
+
         for node in self.nodes:
             node.cached_stage.clear()
 
         for node in self.nodes:
             node.final_compute()
 
+        self.is_updating = False
+
     def depsgraph_update(self, depsgraph):
+        if self.is_updating:
+            return
+
         for node in self.nodes:
             if node.bl_idname == 'usd.ReadBlendDataNode':
                 node.depsgraph_update(depsgraph)

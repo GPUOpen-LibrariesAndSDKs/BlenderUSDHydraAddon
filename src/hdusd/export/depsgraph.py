@@ -88,7 +88,7 @@ def sync_update(stage, depsgraph, **kwargs):
         obj = update.id
         log("sync_update", obj)
 
-        if isinstance(obj, bpy.types.Object):
+        if isinstance(obj, bpy.types.Object) and not obj.hdusd.is_usd:
             object.sync_update(objects_prim, obj,
                                update.is_updated_geometry,
                                update.is_updated_transform)
