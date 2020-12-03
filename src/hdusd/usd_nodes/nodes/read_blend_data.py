@@ -27,21 +27,34 @@ class ReadBlendDataNode(USDNode):
 
     input_names = ()
 
+    def update_export_data(self, context):
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        
+        self.id_data.reset()
+
     export_type: bpy.props.EnumProperty(
-        name='Data to Read',
-        items=(('SCENE', 'Scene', 'Read entire scene'),
-            ('COLLECTION', 'Collection', 'Read collection'),
-            ('OBJECT', 'Object', 'Read single object'),
+        name="Data to Read",
+        description="",
+        items=(('SCENE', "Scene", "Read entire scene"),
+            ('COLLECTION', "Collection", "Read collection"),
+            ('OBJECT', 'Object', "Read single object"),
         ),
-        default='SCENE'
+        default='SCENE',
+        update=update_export_data
     )
 
     collection_to_export: bpy.props.PointerProperty(
-        name='Collection', type=bpy.types.Collection
+        type=bpy.types.Collection,
+        name="Collection",
+        description="",
+        update=update_export_data
     )
     
     object_to_export: bpy.props.PointerProperty(
-        name='Object', type=bpy.types.Object
+        type=bpy.types.Object,
+        name="Object",
+        description="",
+        update=update_export_data
     )
 
     def draw_buttons(self, context, layout):
