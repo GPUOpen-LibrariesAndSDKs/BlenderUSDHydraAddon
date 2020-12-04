@@ -40,6 +40,7 @@ class ReadBlendDataNode(USDNode):
             stage.RemovePrim(obj_prim.GetPath())
 
         self._export_depsgraph(objects_prim, depsgraph)
+        self.hdusd.usd_list.update_items()
 
     export_type: bpy.props.EnumProperty(
         name="Data to Read",
@@ -101,7 +102,8 @@ class ReadBlendDataNode(USDNode):
             return
 
         objects_prim = stage.GetPrimAtPath(f"/{depsgraph.scene.name}/objects")
-        self._update_depsgraph(objects_prim, depsgraph)
+        if self._update_depsgraph(objects_prim, depsgraph):
+            self.hdusd.usd_list.update_items()
 
     def _export_depsgraph(self, objects_prim, depsgraph):
         if self.export_type == 'SCENE':
@@ -109,15 +111,24 @@ class ReadBlendDataNode(USDNode):
                 object.sync(objects_prim, obj)
 
         elif self.export_type == 'COLLECTION':
-            if self.collection_to_export:
-                for obj_col in self.collection_to_export.objects:
-                    object.sync(objects_prim, obj_col.evaluated_get(depsgraph))
+            if not self.collection_to_export:
+                return
+
+            for obj_col in self.collection_to_export.objects:
+                if obj_col.hdusd.is_usd:
+                    continue
+                    
+                object.sync(objects_prim, obj_col.evaluated_get(depsgraph))
 
         elif self.export_type == 'OBJECT':
-            if self.object_to_export:
-                object.sync(objects_prim, self.object_to_export.evaluated_get(depsgraph))
+            if not self.object_to_export or self.object_to_export.hdusd.is_usd:
+                return
+
+            object.sync(objects_prim, self.object_to_export.evaluated_get(depsgraph))
 
     def _update_depsgraph(self, objects_prim, depsgraph):
+        ret = False
+
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Object):
                 obj = update.id
@@ -142,9 +153,9 @@ class ReadBlendDataNode(USDNode):
                 object.sync_update(objects_prim, obj,
                                    update.is_updated_geometry, update.is_updated_transform)
 
-                continue
+                ret = True
 
-            if isinstance(update.id, bpy.types.Collection):
+            elif isinstance(update.id, bpy.types.Collection):
                 coll = update.id
 
                 current_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
@@ -179,6 +190,8 @@ class ReadBlendDataNode(USDNode):
                     for key in keys_to_remove:
                         objects_prim.GetStage().RemovePrim(f"{objects_prim.GetPath()}/{key}")
 
+                    ret = True
+
                 if keys_to_add:
                     for obj in dg.depsgraph_objects(depsgraph):
                         obj_key = object.sdf_name(obj)
@@ -187,4 +200,6 @@ class ReadBlendDataNode(USDNode):
 
                         object.sync(objects_prim, obj)
 
-                continue
+                    ret = True
+
+        return ret
