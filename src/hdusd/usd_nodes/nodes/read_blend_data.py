@@ -126,33 +126,43 @@ class ReadBlendDataNode(USDNode):
 
                 if self.export_type == 'SCENE':
                     object.sync_update(objects_prim, obj,
-                                       update.is_updated_geometry,
-                                       update.is_updated_transform)
+                                       update.is_updated_geometry, update.is_updated_transform)
 
                 elif self.export_type == 'COLLECTION':
                     pass
 
                 elif self.export_type == 'OBJECT':
-                    pass
+                    if not self.object_to_export or \
+                            object.sdf_name(self.object_to_export) != object.sdf_name(obj):
+                        continue
+                    
+                    object.sync_update(objects_prim, obj,
+                                       update.is_updated_geometry, update.is_updated_transform)
 
                 continue
 
             if isinstance(update.id, bpy.types.Collection):
-                usd_object_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
-                depsgraph_keys = usd_object_keys
+                coll = update.id
+
+                current_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
+                required_keys = current_keys
+                depsgraph_keys = set(object.sdf_name(obj)
+                                     for obj in dg.depsgraph_objects(depsgraph))
 
                 if self.export_type == 'SCENE':
-                    depsgraph_keys = set(object.sdf_name(obj)
-                                         for obj in dg.depsgraph_objects(depsgraph))
+                    required_keys = depsgraph_keys
 
                 elif self.export_type == 'COLLECTION':
                     pass
 
                 elif self.export_type == 'OBJECT':
-                    pass
+                    required_keys = set()
+                    if self.object_to_export and \
+                            object.sdf_name(self.object_to_export) in depsgraph_keys:
+                        required_keys.add(object.sdf_name(self.object_to_export))
 
-                keys_to_remove = usd_object_keys - depsgraph_keys
-                keys_to_add = depsgraph_keys - usd_object_keys
+                keys_to_remove = current_keys - required_keys
+                keys_to_add = required_keys - current_keys
 
                 if keys_to_remove:
                     for key in keys_to_remove:
