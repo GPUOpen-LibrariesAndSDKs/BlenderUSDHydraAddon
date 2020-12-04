@@ -117,7 +117,7 @@ class ReadBlendDataNode(USDNode):
             for obj_col in self.collection_to_export.objects:
                 if obj_col.hdusd.is_usd:
                     continue
-                    
+
                 object.sync(objects_prim, obj_col.evaluated_get(depsgraph))
 
         elif self.export_type == 'OBJECT':

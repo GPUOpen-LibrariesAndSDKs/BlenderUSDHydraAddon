@@ -15,11 +15,11 @@ class MergeNode(USDNode):
     def update_inputs_number(self, context):
         if len(self.inputs) < self.inputs_number:
             for i in range(len(self.inputs), self.inputs_number):
-                self.safe_op(self.inputs.new, name=f"Input {i + 1}", type="NodeSocketShader")
+                self.safe_call(self.inputs.new, name=f"Input {i + 1}", type="NodeSocketShader")
 
         elif len(self.inputs) > self.inputs_number:
             for i in range(len(self.inputs), self.inputs_number, -1):
-                self.safe_op(self.inputs.remove, self.inputs[i - 1])
+                self.safe_call(self.inputs.remove, self.inputs[i - 1])
 
     inputs_number: bpy.props.IntProperty(
         name="Inputs",

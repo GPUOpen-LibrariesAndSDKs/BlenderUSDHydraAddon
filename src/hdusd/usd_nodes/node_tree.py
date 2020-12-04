@@ -34,7 +34,7 @@ class USDTree(bpy.types.ShaderNodeTree):
     COMPAT_ENGINES = {'HdUSD'}
 
     is_updating = False
-    is_node_safe_op = False
+    is_node_safe_call = False
 
     @classmethod
     def poll(cls, context):
@@ -55,7 +55,7 @@ class USDTree(bpy.types.ShaderNodeTree):
         return secondary_output_node
 
     def update(self):
-        if self.is_node_safe_op:
+        if self.is_node_safe_call:
             return
 
         self.is_updating = True
@@ -70,7 +70,7 @@ class USDTree(bpy.types.ShaderNodeTree):
         self.is_updating = False
 
     def reset(self):
-        if self.is_node_safe_op:
+        if self.is_node_safe_call:
             return
 
         self.is_updating = True
