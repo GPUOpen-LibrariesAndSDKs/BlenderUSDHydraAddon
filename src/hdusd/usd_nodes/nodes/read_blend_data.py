@@ -124,20 +124,23 @@ class ReadBlendDataNode(USDNode):
                 if obj.hdusd.is_usd:
                     continue
 
+                # checking if object has to be updated
                 if self.export_type == 'SCENE':
-                    object.sync_update(objects_prim, obj,
-                                       update.is_updated_geometry, update.is_updated_transform)
+                    pass
 
                 elif self.export_type == 'COLLECTION':
-                    pass
+                    if not self.collection_to_export or \
+                            obj.name not in self.collection_to_export.objects:
+                        continue
 
                 elif self.export_type == 'OBJECT':
                     if not self.object_to_export or \
                             object.sdf_name(self.object_to_export) != object.sdf_name(obj):
                         continue
-                    
-                    object.sync_update(objects_prim, obj,
-                                       update.is_updated_geometry, update.is_updated_transform)
+
+                # updating object
+                object.sync_update(objects_prim, obj,
+                                   update.is_updated_geometry, update.is_updated_transform)
 
                 continue
 
@@ -145,7 +148,7 @@ class ReadBlendDataNode(USDNode):
                 coll = update.id
 
                 current_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
-                required_keys = current_keys
+                required_keys = set()
                 depsgraph_keys = set(object.sdf_name(obj)
                                      for obj in dg.depsgraph_objects(depsgraph))
 
@@ -153,13 +156,21 @@ class ReadBlendDataNode(USDNode):
                     required_keys = depsgraph_keys
 
                 elif self.export_type == 'COLLECTION':
-                    pass
+                    if not self.collection_to_export:
+                        continue
+
+                    if coll.name != self.collection_to_export.name:
+                        continue
+
+                    required_keys = set(object.sdf_name(obj) for obj in coll.objects)
+                    required_keys.intersection_update(depsgraph_keys)
 
                 elif self.export_type == 'OBJECT':
-                    required_keys = set()
-                    if self.object_to_export and \
-                            object.sdf_name(self.object_to_export) in depsgraph_keys:
-                        required_keys.add(object.sdf_name(self.object_to_export))
+                    if not self.object_to_export:
+                        continue
+
+                    if object.sdf_name(self.object_to_export) in depsgraph_keys:
+                        required_keys = {object.sdf_name(self.object_to_export)}
 
                 keys_to_remove = current_keys - required_keys
                 keys_to_add = required_keys - current_keys
