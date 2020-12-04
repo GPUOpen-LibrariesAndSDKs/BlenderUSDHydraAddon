@@ -26,7 +26,7 @@ log = logging.Log(tag='export.depsgraph')
 ITERATED_OBJECT_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'VOLUME', 'CAMERA')
 
 
-def depsgraph_objects(depsgraph, space_data, use_scene_lights):
+def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
     for obj in depsgraph.objects:
         if obj.type not in ITERATED_OBJECT_TYPES:
             continue
@@ -115,7 +115,7 @@ def sync_update(stage, depsgraph, **kwargs):
 
         if keys_to_add:
             log("Object keys to add", keys_to_add)
-            for obj in depsgraph_objects():
+            for obj in depsgraph_objects(depsgraph, space_data, use_scene_lights):
                 obj_key = object.sdf_name(obj)
                 if obj_key not in keys_to_add:
                     continue

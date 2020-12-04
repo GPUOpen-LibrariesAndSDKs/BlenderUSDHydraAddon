@@ -14,8 +14,10 @@
 # ********************************************************************
 import bpy
 
+from pxr import UsdGeom
+
 from .base_node import USDNode
-from ...export import depsgraph as dp
+from ...export import depsgraph as dg, object, sdf_path
 
 from . import log
 
@@ -29,8 +31,38 @@ class ReadBlendDataNode(USDNode):
 
     def update_export_data(self, context):
         depsgraph = bpy.context.evaluated_depsgraph_get()
-        
-        self.id_data.reset()
+
+        stage = self.cached_stage()
+        objects_prim = stage.GetPrimAtPath(f"/{depsgraph.scene.name}/objects")
+        for obj_prim in objects_prim.GetAllChildren():
+            stage.RemovePrim(obj_prim.GetPath())
+
+        if self.export_type == 'SCENE':
+            for obj in dg.depsgraph_objects(depsgraph):
+                try:
+                    object.sync(objects_prim, obj)
+                except Exception as e:
+                    log.error(e)
+
+        elif self.export_type == 'COLLECTION':
+            if self.collection_to_export:
+                for obj_col in self.collection_to_export.objects:
+                    obj = obj_col.evaluated_get(depsgraph)
+                    try:
+                        object.sync(objects_prim, obj)
+                    except Exception as e:
+                        log.error(e)
+
+        elif self.export_type == 'OBJECT':
+            if self.object_to_export:
+                obj = self.object_to_export.evaluated_get(depsgraph)
+                try:
+                    object.sync(objects_prim, obj)
+                except Exception as e:
+                    log.error(e)
+
+        else:
+            raise ValueError("Incorrect export_type", self.export_type)
 
     export_type: bpy.props.EnumProperty(
         name="Data to Read",
@@ -71,9 +103,44 @@ class ReadBlendDataNode(USDNode):
             flow.prop(self, 'object_to_export')
 
     def compute(self, **kwargs):
-        stage = self.cached_stage.create()
         depsgraph = bpy.context.evaluated_depsgraph_get()
-        dp.sync(stage, depsgraph, **kwargs)
+
+        stage = self.cached_stage.create()
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}")
+        stage.SetDefaultPrim(root_prim)
+
+        objects_prim = stage.DefinePrim(f"{root_prim.GetPath()}/objects")
+
+        if self.export_type == 'SCENE':
+            for obj in dg.depsgraph_objects(depsgraph):
+                try:
+                    object.sync(objects_prim, obj, **kwargs)
+                except Exception as e:
+                    log.error(e)
+
+        elif self.export_type == 'COLLECTION':
+            if self.collection_to_export:
+                for obj_col in self.collection_to_export.objects:
+                    obj = obj_col.evaluated_get(depsgraph)
+                    try:
+                        object.sync(objects_prim, obj, **kwargs)
+                    except Exception as e:
+                        log.error(e)
+
+        elif self.export_type == 'OBJECT':
+            if self.object_to_export:
+                obj = self.object_to_export.evaluated_get(depsgraph)
+                try:
+                    object.sync(objects_prim, obj, **kwargs)
+                except Exception as e:
+                    log.error(e)
+
+        else:
+            raise ValueError("Incorrect export_type", self.export_type)
+
         return stage
 
     def depsgraph_update(self, depsgraph):
@@ -82,4 +149,4 @@ class ReadBlendDataNode(USDNode):
             self.final_compute()
             return
 
-        dp.sync_update(stage, depsgraph)
+        dg.sync_update(stage, depsgraph)
