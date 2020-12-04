@@ -34,35 +34,12 @@ class ReadBlendDataNode(USDNode):
 
         stage = self.cached_stage()
         objects_prim = stage.GetPrimAtPath(f"/{depsgraph.scene.name}/objects")
+
+        # removing all children from objects_prim
         for obj_prim in objects_prim.GetAllChildren():
             stage.RemovePrim(obj_prim.GetPath())
 
-        if self.export_type == 'SCENE':
-            for obj in dg.depsgraph_objects(depsgraph):
-                try:
-                    object.sync(objects_prim, obj)
-                except Exception as e:
-                    log.error(e)
-
-        elif self.export_type == 'COLLECTION':
-            if self.collection_to_export:
-                for obj_col in self.collection_to_export.objects:
-                    obj = obj_col.evaluated_get(depsgraph)
-                    try:
-                        object.sync(objects_prim, obj)
-                    except Exception as e:
-                        log.error(e)
-
-        elif self.export_type == 'OBJECT':
-            if self.object_to_export:
-                obj = self.object_to_export.evaluated_get(depsgraph)
-                try:
-                    object.sync(objects_prim, obj)
-                except Exception as e:
-                    log.error(e)
-
-        else:
-            raise ValueError("Incorrect export_type", self.export_type)
+        self._export_depsgraph(objects_prim, depsgraph)
 
     export_type: bpy.props.EnumProperty(
         name="Data to Read",
@@ -113,33 +90,7 @@ class ReadBlendDataNode(USDNode):
         stage.SetDefaultPrim(root_prim)
 
         objects_prim = stage.DefinePrim(f"{root_prim.GetPath()}/objects")
-
-        if self.export_type == 'SCENE':
-            for obj in dg.depsgraph_objects(depsgraph):
-                try:
-                    object.sync(objects_prim, obj, **kwargs)
-                except Exception as e:
-                    log.error(e)
-
-        elif self.export_type == 'COLLECTION':
-            if self.collection_to_export:
-                for obj_col in self.collection_to_export.objects:
-                    obj = obj_col.evaluated_get(depsgraph)
-                    try:
-                        object.sync(objects_prim, obj, **kwargs)
-                    except Exception as e:
-                        log.error(e)
-
-        elif self.export_type == 'OBJECT':
-            if self.object_to_export:
-                obj = self.object_to_export.evaluated_get(depsgraph)
-                try:
-                    object.sync(objects_prim, obj, **kwargs)
-                except Exception as e:
-                    log.error(e)
-
-        else:
-            raise ValueError("Incorrect export_type", self.export_type)
+        self._export_depsgraph(objects_prim, depsgraph)
 
         return stage
 
@@ -149,4 +100,70 @@ class ReadBlendDataNode(USDNode):
             self.final_compute()
             return
 
-        dg.sync_update(stage, depsgraph)
+        objects_prim = stage.GetPrimAtPath(f"/{depsgraph.scene.name}/objects")
+        self._update_depsgraph(objects_prim, depsgraph)
+
+    def _export_depsgraph(self, objects_prim, depsgraph):
+        if self.export_type == 'SCENE':
+            for obj in dg.depsgraph_objects(depsgraph):
+                object.sync(objects_prim, obj)
+
+        elif self.export_type == 'COLLECTION':
+            if self.collection_to_export:
+                for obj_col in self.collection_to_export.objects:
+                    object.sync(objects_prim, obj_col.evaluated_get(depsgraph))
+
+        elif self.export_type == 'OBJECT':
+            if self.object_to_export:
+                object.sync(objects_prim, self.object_to_export.evaluated_get(depsgraph))
+
+    def _update_depsgraph(self, objects_prim, depsgraph):
+        for update in depsgraph.updates:
+            if isinstance(update.id, bpy.types.Object):
+                obj = update.id
+                if obj.hdusd.is_usd:
+                    continue
+
+                if self.export_type == 'SCENE':
+                    object.sync_update(objects_prim, obj,
+                                       update.is_updated_geometry,
+                                       update.is_updated_transform)
+
+                elif self.export_type == 'COLLECTION':
+                    pass
+
+                elif self.export_type == 'OBJECT':
+                    pass
+
+                continue
+
+            if isinstance(update.id, bpy.types.Collection):
+                usd_object_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
+                depsgraph_keys = usd_object_keys
+
+                if self.export_type == 'SCENE':
+                    depsgraph_keys = set(object.sdf_name(obj)
+                                         for obj in dg.depsgraph_objects(depsgraph))
+
+                elif self.export_type == 'COLLECTION':
+                    pass
+
+                elif self.export_type == 'OBJECT':
+                    pass
+
+                keys_to_remove = usd_object_keys - depsgraph_keys
+                keys_to_add = depsgraph_keys - usd_object_keys
+
+                if keys_to_remove:
+                    for key in keys_to_remove:
+                        objects_prim.GetStage().RemovePrim(f"{objects_prim.GetPath()}/{key}")
+
+                if keys_to_add:
+                    for obj in dg.depsgraph_objects(depsgraph):
+                        obj_key = object.sdf_name(obj)
+                        if obj_key not in keys_to_add:
+                            continue
+
+                        object.sync(objects_prim, obj)
+
+                continue
