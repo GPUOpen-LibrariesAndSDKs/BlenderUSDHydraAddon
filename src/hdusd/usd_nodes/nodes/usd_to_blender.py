@@ -9,15 +9,14 @@ class USDToBlenderNode(USDNode):
     bl_idname = 'usd.USDToBlenderNode'
     bl_label = "Insert USD to Blender"
 
+    output_name = ""
+
     write_type: bpy.props.EnumProperty( 
         name='Type',
         items=(('REFERENCE', 'Reference', "Load Data as Reference"),
                ('COPY', 'Copy', "Copy data into Blender")), 
         default='REFERENCE')
     object_pointer: bpy.props.PointerProperty(name='Object', type=bpy.types.Object)
-
-    def init(self, context):
-        self.inputs.new(name="Input", type="NodeSocketShader")
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'write_type')

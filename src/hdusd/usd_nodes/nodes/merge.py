@@ -10,14 +10,16 @@ class MergeNode(USDNode):
     bl_idname = 'usd.MergeNode'
     bl_label = "Merge USD"
 
+    input_names = ()
+
     def update_inputs_number(self, context):
         if len(self.inputs) < self.inputs_number:
             for i in range(len(self.inputs), self.inputs_number):
-                self.inputs.new(name=f"Input {i + 1}", type="NodeSocketShader")
+                self.safe_call(self.inputs.new, name=f"Input {i + 1}", type="NodeSocketShader")
 
         elif len(self.inputs) > self.inputs_number:
             for i in range(len(self.inputs), self.inputs_number, -1):
-                self.inputs.remove(self.inputs[i - 1])
+                self.safe_call(self.inputs.remove, self.inputs[i - 1])
 
     inputs_number: bpy.props.IntProperty(
         name="Inputs",
@@ -27,15 +29,13 @@ class MergeNode(USDNode):
 
     def init(self, context):
         self.update_inputs_number(context)
-        self.outputs.new(name="Output", type="NodeSocketShader")
+        super().init(context)
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'inputs_number')
 
     def compute(self, **kwargs):
         from pxr import Usd, UsdGeom
-
-        log("MergeNode")
 
         ref_stages = []
         for i in range(self.inputs_number):

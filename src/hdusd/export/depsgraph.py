@@ -26,7 +26,7 @@ log = logging.Log(tag='export.depsgraph')
 ITERATED_OBJECT_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'VOLUME', 'CAMERA')
 
 
-def depsgraph_objects(depsgraph, space_data, use_scene_lights):
+def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
     for obj in depsgraph.objects:
         if obj.type not in ITERATED_OBJECT_TYPES:
             continue

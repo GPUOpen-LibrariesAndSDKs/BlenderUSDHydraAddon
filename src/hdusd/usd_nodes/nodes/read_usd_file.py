@@ -10,10 +10,9 @@ class ReadUsdFileNode(USDNode):
     bl_idname = 'usd.ReadUsdFileNode'
     bl_label = "Read USD File"
 
-    filename: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
+    input_names = ()
 
-    def init(self, context):
-        self.outputs.new(name="Output", type="NodeSocketShader")
+    filename: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filename')

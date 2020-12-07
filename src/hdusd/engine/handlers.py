@@ -38,5 +38,8 @@ def on_load_post(*args):
 
 @bpy.app.handlers.persistent
 def on_depsgraph_update_post(scene, depsgraph):
-    from ..properties.usd_list import depsgraph_update
-    depsgraph_update(depsgraph)
+    from ..properties import usd_list
+    from ..usd_nodes import node_tree
+
+    usd_list.depsgraph_update(depsgraph)
+    node_tree.depsgraph_update(depsgraph)

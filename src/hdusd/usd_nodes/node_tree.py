@@ -33,6 +33,9 @@ class USDTree(bpy.types.ShaderNodeTree):
     bl_idname = 'hdusd.USDTree'
     COMPAT_ENGINES = {'HdUSD'}
 
+    is_updating = False
+    is_node_safe_call = False
+
     @classmethod
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
@@ -52,15 +55,41 @@ class USDTree(bpy.types.ShaderNodeTree):
         return secondary_output_node
 
     def update(self):
-        output_node = self.get_output_node()
-        if output_node:
-            output_node.final_compute()
+        if self.is_node_safe_call:
+            return
+
+        self.is_updating = True
+
+        for node in self.nodes:
+            if node.inputs:
+                node.cached_stage.clear()
+
+        for node in self.nodes:
+            node.final_compute()
+            
+        self.is_updating = False
 
     def reset(self):
+        if self.is_node_safe_call:
+            return
+
+        self.is_updating = True
+
         for node in self.nodes:
             node.cached_stage.clear()
 
-        self.update()
+        for node in self.nodes:
+            node.final_compute()
+
+        self.is_updating = False
+
+    def depsgraph_update(self, depsgraph):
+        if self.is_updating:
+            return
+
+        for node in self.nodes:
+            if node.bl_idname == 'usd.ReadBlendDataNode':
+                node.depsgraph_update(depsgraph)
 
     def add_basic_nodes(self, source='SCENE'):
         """ Reset basic node tree structure using scene or USD file as an input """
@@ -99,3 +128,9 @@ def reset():
     for group in bpy.data.node_groups:
         if isinstance(group, USDTree):
             group.reset()
+
+
+def depsgraph_update(depsgraph):
+    for group in bpy.data.node_groups:
+        if isinstance(group, USDTree):
+            group.depsgraph_update(depsgraph)

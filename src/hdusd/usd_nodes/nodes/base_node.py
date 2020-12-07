@@ -1,3 +1,17 @@
+# **********************************************************************
+# Copyright 2020 Advanced Micro Devices, Inc
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ********************************************************************
 import bpy
 from pxr import Usd
 
@@ -14,12 +28,27 @@ class USDNode(bpy.types.Node):
     bl_compatibility = {'HdUSD'}
     tree_idname = 'hdusd.USDTree'
 
+    input_names = ("Input",)
+    output_name = "Output"
+
     @classmethod
     def poll(cls, tree: bpy.types.NodeTree):
         return tree.bl_idname == cls.tree_idname
 
-    def __hash__(self):
-        return self.as_pointer()
+    def init(self, context):
+        for name in self.input_names:
+            self.safe_call(self.inputs.new, name=name, type="NodeSocketShader")
+
+        if self.output_name:
+            self.safe_call(self.outputs.new, name=self.output_name, type="NodeSocketShader")
+
+    def safe_call(self, op, *args, **kwargs):
+        """This function prevents call of nodetree.update() during calling our function"""
+        self.id_data.is_node_safe_call = True
+        try:
+            op(*args, **kwargs)
+        finally:
+            self.id_data.is_node_safe_call = False
 
     # COMPUTE FUNCTION
     def compute(self, **kwargs) -> [Usd.Stage, None]:
@@ -29,19 +58,22 @@ class USDNode(bpy.types.Node):
         """
         return None
 
-    def final_compute(self, socket_out: bpy.types.NodeSocket = None, group_nodes=(), **kwargs):
+    def final_compute(self, group_nodes=(), **kwargs):
         """
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        log("compute", self, socket_out, group_nodes)
-        stage = self.compute(socket_out=socket_out, group_nodes=group_nodes, **kwargs)
+        log("compute", self, group_nodes)
 
-        self.cached_stage.assign(stage)
-        self.hdusd.usd_list.update_items()
+        stage = self.cached_stage()
+        if not stage:
+            stage = self.compute(group_nodes=group_nodes, **kwargs)
+            self.cached_stage.assign(stage)
+            self.hdusd.usd_list.update_items()
+
         return stage
 
-    def _compute_node(self, node, socket_out, group_node=None, **kwargs):
+    def _compute_node(self, node, group_node=None, **kwargs):
         """
         Exports node with output socket.
         1. Checks if such node was already computeed and returns it.
@@ -61,7 +93,7 @@ class USDNode(bpy.types.Node):
                 group_nodes = (group_node,)
 
         # getting corresponded NodeParser class
-        return node.final_compute(socket_out, group_nodes, **kwargs)
+        return node.final_compute(group_nodes, **kwargs)
 
     # HELPER FUNCTIONS
     # Child classes should use them to do their compute
@@ -79,7 +111,7 @@ class USDNode(bpy.types.Node):
 
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)
-        return self._compute_node(link.from_node, link.from_socket, **kwargs)
+        return self._compute_node(link.from_node, **kwargs)
 
     @property
     def cached_stage(self):
