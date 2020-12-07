@@ -16,7 +16,7 @@ import bpy
 from pxr import UsdImagingGL
 
 from ..usd_nodes.node_tree import get_usd_nodetree
-from . import HdUSDProperties, usd_list, log
+from . import HdUSDProperties, log
 
 
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)

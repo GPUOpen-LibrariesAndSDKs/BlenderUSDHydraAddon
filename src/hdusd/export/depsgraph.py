@@ -17,7 +17,6 @@ from pxr import Usd, UsdGeom
 import bpy
 
 from . import object, world, sdf_path
-from .. import utils
 
 from ..utils import logging
 log = logging.Log(tag='export.depsgraph')
