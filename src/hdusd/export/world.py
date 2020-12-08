@@ -123,7 +123,6 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
 
     # get the World IBL image
     data = WorldData.init_from_world(world)
-    log.info(f"world data: {data}")
 
     stage = root_prim.GetStage()
 
