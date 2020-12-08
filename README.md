@@ -7,14 +7,14 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
 - Rendering in Blender via the USD Hydra Framework.  This is a middle layer for renderers, meaning that once a renderer is adapted to Hydra, it can work in many places including this addon for rendering.  Known Hydra render delegates are:
   - AMD's Radeon ProRender (included)
   - Hydra's default Storm delegate (included)
-  - Intel Embree (cpu) delegate (included with USD/Hydra)
+  - Intel Embree (cpu) delegate
   - Pixar RenderMan delegate.
   - Autodesk Arnold
   - Otoy Octane
   - Redshift
   - Cycles
   - Intel Ospray
-- Importing, exporting and editing materials using ILM's MaterialX standard
+- Importing, exporting and editing materials using ILM's MaterialX standard (TODO)
 
 In short, this addon will allow an artist or studio to assembled and compose USD data with Blender data, and render it all using various renderers via Hydra
 
@@ -51,7 +51,7 @@ However, more complex behavior is possible.  Let's say you are animating a chara
 The possibilities here are endless, to read more, look at our documentation on the various nodes available [HERE]
 
 
-### Materials via MaterialX
+### Materials via MaterialX (TODO)
 The correct way to interchange materials via USD is an open-ended question.  The only built-in material nodes to USD are a simple USDPreviewSurface (very similar to Blender's Principled BSDF) and nodes to read textures.  This is insufficient of course for complex materials.  However, the MaterialX standard has emerged as a good interchange format for node-based materials with support from various applications such as Adobe Substance and various Autodesk Applications.  Many renderers use their own nodes, but many can also support OSL shaders, which MaterialX can produce.
 
 Therefore the material solution in the USD Hydra addon uses MaterialX.  Here's a quick guide to materials:
