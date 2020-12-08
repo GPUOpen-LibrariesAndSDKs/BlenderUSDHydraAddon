@@ -39,13 +39,10 @@ class Engine:
     def stage(self):
         return self.cached_stage()
 
-    def _export_depsgraph(self, stage, depsgraph: bpy.types.Depsgraph, **kwargs):
+    def _export_depsgraph(self, stage, depsgraph, *,
+                          sync_callback=None, test_break=None,
+                          space_data=None, use_scene_lights=True, **kwargs):
         log("sync", depsgraph)
-
-        sync_callback = kwargs.get('sync_callback')
-        test_break = kwargs.get('test_break')
-        space_data = kwargs.get('space_data')
-        use_scene_lights = kwargs.get('use_scene_lights', True)
 
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)

@@ -53,12 +53,11 @@ class PreviewEngine(FinalEngine):
         stage = self.cached_stage.create()
         self._export_depsgraph(
             stage, depsgraph,
-            screen_ratio=screen_ratio,
-            is_gl_delegate=is_gl_delegate,
             notify_callback=notify_callback,
             test_break=test_break,
-            engine=self,
             is_preview_render=True,
+            screen_ratio=screen_ratio,
+            is_gl_delegate=is_gl_delegate,
         )
 
         self.render_engine.bl_use_gpu_context = is_gl_delegate

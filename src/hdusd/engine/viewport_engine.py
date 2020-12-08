@@ -206,20 +206,18 @@ class ViewportEngine(Engine):
             nodetree = bpy.data.node_groups[self.data_source]
             stage = nodegraph.sync(
                 nodetree,
-                is_gl_delegate=self.is_gl_delegate,
                 space_data = self.space_data,
                 use_scene_lights = self.shading_data.use_scene_lights,
-                engine=self,
+                is_gl_delegate=self.is_gl_delegate,
             )
             self.cached_stage.assign(stage)
         else:
             stage = self.cached_stage.create()
             self._export_depsgraph(
                 stage, depsgraph,
-                is_gl_delegate=self.is_gl_delegate,
                 space_data=self.space_data,
                 use_scene_lights=self.shading_data.use_scene_lights,
-                engine=self,
+                is_gl_delegate=self.is_gl_delegate,
             )
 
         self.is_synced = True

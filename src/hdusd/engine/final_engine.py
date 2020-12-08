@@ -191,11 +191,10 @@ class FinalEngine(Engine):
             nodetree = bpy.data.node_groups[settings.data_source]
             stage = nodegraph.sync(
                 nodetree,
-                screen_ratio=screen_ratio,
-                is_gl_delegate=settings.is_gl_delegate,
                 notify_callback=notify_callback,
                 test_break=test_break,
-                engine=self,
+                screen_ratio=screen_ratio,
+                is_gl_delegate=settings.is_gl_delegate,
             )
             self.cached_stage.assign(stage)
 
@@ -203,11 +202,10 @@ class FinalEngine(Engine):
             stage = self.cached_stage.create()
             self._export_depsgraph(
                 stage, depsgraph,
-                screen_ratio=screen_ratio,
-                is_gl_delegate=settings.is_gl_delegate,
                 notify_callback=notify_callback,
                 test_break=test_break,
-                engine=self,
+                screen_ratio=screen_ratio,
+                is_gl_delegate=settings.is_gl_delegate,
             )
 
         if self.render_engine.test_break():
