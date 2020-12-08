@@ -151,7 +151,7 @@ def create_emission_shader(stage, usd_material, mat_key, node):
     emission_color = get_input_default(node, 'Color')
     strength = get_input_default(node, 'Strength')
     emission_color = tuple(e * strength for e in emission_color)
-    log.info(f"emission color: {emission_color}")
+
     pbr_shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Float3).Set(emission_color)
     pbr_shader.CreateInput("emissiveColor", Sdf.ValueTypeNames.Float3).Set(emission_color)
 
