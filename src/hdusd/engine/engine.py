@@ -17,7 +17,11 @@ import traceback
 
 import bpy
 
+from pxr import UsdGeom
+
 from ..utils.stage_cache import CachedStage
+from ..utils import depsgraph_objects
+from ..export import sdf_path, object, world
 
 from ..utils import logging
 log = logging.Log(tag='engine')
@@ -35,11 +39,39 @@ class Engine:
     def stage(self):
         return self.cached_stage()
 
+    def _export_depsgraph(self, stage, depsgraph, *,
+                          sync_callback=None, test_break=None,
+                          space_data=None, use_scene_lights=True, **kwargs):
+        log("sync", depsgraph)
+
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}")
+        stage.SetDefaultPrim(root_prim)
+
+        objects_prim = stage.DefinePrim(f"{root_prim.GetPath()}/objects")
+
+        objects_len = len(depsgraph.objects)
+        for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights)):
+            if test_break and test_break():
+                return None
+
+            if sync_callback:
+                sync_callback(f"Syncing object {i}/{objects_len}: {obj.name}")
+
+            try:
+                object.sync(objects_prim, obj, **kwargs)
+            except Exception as e:
+                log.error(e)
+
+        world.sync(root_prim, depsgraph.scene.world, **kwargs)
+
 
 from . import final_engine, viewport_engine, preview_engine
 
 
-class HdEngine(bpy.types.RenderEngine):
+class HdUSDEngine(bpy.types.RenderEngine):
     """
     Main class of USD Hydra render engine for Blender
     """
@@ -51,7 +83,7 @@ class HdEngine(bpy.types.RenderEngine):
     bl_use_gpu_context = False
     bl_info = "USD Hydra rendering plugin"
 
-    engine = None
+    engine: Engine = None
 
     def __del__(self):
         log('__del__', self.as_pointer())

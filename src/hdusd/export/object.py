@@ -29,12 +29,12 @@ def get_transform(obj: bpy.types.Object):
     return obj.matrix_world.transposed()
 
 
-def sync(root_prim, obj: bpy.types.Object, **kwargs):
+def sync(objects_prim, obj: bpy.types.Object, **kwargs):
     """ sync the object and any data attached """
     log("sync", obj, obj.type)
 
-    stage = root_prim.GetStage()
-    xform = UsdGeom.Xform.Define(stage, f"{root_prim.GetPath()}/{sdf_name(obj)}")
+    stage = objects_prim.GetStage()
+    xform = UsdGeom.Xform.Define(stage, f"{objects_prim.GetPath()}/{sdf_name(obj)}")
     obj_prim = xform.GetPrim()
 
     # setting transform

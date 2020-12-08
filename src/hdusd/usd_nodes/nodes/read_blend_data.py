@@ -17,8 +17,8 @@ import bpy
 from pxr import UsdGeom
 
 from .base_node import USDNode
-from ...export import depsgraph as dg, object, sdf_path
-
+from ...export import object, sdf_path
+from ...utils import depsgraph_objects
 from . import log
 
 
@@ -107,7 +107,7 @@ class ReadBlendDataNode(USDNode):
 
     def _export_depsgraph(self, objects_prim, depsgraph):
         if self.export_type == 'SCENE':
-            for obj in dg.depsgraph_objects(depsgraph):
+            for obj in depsgraph_objects(depsgraph):
                 object.sync(objects_prim, obj)
 
         elif self.export_type == 'COLLECTION':
@@ -161,7 +161,7 @@ class ReadBlendDataNode(USDNode):
                 current_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
                 required_keys = set()
                 depsgraph_keys = set(object.sdf_name(obj)
-                                     for obj in dg.depsgraph_objects(depsgraph))
+                                     for obj in depsgraph_objects(depsgraph))
 
                 if self.export_type == 'SCENE':
                     required_keys = depsgraph_keys
@@ -193,7 +193,7 @@ class ReadBlendDataNode(USDNode):
                     ret = True
 
                 if keys_to_add:
-                    for obj in dg.depsgraph_objects(depsgraph):
+                    for obj in depsgraph_objects(depsgraph):
                         obj_key = object.sdf_name(obj)
                         if obj_key not in keys_to_add:
                             continue

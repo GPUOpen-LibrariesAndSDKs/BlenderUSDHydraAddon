@@ -23,7 +23,7 @@ from pxr import Usd
 from pxr import UsdImagingGL
 
 from .engine import Engine
-from ..export import depsgraph as dg, nodegraph, camera, material, object, sdf_path
+from ..export import nodegraph, camera, material, object, sdf_path
 from .. import utils
 
 from ..utils import logging
@@ -206,20 +206,18 @@ class ViewportEngine(Engine):
             nodetree = bpy.data.node_groups[self.data_source]
             stage = nodegraph.sync(
                 nodetree,
-                is_gl_delegate=self.is_gl_delegate,
                 space_data = self.space_data,
                 use_scene_lights = self.shading_data.use_scene_lights,
-                engine=self,
+                is_gl_delegate=self.is_gl_delegate,
             )
             self.cached_stage.assign(stage)
         else:
             stage = self.cached_stage.create()
-            dg.sync(
+            self._export_depsgraph(
                 stage, depsgraph,
-                is_gl_delegate=self.is_gl_delegate,
                 space_data=self.space_data,
                 use_scene_lights=self.shading_data.use_scene_lights,
-                engine=self,
+                is_gl_delegate=self.is_gl_delegate,
             )
 
         self.is_synced = True
@@ -238,26 +236,6 @@ class ViewportEngine(Engine):
 
         sync_collection = False
         sync_world = False
-        #
-        # material_override = depsgraph.view_layer.material_override
-        #
-        # shading_data = ShadingData(context)
-        # if self.shading_data != shading_data:
-        #     sync_world = True
-        #
-        #     if self.shading_data.use_scene_lights != shading_data.use_scene_lights:
-        #         sync_collection = True
-        #
-        #     self.shading_data = shading_data
-        #
-        # self.rpr_context.blender_data['depsgraph'] = depsgraph
-        #
-        # # if view mode changed need to sync collections
-        # mode_updated = False
-        # if self.view_mode != context.mode:
-        #     self.view_mode = context.mode
-        #     mode_updated = True
-        #
 
         for update in updates:
             obj = update.id
@@ -274,7 +252,8 @@ class ViewportEngine(Engine):
             if isinstance(obj, bpy.types.Material):
                 mesh_obj = context.object if context.object and \
                                              context.object.type == 'MESH' else None
-                material.sync_update(root_prim, obj, mesh_obj)
+                materials_prim = self.stage.DefinePrim(f"{root_prim.GetPath()}/materials")
+                material.sync_update(materials_prim, obj, mesh_obj)
                 continue
 
             if isinstance(obj, bpy.types.Object):
@@ -299,11 +278,6 @@ class ViewportEngine(Engine):
 
         if sync_world:
             pass
-            # world_settings = self._get_world_settings(depsgraph)
-            # if self.world_settings != world_settings:
-            #     self.world_settings = world_settings
-            #     self.world_settings.export(self.rpr_context)
-            #     is_updated = True
 
         if sync_collection:
             self.sync_objects_collection(depsgraph)
@@ -419,7 +393,7 @@ class ViewportEngine(Engine):
         objects_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}/objects")
 
         def depsgraph_objects():
-            yield from dg.depsgraph_objects(depsgraph, self.space_data,
+            yield from depsgraph_objects(depsgraph, self.space_data,
                                             self.shading_data.use_scene_lights)
 
         depsgraph_keys = set(object.sdf_name(obj) for obj in depsgraph_objects())

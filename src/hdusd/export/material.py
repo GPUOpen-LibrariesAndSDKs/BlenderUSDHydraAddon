@@ -21,13 +21,12 @@ from ..utils import logging
 log = logging.Log(tag='export.Material')
 
 
-def usd_path(material: bpy.types.Material, input_socket_key='Surface'):
-    mat_key = f"/Scene/materials/{sdf_path(material.name_full)}"
-
+def sdf_name(mat: bpy.types.Material, input_socket_key='Surface'):
+    ret = sdf_path(mat.name_full)
     if input_socket_key != 'Surface':
-        mat_key = f"{mat_key}/{sdf_path(input_socket_key)}"
+        ret += "/" + sdf_path(mat.name_full)
 
-    return mat_key
+    return ret
 
 
 def get_material_output_node(material):
@@ -54,45 +53,44 @@ def get_material_input_node(material, input_socket_key: str):
     return socket_in.links[0].from_node
 
 
-def sync(stage, material: bpy.types.Material, input_socket_key='Surface', *,
+def sync(materials_prim, mat: bpy.types.Material, input_socket_key='Surface', *,
          obj: bpy.types.Object = None):
     """
     If material exists: returns existing material unless force_update is used
     In other cases: returns None
     """
 
-    log(f"sync {material} '{input_socket_key}'; obj {obj}")
+    log(f"sync {mat} '{input_socket_key}'; obj {obj}")
 
-    output_node = get_material_output_node(material)
+    output_node = get_material_output_node(mat)
     if not output_node:
-        log("No output node", material)
+        log("No output node", mat)
         return None
 
-    mat_path = usd_path(material)
-
     # TODO store refs to existing materials for reuse
-
-    usd_material = UsdShade.Material.Define(stage, mat_path)
+    stage = materials_prim.GetStage()
+    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
+    usd_mat = UsdShade.Material.Define(stage, mat_path)
 
     # get connected shader node
-    node = get_material_input_node(material, input_socket_key)
+    node = get_material_input_node(mat, input_socket_key)
     if not node:
         return None
 
     # TODO use MaterialX for material
     # create appropriate USD shader
     if node.bl_idname == 'ShaderNodeBsdfPrincipled':
-        create_principled_shader(stage, usd_material, mat_path, node)
+        create_principled_shader(stage, usd_mat, mat_path, node)
     elif node.bl_idname == 'ShaderNodeEmission':
-        create_emission_shader(stage, usd_material, mat_path, node)
+        create_emission_shader(stage, usd_mat, mat_path, node)
     elif node.bl_idname == 'ShaderNodeBsdfDiffuse':  # used by Material Preview
-        create_diffuse_shader(stage, usd_material, mat_path, node)
+        create_diffuse_shader(stage, usd_mat, mat_path, node)
     else:
-        log.info(f"unsupported node {node.bl_idname} of material {material.name_full}")
+        log.info(f"unsupported node {node.bl_idname} of material {mat.name_full}")
 
     # TODO export volumetric and displacement
 
-    return usd_material
+    return usd_mat
 
 
 # TODO move parsing to shader nodes parser
@@ -158,18 +156,18 @@ def create_emission_shader(stage, usd_material, mat_key, node):
     usd_material.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
 
 
-def sync_update(root_prim, material: bpy.types.Material, obj: bpy.types.Object = None):
+def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object = None):
     """ Recreates existing material """
 
-    log("sync_update", material)
+    log("sync_update", mat)
 
-    stage = root_prim.GetStage()
-    mat_key = usd_path(material)
-    mat = stage.GetPrimAtPath(mat_key)
-    if mat.IsValid():
-        stage.RemovePrim(mat_key)
+    stage = materials_prim.GetStage()
+    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
+    usd_mat = stage.GetPrimAtPath(mat_path)
+    if usd_mat.IsValid():
+        stage.RemovePrim(mat_path)
 
-    sync(stage, material, obj=obj)
+    sync(materials_prim, mat, obj=obj)
 
     # TODO update displacement
     # TODO update volume

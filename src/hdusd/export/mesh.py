@@ -201,8 +201,6 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
     if not data:
         return
 
-    log("sync init_from_mesh")
-
     stage = obj_prim.GetStage()
     usd_mesh = UsdGeom.Mesh.Define(stage, f"{obj_prim.GetPath()}/{sdf_path(mesh.name)}")
 
@@ -221,24 +219,24 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
                                             UsdGeom.Tokens.faceVarying)
         uv_primvar.Set(uv_layer[0])
 
-    log("sync finish")
-
-    assign_materials(stage, obj, usd_mesh)
+    _assign_materials(obj_prim, obj, usd_mesh)
 
 
-def assign_materials(stage, obj, usd_mesh):
-    log("material sync")
-    material_slots = obj.material_slots
-    if len(material_slots) == 0:
+def _assign_materials(obj_prim, obj, usd_mesh):
+    if not obj.material_slots:
         return
 
-    slot = material_slots[0]
-    if not slot.material:
+    mat = obj.material_slots[0].material
+    if not mat:
         return
 
-    mat = material.sync(stage, slot.material, obj=obj)
-    if mat:
-        UsdShade.MaterialBindingAPI(usd_mesh).Bind(mat)
+    stage = obj_prim.GetStage()
+    root_prim = obj_prim.GetParent().GetParent()
+    materials_prim = stage.DefinePrim(f"{root_prim.GetPath()}/materials")
+
+    usd_mat = material.sync(materials_prim, mat, obj=obj)
+    if usd_mat:
+        UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_mat)
 
     # TODO support multi-material shapes
     # TODO support material override
