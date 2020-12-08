@@ -31,7 +31,7 @@ from . import engine, handlers
 
 
 def register():
-    bpy.utils.register_class(engine.HdEngine)
+    bpy.utils.register_class(engine.HdUSDEngine)
 
     bpy.app.handlers.load_pre.append(handlers.on_load_pre)
     bpy.app.handlers.load_post.append(handlers.on_load_post)
@@ -39,7 +39,7 @@ def register():
 
 
 def unregister():
-    bpy.utils.unregister_class(engine.HdEngine)
+    bpy.utils.unregister_class(engine.HdUSDEngine)
 
     bpy.app.handlers.load_pre.remove(handlers.on_load_pre)
     bpy.app.handlers.load_post.remove(handlers.on_load_post)

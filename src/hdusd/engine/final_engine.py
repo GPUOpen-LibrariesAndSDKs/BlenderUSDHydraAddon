@@ -22,7 +22,7 @@ import bpy
 import bgl
 
 from .engine import Engine
-from ..export import depsgraph as dg, nodegraph, sdf_path
+from ..export import nodegraph, sdf_path
 from ..utils import gl, time_str
 
 from ..utils import logging
@@ -201,7 +201,7 @@ class FinalEngine(Engine):
 
         else:
             stage = self.cached_stage.create()
-            dg.sync(
+            self._export_depsgraph(
                 stage, depsgraph,
                 screen_ratio=screen_ratio,
                 is_gl_delegate=settings.is_gl_delegate,

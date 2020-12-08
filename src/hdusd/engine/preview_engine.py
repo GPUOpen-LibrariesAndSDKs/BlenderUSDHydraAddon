@@ -13,7 +13,7 @@
 # limitations under the License.
 #********************************************************************
 from .final_engine import FinalEngine
-from ..export import depsgraph as dg, sdf_path
+from ..export import sdf_path
 
 from pxr import UsdAppUtils
 
@@ -51,7 +51,7 @@ class PreviewEngine(FinalEngine):
         screen_ratio = self.width / self.height
 
         stage = self.cached_stage.create()
-        dg.sync(
+        self._export_depsgraph(
             stage, depsgraph,
             screen_ratio=screen_ratio,
             is_gl_delegate=is_gl_delegate,

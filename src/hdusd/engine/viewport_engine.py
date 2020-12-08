@@ -23,7 +23,7 @@ from pxr import Usd
 from pxr import UsdImagingGL
 
 from .engine import Engine
-from ..export import depsgraph as dg, nodegraph, camera, material, object, sdf_path
+from ..export import nodegraph, camera, material, object, sdf_path
 from .. import utils
 
 from ..utils import logging
@@ -214,7 +214,7 @@ class ViewportEngine(Engine):
             self.cached_stage.assign(stage)
         else:
             stage = self.cached_stage.create()
-            dg.sync(
+            self._export_depsgraph(
                 stage, depsgraph,
                 is_gl_delegate=self.is_gl_delegate,
                 space_data=self.space_data,
@@ -238,26 +238,6 @@ class ViewportEngine(Engine):
 
         sync_collection = False
         sync_world = False
-        #
-        # material_override = depsgraph.view_layer.material_override
-        #
-        # shading_data = ShadingData(context)
-        # if self.shading_data != shading_data:
-        #     sync_world = True
-        #
-        #     if self.shading_data.use_scene_lights != shading_data.use_scene_lights:
-        #         sync_collection = True
-        #
-        #     self.shading_data = shading_data
-        #
-        # self.rpr_context.blender_data['depsgraph'] = depsgraph
-        #
-        # # if view mode changed need to sync collections
-        # mode_updated = False
-        # if self.view_mode != context.mode:
-        #     self.view_mode = context.mode
-        #     mode_updated = True
-        #
 
         for update in updates:
             obj = update.id
@@ -299,11 +279,6 @@ class ViewportEngine(Engine):
 
         if sync_world:
             pass
-            # world_settings = self._get_world_settings(depsgraph)
-            # if self.world_settings != world_settings:
-            #     self.world_settings = world_settings
-            #     self.world_settings.export(self.rpr_context)
-            #     is_updated = True
 
         if sync_collection:
             self.sync_objects_collection(depsgraph)
@@ -419,7 +394,7 @@ class ViewportEngine(Engine):
         objects_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}/objects")
 
         def depsgraph_objects():
-            yield from dg.depsgraph_objects(depsgraph, self.space_data,
+            yield from depsgraph_objects(depsgraph, self.space_data,
                                             self.shading_data.use_scene_lights)
 
         depsgraph_keys = set(object.sdf_name(obj) for obj in depsgraph_objects())

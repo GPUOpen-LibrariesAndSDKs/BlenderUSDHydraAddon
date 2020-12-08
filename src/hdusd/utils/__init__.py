@@ -106,10 +106,21 @@ def get_prop_array_data(arr, dtype=np.float32):
     return data
 
 
-def is_zero(val):
-    return np.all(np.isclose(val, 0.0))
-
-
 def time_str(val):
     """ Convert perfcounter difference to time string minutes:seconds.milliseconds """
     return f"{math.floor(val / 60):02}:{math.floor(val % 60):02}.{math.floor((val % 1) * 100):02}"
+
+
+def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
+    for obj in depsgraph.objects:
+        if obj.type not in ('MESH', 'LIGHT', 'CURVE', 'FONT',
+                            'SURFACE', 'META', 'VOLUME', 'CAMERA'):
+            continue
+
+        if obj.type == 'LIGHT' and not use_scene_lights:
+            continue
+
+        if space_data and not obj.visible_in_viewport_get(space_data):
+            continue
+
+        yield obj
