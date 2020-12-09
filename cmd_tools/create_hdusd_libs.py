@@ -18,7 +18,7 @@ from pathlib import Path
 import argparse
 
 
-def enumerate_libs(usd_dir, hdrpr_dir):
+def enumerate_libs(usd_dir, hdrpr_dir, mx_dir):
     # USD libraries
     for f in (usd_dir / "lib").glob("**/*"):
         if f.is_dir():
@@ -63,6 +63,15 @@ def enumerate_libs(usd_dir, hdrpr_dir):
 
         yield f, Path("plugins") / f.relative_to(hdrpr_dir / "./plugin")
 
+    # MaterialX libraries
+    for f in (mx_dir / "python/MaterialX").glob("*"):
+        if f.is_dir():
+            continue
+        if f.suffix in (".lib",):
+            continue
+
+        yield f, Path("materialx") / f.relative_to(mx_dir)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -72,6 +81,8 @@ def main():
                     help="USD dir")
     ap.add_argument("-hdrpr", required=True, metavar="",
                     help="HdRPR dir")
+    ap.add_argument("-mx", required=True, metavar="",
+                    help="MaterialX dir")
     ap.add_argument("-libs", required=False, metavar="",
                     help="Libs dir")
     args = ap.parse_args()
@@ -84,7 +95,7 @@ def main():
         shutil.rmtree(str(libs_dir))
 
     print("Copying libs to:", libs_dir)
-    for f, relative in enumerate_libs(Path(args.usd), Path(args.hdrpr)):
+    for f, relative in enumerate_libs(Path(args.usd), Path(args.hdrpr), Path(args.mx)):
         print(f, '->', relative)
 
         f_copy = libs_dir / relative
