@@ -23,7 +23,7 @@ from . import node_tree, nodes, ui
 register_trees, unregister_trees = bpy.utils.register_classes_factory([
     node_tree.MxNodeTree,
 
-    ui.HDUSD_OP_MX_import_material,
+    ui.HDUSD_MX_OP_import_file,
     ui.HDUSD_MX_MATERIAL_PT_import_export,
 ])
 
