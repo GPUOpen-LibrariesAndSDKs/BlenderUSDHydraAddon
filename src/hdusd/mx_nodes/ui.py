@@ -14,25 +14,28 @@
 #********************************************************************
 import bpy
 
-from ..utils import logging
-log = logging.Log("mx_nodes")
-
-from . import node_tree, nodes, ui
+from ..ui import HdUSD_Panel
+from .node_tree import MxNodeTree
 
 
-register_trees, unregister_trees = bpy.utils.register_classes_factory([
-    node_tree.MxNodeTree,
+class HDUSD_OP_MX_import_material(bpy.types.Operator):
+    """Expand USD item"""
+    bl_idname = "hdusd.mx_import_material"
+    bl_label = "Import Material"
 
-    ui.HDUSD_OP_MX_import_material,
-    ui.HDUSD_MX_MATERIAL_PT_import_export,
-])
-
-
-def register():
-    register_trees()
-    nodes.register()
+    def execute(self, context):
+        return {'FINISHED'}
 
 
-def unregister():
-    unregister_trees()
-    nodes.unregister()
+class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
+    bl_label = "MaterialX Import/Export"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "Tool"
+
+    @classmethod
+    def poll(cls, context):
+        return isinstance(bpy.context.space_data.edit_tree, MxNodeTree)
+
+    def draw(self, context):
+        self.layout.operator('hdusd.mx_import_material')

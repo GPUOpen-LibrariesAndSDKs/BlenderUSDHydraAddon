@@ -18,10 +18,6 @@ from pxr import Usd
 from . import log
 
 
-class USDError(BaseException):
-    pass
-
-
 class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
