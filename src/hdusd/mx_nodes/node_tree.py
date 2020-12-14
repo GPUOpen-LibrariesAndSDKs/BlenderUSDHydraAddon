@@ -20,7 +20,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     MaterialX NodeTree
     """
     bl_label = "MaterialX"
-    bl_icon = "NODETREE"
+    bl_icon = "NODE_MATERIAL"
     bl_idname = "hdusd.MxNodeTree"
     COMPAT_ENGINES = {'HdUSD'}
 

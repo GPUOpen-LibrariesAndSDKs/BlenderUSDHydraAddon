@@ -43,32 +43,34 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
         doc = mx.createDocument()
         try:
             mx.readFromXmlFile(doc, self.filepath)
+
         except mx.ExceptionFileMissing as err:
             log.error(err, self.filepath)
             return {'CANCELLED'}
+
         except mx.ExceptionParseError as err:
-            log.error("Invalid valid MaterialX XML file", self.filepath, err)
+            log.error("Invalid MaterialX XML file", self.filepath, err)
             return {'CANCELLED'}
 
         # # create sub node graphs
         # for sub_ng in doc.getNodeGraphs():
         #     create_node_graph(doc, sub_ng)
 
-        """ for mat in materials:
-            # material in materialx takes the first node as the shader
-            print("creating mat", mat.getName())
+        # for mat in materials:
+        #     # material in materialx takes the first node as the shader
+        #     print("creating mat", mat.getName())
+        #
+        #     # create material nodetree
+        #     nt = bpy.data.node_groups.new(mat.getName(), 'mx.NodeTree')
+        #     mat_node = nt.nodes.new("mx.surfacematerial")
+        #
+        #     # surface
+        #     for i, s_ref in enumerate(mat.getShaderRefs()):
+        #         created_item = create_item_from_shaderref(doc, s_ref, nt)
+        #         if created_item:
+        #             # TODO should be smarter about hooking up types
+        #             nt.links.new(mat_node.inputs[i], created_item.outputs[0])
 
-            # create material nodetree
-            nt = bpy.data.node_groups.new(mat.getName(), 'mx.NodeTree')
-            mat_node = nt.nodes.new("mx.surfacematerial")
-
-            # surface
-            for i, s_ref in enumerate(mat.getShaderRefs()):
-                created_item = create_item_from_shaderref(doc, s_ref, nt)
-                if created_item:
-                    # TODO should be smarter about hooking up types
-                    nt.links.new(mat_node.inputs[i], created_item.outputs[0])
-         """
         return {"FINISHED"}
 
 
@@ -78,12 +80,7 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
     bl_region_type = "UI"
     bl_category = "Tool"
 
-    @classmethod
-    def poll(cls, context):
-        return isinstance(bpy.context.space_data.edit_tree, MxNodeTree)
-
     def draw(self, context):
         layout = self.layout
 
         op = layout.operator('hdusd.mx_import_file')
-
