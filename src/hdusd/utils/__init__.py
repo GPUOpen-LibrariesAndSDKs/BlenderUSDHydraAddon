@@ -36,9 +36,7 @@ IS_LINUX = OS == 'Linux'
 BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
 
 PLUGIN_ROOT_DIR = Path(hdusd.__file__).parent
-BLENDER_ROOT_DIR = (Path(sys.executable).parent / "../Resources") if IS_MAC \
-                   else Path(sys.executable).parent
-BLENDER_DATA_DIR = next(BLENDER_ROOT_DIR.glob("2.*/datafiles"))
+BLENDER_DATA_DIR = Path(bpy.utils.resource_path('LOCAL'))
 
 HDUSD_DEBUG_MODE = bool(int(os.environ.get('HDUSD_BLENDER_DEBUG', 0)))
 HDUSD_LIBS_DIR = Path(os.environ['HDUSD_LIBS_DIR']) if HDUSD_DEBUG_MODE else \

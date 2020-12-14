@@ -142,7 +142,7 @@ class ShadingData:
         if not self.use_scene_world:
             self.studio_light = shading.selected_studio_light.path
             if not self.studio_light:
-                self.studio_light = str(utils.BLENDER_DATA_DIR / "studiolights/world" /
+                self.studio_light = str(utils.BLENDER_DATA_DIR / "datafiles/studiolights/world" /
                                         shading.studio_light)
             self.studio_light_rotate_z = shading.studiolight_rotate_z
             self.studio_light_background_alpha = shading.studiolight_background_alpha
