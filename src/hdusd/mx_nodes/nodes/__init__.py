@@ -38,8 +38,8 @@ class MxNodeCategory(NodeCategory):
 
 
 node_categories = [
-    MxNodeCategory('HdUSD_INPUT', "Input", items=[
-        NodeItem('usd.ReadBlendDataNode'),
+    MxNodeCategory('HdUSD_MX_INPUT', "Input", items=[
+        NodeItem('hdusd.MX_standard_surface'),
         NodeItem('usd.ReadUsdFileNode'),
     ]),
     # MxNodeCategory('HdUSD_OUTPUT', 'Output', items=[
@@ -54,17 +54,7 @@ node_categories = [
 ]
 
 # nodes to register
-register_nodes, unregister_nodes = bpy.utils.register_classes_factory([
-    # read_blend_data.ReadBlendDataNode,
-    # read_usd_file.ReadUsdFileNode,
-    # write_file.WriteFileNode,
-    # merge.MergeNode,
-    # print_file.PrintFileNode,
-    # filter.FilterNode,
-    # usd_to_blender.USDToBlenderNode,
-    # hydra_render.HydraRenderNode,
-    # rpr_render_settings.RprRenderSettingsNode,
-])
+register_nodes, unregister_nodes = bpy.utils.register_classes_factory(node_types)
 
 
 def register():

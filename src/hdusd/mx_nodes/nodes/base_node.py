@@ -153,7 +153,7 @@ def create_node_type(mx_nodedef):
     '''
     data = {
         'bl_label': prettify_string(mx_nodedef.getNodeString()),
-        'bl_idname': "hdusd.mx_" + mx_nodedef.getNodeString(),
+        'bl_idname': "hdusd.MX_" + mx_nodedef.getNodeString(),
         'mx_nodedef': mx_nodedef
     }
 
@@ -169,7 +169,7 @@ def create_node_type(mx_nodedef):
     if len(annotations):
         data['__annotations__'] = annotations
 
-    node_type = type(mx_nodedef.getNodeString(), (MxNode,), data)
+    node_type = type('MX_' + mx_nodedef.getNodeString(), (MxNode,), data)
     return node_type
 
 
