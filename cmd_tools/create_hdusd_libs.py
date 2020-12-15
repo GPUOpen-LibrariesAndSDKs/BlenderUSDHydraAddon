@@ -72,6 +72,22 @@ def enumerate_libs(usd_dir, hdrpr_dir, mx_dir):
 
         yield f, Path("materialx") / f.relative_to(mx_dir)
 
+    for f in (mx_dir / "libraries").glob("**/*"):
+        if f.is_dir():
+            continue
+        if f.suffix in (".lib",):
+            continue
+
+        yield f, Path("materialx") / f.relative_to(mx_dir)
+
+    for f in (mx_dir / "resources").glob("**/*"):
+        if f.is_dir():
+            continue
+        if f.suffix in (".lib",):
+            continue
+
+        yield f, Path("materialx") / f.relative_to(mx_dir)
+
 
 def main():
     ap = argparse.ArgumentParser()

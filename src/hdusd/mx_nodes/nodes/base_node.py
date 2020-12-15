@@ -16,6 +16,9 @@ import MaterialX as mx
 
 import bpy
 
+from . import log
+from ...utils import HDUSD_LIBS_DIR
+
 
 def prettify_string(str):
     return str.replace('_', ' ').title()
@@ -141,7 +144,7 @@ def get_param(mx_param):
         return bpy.props.FloatVectorProperty, prop_attrs
 
     else:
-        raise TypeError('unknown type', mx_param_type)
+        log.error('Unknown type', mx_param_type)
 
 
 def create_node_type(mx_nodedef):
@@ -168,3 +171,25 @@ def create_node_type(mx_nodedef):
 
     node_type = type(mx_nodedef.getNodeString(), (MxNode,), data)
     return node_type
+
+
+def create_node_types():
+    mx_lib_path =  HDUSD_LIBS_DIR / "materialx/libraries"
+    file_paths = [
+        mx_lib_path / "bxdf/standard_surface.mtlx",
+        mx_lib_path / "pbrlib/pbrlib_defs.mtlx",
+    ]
+
+    node_types = []
+    for p in file_paths:
+        doc = mx.createDocument()
+        mx.readFromXmlFile(doc, str(p))
+        mx_node_defs = doc.getNodeDefs()
+        if not mx_node_defs:
+            continue
+
+        for mx_node_def in mx_node_defs:
+            node_type = create_node_type(mx_node_def)
+            node_types.append(node_type)
+
+    return node_types

@@ -25,6 +25,12 @@ from .. import log
 # )
 
 
+from .base_node import create_node_types
+
+
+node_types = create_node_types()
+
+
 class MxNodeCategory(NodeCategory):
     @classmethod
     def poll(cls, context):
@@ -36,15 +42,15 @@ node_categories = [
         NodeItem('usd.ReadBlendDataNode'),
         NodeItem('usd.ReadUsdFileNode'),
     ]),
-    MxNodeCategory('HdUSD_OUTPUT', 'Output', items=[
-        NodeItem('usd.HydraRenderNode'),
-        NodeItem('usd.WriteFileNode'),
-        NodeItem('usd.PrintFileNode'),
-    ]),
-    MxNodeCategory('HdUSD_CONVERTER', 'Converter', items=[
-        NodeItem('usd.MergeNode'),
-        # NodeItem('usd.FilterNode'),
-    ]),
+    # MxNodeCategory('HdUSD_OUTPUT', 'Output', items=[
+    #     NodeItem('usd.HydraRenderNode'),
+    #     NodeItem('usd.WriteFileNode'),
+    #     NodeItem('usd.PrintFileNode'),
+    # ]),
+    # MxNodeCategory('HdUSD_CONVERTER', 'Converter', items=[
+    #     NodeItem('usd.MergeNode'),
+    #     # NodeItem('usd.FilterNode'),
+    # ]),
 ]
 
 # nodes to register

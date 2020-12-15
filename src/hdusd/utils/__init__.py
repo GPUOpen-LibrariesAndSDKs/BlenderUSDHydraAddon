@@ -17,7 +17,6 @@ import tempfile
 import os
 import shutil
 import platform
-import sys
 import numpy as np
 import math
 

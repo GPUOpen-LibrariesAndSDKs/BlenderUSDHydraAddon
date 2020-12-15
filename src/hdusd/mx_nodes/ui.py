@@ -74,6 +74,50 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MX_OP_create_node_type(bpy.types.Operator):
+    bl_idname = "hdusd.mx_create_node_type"
+    bl_label = "Create NodeType"
+    bl_description = "Import selected mtlx file"
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    filename_ext = ".mtlx"
+    filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
+
+    @classmethod
+    def poll(cls, context):
+        return isinstance(bpy.context.space_data.edit_tree, MxNodeTree)
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    # Perform the operator action.
+    def execute(self, context):
+        doc = mx.createDocument()
+        try:
+            mx.readFromXmlFile(doc, self.filepath)
+
+        except mx.ExceptionFileMissing as err:
+            log.error(err, self.filepath)
+            return {'CANCELLED'}
+
+        except mx.ExceptionParseError as err:
+            log.error("Invalid MaterialX XML file", self.filepath, err)
+            return {'CANCELLED'}
+
+        from .nodes.base_node import create_node_type
+        nodedefs = doc.getNodeDefs()
+        if not nodedefs:
+            log.warn("No nodedefs in", self.filepath)
+            return {'CANCELLED'}
+
+        nodetype = create_node_type(nodedefs[0])
+        bpy.utils.register_class(nodetype)
+        print(nodetype)
+
+        return {"FINISHED"}
+
+
 class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
     bl_label = "MaterialX Import/Export"
     bl_space_type = "NODE_EDITOR"
@@ -84,3 +128,4 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
         layout = self.layout
 
         op = layout.operator('hdusd.mx_import_file')
+        op = layout.operator('hdusd.mx_create_node_type')
