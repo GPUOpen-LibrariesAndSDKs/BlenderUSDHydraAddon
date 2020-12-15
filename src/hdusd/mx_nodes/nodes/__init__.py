@@ -25,7 +25,7 @@ from .. import log
 # )
 
 
-from .base_node import create_node_types
+from .base_node import create_node_types, MxNodeSocket
 
 
 node_types = create_node_types()
@@ -38,9 +38,8 @@ class MxNodeCategory(NodeCategory):
 
 
 node_categories = [
-    MxNodeCategory('HdUSD_MX_INPUT', "Input", items=[
-        NodeItem('hdusd.MX_standard_surface'),
-        NodeItem('usd.ReadUsdFileNode'),
+    MxNodeCategory('HdUSD_MX_SHADERS', "Shaders", items=[
+        NodeItem(node_type.bl_idname) for node_type in node_types
     ]),
     # MxNodeCategory('HdUSD_OUTPUT', 'Output', items=[
     #     NodeItem('usd.HydraRenderNode'),
@@ -55,9 +54,13 @@ node_categories = [
 
 # nodes to register
 register_nodes, unregister_nodes = bpy.utils.register_classes_factory(node_types)
+register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
+    MxNodeSocket,
+])
 
 
 def register():
+    register_sockets()
     register_nodes()
     nodeitems_utils.register_node_categories("MX_NODES", node_categories)
 
@@ -65,3 +68,4 @@ def register():
 def unregister():
     nodeitems_utils.unregister_node_categories("MX_NODES")
     unregister_nodes()
+    unregister_sockets()

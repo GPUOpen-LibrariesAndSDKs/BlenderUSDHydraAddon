@@ -24,6 +24,30 @@ def prettify_string(str):
     return str.replace('_', ' ').title()
 
 
+class MxNodeSocket(bpy.types.NodeSocket):
+    bl_idname = 'hdusd.MxNodeSocket'
+    bl_label = "MaterialX Node Socket"
+
+    # TODO different type for draw color
+    # socket_type: bpy.props.EnumProperty()
+
+    # corresponding property name (if any) on node
+    property_name: bpy.props.StringProperty(default='')
+
+    def draw(self, context, layout, node, text):
+        # if not linked, we get custom property from the node
+        # rather than use the default val like blender sockets
+        # this allows custom property UI
+        if self.is_linked or self.property_name == '':
+            layout.label(text=self.name)
+        else:
+            layout.prop(node, self.property_name, text=self.name)
+
+    def draw_color(self, context, node):
+        # TODO get from type
+        return (0.78, 0.78, 0.16, 1.0)
+
+
 class MxNode(bpy.types.ShaderNode):
     """Base node from which all MaterialX nodes will be made"""
     bl_compatibility = {'HdUSD'}
@@ -37,24 +61,21 @@ class MxNode(bpy.types.ShaderNode):
         ''' generates inputs and outputs from ones specified '''
         for mx_input in self.mx_nodedef.getInputs():
             name = mx_input.getName()
-            input = self.inputs.new(name=prettify_string(name), type='mx.NodeSocket')
+            input = self.inputs.new(name=prettify_string(name), type='hdusd.MxNodeSocket')
             if hasattr(self, name.lower()):
                 input.property_name = name.lower()
 
         for output in self.mx_nodedef.getOutputs():
             name = output.getName()
-            self.outputs.new(name=prettify_string(name), type='mx.NodeSocket')
+            self.outputs.new(name=prettify_string(name), type='hdusd.MxNodeSocket')
 
     def draw_buttons(self, context, layout):
         for mx_param in self.mx_nodedef.getParameters():
             layout.prop(self, mx_param.getName())
 
     @classmethod
-    def poll(cls, ntree):
-        if hasattr(ntree, 'bl_idname'):
-            return ntree.bl_idname == 'mx.NodeTree'
-        else:
-            return True
+    def poll(cls, tree):
+        return tree.bl_idname == 'hdusd.MxNodeTree'
 
     @staticmethod
     def import_from_mx(nt, mx_node: mx.Node):
@@ -177,7 +198,7 @@ def create_node_types():
     mx_lib_path =  HDUSD_LIBS_DIR / "materialx/libraries"
     file_paths = [
         mx_lib_path / "bxdf/standard_surface.mtlx",
-        mx_lib_path / "pbrlib/pbrlib_defs.mtlx",
+        # mx_lib_path / "pbrlib/pbrlib_defs.mtlx",
     ]
 
     node_types = []
