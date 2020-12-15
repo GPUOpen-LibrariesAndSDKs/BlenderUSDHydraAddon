@@ -16,19 +16,15 @@ import bpy
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem
 
+from ...utils import HDUSD_LIBS_DIR
 from .. import log
-
-# classes to register
-# from . import (
-#     read_usd_file, read_blend_data, write_file, merge, print_file, filter, usd_to_blender,
-#     hydra_render, rpr_render_settings
-# )
-
-
 from .base_node import create_node_types, MxNodeSocket
 
 
-node_types = create_node_types()
+node_types = create_node_types([
+    HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx",
+    # HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx",
+])
 
 
 class MxNodeCategory(NodeCategory):
@@ -41,15 +37,6 @@ node_categories = [
     MxNodeCategory('HdUSD_MX_SHADERS', "Shaders", items=[
         NodeItem(node_type.bl_idname) for node_type in node_types
     ]),
-    # MxNodeCategory('HdUSD_OUTPUT', 'Output', items=[
-    #     NodeItem('usd.HydraRenderNode'),
-    #     NodeItem('usd.WriteFileNode'),
-    #     NodeItem('usd.PrintFileNode'),
-    # ]),
-    # MxNodeCategory('HdUSD_CONVERTER', 'Converter', items=[
-    #     NodeItem('usd.MergeNode'),
-    #     # NodeItem('usd.FilterNode'),
-    # ]),
 ]
 
 # nodes to register

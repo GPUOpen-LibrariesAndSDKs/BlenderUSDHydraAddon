@@ -17,7 +17,6 @@ import MaterialX as mx
 import bpy
 
 from . import log
-from ...utils import HDUSD_LIBS_DIR
 
 
 def prettify_string(str):
@@ -169,14 +168,10 @@ def get_param(mx_param):
 
 
 def create_node_type(mx_nodedef):
-    ''' Create Subtype MxNode for this node def
-        The parameters and inputs of the node def are saved as Blender properties
-    '''
-    data = {
-        'bl_label': prettify_string(mx_nodedef.getNodeString()),
-        'bl_idname': "hdusd.MX_" + mx_nodedef.getNodeString(),
-        'mx_nodedef': mx_nodedef
-    }
+    """
+    Create Subtype MxNode for this node def
+    The parameters and inputs of the node def are saved as Blender properties
+    """
 
     # properties are stored as annotations on the custom type
     annotations = {}
@@ -187,28 +182,23 @@ def create_node_type(mx_nodedef):
         if created_property is not None:
             annotations[mx_input.getName()] = created_property
 
-    if len(annotations):
-        data['__annotations__'] = annotations
+    data = {
+        'bl_label': prettify_string(mx_nodedef.getNodeString()),
+        'bl_idname': "hdusd.MX_" + mx_nodedef.getNodeString(),
+        'mx_nodedef': mx_nodedef,
+        '__annotations__': annotations
+    }
 
     node_type = type('MX_' + mx_nodedef.getNodeString(), (MxNode,), data)
     return node_type
 
 
-def create_node_types():
-    mx_lib_path =  HDUSD_LIBS_DIR / "materialx/libraries"
-    file_paths = [
-        mx_lib_path / "bxdf/standard_surface.mtlx",
-        # mx_lib_path / "pbrlib/pbrlib_defs.mtlx",
-    ]
-
+def create_node_types(file_paths):
     node_types = []
     for p in file_paths:
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(p))
         mx_node_defs = doc.getNodeDefs()
-        if not mx_node_defs:
-            continue
-
         for mx_node_def in mx_node_defs:
             node_type = create_node_type(mx_node_def)
             node_types.append(node_type)
