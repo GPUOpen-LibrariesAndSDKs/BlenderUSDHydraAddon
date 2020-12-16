@@ -57,7 +57,8 @@ class MxNode(bpy.types.ShaderNode):
     mx_nodedef: mx.NodeDef
 
     def init(self, context):
-        ''' generates inputs and outputs from ones specified '''
+        """generates inputs and outputs from ones specified in the mx_nodedef"""
+        
         for mx_input in self.mx_nodedef.getInputs():
             name = mx_input.getName()
             input = self.inputs.new(name=prettify_string(name), type='hdusd.MxNodeSocket')
