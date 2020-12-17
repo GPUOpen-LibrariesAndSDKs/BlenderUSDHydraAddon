@@ -12,9 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import re
+
 import MaterialX as mx
 
 import bpy
+from bpy.props import (
+    StringProperty,
+    IntProperty,
+    FloatProperty,
+    EnumProperty,
+    FloatVectorProperty,
+    IntVectorProperty,
+    BoolProperty,
+)
 
 from . import log
 
@@ -50,15 +61,22 @@ class MxNodeSocket(bpy.types.NodeSocket):
 class MxNode(bpy.types.ShaderNode):
     """Base node from which all MaterialX nodes will be made"""
     bl_compatibility = {'HdUSD'}
-    bl_icon = 'MATERIAL'
-    bl_label = 'mx'
+    bl_idname = 'MX_'
+    # bl_icon = 'MATERIAL'
+
+    bl_label = ""
+    bl_description = ""
 
     # holds the materialx nodedef object
     mx_nodedef: mx.NodeDef
 
+    @property
+    def nodegroup(self):
+        return ""
+
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
-        
+
         for mx_input in self.mx_nodedef.getInputs():
             name = mx_input.getName()
             input = self.inputs.new(name=prettify_string(name), type='hdusd.MxNodeSocket')
@@ -91,6 +109,74 @@ class MxNode(bpy.types.ShaderNode):
         except:
             # TODO custom nodedefs in file
             return None
+
+    @staticmethod
+    def create_node_type(mx_nodedef):
+        annotations = {}
+        for mx_param in mx_nodedef.getParameters():
+            annotations[mx_param.getName()] = get_param(mx_param)
+        for mx_input in mx_nodedef.getInputs():
+            created_property = get_param(mx_input)
+            if created_property is not None:
+                annotations[mx_input.getName()] = created_property
+
+        data = {
+            'bl_label': prettify_string(mx_nodedef.getNodeString()),
+            'bl_idname': "hdusd.MX_" + mx_nodedef.getNodeString(),
+            'mx_nodedef': mx_nodedef,
+            '__annotations__': annotations
+        }
+
+        node_type = type('MX_' + mx_nodedef.getNodeString(), (MxNode,), data)
+        return node_type
+
+    @staticmethod
+    def create_property(mx_param):
+        mx_type = mx_param.getType()
+        prop_name = mx_param.getName()
+        prop_attrs = {}
+
+        while True:
+            if mx_type == 'string':
+                prop_type = StringProperty
+                break
+            if mx_type == 'filename':
+                prop_type = StringProperty
+                prop_attrs['subtype'] = 'FILE_NAME'
+                break
+            if mx_type == 'integer':
+                prop_type = IntProperty
+                break
+            if mx_type == 'float':
+                prop_type = FloatProperty
+                break
+            if mx_type == 'boolean':
+                prop_type = FloatProperty
+                break
+
+            m = re.fullmatch("color(\d)", mx_type)
+            if m:
+                prop_type = FloatVectorProperty
+                prop_attrs['subtype'] = 'COLOR'
+                prop_attrs['size'] = int(m[1])
+                break
+
+            m = re.fullmatch("vector(\d)", mx_type)
+            if m:
+                prop_type = FloatVectorProperty
+                prop_attrs['size'] = int(m[1])
+                break
+
+            raise NotImplementedError("Unsupported mx_type", mx_type, prop_name)
+
+        return prop_name, prop_type, prop_attrs
+
+
+    def create_input(self, mx_input):
+        pass
+
+    def create_output(self, mx_output):
+        pass
 
 
 def parse_value(mx_type, val_str, only_first=False):
@@ -165,33 +251,7 @@ def get_param(mx_param):
         return bpy.props.FloatVectorProperty, prop_attrs
 
     else:
-        log.error('Unknown type', mx_param_type)
-
-
-def create_node_type(mx_nodedef):
-    """
-    Create Subtype MxNode for this node def
-    The parameters and inputs of the node def are saved as Blender properties
-    """
-
-    # properties are stored as annotations on the custom type
-    annotations = {}
-    for mx_param in mx_nodedef.getParameters():
-        annotations[mx_param.getName()] = get_param(mx_param)
-    for mx_input in mx_nodedef.getInputs():
-        created_property = get_param(mx_input)
-        if created_property is not None:
-            annotations[mx_input.getName()] = created_property
-
-    data = {
-        'bl_label': prettify_string(mx_nodedef.getNodeString()),
-        'bl_idname': "hdusd.MX_" + mx_nodedef.getNodeString(),
-        'mx_nodedef': mx_nodedef,
-        '__annotations__': annotations
-    }
-
-    node_type = type('MX_' + mx_nodedef.getNodeString(), (MxNode,), data)
-    return node_type
+        raise ValueError('Unknown type', mx_param_type)
 
 
 def create_node_types(file_paths):
@@ -201,7 +261,10 @@ def create_node_types(file_paths):
         mx.readFromXmlFile(doc, str(p))
         mx_node_defs = doc.getNodeDefs()
         for mx_node_def in mx_node_defs:
-            node_type = create_node_type(mx_node_def)
-            node_types.append(node_type)
+            try:
+                node_type = MxNode.create_node_type(mx_node_def)
+                node_types.append(node_type)
+            except Exception as e:
+                log.error(e)
 
     return node_types
