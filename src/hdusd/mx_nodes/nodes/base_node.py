@@ -114,11 +114,13 @@ class MxNode(bpy.types.ShaderNode):
     def create_node_type(mx_nodedef):
         annotations = {}
         for mx_param in mx_nodedef.getParameters():
-            annotations[mx_param.getName()] = get_param(mx_param)
-        for mx_input in mx_nodedef.getInputs():
-            created_property = get_param(mx_input)
-            if created_property is not None:
-                annotations[mx_input.getName()] = created_property
+            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_param)
+            annotations[prop_name] = prop_type, prop_attrs
+
+        # for mx_input in mx_nodedef.getInputs():
+        #     created_property = get_param(mx_input)
+        #     if created_property is not None:
+        #         annotations[mx_input.getName()] = created_property
 
         data = {
             'bl_label': prettify_string(mx_nodedef.getNodeString()),
@@ -136,8 +138,12 @@ class MxNode(bpy.types.ShaderNode):
         prop_name = mx_param.getName()
         prop_attrs = {}
 
-        while True:
+        while True:     # one way loop just for having break instead using nested 'if else'
             if mx_type == 'string':
+                if mx_param.hasAttribute('enum'):
+                    prop_type = EnumProperty
+                    prop_attrs['items'] = parse_val(prop_type, mx_param.getAttribute('enum'))
+                    break
                 prop_type = StringProperty
                 break
             if mx_type == 'filename':
@@ -151,32 +157,63 @@ class MxNode(bpy.types.ShaderNode):
                 prop_type = FloatProperty
                 break
             if mx_type == 'boolean':
-                prop_type = FloatProperty
+                prop_type = BoolProperty
                 break
 
-            m = re.fullmatch("color(\d)", mx_type)
+            m = re.fullmatch('color(\d)', mx_type)
             if m:
                 prop_type = FloatVectorProperty
                 prop_attrs['subtype'] = 'COLOR'
                 prop_attrs['size'] = int(m[1])
                 break
 
-            m = re.fullmatch("vector(\d)", mx_type)
+            m = re.fullmatch('vector(\d)', mx_type)
             if m:
                 prop_type = FloatVectorProperty
+                prop_attrs['subtype'] = 'XYZ'
                 prop_attrs['size'] = int(m[1])
                 break
 
             raise NotImplementedError("Unsupported mx_type", mx_type, prop_name)
 
-        return prop_name, prop_type, prop_attrs
+        prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')\
+            else prop_name.title()
+        prop_attrs['description'] = mx_param.getAttribute('doc')
 
+        if mx_param.hasAttribute('uimin'):
+            prop_attrs['min'] = parse_val(prop_type, mx_param.getAttribute('uimin'))
+        if mx_param.hasAttribute('uimax'):
+            prop_attrs['max'] = parse_val(prop_type, mx_param.getAttribute('uimax'))
+        if mx_param.hasAttribute('uisoftmin'):
+            prop_attrs['soft_min'] = parse_val(prop_type, mx_param.getAttribute('uisoftmin'))
+        if mx_param.hasAttribute('uisoftmax'):
+            prop_attrs['soft_max'] = parse_val(prop_type, mx_param.getAttribute('uisoftmax'))
+
+        if mx_param.hasAttribute('value'):
+            prop_attrs['default'] = parse_val(prop_type, mx_param.getAttribute('value'))
+
+        return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
         pass
 
     def create_output(self, mx_output):
         pass
+
+
+def parse_val(prop_type, val):
+    if prop_type == StringProperty:
+        return val
+    if prop_type == IntProperty:
+        return int(val)
+    if prop_type == FloatProperty:
+        return float(val)
+    if prop_type == BoolProperty:
+        return val == "true"
+    if prop_type == FloatVectorProperty:
+        return tuple(float(x) for x in val.split(','))
+    if prop_type == EnumProperty:
+        return tuple(x.strip() for x in val.split(','))
 
 
 def parse_value(mx_type, val_str, only_first=False):
