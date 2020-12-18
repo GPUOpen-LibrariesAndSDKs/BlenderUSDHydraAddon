@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import re
+from collections import defaultdict
 
 import MaterialX as mx
 
@@ -105,6 +106,7 @@ class MxNode(bpy.types.ShaderNode):
             self.create_output(mx_output)
 
     def draw_buttons(self, context, layout):
+        layout.prop(self, 'variation')
         prop = self.prop
         for mx_param in prop.mx_nodedef.getParameters():
             layout.prop(prop, mx_param.getName())
@@ -136,14 +138,15 @@ class MxNode(bpy.types.ShaderNode):
     @staticmethod
     def new(nodedef_types):
         mx_nodedef = nodedef_types[0].mx_nodedef
-        node_name = mx_nodedef.getAttribute('node')
+        node_name = mx_nodedef.getNodeString()
 
         annotations = {}
         var_items = []
         for nd_type in nodedef_types:
-            name = nd_type.mx_nodedef.getName()[(4 + len(node_name)):]
-            annotations[name] = (PointerProperty, {'type': nd_type})
-            var_items.append((name, prettify_string(name), prettify_string(name)))
+            nd_name = nd_type.mx_nodedef.getName()
+            var_name = nd_name[(4 + len(node_name)):]
+            annotations[nd_name] = (PointerProperty, {'type': nd_type})
+            var_items.append((nd_name, prettify_string(var_name), prettify_string(var_name)))
 
         annotations['variation'] = (EnumProperty, {
             'name': "Variation",
@@ -160,7 +163,7 @@ class MxNode(bpy.types.ShaderNode):
             '__annotations__': annotations
         }
 
-        return type('MxNode' + mx_nodedef.getName(), (MxNode,), data)
+        return type('MxNode_' + node_name, (MxNode,), data)
 
     @staticmethod
     def create_property(mx_param):
@@ -294,6 +297,12 @@ def create_node_types(file_paths):
             except Exception as e:
                 log.error(mx_node_def.getName(), e)
 
-    node_types = [MxNode.new((nd_type,)) for nd_type in nodedef_types]
+    d = defaultdict(list)
+    for nd_type in nodedef_types:
+        d[nd_type.mx_nodedef.getNodeString()].append(nd_type)
+
+    node_types = []
+    for node_name, nd_types in d.items():
+        node_types.append(MxNode.new(nd_types))
 
     return nodedef_types, node_types
