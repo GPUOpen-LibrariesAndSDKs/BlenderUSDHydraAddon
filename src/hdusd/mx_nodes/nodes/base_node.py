@@ -160,7 +160,8 @@ class MxNode(bpy.types.ShaderNode):
             if mx_type == 'boolean':
                 prop_type = BoolProperty
                 break
-            if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'material'):
+            if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
+                           'material'):
                 prop_type = StringProperty
                 break
 
@@ -186,7 +187,9 @@ class MxNode(bpy.types.ShaderNode):
                 prop_attrs['size'] = dim
                 break
 
-            raise NotImplementedError("Unsupported mx_type", mx_type, prop_name)
+            prop_type = StringProperty
+            log.warn("Unsupported mx_type", mx_type, mx_param, mx_param.getParent().getName())
+            break
 
         prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')\
             else prettify_string(prop_name)
@@ -202,7 +205,8 @@ class MxNode(bpy.types.ShaderNode):
             prop_attrs['soft_max'] = parse_val(prop_type, mx_param.getAttribute('uisoftmax'), True)
 
         if mx_param.hasAttribute('value'):
-            prop_attrs['default'] = parse_val(prop_type, mx_param.getAttribute('value'))
+            prop_attrs['default'] = parse_val(prop_type, mx_param.getAttribute('value'),
+                                              prop_type == EnumProperty)
 
         return prop_name, prop_type, prop_attrs
 
@@ -236,7 +240,7 @@ def parse_val(prop_type, val, first_only=False):
         return res
     if prop_type == EnumProperty:
         res = tuple(x.strip() for x in val.split(','))
-        if len(res) == 1:
+        if first_only:
             return res[0]
         return res
 

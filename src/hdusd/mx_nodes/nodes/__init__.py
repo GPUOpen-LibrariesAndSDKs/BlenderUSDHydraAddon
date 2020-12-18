@@ -24,6 +24,7 @@ from .base_node import create_node_types, MxNodeSocket
 node_types = create_node_types([
     HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx",
     HDUSD_LIBS_DIR / "materialx/libraries/stdlib/stdlib_defs.mtlx",
+    HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx",
 ])
 
 
