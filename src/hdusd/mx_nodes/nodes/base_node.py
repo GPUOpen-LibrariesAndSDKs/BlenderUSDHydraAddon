@@ -95,6 +95,8 @@ class MxNode(bpy.types.ShaderNode):
     bl_description = ""
     bl_width_default = 250
 
+    mx_nodedefs = None
+
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
         mx_nodedef = self.prop.mx_nodedef
@@ -106,7 +108,9 @@ class MxNode(bpy.types.ShaderNode):
             self.create_output(mx_output)
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'data_type')
+        if len(self.mx_nodedefs) > 1:
+            layout.prop(self, 'data_type')
+
         prop = self.prop
         for mx_param in prop.mx_nodedef.getParameters():
             layout.prop(prop, mx_param.getName())
@@ -137,7 +141,8 @@ class MxNode(bpy.types.ShaderNode):
 
     @staticmethod
     def new(nodedef_types):
-        mx_nodedef = nodedef_types[0].mx_nodedef
+        mx_nodedefs = tuple(nd_type.mx_nodedef for nd_type in nodedef_types)
+        mx_nodedef = mx_nodedefs[0]
         node_name = mx_nodedef.getNodeString()
 
         annotations = {}
@@ -160,7 +165,7 @@ class MxNode(bpy.types.ShaderNode):
             'bl_idname': MxNode.bl_idname + mx_nodedef.getName(),
             'bl_description': mx_nodedef.getAttribute('doc') if mx_nodedef.hasAttribute('doc')
                    else prettify_string(mx_nodedef.getName()),
-            'nodegroup': mx_nodedef.getAttribute('nodegroup'),
+            'mx_nodedefs': mx_nodedefs,
             '__annotations__': annotations
         }
 
