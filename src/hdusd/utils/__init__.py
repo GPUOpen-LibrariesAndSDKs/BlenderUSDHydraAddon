@@ -121,3 +121,7 @@ def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
             continue
 
         yield obj
+
+
+def prettify_string(str):
+    return str.replace('_', ' ').title()

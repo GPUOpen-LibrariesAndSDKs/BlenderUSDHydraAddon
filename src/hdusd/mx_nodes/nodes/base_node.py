@@ -27,11 +27,8 @@ from bpy.props import (
     BoolProperty,
 )
 
+from ...utils import prettify_string
 from . import log
-
-
-def prettify_string(str):
-    return str.replace('_', ' ').title()
 
 
 class MxNodeSocket(bpy.types.NodeSocket):
@@ -62,7 +59,7 @@ class MxNodeSocket(bpy.types.NodeSocket):
 class MxNode(bpy.types.ShaderNode):
     """Base node from which all MaterialX nodes will be made"""
     bl_compatibility = {'HdUSD'}
-    bl_idname = 'MX_'
+    bl_idname = 'hdusd.MxNode'
     # bl_icon = 'MATERIAL'
 
     bl_label = ""
@@ -71,10 +68,6 @@ class MxNode(bpy.types.ShaderNode):
 
     # holds the materialx nodedef object
     mx_nodedef: mx.NodeDef
-
-    @property
-    def nodegroup(self):
-        return self.mx_nodedef.getAttribute('nodegroup')
 
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
@@ -121,7 +114,7 @@ class MxNode(bpy.types.ShaderNode):
 
         data = {
             'bl_label': prettify_string(mx_nodedef.getNodeString()),
-            'bl_idname': "hdusd.Mx" + mx_nodedef.getName(),
+            'bl_idname': MxNode.bl_idname + mx_nodedef.getName(),
             'bl_description': mx_nodedef.getAttribute('doc') if mx_nodedef.hasAttribute('doc')
                    else prettify_string(mx_nodedef.getName()),
             'mx_nodedef': mx_nodedef,
@@ -161,7 +154,7 @@ class MxNode(bpy.types.ShaderNode):
                 prop_type = BoolProperty
                 break
             if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
-                           'material'):
+                           'material', 'BSDF', 'VDF', 'EDF'):
                 prop_type = StringProperty
                 break
 
@@ -185,6 +178,12 @@ class MxNode(bpy.types.ShaderNode):
                 dim = int(m[1])
                 prop_attrs['subtype'] = 'XYZ' if dim == 3 else 'NONE'
                 prop_attrs['size'] = dim
+                break
+
+            m = re.fullmatch('(.+)array', mx_type)
+            if m:
+                prop_type = StringProperty
+                # TODO: Change to CollectionProperty
                 break
 
             prop_type = StringProperty
