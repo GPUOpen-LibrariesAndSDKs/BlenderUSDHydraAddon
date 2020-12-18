@@ -42,16 +42,16 @@ class MxNodeSocket(bpy.types.NodeSocket):
     # socket_type: bpy.props.EnumProperty()
 
     # corresponding property name (if any) on node
-    property_name: bpy.props.StringProperty(default='')
+    prop_name: bpy.props.StringProperty(default='')
 
     def draw(self, context, layout, node, text):
         # if not linked, we get custom property from the node
         # rather than use the default val like blender sockets
         # this allows custom property UI
-        if self.is_linked or self.property_name == '':
+        if self.is_linked:
             layout.label(text=self.name)
         else:
-            layout.prop(node, self.property_name, text=self.name)
+            layout.prop(node, self.prop_name)
 
     def draw_color(self, context, node):
         # TODO get from type
@@ -72,20 +72,16 @@ class MxNode(bpy.types.ShaderNode):
 
     @property
     def nodegroup(self):
-        return ""
+        return self.mx_nodedef.getAttribute('nodegroup')
 
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
 
         for mx_input in self.mx_nodedef.getInputs():
-            name = mx_input.getName()
-            input = self.inputs.new(name=prettify_string(name), type='hdusd.MxNodeSocket')
-            if hasattr(self, name.lower()):
-                input.property_name = name.lower()
+            self.create_input(mx_input)
 
-        for output in self.mx_nodedef.getOutputs():
-            name = output.getName()
-            self.outputs.new(name=prettify_string(name), type='hdusd.MxNodeSocket')
+        for mx_output in self.mx_nodedef.getOutputs():
+            self.create_output(mx_output)
 
     def draw_buttons(self, context, layout):
         for mx_param in self.mx_nodedef.getParameters():
@@ -117,19 +113,24 @@ class MxNode(bpy.types.ShaderNode):
             prop_name, prop_type, prop_attrs = MxNode.create_property(mx_param)
             annotations[prop_name] = prop_type, prop_attrs
 
-        # for mx_input in mx_nodedef.getInputs():
-        #     created_property = get_param(mx_input)
-        #     if created_property is not None:
-        #         annotations[mx_input.getName()] = created_property
+        for mx_input in mx_nodedef.getInputs():
+            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_input)
+            annotations[prop_name] = prop_type, prop_attrs
+
+        for mx_output in mx_nodedef.getOutputs():
+            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_output)
+            annotations[prop_name] = prop_type, prop_attrs
 
         data = {
             'bl_label': prettify_string(mx_nodedef.getNodeString()),
-            'bl_idname': "hdusd.MX_" + mx_nodedef.getNodeString(),
+            'bl_idname': "hdusd.Mx" + mx_nodedef.getName(),
+            'bl_description': mx_nodedef.getAttribute('doc') if mx_nodedef.hasAttribute('doc')
+                   else prettify_string(mx_nodedef.getName()),
             'mx_nodedef': mx_nodedef,
             '__annotations__': annotations
         }
 
-        node_type = type('MX_' + mx_nodedef.getNodeString(), (MxNode,), data)
+        node_type = type('Mx' + mx_nodedef.getName(), (MxNode,), data)
         return node_type
 
     @staticmethod
@@ -142,13 +143,14 @@ class MxNode(bpy.types.ShaderNode):
             if mx_type == 'string':
                 if mx_param.hasAttribute('enum'):
                     prop_type = EnumProperty
-                    prop_attrs['items'] = parse_val(prop_type, mx_param.getAttribute('enum'))
+                    items = parse_val(prop_type, mx_param.getAttribute('enum'))
+                    prop_attrs['items'] = tuple((it, it.title(), it.title()) for it in items)
                     break
                 prop_type = StringProperty
                 break
             if mx_type == 'filename':
                 prop_type = StringProperty
-                prop_attrs['subtype'] = 'FILE_NAME'
+                prop_attrs['subtype'] = 'FILE_PATH'
                 break
             if mx_type == 'integer':
                 prop_type = IntProperty
@@ -158,6 +160,13 @@ class MxNode(bpy.types.ShaderNode):
                 break
             if mx_type == 'boolean':
                 prop_type = BoolProperty
+                break
+
+            m = re.fullmatch('matrix(\d)(\d)', mx_type)
+            if m:
+                prop_type = FloatVectorProperty
+                prop_attrs['subtype'] = 'MATRIX'
+                prop_attrs['size'] = int(m[1]) * int(m[2])
                 break
 
             m = re.fullmatch('color(\d)', mx_type)
@@ -170,8 +179,9 @@ class MxNode(bpy.types.ShaderNode):
             m = re.fullmatch('vector(\d)', mx_type)
             if m:
                 prop_type = FloatVectorProperty
-                prop_attrs['subtype'] = 'XYZ'
-                prop_attrs['size'] = int(m[1])
+                dim = int(m[1])
+                prop_attrs['subtype'] = 'XYZ' if dim == 3 else 'NONE'
+                prop_attrs['size'] = dim
                 break
 
             raise NotImplementedError("Unsupported mx_type", mx_type, prop_name)
@@ -195,10 +205,15 @@ class MxNode(bpy.types.ShaderNode):
         return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
-        pass
+        name = mx_input.getName()
+        input = self.inputs.new('hdusd.MxNodeSocket', prettify_string(name))
+        input.prop_name = name
+        return input
 
     def create_output(self, mx_output):
-        pass
+        name = mx_output.getName()
+        output = self.outputs.new('NodeSocketShader', prettify_string(name))
+        return output
 
 
 def parse_val(prop_type, val):
@@ -213,82 +228,10 @@ def parse_val(prop_type, val):
     if prop_type == FloatVectorProperty:
         return tuple(float(x) for x in val.split(','))
     if prop_type == EnumProperty:
-        return tuple(x.strip() for x in val.split(','))
-
-
-def parse_value(mx_type, val_str, only_first=False):
-    val = None
-    if mx_type == 'float':
-        val = float(val_str)
-    elif mx_type.startswith('color') or mx_type.startswith('vector') and 'array' not in mx_type:
-        val = [float(x) for x in val_str.split(',')]
-    elif mx_type == 'string':
-        val = val_str
-    elif mx_type == 'integer':
-        val = int(val_str)
-    elif mx_type == 'filename':
-        val = val_str
-    elif mx_type == 'boolean':
-        val = val_str.lower() == 'true'
-
-    if only_first and isinstance(val, list):
-        val = val[0]
-
-    return val
-
-
-def get_param(mx_param):
-    ''' convert a mx param into a blender property '''
-    mx_param_type = mx_param.getType()
-    name = mx_param.getName()
-    prop_attrs = {
-        'name': prettify_string(name)
-    }
-
-    # handle ui attrs:
-    if mx_param.hasValueString():
-        prop_attrs['default'] = parse_value(mx_param_type, mx_param.getValueString())
-    if mx_param.hasAttribute('uimin'):
-        prop_attrs['min'] = parse_value(mx_param_type, mx_param.getAttribute('uimin'),
-                                        only_first=True)
-    if mx_param.hasAttribute('uimax'):
-        prop_attrs['max'] = parse_value(mx_param_type, mx_param.getAttribute('uimax'),
-                                        only_first=True)
-    if mx_param.hasAttribute('uisoftmin'):
-        prop_attrs['soft_min'] = parse_value(mx_param_type, mx_param.getAttribute('uisoftmin'),
-                                             only_first=True)
-    if mx_param.hasAttribute('uisoftmax'):
-        prop_attrs['soft_max'] = parse_value(mx_param_type, mx_param.getAttribute('uisoftmax'),
-                                             only_first=True)
-
-    if mx_param_type == 'float':
-        return bpy.props.FloatProperty, prop_attrs
-
-    elif mx_param_type.startswith('color'):
-        prop_attrs['size'] = int(mx_param_type[-1])
-        prop_attrs['subtype'] = 'COLOR'
-        return bpy.props.FloatVectorProperty, prop_attrs
-
-    elif mx_param_type == 'string':
-        return bpy.props.StringProperty, prop_attrs
-
-    elif mx_param_type == 'integer':
-        return bpy.props.IntProperty, prop_attrs
-
-    elif mx_param_type == 'filename':
-        prop_attrs['subtype'] = 'FILE_NAME'
-        return bpy.props.StringProperty, prop_attrs
-
-    elif mx_param_type == 'boolean':
-        return bpy.props.BoolProperty, prop_attrs
-
-    elif mx_param_type.startswith('vector') and 'array' not in mx_param_type:
-        prop_attrs['size'] = int(mx_param_type[-1])
-        prop_attrs['subtype'] = 'XYZ'
-        return bpy.props.FloatVectorProperty, prop_attrs
-
-    else:
-        raise ValueError('Unknown type', mx_param_type)
+        items = tuple(x.strip() for x in val.split(','))
+        if len(items) == 1:
+            return items[0]
+        return items
 
 
 def create_node_types(file_paths):
@@ -302,6 +245,6 @@ def create_node_types(file_paths):
                 node_type = MxNode.create_node_type(mx_node_def)
                 node_types.append(node_type)
             except Exception as e:
-                log.error(e)
+                log.error(mx_node_def.getName(), e)
 
     return node_types
