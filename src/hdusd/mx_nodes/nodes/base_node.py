@@ -106,14 +106,14 @@ class MxNode(bpy.types.ShaderNode):
             self.create_output(mx_output)
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'variation')
+        layout.prop(self, 'data_type')
         prop = self.prop
         for mx_param in prop.mx_nodedef.getParameters():
             layout.prop(prop, mx_param.getName())
 
     @property
     def prop(self):
-        return getattr(self, self.variation)
+        return getattr(self, self.data_type)
 
     @classmethod
     def poll(cls, tree):
@@ -148,8 +148,9 @@ class MxNode(bpy.types.ShaderNode):
             annotations[nd_name] = (PointerProperty, {'type': nd_type})
             var_items.append((nd_name, prettify_string(var_name), prettify_string(var_name)))
 
-        annotations['variation'] = (EnumProperty, {
-            'name': "Variation",
+        annotations['data_type'] = (EnumProperty, {
+            'name': "Data Type",
+            'description': "Input Data Type",
             'items': var_items,
             'default': var_items[0][0],
         })
