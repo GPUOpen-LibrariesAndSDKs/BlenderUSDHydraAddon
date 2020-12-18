@@ -57,12 +57,12 @@ class MxNodeSocket(bpy.types.NodeSocket):
         return (0.78, 0.78, 0.16, 1.0)
 
 
-class MxNodedefProperties(bpy.types.PropertyGroup):
+class MxNodedef(bpy.types.PropertyGroup):
     # holds the materialx nodedef object
     mx_nodedef: mx.NodeDef
 
     @staticmethod
-    def create_nodedef_properties_type(mx_nodedef):
+    def new(mx_nodedef):
         annotations = {}
         for mx_param in mx_nodedef.getParameters():
             prop_name, prop_type, prop_attrs = MxNode.create_property(mx_param)
@@ -72,12 +72,16 @@ class MxNodedefProperties(bpy.types.PropertyGroup):
             prop_name, prop_type, prop_attrs = MxNode.create_property(mx_input)
             annotations['in_' + prop_name] = prop_type, prop_attrs
 
+        for mx_output in mx_nodedef.getOutputs():
+            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_output)
+            annotations['out_' + prop_name] = prop_type, prop_attrs
+
         data = {
             'mx_nodedef': mx_nodedef,
             '__annotations__': annotations
         }
 
-        return type('Mx' + mx_nodedef.getName(), (MxNodedefProperties,), data)
+        return type('Mx' + mx_nodedef.getName(), (MxNodedef,), data)
 
 
 class MxNode(bpy.types.ShaderNode):
@@ -92,17 +96,22 @@ class MxNode(bpy.types.ShaderNode):
 
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
+        mx_nodedef = self.prop.mx_nodedef
 
-        for mx_input in self.mx_nodedef.getInputs():
+        for mx_input in mx_nodedef.getInputs():
             self.create_input(mx_input)
 
-        for mx_output in self.mx_nodedef.getOutputs():
+        for mx_output in mx_nodedef.getOutputs():
             self.create_output(mx_output)
 
     def draw_buttons(self, context, layout):
         prop = self.prop
         for mx_param in prop.mx_nodedef.getParameters():
             layout.prop(prop, mx_param.getName())
+
+    @property
+    def prop(self):
+        return getattr(self, self.variation)
 
     @classmethod
     def poll(cls, tree):
@@ -113,29 +122,41 @@ class MxNode(bpy.types.ShaderNode):
         ''' creates a node from a Mx node spec
             sets the params and inputs based on spec '''
 
-        try:
-            node_type = 'mx.' + mx_node.getCategory()
-            blender_node = nt.nodes.new(node_type)
-            blender_node.label = mx_node.getName()
-            # get params from
-            return blender_node
-        except:
-            # TODO custom nodedefs in file
-            return None
+        # try:
+        #     node_type = 'mx.' + mx_node.getCategory()
+        #     blender_node = nt.nodes.new(node_type)
+        #     blender_node.label = mx_node.getName()
+        #     # get params from
+        #     return blender_node
+        # except:
+        #     # TODO custom nodedefs in file
+        #     return None
+        pass
 
     @staticmethod
-    def create_node_type(nodedef_prop_type):
-        mx_nodedef = nodedef_prop_type.mx_nodedef
-        annotations = {
-            'prop': (PointerProperty, {'type': nodedef_prop_type}),
-        }
+    def new(nodedef_types):
+        mx_nodedef = nodedef_types[0].mx_nodedef
+        node_name = mx_nodedef.getAttribute('node')
+
+        annotations = {}
+        var_items = []
+        for nd_type in nodedef_types:
+            name = nd_type.mx_nodedef.getName()[(4 + len(node_name)):]
+            annotations[name] = (PointerProperty, {'type': nd_type})
+            var_items.append((name, prettify_string(name), prettify_string(name)))
+
+        annotations['variation'] = (EnumProperty, {
+            'name': "Variation",
+            'items': var_items,
+            'default': var_items[0][0],
+        })
 
         data = {
             'bl_label': prettify_string(mx_nodedef.getNodeString()),
             'bl_idname': MxNode.bl_idname + mx_nodedef.getName(),
             'bl_description': mx_nodedef.getAttribute('doc') if mx_nodedef.hasAttribute('doc')
                    else prettify_string(mx_nodedef.getName()),
-            'mx_nodedef': mx_nodedef,
+            'nodegroup': mx_nodedef.getAttribute('nodegroup'),
             '__annotations__': annotations
         }
 
@@ -269,10 +290,10 @@ def create_node_types(file_paths):
         mx_node_defs = doc.getNodeDefs()
         for mx_node_def in mx_node_defs:
             try:
-                nodedef_types.append(MxNodedefProperties.create_nodedef_properties_type(mx_node_def))
+                nodedef_types.append(MxNodedef.new(mx_node_def))
             except Exception as e:
                 log.error(mx_node_def.getName(), e)
 
-    node_types = [MxNode.create_node_type(nd_type) for nd_type in nodedef_types]
+    node_types = [MxNode.new((nd_type,)) for nd_type in nodedef_types]
 
     return nodedef_types, node_types

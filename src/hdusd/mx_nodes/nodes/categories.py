@@ -30,7 +30,7 @@ def get_node_categories():
 
     d = defaultdict(list)
     for n_type in node_types:
-        d[n_type.mx_nodedef.getAttribute('nodegroup')].append(n_type)
+        d[n_type.nodegroup].append(n_type)
 
     categories = []
     for nodegroup, n_types in d.items():
