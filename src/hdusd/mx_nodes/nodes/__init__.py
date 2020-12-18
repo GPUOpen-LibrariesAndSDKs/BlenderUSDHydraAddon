@@ -21,7 +21,7 @@ from .base_node import create_node_types, MxNodeSocket
 from . import categories
 
 
-node_types = create_node_types([
+nodedef_types, node_types = create_node_types([
     HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx",
     HDUSD_LIBS_DIR / "materialx/libraries/stdlib/stdlib_defs.mtlx",
     HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx",
@@ -31,11 +31,13 @@ node_types = create_node_types([
 register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
     MxNodeSocket,
 ])
+register_nodedefs, unregister_nodedefs = bpy.utils.register_classes_factory(nodedef_types)
 register_nodes, unregister_nodes = bpy.utils.register_classes_factory(node_types)
 
 
 def register():
     register_sockets()
+    register_nodedefs()
     register_nodes()
 
     nodeitems_utils.register_node_categories("'HdUSD_MX_NODES", categories.get_node_categories())
@@ -44,4 +46,5 @@ def register():
 def unregister():
     nodeitems_utils.unregister_node_categories("'HdUSD_MX_NODES")
     unregister_nodes()
+    unregister_nodedefs()
     unregister_sockets()

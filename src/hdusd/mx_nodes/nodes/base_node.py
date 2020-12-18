@@ -25,6 +25,7 @@ from bpy.props import (
     FloatVectorProperty,
     IntVectorProperty,
     BoolProperty,
+    PointerProperty,
 )
 
 from ...utils import prettify_string
@@ -49,11 +50,34 @@ class MxNodeSocket(bpy.types.NodeSocket):
         if self.is_linked:
             layout.label(text=self.name)
         else:
-            layout.prop(node, self.node_prop_name)
+            layout.prop(node.prop, self.node_prop_name)
 
     def draw_color(self, context, node):
         # TODO get from type
         return (0.78, 0.78, 0.16, 1.0)
+
+
+class MxNodedefProperties(bpy.types.PropertyGroup):
+    # holds the materialx nodedef object
+    mx_nodedef: mx.NodeDef
+
+    @staticmethod
+    def create_nodedef_properties_type(mx_nodedef):
+        annotations = {}
+        for mx_param in mx_nodedef.getParameters():
+            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_param)
+            annotations[prop_name] = prop_type, prop_attrs
+
+        for mx_input in mx_nodedef.getInputs():
+            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_input)
+            annotations['in_' + prop_name] = prop_type, prop_attrs
+
+        data = {
+            'mx_nodedef': mx_nodedef,
+            '__annotations__': annotations
+        }
+
+        return type('Mx' + mx_nodedef.getName(), (MxNodedefProperties,), data)
 
 
 class MxNode(bpy.types.ShaderNode):
@@ -66,9 +90,6 @@ class MxNode(bpy.types.ShaderNode):
     bl_description = ""
     bl_width_default = 250
 
-    # holds the materialx nodedef object
-    mx_nodedef: mx.NodeDef
-
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
 
@@ -79,8 +100,9 @@ class MxNode(bpy.types.ShaderNode):
             self.create_output(mx_output)
 
     def draw_buttons(self, context, layout):
-        for mx_param in self.mx_nodedef.getParameters():
-            layout.prop(self, mx_param.getName())
+        prop = self.prop
+        for mx_param in prop.mx_nodedef.getParameters():
+            layout.prop(prop, mx_param.getName())
 
     @classmethod
     def poll(cls, tree):
@@ -102,15 +124,11 @@ class MxNode(bpy.types.ShaderNode):
             return None
 
     @staticmethod
-    def create_node_type(mx_nodedef):
-        annotations = {}
-        for mx_param in mx_nodedef.getParameters():
-            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_param)
-            annotations[prop_name] = prop_type, prop_attrs
-
-        for mx_input in mx_nodedef.getInputs():
-            prop_name, prop_type, prop_attrs = MxNode.create_property(mx_input)
-            annotations['in_' + prop_name] = prop_type, prop_attrs
+    def create_node_type(nodedef_prop_type):
+        mx_nodedef = nodedef_prop_type.mx_nodedef
+        annotations = {
+            'prop': (PointerProperty, {'type': nodedef_prop_type}),
+        }
 
         data = {
             'bl_label': prettify_string(mx_nodedef.getNodeString()),
@@ -121,8 +139,7 @@ class MxNode(bpy.types.ShaderNode):
             '__annotations__': annotations
         }
 
-        node_type = type('Mx' + mx_nodedef.getName(), (MxNode,), data)
-        return node_type
+        return type('MxNode' + mx_nodedef.getName(), (MxNode,), data)
 
     @staticmethod
     def create_property(mx_param):
@@ -245,16 +262,17 @@ def parse_val(prop_type, val, first_only=False):
 
 
 def create_node_types(file_paths):
-    node_types = []
+    nodedef_types = []
     for p in file_paths:
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(p))
         mx_node_defs = doc.getNodeDefs()
         for mx_node_def in mx_node_defs:
             try:
-                node_type = MxNode.create_node_type(mx_node_def)
-                node_types.append(node_type)
+                nodedef_types.append(MxNodedefProperties.create_nodedef_properties_type(mx_node_def))
             except Exception as e:
                 log.error(mx_node_def.getName(), e)
 
-    return node_types
+    node_types = [MxNode.create_node_type(nd_type) for nd_type in nodedef_types]
+
+    return nodedef_types, node_types
