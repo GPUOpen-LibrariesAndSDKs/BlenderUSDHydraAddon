@@ -303,10 +303,13 @@ def create_node_types(file_paths):
             except Exception as e:
                 log.error(mx_node_def.getName(), e)
 
+    # grouping nodedef_types by node and nodegroup
     d = defaultdict(list)
     for nd_type in nodedef_types:
-        d[nd_type.mx_nodedef.getNodeString()].append(nd_type)
+        nd = nd_type.mx_nodedef
+        d[(nd.getNodeString(), nd.getAttribute('nodegroup'))].append(nd_type)
 
+    # creating MxNode types
     node_types = []
     for node_name, nd_types in d.items():
         node_types.append(MxNode.new(nd_types))
