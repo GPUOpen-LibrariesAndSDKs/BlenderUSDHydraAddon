@@ -17,7 +17,7 @@ import nodeitems_utils
 
 from ...utils import HDUSD_LIBS_DIR
 from .. import log
-from .base_node import create_node_types, MxNodeSocket
+from .base_node import create_node_types, MxNodeSocket, MxNode_Output
 from . import categories
 
 
@@ -32,7 +32,10 @@ register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
     MxNodeSocket,
 ])
 register_nodedefs, unregister_nodedefs = bpy.utils.register_classes_factory(nodedef_types)
-register_nodes, unregister_nodes = bpy.utils.register_classes_factory(node_types)
+register_nodes, unregister_nodes = bpy.utils.register_classes_factory([
+    *node_types,
+    MxNode_Output
+])
 
 
 def register():
@@ -45,6 +48,7 @@ def register():
 
 def unregister():
     nodeitems_utils.unregister_node_categories("'HdUSD_MX_NODES")
+
     unregister_nodes()
     unregister_nodedefs()
     unregister_sockets()

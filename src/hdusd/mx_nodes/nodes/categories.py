@@ -17,6 +17,7 @@ from collections import defaultdict
 from nodeitems_utils import NodeCategory, NodeItem
 
 from ...utils import prettify_string
+from .base_node import MxNode_Output
 
 
 class MxNodeCategory(NodeCategory):
@@ -39,4 +40,6 @@ def get_node_categories():
             MxNodeCategory('HdUSD_MX_NG_' + nodegroup, prettify_string(nodegroup),
                            items=[NodeItem(n_type.bl_idname) for n_type in n_types]))
 
+    categories.append(
+        MxNodeCategory('HdUSD_MX_NG_output', "Output", items=[NodeItem(MxNode_Output.bl_idname)]))
     return categories

@@ -95,16 +95,16 @@ class MxNode(bpy.types.ShaderNode):
     bl_description = ""
     bl_width_default = 250
 
-    mx_nodedefs = None
+    mx_nodedefs = ()
 
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
-        mx_nodedef = self.prop.mx_nodedef
+        nd = self.prop.mx_nodedef
 
-        for mx_input in mx_nodedef.getInputs():
+        for mx_input in nd.getInputs():
             self.create_input(mx_input)
 
-        for mx_output in mx_nodedef.getOutputs():
+        for mx_output in nd.getOutputs():
             self.create_output(mx_output)
 
     def draw_buttons(self, context, layout):
@@ -142,8 +142,8 @@ class MxNode(bpy.types.ShaderNode):
     @staticmethod
     def new(nodedef_types):
         mx_nodedefs = tuple(nd_type.mx_nodedef for nd_type in nodedef_types)
-        mx_nodedef = mx_nodedefs[0]
-        node_name = mx_nodedef.getNodeString()
+        nd = mx_nodedefs[0]
+        node_name = nd.getNodeString()
 
         annotations = {}
         var_items = []
@@ -161,10 +161,10 @@ class MxNode(bpy.types.ShaderNode):
         })
 
         data = {
-            'bl_label': prettify_string(mx_nodedef.getNodeString()),
-            'bl_idname': MxNode.bl_idname + mx_nodedef.getName(),
-            'bl_description': mx_nodedef.getAttribute('doc') if mx_nodedef.hasAttribute('doc')
-                   else prettify_string(mx_nodedef.getName()),
+            'bl_label': prettify_string(nd.getNodeString()),
+            'bl_idname': f"{MxNode.bl_idname}_{nd.getName()}",
+            'bl_description': nd.getAttribute('doc') if nd.hasAttribute('doc')
+                   else prettify_string(nd.getName()),
             'mx_nodedefs': mx_nodedefs,
             '__annotations__': annotations
         }
@@ -315,3 +315,22 @@ def create_node_types(file_paths):
         node_types.append(MxNode.new(nd_types))
 
     return nodedef_types, node_types
+
+
+class MxNode_Output(MxNode):
+    bl_idname = 'hdusd.MxNode_output'
+    bl_label = "Material Output"
+    bl_description = "Material Output"
+    bl_width_default = 150
+
+    def init(self, context):
+        self.inputs.new('NodeSocketShader', "Surface")
+        self.inputs.new('NodeSocketShader', "Volume")
+        self.inputs.new('NodeSocketShader', "Displacement")
+
+    @property
+    def prop(self):
+        return None
+
+    def draw_buttons(self, context, layout):
+        pass
