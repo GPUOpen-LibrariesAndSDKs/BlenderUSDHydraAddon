@@ -14,6 +14,8 @@
 #********************************************************************
 import bpy
 
+from .nodes.base_node import MxNode_Output
+
 
 class MxNodeTree(bpy.types.ShaderNodeTree):
     """
@@ -27,3 +29,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     @classmethod
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
+
+    @property
+    def output_node(self):
+        return next((node for node in self.nodes if isinstance(node, MxNode_Output)), None)

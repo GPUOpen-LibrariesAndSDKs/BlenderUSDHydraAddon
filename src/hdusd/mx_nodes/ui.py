@@ -32,7 +32,7 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return isinstance(bpy.context.space_data.edit_tree, MxNodeTree)
+        return isinstance(context.space_data.edit_tree, MxNodeTree)
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -74,6 +74,33 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MX_OP_export_file(bpy.types.Operator):
+    bl_idname = "hdusd.mx_export_file"
+    bl_label = "Export Material"
+    bl_description = "Export MaterialX node tree to mtlx file"
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    filename_ext = ".mtlx"
+    filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
+
+    @classmethod
+    def poll(cls, context):
+        return isinstance(context.space_data.edit_tree, MxNodeTree)
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    # Perform the operator action.
+    def execute(self, context):
+        print(context.space_data.edit_tree.output_node.final_compute())
+        return {"FINISHED"}
+
+    @staticmethod
+    def enabled(context):
+        return bool(context.space_data.edit_tree.output_node)
+
+
 class HDUSD_MX_OP_assign_to_object(bpy.types.Operator):
     bl_idname = "hdusd.mx_assign_to_object"
     bl_label = "Assign to Object"
@@ -81,9 +108,13 @@ class HDUSD_MX_OP_assign_to_object(bpy.types.Operator):
 
     # Perform the operator action.
     def execute(self, context):
-
-
+        context.object.hdusd.mx_tree = context.space_data.edit_tree
         return {"FINISHED"}
+
+    @staticmethod
+    def enabled(context):
+        return bool(context.object and context.object.type == 'MESH'
+                    and context.space_data.edit_tree.output_node)
 
 
 class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
@@ -101,7 +132,10 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
         layout = self.layout
         tree = context.space_data.edit_tree
 
+        row = layout.row()
+        row.enabled = HDUSD_MX_OP_assign_to_object.enabled(context)
+        row.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
 
-        col = layout.column()
-        col.enabled = bool(tree.nodes)
-        col.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
+        row = layout.row()
+        row.enabled = HDUSD_MX_OP_export_file.enabled(context)
+        row.operator(HDUSD_MX_OP_export_file.bl_idname)

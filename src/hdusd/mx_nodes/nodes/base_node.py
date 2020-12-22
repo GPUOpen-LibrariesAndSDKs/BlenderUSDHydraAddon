@@ -115,6 +115,50 @@ class MxNode(bpy.types.ShaderNode):
         for mx_param in prop.mx_nodedef.getParameters():
             layout.prop(prop, mx_param.getName())
 
+    # COMPUTE FUNCTION
+    def compute(self, socket_out):
+        """
+        Main compute function which should be overridable in child classes.
+        It should return Prim object or None.
+        """
+        return self
+
+    def final_compute(self, socket_out=None):
+        """
+        This is the entry point of node parser system.
+        This function does some useful preparation before and after calling compute() function.
+        """
+        log("compute", self, socket_out)
+        return self.compute(socket_out)
+
+    def _compute_node(self, node, socket_out):
+        """
+        Exports node with output socket.
+        1. Checks if such node was already computeed and returns it.
+        2. Searches corresponded NodeParser class and do compute through it
+        3. Store group node reference if new one passed
+        """
+        # Keep reference for group node if present
+        if not isinstance(node, MxNode):
+            log.warn("Ignoring unsupported node", node)
+            return None
+
+        # getting corresponded NodeParser class
+        return node.final_compute(socket_out)
+
+    def get_input_link(self, socket_key: [str, int]):
+        """Returns linked parsed node or None if nothing is linked or not link is not valid"""
+
+        socket_in = self.inputs[socket_key]
+        if not socket_in.links:
+            return None
+
+        link = socket_in.links[0]
+        if not link.is_valid:
+            log.error("Invalid link found", link, socket_in, self)
+
+        return self._compute_node(link.from_node, link.from_socket)
+
     @property
     def prop(self):
         return getattr(self, self.data_type)
@@ -334,3 +378,6 @@ class MxNode_Output(MxNode):
 
     def draw_buttons(self, context, layout):
         pass
+
+    def compute(self, socket_out):
+        return self.get_input_link("Surface")
