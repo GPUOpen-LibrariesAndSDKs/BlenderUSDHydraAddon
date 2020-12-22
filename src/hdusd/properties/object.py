@@ -19,6 +19,7 @@ from pxr import UsdGeom, Gf
 
 from . import HdUSDProperties, CachedStageProp
 from ..export.object import get_transform
+from ..mx_nodes.node_tree import MxNodeTree
 
 
 class ObjectProperties(HdUSDProperties):
@@ -27,6 +28,8 @@ class ObjectProperties(HdUSDProperties):
     is_usd: bpy.props.BoolProperty(default=False)
     sdf_path: bpy.props.StringProperty(default="/")
     cached_stage: bpy.props.PointerProperty(type=CachedStageProp)
+
+    material_x: bpy.props.PointerProperty(type=MxNodeTree)
 
     def sync_from_prim(self, prim, context):
         prim_obj = self.id_data

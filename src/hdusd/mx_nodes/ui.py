@@ -74,13 +74,34 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MX_OP_assign_to_object(bpy.types.Operator):
+    bl_idname = "hdusd.mx_assign_to_object"
+    bl_label = "Assign to Object"
+    bl_description = "Assign MaterialX to selected object"
+
+    # Perform the operator action.
+    def execute(self, context):
+
+
+        return {"FINISHED"}
+
+
 class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
     bl_label = "MaterialX Import/Export"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
 
+    @classmethod
+    def poll(cls, context):
+        tree = context.space_data.edit_tree
+        return super().poll(context) and tree and tree.bl_idname == MxNodeTree.bl_idname
+
     def draw(self, context):
         layout = self.layout
+        tree = context.space_data.edit_tree
 
-        op = layout.operator('hdusd.mx_import_file')
+
+        col = layout.column()
+        col.enabled = bool(tree.nodes)
+        col.operator(HDUSD_MX_OP_assign_to_object.bl_idname)

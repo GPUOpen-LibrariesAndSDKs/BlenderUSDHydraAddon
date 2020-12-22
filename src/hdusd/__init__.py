@@ -44,10 +44,10 @@ def register():
     log("register")
 
     engine.register()
-    properties.register()
-    ui.register()
     mx_nodes.register()
     usd_nodes.register()
+    properties.register()
+    ui.register()
 
 
 def unregister():

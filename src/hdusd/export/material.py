@@ -75,16 +75,17 @@ def sync(materials_prim, mat: bpy.types.Material, input_socket_key='Surface', *,
     # get connected shader node
     node = get_material_input_node(mat, input_socket_key)
     if not node:
-        return None
+        create_materialx_shader(usd_mat)
+        return usd_mat
 
     # TODO use MaterialX for material
     # create appropriate USD shader
     if node.bl_idname == 'ShaderNodeBsdfPrincipled':
-        create_principled_shader(stage, usd_mat, mat_path, node)
+        create_principled_shader(usd_mat, node)
     elif node.bl_idname == 'ShaderNodeEmission':
-        create_emission_shader(stage, usd_mat, mat_path, node)
+        create_emission_shader(usd_mat, node)
     elif node.bl_idname == 'ShaderNodeBsdfDiffuse':  # used by Material Preview
-        create_diffuse_shader(stage, usd_mat, mat_path, node)
+        create_diffuse_shader(usd_mat, node)
     else:
         log.info(f"unsupported node {node.bl_idname} of material {mat.name_full}")
 
@@ -113,8 +114,9 @@ def get_input_default(node, socket_key):
     return _parse_val(socket_in.default_value)
 
 
-def create_principled_shader(stage, usd_material, mat_key, node):
-    shader_key = f"{mat_key}/PBRShader"
+def create_principled_shader(usd_mat, node):
+    stage = usd_mat.GetPrim().GetStage()
+    shader_key = f"{usd_mat.GetPath()}/PBRShader"
 
     pbr_shader = UsdShade.Shader.Define(stage, shader_key)
     pbr_shader.CreateIdAttr("UsdPreviewSurface")
@@ -127,22 +129,24 @@ def create_principled_shader(stage, usd_material, mat_key, node):
     pbr_shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(get_input_default(node, 'IOR'))
     pbr_shader.CreateInput("opacity", Sdf.ValueTypeNames.Float).Set(1.0 - get_input_default(node, 'Transmission'))
 
-    usd_material.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
+    usd_mat.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
 
 
-def create_diffuse_shader(stage, usd_material, mat_key, node):
-    shader_key = f"{mat_key}/DiffuseShader"
+def create_diffuse_shader(usd_mat, node):
+    stage = usd_mat.GetPrim().GetStage()
+    shader_key = f"{usd_mat.GetPath()}/DiffuseShader"
 
     pbr_shader = UsdShade.Shader.Define(stage, shader_key)
     pbr_shader.CreateIdAttr("UsdPreviewSurface")
     pbr_shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Float3).Set(get_input_default(node, 'Color',))
     pbr_shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(get_input_default(node, 'Roughness'))
 
-    usd_material.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
+    usd_mat.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
 
 
-def create_emission_shader(stage, usd_material, mat_key, node):
-    shader_key = f"{mat_key}/PBREmissionShader"
+def create_emission_shader(usd_mat, node):
+    stage = usd_mat.GetPrim().GetStage()
+    shader_key = f"{usd_mat.GetPath()}/PBREmissionShader"
 
     pbr_shader = UsdShade.Shader.Define(stage, shader_key)
     pbr_shader.CreateIdAttr("UsdPreviewSurface")
@@ -153,7 +157,7 @@ def create_emission_shader(stage, usd_material, mat_key, node):
     pbr_shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Float3).Set(emission_color)
     pbr_shader.CreateInput("emissiveColor", Sdf.ValueTypeNames.Float3).Set(emission_color)
 
-    usd_material.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
+    usd_mat.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
 
 
 def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object = None):
@@ -171,3 +175,22 @@ def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object =
 
     # TODO update displacement
     # TODO update volume
+
+
+def create_materialx_shader(usd_mat):
+    import shutil
+    from .. import utils
+
+    stage = usd_mat.GetPrim().GetStage()
+    shader_key = f"{usd_mat.GetPath()}/rpr_materialx_node"
+
+    shader = UsdShade.Shader.Define(stage, shader_key)
+    shader.CreateIdAttr("rpr_materialx_node")
+
+    shutil.copyfile("standard_surface_carpaint.mtlx", str(utils.temp_pid_dir() / "standard_surface_carpaint.mtlx"))
+
+    shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(r"./standard_surface_carpaint.mtlx")
+    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set("Car_Paint")
+    
+    out = usd_mat.CreateSurfaceOutput("rpr")
+    out.ConnectToSource(shader, "surface")
