@@ -194,7 +194,7 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class HDUSD_NODE_PT_usd_nodetree_operations(HdUSD_Panel):
+class HDUSD_NODE_PT_usd_nodetree_tree_tools(HdUSD_Panel):
     bl_label = "Setup basic USD Node Tree"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
