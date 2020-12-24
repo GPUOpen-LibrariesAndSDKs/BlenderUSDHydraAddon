@@ -194,6 +194,22 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class HDUSD_OP_usd_tree_node_print_stage(bpy.types.Operator):
+    """ Print selected USD nodetree node stage to console """
+    bl_idname = "hdusd.usd_tree_node_print_stage"
+    bl_label = "Print Stage"
+
+    def poll(self, context):
+        return context.space_data.tree_type == 'hdusd.USDTree'
+
+    def execute(self, context):
+        node = context.active_node
+        if not node:
+            return {'CANCELED'}
+
+        return {'FINISHED'}
+
+
 class HDUSD_NODE_PT_usd_nodetree_tree_tools(HdUSD_Panel):
     bl_label = "Setup basic USD Node Tree"
     bl_space_type = "NODE_EDITOR"
