@@ -211,8 +211,7 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
         return {'FINISHED'}
 
 
-class HDUSD_NODE_PT_usd_nodetree_tree_tools(HdUSD_Panel):
-    bl_label = "Setup basic USD Node Tree"
+class HDUSD_UsdNodeTreePanel(HdUSD_Panel):
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -221,6 +220,10 @@ class HDUSD_NODE_PT_usd_nodetree_tree_tools(HdUSD_Panel):
     def poll(cls, context):
         tree = context.space_data.edit_tree
         return super().poll(context) and tree and tree.bl_idname == "hdusd.USDTree"
+
+
+class HDUSD_NODE_PT_usd_nodetree_tree_tools(HDUSD_UsdNodeTreePanel):
+    bl_label = "Setup basic USD Node Tree"
 
     def draw(self, context):
         col = self.layout.column()
