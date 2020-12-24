@@ -232,3 +232,13 @@ class HDUSD_NODE_PT_usd_nodetree_tree_tools(HDUSD_UsdNodeTreePanel):
         op_idname = HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname
         col.operator(op_idname, text="Current Scene").scene_source = "SCENE"
         col.operator(op_idname, text="USD file").scene_source = "USD_FILE"
+
+
+class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
+    bl_label = "USD Nodes Tools"
+
+    def draw(self, context):
+        col = self.layout.column()
+        op_idname = HDUSD_OP_usd_tree_node_print_stage.bl_idname
+
+        col.operator(op_idname, text="Print node stage to log")
