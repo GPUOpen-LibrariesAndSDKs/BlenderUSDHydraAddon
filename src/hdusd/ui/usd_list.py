@@ -197,7 +197,7 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
 class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
     """ Print selected USD nodetree node stage to console """
     bl_idname = "hdusd.usd_tree_node_print_stage"
-    bl_label = "Print Stage"
+    bl_label = "Print Stage To Console"
 
     @classmethod
     def poll(cls, context):
@@ -252,4 +252,4 @@ class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
         col = self.layout.column()
         op_idname = HDUSD_OP_usd_tree_node_print_stage.bl_idname
 
-        col.operator(op_idname, text="Print node stage to log")
+        col.operator(op_idname, text="Print node stage to console")
