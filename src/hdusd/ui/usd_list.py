@@ -16,7 +16,7 @@ import bpy
 
 from pxr import UsdGeom
 
-from . import HdUSD_Panel
+from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
 
@@ -194,13 +194,14 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class HDUSD_OP_usd_tree_node_print_stage(bpy.types.Operator):
+class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
     """ Print selected USD nodetree node stage to console """
     bl_idname = "hdusd.usd_tree_node_print_stage"
     bl_label = "Print Stage"
 
-    def poll(self, context):
-        return context.space_data.tree_type == 'hdusd.USDTree'
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.space_data.tree_type == 'hdusd.USDTree' and context.active_node
 
     def execute(self, context):
         node = context.active_node
