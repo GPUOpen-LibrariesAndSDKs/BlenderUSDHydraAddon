@@ -15,6 +15,14 @@
 import bpy
 
 
+class HdUSD_Operator(bpy.types.Operator):
+    COMPAT_ENGINES = {'HdUSD'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine in cls.COMPAT_ENGINES
+
+
 class HdUSD_Panel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
