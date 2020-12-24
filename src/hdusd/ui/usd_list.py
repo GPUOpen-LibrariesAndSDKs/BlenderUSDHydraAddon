@@ -204,13 +204,20 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
         return super().poll(context) and context.space_data.tree_type == 'hdusd.USDTree' and context.active_node
 
     def execute(self, context):
+        tree = context.space_data.edit_tree
         node = context.active_node
         if not node:
-            return {'CANCELED'}
+            print(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")
+            return {'CANCELLED'}
 
+        # get the USD stage from selected node
         stage = node._compute_node(node)
-        if stage:
-            print(stage.ExportToString())
+        if not stage:
+            print(f"Unable to print USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
+            return {'CANCELLED'}
+
+        print(f"Node \"{tree.name}\":\"{node.name}\" USD stage is:")
+        print(stage.ExportToString())
 
         return {'FINISHED'}
 
