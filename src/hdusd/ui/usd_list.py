@@ -208,6 +208,10 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
         if not node:
             return {'CANCELED'}
 
+        stage = node._compute_node(node)
+        if stage:
+            print(stage.ExportToString())
+
         return {'FINISHED'}
 
 
