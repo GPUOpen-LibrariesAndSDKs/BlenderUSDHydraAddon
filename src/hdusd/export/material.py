@@ -17,6 +17,7 @@ import bpy
 from pxr import Sdf, UsdShade
 
 from . import sdf_path
+from .. import utils
 from ..utils import logging
 log = logging.Log(tag='export.Material')
 
@@ -207,8 +208,19 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
     if not node:
         return None
 
+    mx_file = utils.temp_pid_dir() / f"{mx_node_tree.name}.mtlx"
+    node.export(mx_file)
+
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"
     usd_mat = UsdShade.Material.Define(stage, mat_path)
+    shader = UsdShade.Shader.Define(stage, f"{usd_mat.GetPath()}/rpr_materialx_node")
+    shader.CreateIdAttr("rpr_materialx_node")
+
+    shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
+    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set("MyMaterial")
+
+    out = usd_mat.CreateSurfaceOutput("rpr")
+    out.ConnectToSource(shader, "surface")
 
     return usd_mat

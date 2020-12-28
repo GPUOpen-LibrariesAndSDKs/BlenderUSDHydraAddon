@@ -314,7 +314,13 @@ class MxNode(bpy.types.ShaderNode):
         return output
 
     def export(self, filename):
-        pass
+        mx_nd = self.prop.mx_nodedef
+        mat_name = "MyMaterial"
+
+        doc = mx.createDocument()
+        mx_mat = doc.addMaterial(mat_name)
+        mx_mat.addShaderRef(f"SR_{mat_name}", mx_nd.getNodeString())
+        mx.writeToXmlFile(doc, str(filename))
 
 
 def parse_val(prop_type, val, first_only=False):
