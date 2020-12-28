@@ -223,18 +223,18 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
 
 
 def _assign_materials(obj_prim, obj, usd_mesh):
-    if not obj.material_slots:
-        return
-
-    mat = obj.material_slots[0].material
-    if not mat:
+    if not obj.hdusd.material_x or not obj.material_slots or not obj.material_slots[0].material:
         return
 
     stage = obj_prim.GetStage()
     root_prim = obj_prim.GetParent().GetParent()
     materials_prim = stage.DefinePrim(f"{root_prim.GetPath()}/materials")
 
-    usd_mat = material.sync(materials_prim, mat, obj=obj)
+    if obj.hdusd.material_x:
+        usd_mat = material.sync_mx(materials_prim, obj.hdusd.material_x, obj=obj)
+    else:
+        usd_mat = material.sync(materials_prim, obj.material_slots[0].material, obj=obj)
+
     if usd_mat:
         UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_mat)
 

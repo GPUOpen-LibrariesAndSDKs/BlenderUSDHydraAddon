@@ -44,7 +44,19 @@ def enumerate_libs(usd_dir, hdrpr_dir, mx_dir):
         if f.suffix == ".lib":
             continue
 
-        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir / "lib")
+        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
+
+    for f in (hdrpr_dir / "libraries").glob("**/*"):
+        if f.is_dir():
+            continue
+
+        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
+
+    for f in (hdrpr_dir / "materials").glob("**/*"):
+        if f.is_dir():
+            continue
+
+        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
     # put all the plugins in the same folder so USD would load them all
     for f in (usd_dir / "plugin").glob("**/*"):

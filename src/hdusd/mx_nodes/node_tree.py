@@ -27,3 +27,8 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     @classmethod
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
+
+    @property
+    def output_node(self):
+        return next((node for node in self.nodes if node.bl_idname == 'hdusd.MxNode_output'),
+                    None)

@@ -67,16 +67,14 @@ def sync(materials_prim, mat: bpy.types.Material, input_socket_key='Surface', *,
         log("No output node", mat)
         return None
 
+    node = get_material_input_node(mat, input_socket_key)
+    if not node:
+        return None
+
     # TODO store refs to existing materials for reuse
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
     usd_mat = UsdShade.Material.Define(stage, mat_path)
-
-    # get connected shader node
-    node = get_material_input_node(mat, input_socket_key)
-    if not node:
-        create_materialx_shader(usd_mat)
-        return usd_mat
 
     # TODO use MaterialX for material
     # create appropriate USD shader
@@ -194,3 +192,23 @@ def create_materialx_shader(usd_mat):
     
     out = usd_mat.CreateSurfaceOutput("rpr")
     out.ConnectToSource(shader, "surface")
+
+
+def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
+            obj: bpy.types.Object = None):
+    log(f"sync_mx {mx_node_tree} '{input_socket_key}'; obj {obj}")
+
+    output_node = mx_node_tree.output_node
+    if not output_node:
+        log.warn("No output node", mx_node_tree)
+        return None
+
+    node = output_node.get_input_node('Surface')
+    if not node:
+        return None
+
+    stage = materials_prim.GetStage()
+    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"
+    usd_mat = UsdShade.Material.Define(stage, mat_path)
+
+    return usd_mat

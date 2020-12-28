@@ -81,8 +81,7 @@ class HDUSD_MX_OP_assign_to_object(bpy.types.Operator):
 
     # Perform the operator action.
     def execute(self, context):
-
-
+        context.object.hdusd.material_x = context.space_data.edit_tree
         return {"FINISHED"}
 
 
@@ -100,8 +99,11 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
         tree = context.space_data.edit_tree
+        obj = context.object
 
+        row = layout.row()
+        row.enabled = bool(tree.nodes and obj and obj.type in ('MESH',))
+        row.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
 
-        col = layout.column()
-        col.enabled = bool(tree.nodes)
-        col.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
+        if obj.hdusd.material_x and obj.hdusd.material_x.name == tree.name:
+            layout.label(text="Assigned")

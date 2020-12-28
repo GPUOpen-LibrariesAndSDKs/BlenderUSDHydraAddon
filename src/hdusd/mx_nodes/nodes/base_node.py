@@ -269,6 +269,20 @@ class MxNode(bpy.types.ShaderNode):
                                   else prettify_string(mx_output.getName()))
         return output
 
+    def get_input_node(self, socket_key: [str, int]):
+        socket_in = self.inputs[socket_key]
+        if not socket_in.links:
+            return None
+
+        link = socket_in.links[0]
+        if not link.is_valid:
+            log.error("Invalid link found", link, socket_in, self)
+
+        return link.from_node
+
+    def export(self, filename):
+        pass
+
 
 def parse_val(prop_type, val, first_only=False):
     if prop_type == StringProperty:
