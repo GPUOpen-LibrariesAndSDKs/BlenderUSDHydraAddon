@@ -32,7 +32,7 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return isinstance(bpy.context.space_data.edit_tree, MxNodeTree)
+        return isinstance(context.space_data.edit_tree, MxNodeTree)
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -74,6 +74,33 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MX_OP_export_file(bpy.types.Operator):
+    bl_idname = "hdusd.mx_export_file"
+    bl_label = "Export Material"
+    bl_description = "Export MaterialX node tree to mtlx file"
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    filename_ext = ".mtlx"
+    filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
+
+    @classmethod
+    def poll(cls, context):
+        return isinstance(context.space_data.edit_tree, MxNodeTree)
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    # Perform the operator action.
+    def execute(self, context):
+        print(context.space_data.edit_tree.output_node.final_compute())
+        return {"FINISHED"}
+
+    @staticmethod
+    def enabled(context):
+        return bool(context.space_data.edit_tree.output_node)
+
+
 class HDUSD_MX_OP_assign_to_object(bpy.types.Operator):
     bl_idname = "hdusd.mx_assign_to_object"
     bl_label = "Assign to Object"
@@ -83,6 +110,11 @@ class HDUSD_MX_OP_assign_to_object(bpy.types.Operator):
     def execute(self, context):
         context.object.hdusd.material_x = context.space_data.edit_tree
         return {"FINISHED"}
+
+    @staticmethod
+    def enabled(context):
+        return bool(context.object and context.object.type in ('MESH',)
+                    and context.space_data.edit_tree.output_node)
 
 
 class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
@@ -102,7 +134,7 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
         obj = context.object
 
         row = layout.row()
-        row.enabled = bool(tree.nodes and obj and obj.type in ('MESH',))
+        row.enabled = HDUSD_MX_OP_assign_to_object.enabled(context)
         row.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
 
         if obj.hdusd.material_x and obj.hdusd.material_x.name == tree.name:

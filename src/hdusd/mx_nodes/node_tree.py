@@ -14,6 +14,8 @@
 #********************************************************************
 import bpy
 
+from .nodes.base_node import MxNode_Output
+
 
 class MxNodeTree(bpy.types.ShaderNodeTree):
     """
@@ -30,5 +32,4 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
     @property
     def output_node(self):
-        return next((node for node in self.nodes if node.bl_idname == 'hdusd.MxNode_output'),
-                    None)
+        return next((node for node in self.nodes if isinstance(node, MxNode_Output)), None)

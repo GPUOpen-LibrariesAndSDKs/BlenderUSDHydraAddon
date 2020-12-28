@@ -29,7 +29,7 @@ class ObjectProperties(HdUSDProperties):
     sdf_path: bpy.props.StringProperty(default="/")
     cached_stage: bpy.props.PointerProperty(type=CachedStageProp)
 
-    material_x: bpy.props.PointerProperty(type=MxNodeTree)
+    mx_tree: bpy.props.PointerProperty(type=MxNodeTree)
 
     def sync_from_prim(self, prim, context):
         prim_obj = self.id_data
