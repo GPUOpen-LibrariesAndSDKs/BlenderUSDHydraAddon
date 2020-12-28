@@ -116,22 +116,22 @@ class MxNode(bpy.types.ShaderNode):
             layout.prop(prop, mx_param.getName())
 
     # COMPUTE FUNCTION
-    def compute(self, socket_out):
+    def compute(self, out_key):
         """
         Main compute function which should be overridable in child classes.
         It should return Prim object or None.
         """
         return self
 
-    def final_compute(self, socket_out=None):
+    def final_compute(self, out_key=None):
         """
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        log("compute", self, socket_out)
-        return self.compute(socket_out)
+        log("compute", self, out_key)
+        return self.compute(out_key)
 
-    def _compute_node(self, node, socket_out):
+    def _compute_node(self, node, out_key):
         """
         Exports node with output socket.
         1. Checks if such node was already computeed and returns it.
@@ -144,12 +144,12 @@ class MxNode(bpy.types.ShaderNode):
             return None
 
         # getting corresponded NodeParser class
-        return node.final_compute(socket_out)
+        return node.final_compute(out_key)
 
-    def get_input_link(self, socket_key: [str, int]):
+    def get_input_link(self, in_key: [str, int]):
         """Returns linked parsed node or None if nothing is linked or not link is not valid"""
 
-        socket_in = self.inputs[socket_key]
+        socket_in = self.inputs[in_key]
         if not socket_in.links:
             return None
 
@@ -157,7 +157,7 @@ class MxNode(bpy.types.ShaderNode):
         if not link.is_valid:
             log.error("Invalid link found", link, socket_in, self)
 
-        return self._compute_node(link.from_node, link.from_socket)
+        return self._compute_node(link.from_node, link.from_socket.name)
 
     @property
     def prop(self):
@@ -313,17 +313,6 @@ class MxNode(bpy.types.ShaderNode):
                                   else prettify_string(mx_output.getName()))
         return output
 
-    def get_input_node(self, socket_key: [str, int]):
-        socket_in = self.inputs[socket_key]
-        if not socket_in.links:
-            return None
-
-        link = socket_in.links[0]
-        if not link.is_valid:
-            log.error("Invalid link found", link, socket_in, self)
-
-        return link.from_node
-
     def export(self, filename):
         pass
 
@@ -393,5 +382,5 @@ class MxNode_Output(MxNode):
     def draw_buttons(self, context, layout):
         pass
 
-    def compute(self, socket_out):
+    def compute(self, out_key):
         return self.get_input_link("Surface")

@@ -203,7 +203,7 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
         log.warn("No output node", mx_node_tree)
         return None
 
-    node = output_node.get_input_node('Surface')
+    node = output_node.final_compute()
     if not node:
         return None
 
