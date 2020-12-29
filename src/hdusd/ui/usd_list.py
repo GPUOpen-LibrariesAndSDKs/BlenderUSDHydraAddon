@@ -16,7 +16,7 @@ import bpy
 
 from pxr import UsdGeom
 
-from . import HdUSD_Panel
+from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
 
@@ -194,8 +194,35 @@ class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class HDUSD_NODE_PT_usd_nodetree_operations(HdUSD_Panel):
-    bl_label = "Setup basic USD Node Tree"
+class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
+    """ Print selected USD nodetree node stage to console """
+    bl_idname = "hdusd.usd_tree_node_print_stage"
+    bl_label = "Print Stage To Console"
+
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.space_data.tree_type == 'hdusd.USDTree' and context.active_node
+
+    def execute(self, context):
+        tree = context.space_data.edit_tree
+        node = context.active_node
+        if not node:
+            print(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")
+            return {'CANCELLED'}
+
+        # get the USD stage from selected node
+        stage = node._compute_node(node)
+        if not stage:
+            print(f"Unable to print USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
+            return {'CANCELLED'}
+
+        print(f"Node \"{tree.name}\":\"{node.name}\" USD stage is:")
+        print(stage.ExportToString())
+
+        return {'FINISHED'}
+
+
+class HDUSD_UsdNodeTreePanel(HdUSD_Panel):
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -205,6 +232,10 @@ class HDUSD_NODE_PT_usd_nodetree_operations(HdUSD_Panel):
         tree = context.space_data.edit_tree
         return super().poll(context) and tree and tree.bl_idname == "hdusd.USDTree"
 
+
+class HDUSD_NODE_PT_usd_nodetree_tree_tools(HDUSD_UsdNodeTreePanel):
+    bl_label = "Setup basic USD Node Tree"
+
     def draw(self, context):
         col = self.layout.column()
         col.label(text="Replace current tree using")
@@ -212,3 +243,13 @@ class HDUSD_NODE_PT_usd_nodetree_operations(HdUSD_Panel):
         op_idname = HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname
         col.operator(op_idname, text="Current Scene").scene_source = "SCENE"
         col.operator(op_idname, text="USD file").scene_source = "USD_FILE"
+
+
+class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
+    bl_label = "USD Nodes Tools"
+
+    def draw(self, context):
+        col = self.layout.column()
+        op_idname = HDUSD_OP_usd_tree_node_print_stage.bl_idname
+
+        col.operator(op_idname, text="Print node stage to console")

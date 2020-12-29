@@ -15,7 +15,6 @@
 import bpy
 
 from . import HdUSD_Panel
-from ..usd_nodes.node_tree import get_usd_nodetree
 
 
 class HDUSD_OP_data_source(bpy.types.Operator):
@@ -102,7 +101,6 @@ class HDUSD_RENDER_PT_render_settings_final(RenderSettingsPanel):
     """Final render delegate and settings"""
     bl_label = "Final Render Settings"
     engine_type = 'FINAL'
-
 
 
 class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):

@@ -38,7 +38,7 @@ node_categories = [
     USDNodeCategory('HdUSD_OUTPUT', 'Output', items=[
         NodeItem('usd.HydraRenderNode'),
         NodeItem('usd.WriteFileNode'),
-        NodeItem('usd.PrintFileNode'),
+        # NodeItem('usd.PrintFileNode'),
     ]),
     USDNodeCategory('HdUSD_CONVERTER', 'Converter', items=[
         NodeItem('usd.MergeNode'),
@@ -52,7 +52,7 @@ register_nodes, unregister_nodes = bpy.utils.register_classes_factory([
     read_usd_file.ReadUsdFileNode,
     write_file.WriteFileNode,
     merge.MergeNode,
-    print_file.PrintFileNode,
+    # print_file.PrintFileNode,
     filter.FilterNode,
     usd_to_blender.USDToBlenderNode,
     hydra_render.HydraRenderNode,
