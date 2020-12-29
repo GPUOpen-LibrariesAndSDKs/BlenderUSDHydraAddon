@@ -32,7 +32,10 @@ def enumerate_libs(usd_dir, hdrpr_dir, mx_dir):
 
         yield f, Path("usd") / f.relative_to(usd_dir / "lib")
 
-    for f in (usd_dir / "bin").glob("*.dll"):
+    for f in (usd_dir / "bin").glob("*.*"):
+        if f.is_dir() or f.suffix == ".pdb":
+            continue
+
         yield f, Path("usd") / f.relative_to(usd_dir / "bin")
 
     # copy RPR Hydra delegate libraries

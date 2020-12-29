@@ -219,7 +219,7 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
                                             UsdGeom.Tokens.faceVarying)
         uv_primvar.Set(uv_layer[0])
 
-    _assign_materials(obj_prim, obj, usd_mesh)
+    _assign_materials(obj_prim, obj.original, usd_mesh)
 
 
 def _assign_materials(obj_prim, obj, usd_mesh):
