@@ -15,6 +15,14 @@
 import bpy
 
 
+class HdUSD_Operator(bpy.types.Operator):
+    COMPAT_ENGINES = {'HdUSD'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine in cls.COMPAT_ENGINES
+
+
 class HdUSD_Panel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -55,10 +63,12 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
 
     usd_list.HDUSD_OP_usd_list_item_expand,
     usd_list.HDUSD_OP_usd_list_item_show_hide,
+    usd_list.HDUSD_OP_usd_tree_node_print_stage,
     usd_list.HDUSD_UL_usd_list_item,
     usd_list.HDUSD_NODE_PT_usd_list,
     usd_list.HDUSD_OP_usd_nodetree_add_basic_nodes,
-    usd_list.HDUSD_NODE_PT_usd_nodetree_operations,
+    usd_list.HDUSD_NODE_PT_usd_nodetree_tree_tools,
+    usd_list.HDUSD_NODE_PT_usd_nodetree_node_tools,
 ])
 
 
