@@ -137,5 +137,5 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
         row.enabled = HDUSD_MX_OP_assign_to_object.enabled(context)
         row.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
 
-        if obj.hdusd.material_x and obj.hdusd.material_x.name == tree.name:
+        if obj and obj.hdusd.material_x and obj.hdusd.material_x.name == tree.name:
             layout.label(text="Assigned")

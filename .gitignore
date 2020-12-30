@@ -10,3 +10,4 @@ venv
 .DS_Store
 
 *.cmd
+tmp
