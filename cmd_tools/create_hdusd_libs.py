@@ -41,7 +41,7 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir, exe):
 
     # copy RPR Hydra delegate libraries
     for f in iterate_files(hdrpr_dir / "lib", "**/*",
-                           ignore_parts=("python",),
+                           ignore_parts=("__pycache__",) if exe else ("python",),
                            ignore_suffix=(".lib",)):
         yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
@@ -52,11 +52,12 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir, exe):
         yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
     # put all the plugins in the same folder so USD would load them all
-    for f in iterate_files(usd_dir / "plugin", "**/*"):
+    for f in iterate_files(usd_dir / "plugin", "**/*",
+                           ignore_suffix=(".lib",)):
         yield f, Path("plugins") / f.relative_to(usd_dir / "./plugin")
 
     for f in iterate_files(hdrpr_dir / "plugin", "**/*",
-                           ignore_parts=("rprUsdviewMenu",),
+                           ignore_parts=() if exe else ("rprUsdviewMenu",),
                            ignore_suffix=(".lib",)):
         yield f, Path("plugins") / f.relative_to(hdrpr_dir / "./plugin")
 
