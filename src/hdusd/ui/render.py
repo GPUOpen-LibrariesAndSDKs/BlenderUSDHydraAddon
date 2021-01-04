@@ -96,6 +96,9 @@ class RenderSettingsPanel(HdUSD_Panel):
                  text=settings.data_source if settings.data_source else scene.name,
                  icon='NODETREE' if settings.data_source else 'SCENE_DATA')
 
+        if self.engine_type == 'VIEWPORT' and settings.delegate == 'HdRprPlugin':
+            layout.prop(settings, "rpr_render_device")
+
 
 class HDUSD_RENDER_PT_render_settings_final(RenderSettingsPanel):
     """Final render delegate and settings"""
@@ -107,3 +110,4 @@ class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):
     """Viewport render delegate and settings"""
     bl_label = "Viewport Render Settings"
     engine_type = 'VIEWPORT'
+

@@ -32,6 +32,13 @@ class RenderSettings(bpy.types.PropertyGroup):
         default='HdRprPlugin',
     )
     data_source: bpy.props.StringProperty(name="Data Source", default="")
+    rpr_render_device: bpy.props.EnumProperty(
+        name="Render Device",
+        description="Render Device for RPR delegate",
+        items=(('CPU', "CPU", "CPU Render Device"),
+               ('GPU', "GPU", "GPU Render Device")),
+        default='GPU',
+    )
 
     @property
     def is_gl_delegate(self):
