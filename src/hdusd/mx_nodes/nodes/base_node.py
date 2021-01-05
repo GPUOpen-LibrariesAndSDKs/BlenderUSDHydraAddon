@@ -116,22 +116,24 @@ class MxNode(bpy.types.ShaderNode):
             layout.prop(prop, mx_param.getName())
 
     # COMPUTE FUNCTION
-    def compute(self, out_key):
-        """
-        Main compute function which should be overridable in child classes.
-        It should return Prim object or None.
-        """
-        return self
-
-    def final_compute(self, out_key=None):
-        """
-        This is the entry point of node parser system.
-        This function does some useful preparation before and after calling compute() function.
-        """
+    def compute(self, out_key, **kwargs):
         log("compute", self, out_key)
-        return self.compute(out_key)
 
-    def _compute_node(self, node, out_key):
+        doc = kwargs['doc']
+        nodedef = self.prop.mx_nodedef
+        nd_output = self.get_nodedef_output(out_key)
+
+        node = doc.addNode(nodedef.getNodeString(), strong_string(self.name), nd_output.getType())
+
+        for i in range(len(self.inputs)):
+            val = self.get_input_value(i, **kwargs)
+            nd_input = self.get_nodedef_input(i)
+            input = node.addInput(nd_input.getName(), nd_input.getType())
+            input.setValue(val)
+
+        return node
+
+    def _compute_node(self, node, out_key, **kwargs):
         """
         Exports node with output socket.
         1. Checks if such node was already computeed and returns it.
@@ -144,9 +146,9 @@ class MxNode(bpy.types.ShaderNode):
             return None
 
         # getting corresponded NodeParser class
-        return node.final_compute(out_key)
+        return node.compute(out_key, **kwargs)
 
-    def get_input_link(self, in_key: [str, int]):
+    def get_input_link(self, in_key: [str, int], **kwargs):
         """Returns linked parsed node or None if nothing is linked or not link is not valid"""
 
         socket_in = self.inputs[in_key]
@@ -157,7 +159,33 @@ class MxNode(bpy.types.ShaderNode):
         if not link.is_valid:
             log.error("Invalid link found", link, socket_in, self)
 
-        return self._compute_node(link.from_node, link.from_socket.name)
+        return self._compute_node(link.from_node, link.from_socket.name, **kwargs)
+
+    def get_input_value(self, in_key: [str, int], **kwargs):
+        node = self.get_input_link(in_key, **kwargs)
+        if node:
+            return node
+
+        return self.get_input_default(in_key)
+
+    def get_input_default(self, in_key: [str, int]):
+        val = getattr(self.prop, self.inputs[in_key].node_prop_name)
+        type_str = self.get_nodedef_input(in_key).getType()
+
+        if type_str.startswith('float'):
+            return val
+
+        mx_type = getattr(mx, prettify_string(type_str), None)
+        if mx_type:
+            return mx_type(val)
+
+        return val
+
+    def get_nodedef_input(self, in_key: [str, int]):
+        return self.prop.mx_nodedef.getInput(self.inputs[in_key].node_prop_name[3:])
+
+    def get_nodedef_output(self, out_key: [str, int]):
+        return self.prop.mx_nodedef.getOutput(strong_string(self.outputs[out_key].name))
 
     @property
     def prop(self):
@@ -313,39 +341,6 @@ class MxNode(bpy.types.ShaderNode):
                                   else prettify_string(mx_output.getName()))
         return output
 
-    def export(self, filename, mat_name):
-        nodedef = self.prop.mx_nodedef
-
-        doc = mx.createDocument()
-        doc.setVersionString("1.38")
-
-        node = doc.addNode(nodedef.getNodeString(), strong_string(self.name),
-                           nodedef.getOutput('out').getType())
-        for nd_input in nodedef.getInputs():
-            type_str = nd_input.getType()
-            val = getattr(self.prop, 'in_' + nd_input.getName())
-            input = node.addInput(nd_input.getName(), type_str)
-            if type_str.startswith('float'):
-                input.setValue(val)
-            else:
-                mx_type = getattr(mx, prettify_string(type_str), None)
-                if mx_type:
-                    input.setValue(mx_type(val))
-
-        if node.getType() == 'surfaceshader':
-            surface = node
-        else:
-            surface = doc.addNode('surface', 'surface', 'surfaceshader')
-            input = surface.addInput('bsdf', node.getType())
-            input.setNodeName(node.getName())
-
-        surfacematerial = doc.addNode('surfacematerial', mat_name, 'material')
-        input = surfacematerial.addInput('surfaceshader', surface.getType())
-        input.setNodeName(surface.getName())
-
-        print(mx.writeToXmlString(doc))
-        mx.writeToXmlFile(doc, str(filename))
-
 
 def parse_val(prop_type, val, first_only=False):
     if prop_type == StringProperty:
@@ -412,5 +407,19 @@ class MxNode_Output(MxNode):
     def draw_buttons(self, context, layout):
         pass
 
-    def compute(self, out_key):
-        return self.get_input_link("Surface")
+    def compute(self, out_key, **kwargs):
+        log("compute", self)
+
+        node = self.get_input_link("Surface", **kwargs)
+        if not node:
+            return None
+
+        if node.getType() == 'surfaceshader':
+            return node
+
+        doc = kwargs['doc']
+        surface = doc.addNode('surface', 'surface', 'surfaceshader')
+        input = surface.addInput('bsdf', node.getType())
+        input.setNodeName(node.getName())
+
+        return surface

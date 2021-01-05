@@ -67,7 +67,7 @@ def temp_pid_dir():
 
 
 def get_temp_file(suffix):
-    return tempfile.mktemp(suffix=suffix, dir=temp_pid_dir())
+    return Path(tempfile.mktemp(suffix, "tmp", temp_pid_dir()))
 
 
 def clear_temp_dir():

@@ -15,6 +15,7 @@
 import bpy
 
 from pxr import Sdf, UsdShade
+import MaterialX as mx
 
 from . import sdf_path
 from .. import utils
@@ -204,13 +205,21 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
         log.warn("No output node", mx_node_tree)
         return None
 
-    node = output_node.final_compute()
-    if not node:
+    doc = mx.createDocument()
+    doc.setVersionString("1.38")
+
+    surface = output_node.compute(None, doc=doc)
+    if not surface:
         return None
 
     mat_name = utils.strong_string(mx_node_tree.name)
-    mx_file = utils.temp_pid_dir() / f"{mat_name}.mtlx"
-    node.export(mx_file, mat_name)
+
+    surfacematerial = doc.addNode('surfacematerial', mat_name, 'material')
+    input = surfacematerial.addInput('surfaceshader', surface.getType())
+    input.setNodeName(surface.getName())
+
+    mx_file = utils.get_temp_file(".mtlx")
+    mx.writeToXmlFile(doc, str(mx_file))
 
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"
