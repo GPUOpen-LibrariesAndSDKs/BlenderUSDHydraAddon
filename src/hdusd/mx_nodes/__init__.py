@@ -25,6 +25,7 @@ register_trees, unregister_trees = bpy.utils.register_classes_factory([
 
     ui.HDUSD_MX_OP_import_file,
     ui.HDUSD_MX_OP_export_file,
+    ui.HDUSD_MX_OP_export_console,
     ui.HDUSD_MX_OP_assign_to_object,
     ui.HDUSD_MX_MATERIAL_PT_import_export,
 ])

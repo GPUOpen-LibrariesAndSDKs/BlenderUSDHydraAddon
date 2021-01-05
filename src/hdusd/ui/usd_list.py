@@ -201,7 +201,8 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
 
     @classmethod
     def poll(cls, context):
-        return super().poll(context) and context.space_data.tree_type == 'hdusd.USDTree' and context.active_node
+        return super().poll(context) and context.space_data.tree_type == 'hdusd.USDTree' and \
+               context.active_node
 
     def execute(self, context):
         tree = context.space_data.edit_tree

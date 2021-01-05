@@ -123,10 +123,12 @@ class MxNode(bpy.types.ShaderNode):
         nodedef = self.prop.mx_nodedef
         nd_output = self.get_nodedef_output(out_key)
 
-        node = doc.addNode(nodedef.getNodeString(), strong_string(self.name), nd_output.getType())
-
+        values = []
         for in_key in range(len(self.inputs)):
-            val = self.get_input_value(in_key, **kwargs)
+            values.append(self.get_input_value(in_key, **kwargs))
+
+        node = doc.addNode(nodedef.getNodeString(), strong_string(self.name), nd_output.getType())
+        for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
             input = node.addInput(nd_input.getName(), nd_input.getType())
 

@@ -16,13 +16,12 @@ import MaterialX as mx
 
 import bpy
 
-from ..ui import HdUSD_Panel
+from ..ui import HdUSD_Panel, HdUSD_Operator
 from .node_tree import MxNodeTree
-from .. import utils
 from . import log
 
 
-class HDUSD_MX_OP_import_file(bpy.types.Operator):
+class HDUSD_MX_OP_import_file(HdUSD_Operator):
     bl_idname = "hdusd.mx_import_file"
     bl_label = "Import Material"
     bl_description = "Import selected mtlx file"
@@ -30,10 +29,6 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     filename_ext = ".mtlx"
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
-
-    @classmethod
-    def poll(cls, context):
-        return isinstance(context.space_data.edit_tree, MxNodeTree)
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -75,18 +70,14 @@ class HDUSD_MX_OP_import_file(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class HDUSD_MX_OP_export_file(bpy.types.Operator):
+class HDUSD_MX_OP_export_file(HdUSD_Operator):
     bl_idname = "hdusd.mx_export_file"
-    bl_label = "Export Material"
-    bl_description = "Export MaterialX node tree to mtlx file"
+    bl_label = "Export to File"
+    bl_description = "Export MaterialX node tree to .mtlx file"
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     filename_ext = ".mtlx"
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
-
-    @classmethod
-    def poll(cls, context):
-        return isinstance(context.space_data.edit_tree, MxNodeTree)
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -108,7 +99,28 @@ class HDUSD_MX_OP_export_file(bpy.types.Operator):
         return bool(context.space_data.edit_tree.output_node)
 
 
-class HDUSD_MX_OP_assign_to_object(bpy.types.Operator):
+class HDUSD_MX_OP_export_console(HdUSD_Operator):
+    bl_idname = "hdusd.mx_export_file"
+    bl_label = "Export to Console"
+    bl_description = "Export MaterialX node tree to console"
+
+    # Perform the operator action.
+    def execute(self, context):
+        mx_node_tree = context.space_data.edit_tree
+        doc = mx_node_tree.export()
+        if not doc:
+            log.warn("Incorrect node tree to export", mx_node_tree)
+            return {'CANCELLED'}
+
+        print(mx.writeToXmlString(doc))
+        return {'FINISHED'}
+
+    @staticmethod
+    def enabled(context):
+        return bool(context.space_data.edit_tree.output_node)
+
+
+class HDUSD_MX_OP_assign_to_object(HdUSD_Operator):
     bl_idname = "hdusd.mx_assign_to_object"
     bl_label = "Assign to Object"
     bl_description = "Assign MaterialX to selected object"
@@ -148,4 +160,6 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
             col.label(text="Assigned")
 
         col = layout.column()
+        col.enabled = HDUSD_MX_OP_export_file.enabled(context)
         col.operator(HDUSD_MX_OP_export_file.bl_idname)
+        col.operator(HDUSD_MX_OP_export_console.bl_idname)
