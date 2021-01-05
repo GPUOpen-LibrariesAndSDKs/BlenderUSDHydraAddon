@@ -67,7 +67,7 @@ class MxNodedef(bpy.types.PropertyGroup):
         annotations = {}
         for mx_param in mx_nodedef.getParameters():
             prop_name, prop_type, prop_attrs = MxNode.create_property(mx_param)
-            annotations[prop_name] = prop_type, prop_attrs
+            annotations['p_' + prop_name] = prop_type, prop_attrs
 
         for mx_input in mx_nodedef.getInputs():
             prop_name, prop_type, prop_attrs = MxNode.create_property(mx_input)
@@ -113,7 +113,7 @@ class MxNode(bpy.types.ShaderNode):
 
         prop = self.prop
         for mx_param in prop.mx_nodedef.getParameters():
-            layout.prop(prop, mx_param.getName())
+            layout.prop(prop, 'p_' + mx_param.getName())
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
@@ -136,6 +136,11 @@ class MxNode(bpy.types.ShaderNode):
                 input.setNodeName(val.getName())
             else:
                 input.setValue(val)
+
+        for nd_param in nodedef.getParameters():
+            val = self.get_param_value(nd_param.getName())
+            param = node.addParameter(nd_param.getName(), nd_param.getType())
+            param.setValue(val)
 
         return node
 
@@ -177,6 +182,19 @@ class MxNode(bpy.types.ShaderNode):
     def get_input_default(self, in_key: [str, int]):
         val = getattr(self.prop, self.inputs[in_key].node_prop_name)
         type_str = self.get_nodedef_input(in_key).getType()
+
+        if type_str.startswith('float'):
+            return val
+
+        mx_type = getattr(mx, prettify_string(type_str), None)
+        if mx_type:
+            return mx_type(val)
+
+        return val
+
+    def get_param_value(self, name):
+        val = getattr(self.prop, 'p_' + name)
+        type_str = self.prop.mx_nodedef.getParameter(name).getType()
 
         if type_str.startswith('float'):
             return val
