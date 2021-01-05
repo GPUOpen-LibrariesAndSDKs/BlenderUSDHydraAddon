@@ -29,7 +29,7 @@ from bpy.props import (
     PointerProperty,
 )
 
-from ...utils import prettify_string
+from ...utils import prettify_string, strong_string
 from . import log
 
 
@@ -313,13 +313,37 @@ class MxNode(bpy.types.ShaderNode):
                                   else prettify_string(mx_output.getName()))
         return output
 
-    def export(self, filename):
-        mx_nd = self.prop.mx_nodedef
-        mat_name = "MyMaterial"
+    def export(self, filename, mat_name):
+        nodedef = self.prop.mx_nodedef
 
         doc = mx.createDocument()
-        mx_mat = doc.addMaterial(mat_name)
-        mx_mat.addShaderRef(f"SR_{mat_name}", mx_nd.getNodeString())
+        doc.setVersionString("1.38")
+
+        node = doc.addNode(nodedef.getNodeString(), strong_string(self.name),
+                           nodedef.getOutput('out').getType())
+        for nd_input in nodedef.getInputs():
+            type_str = nd_input.getType()
+            val = getattr(self.prop, 'in_' + nd_input.getName())
+            input = node.addInput(nd_input.getName(), type_str)
+            if type_str.startswith('float'):
+                input.setValue(val)
+            else:
+                mx_type = getattr(mx, prettify_string(type_str), None)
+                if mx_type:
+                    input.setValue(mx_type(val))
+
+        if node.getType() == 'surfaceshader':
+            surface = node
+        else:
+            surface = doc.addNode('surface', 'surface', 'surfaceshader')
+            input = surface.addInput('bsdf', node.getType())
+            input.setNodeName(node.getName())
+
+        surfacematerial = doc.addNode('surfacematerial', mat_name, 'material')
+        input = surfacematerial.addInput('surfaceshader', surface.getType())
+        input.setNodeName(surface.getName())
+
+        print(mx.writeToXmlString(doc))
         mx.writeToXmlFile(doc, str(filename))
 
 

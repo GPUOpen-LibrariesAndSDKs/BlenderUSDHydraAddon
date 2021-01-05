@@ -125,3 +125,7 @@ def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
 
 def prettify_string(str):
     return str.replace('_', ' ').title()
+
+
+def strong_string(str):
+    return str.replace(' ', '_').replace('.', '_').lower()

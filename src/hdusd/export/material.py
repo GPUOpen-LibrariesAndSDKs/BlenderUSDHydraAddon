@@ -208,8 +208,9 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
     if not node:
         return None
 
-    mx_file = utils.temp_pid_dir() / f"{mx_node_tree.name}.mtlx"
-    node.export(mx_file)
+    mat_name = utils.strong_string(mx_node_tree.name)
+    mx_file = utils.temp_pid_dir() / f"{mat_name}.mtlx"
+    node.export(mx_file, mat_name)
 
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"
@@ -218,7 +219,7 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
     shader.CreateIdAttr("rpr_materialx_node")
 
     shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
-    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set("MyMaterial")
+    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(mat_name)
 
     out = usd_mat.CreateSurfaceOutput("rpr")
     out.ConnectToSource(shader, "surface")
