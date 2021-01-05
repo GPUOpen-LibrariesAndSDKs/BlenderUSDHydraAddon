@@ -200,23 +200,10 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
             obj: bpy.types.Object = None):
     log(f"sync_mx {mx_node_tree} '{input_socket_key}'; obj {obj}")
 
-    output_node = mx_node_tree.output_node
-    if not output_node:
+    doc = mx_node_tree.export()
+    if not doc:
         log.warn("No output node", mx_node_tree)
         return None
-
-    doc = mx.createDocument()
-    doc.setVersionString("1.38")
-
-    surface = output_node.compute(None, doc=doc)
-    if not surface:
-        return None
-
-    mat_name = utils.strong_string(mx_node_tree.name)
-
-    surfacematerial = doc.addNode('surfacematerial', mat_name, 'material')
-    input = surfacematerial.addInput('surfaceshader', surface.getType())
-    input.setNodeName(surface.getName())
 
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
@@ -228,7 +215,8 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
     shader.CreateIdAttr("rpr_materialx_node")
 
     shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
-    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(mat_name)
+    surfacematerial = doc.getNodes()[-1]    # surfacematerial is the last node
+    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(surfacematerial.getName())
 
     out = usd_mat.CreateSurfaceOutput("rpr")
     out.ConnectToSource(shader, "surface")

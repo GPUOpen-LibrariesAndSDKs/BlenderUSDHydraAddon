@@ -18,6 +18,7 @@ import bpy
 
 from ..ui import HdUSD_Panel
 from .node_tree import MxNodeTree
+from .. import utils
 from . import log
 
 
@@ -93,8 +94,14 @@ class HDUSD_MX_OP_export_file(bpy.types.Operator):
 
     # Perform the operator action.
     def execute(self, context):
-        print(context.space_data.edit_tree.output_node.final_compute())
-        return {"FINISHED"}
+        mx_node_tree = context.space_data.edit_tree
+        doc = mx_node_tree.export()
+        if not doc:
+            log.warn("Incorrect node tree to export", mx_node_tree)
+            return {'CANCELLED'}
+
+        mx.writeToXmlFile(doc, self.filepath)
+        return {'FINISHED'}
 
     @staticmethod
     def enabled(context):
@@ -133,9 +140,12 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
         tree = context.space_data.edit_tree
         obj = context.object
 
-        row = layout.row()
-        row.enabled = HDUSD_MX_OP_assign_to_object.enabled(context)
-        row.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
+        col = layout.column(align=True)
+        col.enabled = HDUSD_MX_OP_assign_to_object.enabled(context)
+        col.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
 
         if obj and obj.hdusd.material_x and obj.hdusd.material_x.name == tree.name:
-            layout.label(text="Assigned")
+            col.label(text="Assigned")
+
+        col = layout.column()
+        col.operator(HDUSD_MX_OP_export_file.bl_idname)
