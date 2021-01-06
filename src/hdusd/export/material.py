@@ -220,5 +220,6 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
 
     out = usd_mat.CreateSurfaceOutput("rpr")
     out.ConnectToSource(shader, "surface")
+    shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
 
     return usd_mat

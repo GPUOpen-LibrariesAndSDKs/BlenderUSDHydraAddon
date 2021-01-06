@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 import math
 
-from pxr import UsdGeom, Sdf, UsdShade
+from pxr import UsdGeom, Sdf, UsdShade, Vt
 import bpy
 import bmesh
 import mathutils
@@ -218,27 +218,19 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
                                             Sdf.ValueTypeNames.TexCoord2fArray,
                                             UsdGeom.Tokens.faceVarying)
         uv_primvar.Set(uv_layer[0])
+        uv_primvar.SetIndices(Vt.IntArray.FromNumpy(uv_layer[1]))
 
     _assign_materials(obj_prim, obj.original, usd_mesh)
-
-
 def _assign_materials(obj_prim, obj, usd_mesh):
-    stage = obj_prim.GetStage()
-    root_prim = obj_prim.GetParent().GetParent()
-    materials_prim = stage.DefinePrim(f"{root_prim.GetPath()}/materials")
-
     usd_mat = None
     if obj.hdusd.material_x:
-        usd_mat = material.sync_mx(materials_prim, obj.hdusd.material_x, obj=obj)
-        
+        usd_mat = material.sync_mx(obj_prim, obj.hdusd.material_x, obj=obj)
+
     elif obj.material_slots and obj.material_slots[0].material:
-        usd_mat = material.sync(materials_prim, obj.material_slots[0].material, obj=obj)
+        usd_mat = material.sync(obj_prim, obj.material_slots[0].material, obj=obj)
 
     if usd_mat:
         UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_mat)
-
-    # TODO support multi-material shapes
-    # TODO support material override
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs):
