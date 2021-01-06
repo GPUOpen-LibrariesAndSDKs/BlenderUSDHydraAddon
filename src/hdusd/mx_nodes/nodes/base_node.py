@@ -117,6 +117,18 @@ class MxNode(bpy.types.ShaderNode):
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
+        def set_value(param, val, nd_type):
+            if isinstance(val, mx.Node):
+                param.setNodeName(val.getName())
+            elif nd_type == 'filename':
+                param.setValueString(val)
+            else:
+                mx_type = getattr(mx, prettify_string(nd_type), None)
+                if mx_type:
+                    param.setValue(mx_type(val))
+                else:
+                    param.setValue(val)
+
         log("compute", self, out_key)
 
         doc = kwargs['doc']
@@ -131,16 +143,12 @@ class MxNode(bpy.types.ShaderNode):
         for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
             input = node.addInput(nd_input.getName(), nd_input.getType())
-
-            if isinstance(val, mx.Node):
-                input.setNodeName(val.getName())
-            else:
-                input.setValue(val)
+            set_value(input, val, nd_input.getType())
 
         for nd_param in nodedef.getParameters():
             val = self.get_param_value(nd_param.getName())
             param = node.addParameter(nd_param.getName(), nd_param.getType())
-            param.setValue(val)
+            set_value(param, val, nd_param.getType())
 
         return node
 
@@ -180,30 +188,10 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        val = getattr(self.prop, self.inputs[in_key].node_prop_name)
-        type_str = self.get_nodedef_input(in_key).getType()
-
-        if type_str.startswith('float'):
-            return val
-
-        mx_type = getattr(mx, prettify_string(type_str), None)
-        if mx_type:
-            return mx_type(val)
-
-        return val
+        return getattr(self.prop, self.inputs[in_key].node_prop_name)
 
     def get_param_value(self, name):
-        val = getattr(self.prop, 'p_' + name)
-        type_str = self.prop.mx_nodedef.getParameter(name).getType()
-
-        if type_str.startswith('float'):
-            return val
-
-        mx_type = getattr(mx, prettify_string(type_str), None)
-        if mx_type:
-            return mx_type(val)
-
-        return val
+        return getattr(self.prop, 'p_' + name)
 
     def get_nodedef_input(self, in_key: [str, int]):
         return self.prop.mx_nodedef.getInput(self.inputs[in_key].node_prop_name[3:])

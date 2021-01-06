@@ -15,13 +15,14 @@
 import MaterialX as mx
 
 import bpy
+from bpy_extras.io_utils import ExportHelper
 
 from ..ui import HdUSD_Panel, HdUSD_Operator
 from .node_tree import MxNodeTree
 from . import log
 
 
-class HDUSD_MX_OP_import_file(HdUSD_Operator):
+class HDUSD_MX_OP_import_file(HdUSD_Operator, ExportHelper):
     bl_idname = "hdusd.mx_import_file"
     bl_label = "Import Material"
     bl_description = "Import selected mtlx file"
@@ -29,10 +30,6 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator):
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     filename_ext = ".mtlx"
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
 
     # Perform the operator action.
     def execute(self, context):
@@ -70,20 +67,19 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator):
         return {"FINISHED"}
 
 
-class HDUSD_MX_OP_export_file(HdUSD_Operator):
+class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     bl_idname = "hdusd.mx_export_file"
     bl_label = "Export to File"
     bl_description = "Export MaterialX node tree to .mtlx file"
 
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     filename_ext = ".mtlx"
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="File path used for exporting MaterialX node tree to .mtlx file",
+        maxlen=1024, subtype="FILE_PATH"
+    )
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-    # Perform the operator action.
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree
         doc = mx_node_tree.export()
@@ -100,11 +96,10 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator):
 
 
 class HDUSD_MX_OP_export_console(HdUSD_Operator):
-    bl_idname = "hdusd.mx_export_file"
+    bl_idname = "hdusd.mx_export_console"
     bl_label = "Export to Console"
     bl_description = "Export MaterialX node tree to console"
 
-    # Perform the operator action.
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree
         doc = mx_node_tree.export()
