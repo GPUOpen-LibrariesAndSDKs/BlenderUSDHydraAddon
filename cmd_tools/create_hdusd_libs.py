@@ -26,7 +26,7 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
         yield f
 
 
-def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir, exe):
+def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
     # USD libraries
     for f in iterate_files(usd_dir / "lib", "**/*",
                            ignore_parts=("__pycache__",),
@@ -36,12 +36,12 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir, exe):
         yield f, Path("usd") / f.relative_to(usd_dir / "lib")
 
     for f in iterate_files(usd_dir / "bin", "*",
-                           ignore_suffix=('.pdb',) if exe else ("", ".exe", ".cmd", ".pdb")):
+                           ignore_suffix=('.pdb',)):
         yield f, Path("usd") / f.relative_to(usd_dir / "bin")
 
     # copy RPR Hydra delegate libraries
     for f in iterate_files(hdrpr_dir / "lib", "**/*",
-                           ignore_parts=("__pycache__",) if exe else ("python",),
+                           ignore_parts=("__pycache__",),
                            ignore_suffix=(".lib",)):
         yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
@@ -57,7 +57,6 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir, exe):
         yield f, Path("plugins") / f.relative_to(usd_dir / "./plugin")
 
     for f in iterate_files(hdrpr_dir / "plugin", "**/*",
-                           ignore_parts=() if exe else ("rprUsdviewMenu",),
                            ignore_suffix=(".lib",)):
         yield f, Path("plugins") / f.relative_to(hdrpr_dir / "./plugin")
 
@@ -74,9 +73,8 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir, exe):
                            ignore_suffix=(".lib",)):
         yield f, Path("materialx") / f.relative_to(mx_dir)
 
-    if exe:
-        for f in iterate_files(mx_dir / "bin", "*"):
-            yield f, Path("materialx") / f.relative_to(mx_dir)
+    for f in iterate_files(mx_dir / "bin", "*"):
+        yield f, Path("materialx") / f.relative_to(mx_dir)
 
 
 def main():
@@ -91,8 +89,6 @@ def main():
                     help="MaterialX dir")
     ap.add_argument("-libs", required=False, metavar="",
                     help="Libs dir")
-    ap.add_argument("-exe", required=False, action="store_true", default=False,
-                    help="Copy executors")
     ap.add_argument("-v", required=False, action="store_true",
                     help="Print copying info")
     args = ap.parse_args()
@@ -106,7 +102,7 @@ def main():
 
     print(f"Copying libs to: {libs_dir}")
 
-    for f, relative in iterate_copied_files(Path(args.usd), Path(args.hdrpr), Path(args.mx), args.exe):
+    for f, relative in iterate_copied_files(Path(args.usd), Path(args.hdrpr), Path(args.mx)):
         if args.v:
             print(f, '->', relative)
 

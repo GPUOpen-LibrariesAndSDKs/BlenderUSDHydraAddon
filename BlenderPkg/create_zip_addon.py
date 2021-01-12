@@ -55,7 +55,10 @@ def enumerate_addon_data():
             continue
 
         rel_path = f.relative_to(hdusd_libs_dir.parent)
-        if "__pycache__" in rel_path.parts:
+        if any(p in rel_path.parts for p in ("__pycache__", "cache")):
+            continue
+
+        if f.suffix in (".exe", ".cmd", ""):
             continue
 
         yield f, rel_path

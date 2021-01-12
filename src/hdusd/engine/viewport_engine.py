@@ -202,9 +202,10 @@ class ViewportEngine(Engine):
         self.renderer = UsdImagingGL.Engine()
         self.renderer.SetRendererPlugin(settings.delegate)
 
-        self.renderer.SetRendererSetting('renderDevice', settings.rpr_render_device)
-        self.renderer.SetRendererSetting('renderMode', 'Global Illumination')
-        self.renderer.SetRendererSetting('renderQuality', 'Northstar')
+        self.renderer.SetRendererSetting('renderDevice',
+                                         'CPU' if scene.hdusd.rpr_viewport_cpu_device else 'GPU')
+        # self.renderer.SetRendererSetting('renderMode', 'Global Illumination')
+        # self.renderer.SetRendererSetting('renderQuality', 'Northstar')
 
         if self.data_source:
             nodetree = bpy.data.node_groups[self.data_source]

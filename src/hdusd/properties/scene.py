@@ -32,13 +32,6 @@ class RenderSettings(bpy.types.PropertyGroup):
         default='HdRprPlugin',
     )
     data_source: bpy.props.StringProperty(name="Data Source", default="")
-    rpr_render_device: bpy.props.EnumProperty(
-        name="Render Device",
-        description="Render Device for RPR delegate",
-        items=(('CPU', "CPU", "CPU Render Device"),
-               ('GPU', "GPU", "GPU Render Device")),
-        default='GPU',
-    )
 
     @property
     def is_gl_delegate(self):
@@ -54,3 +47,10 @@ class SceneProperties(HdUSDProperties):
 
     final: bpy.props.PointerProperty(type=RenderSettings)
     viewport: bpy.props.PointerProperty(type=RenderSettings)
+
+    rpr_viewport_cpu_device: bpy.props.BoolProperty(
+        name="CPU Viewport Render Device",
+        description="Use CPU device for viewport render in RPR.\n"
+                    "Requires for MaterialX testing when GPU isn't supported",
+        default=False,
+    )
