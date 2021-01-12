@@ -29,7 +29,7 @@ from bpy.props import (
     PointerProperty,
 )
 
-from ...utils import prettify_string, strong_string
+from ...utils import title_str, code_str
 from . import log
 
 
@@ -123,7 +123,7 @@ class MxNode(bpy.types.ShaderNode):
             elif nd_type == 'filename':
                 param.setValueString(val)
             else:
-                mx_type = getattr(mx, prettify_string(nd_type), None)
+                mx_type = getattr(mx, title_str(nd_type), None)
                 if mx_type:
                     param.setValue(mx_type(val))
                 else:
@@ -139,7 +139,7 @@ class MxNode(bpy.types.ShaderNode):
         for in_key in range(len(self.inputs)):
             values.append(self.get_input_value(in_key, **kwargs))
 
-        node = doc.addNode(nodedef.getNodeString(), strong_string(self.name), nd_output.getType())
+        node = doc.addNode(nodedef.getNodeString(), code_str(self.name), nd_output.getType())
         for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
             input = node.addInput(nd_input.getName(), nd_input.getType())
@@ -197,7 +197,7 @@ class MxNode(bpy.types.ShaderNode):
         return self.prop.mx_nodedef.getInput(self.inputs[in_key].node_prop_name[3:])
 
     def get_nodedef_output(self, out_key: [str, int]):
-        return self.prop.mx_nodedef.getOutput(strong_string(self.outputs[out_key].name))
+        return self.prop.mx_nodedef.getOutput(code_str(self.outputs[out_key].name))
 
     @property
     def prop(self):
@@ -235,7 +235,7 @@ class MxNode(bpy.types.ShaderNode):
             nd_name = nd_type.mx_nodedef.getName()
             var_name = nd_name[(4 + len(node_name)):]
             annotations[nd_name] = (PointerProperty, {'type': nd_type})
-            var_items.append((nd_name, prettify_string(var_name), prettify_string(var_name)))
+            var_items.append((nd_name, title_str(var_name), title_str(var_name)))
 
         annotations['data_type'] = (EnumProperty, {
             'name': "Data Type",
@@ -245,10 +245,10 @@ class MxNode(bpy.types.ShaderNode):
         })
 
         data = {
-            'bl_label': prettify_string(nd.getNodeString()),
+            'bl_label': title_str(nd.getNodeString()),
             'bl_idname': f"{MxNode.bl_idname}_{nd.getName()}",
             'bl_description': nd.getAttribute('doc') if nd.hasAttribute('doc')
-                   else prettify_string(nd.getName()),
+                   else title_str(nd.getName()),
             'mx_nodedefs': mx_nodedefs,
             '__annotations__': annotations
         }
@@ -266,7 +266,7 @@ class MxNode(bpy.types.ShaderNode):
                 if mx_param.hasAttribute('enum'):
                     prop_type = EnumProperty
                     items = parse_val(prop_type, mx_param.getAttribute('enum'))
-                    prop_attrs['items'] = tuple((it, prettify_string(it), prettify_string(it))
+                    prop_attrs['items'] = tuple((it, title_str(it), title_str(it))
                                                 for it in items)
                     break
                 prop_type = StringProperty
@@ -322,7 +322,7 @@ class MxNode(bpy.types.ShaderNode):
             break
 
         prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')\
-            else prettify_string(prop_name)
+            else title_str(prop_name)
         prop_attrs['description'] = mx_param.getAttribute('doc')
 
         if mx_param.hasAttribute('uimin'):
@@ -343,14 +343,14 @@ class MxNode(bpy.types.ShaderNode):
     def create_input(self, mx_input):
         input = self.inputs.new('hdusd.MxNodeSocket',
                                 mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname')
-                                else prettify_string(mx_input.getName()))
+                                else title_str(mx_input.getName()))
         input.node_prop_name = 'in_' + mx_input.getName()
         return input
 
     def create_output(self, mx_output):
         output = self.outputs.new('NodeSocketShader',
                                   mx_output.getAttribute('uiname') if mx_output.hasAttribute('uiname')
-                                  else prettify_string(mx_output.getName()))
+                                  else title_str(mx_output.getName()))
         return output
 
 

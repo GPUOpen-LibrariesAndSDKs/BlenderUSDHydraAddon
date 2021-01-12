@@ -123,9 +123,9 @@ def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
         yield obj
 
 
-def prettify_string(str):
+def title_str(str):
     return str.replace('_', ' ').title()
 
 
-def strong_string(str):
+def code_str(str):
     return str.replace(' ', '_').replace('.', '_').lower()

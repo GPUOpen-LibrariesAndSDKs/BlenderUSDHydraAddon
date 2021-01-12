@@ -49,7 +49,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         if not surface:
             return None
 
-        mat_name = utils.strong_string(self.name)
+        mat_name = utils.code_str(self.name)
 
         surfacematerial = doc.addNode('surfacematerial', mat_name, 'material')
         input = surfacematerial.addInput('surfaceshader', surface.getType())
