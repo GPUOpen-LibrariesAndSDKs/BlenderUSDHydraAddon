@@ -17,9 +17,11 @@ import MaterialX as mx
 import bpy
 from bpy_extras.io_utils import ExportHelper
 
-from ..ui import HdUSD_Panel, HdUSD_Operator
-from .node_tree import MxNodeTree
-from . import log
+from . import HdUSD_Panel, HdUSD_Operator
+from ..mx_nodes.node_tree import MxNodeTree
+
+from ..utils import logging
+log = logging.Log(tag='ui.mx_nodes')
 
 
 class HDUSD_MX_OP_import_file(HdUSD_Operator, ExportHelper):
