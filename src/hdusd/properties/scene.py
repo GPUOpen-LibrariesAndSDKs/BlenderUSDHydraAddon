@@ -51,6 +51,6 @@ class SceneProperties(HdUSDProperties):
     rpr_viewport_cpu_device: bpy.props.BoolProperty(
         name="CPU Viewport Render Device",
         description="Use CPU device for viewport render in RPR.\n"
-                    "Requires for MaterialX testing when GPU isn't supported",
+                    "Required for MaterialX testing when GPU isn't supported",
         default=False,
     )
