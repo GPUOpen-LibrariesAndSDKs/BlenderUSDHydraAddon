@@ -41,6 +41,7 @@ from . import (
     material,
     world,
     usd_list,
+    mx_nodes,
 )
 
 
@@ -50,6 +51,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     render.HDUSD_MT_data_source_viewport,
     render.HDUSD_RENDER_PT_render_settings_final,
     render.HDUSD_RENDER_PT_render_settings_viewport,
+    render.HDUSD_RENDER_PT_debug,
 
     light.HDUSD_LIGHT_PT_light,
 
@@ -69,6 +71,12 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     usd_list.HDUSD_OP_usd_nodetree_add_basic_nodes,
     usd_list.HDUSD_NODE_PT_usd_nodetree_tree_tools,
     usd_list.HDUSD_NODE_PT_usd_nodetree_node_tools,
+
+    mx_nodes.HDUSD_MX_OP_import_file,
+    mx_nodes.HDUSD_MX_OP_export_file,
+    mx_nodes.HDUSD_MX_OP_export_console,
+    mx_nodes.HDUSD_MX_OP_assign_to_object,
+    mx_nodes.HDUSD_MX_MATERIAL_PT_import_export,
 ])
 
 

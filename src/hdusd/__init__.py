@@ -36,7 +36,7 @@ log = logging.Log(tag='init')
 log.info("Loading USD Hydra addon {}".format(bl_info['version']))
 
 
-from . import engine, properties, ui, usd_nodes
+from . import engine, properties, ui, usd_nodes, mx_nodes
 
 
 def register():
@@ -44,15 +44,17 @@ def register():
     log("register")
 
     engine.register()
+    mx_nodes.register()
+    usd_nodes.register()
     properties.register()
     ui.register()
-    usd_nodes.register()
 
 
 def unregister():
     """ Unregister all addon classes from Blender """
     log("unregister")
 
+    mx_nodes.unregister()
     usd_nodes.unregister()
     ui.unregister()
     properties.unregister()

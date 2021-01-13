@@ -31,16 +31,16 @@ class USDNodeCategory(NodeCategory):
 
 
 node_categories = [
-    USDNodeCategory('HdUSD_INPUT', "Input", items=[
+    USDNodeCategory('HdUSD_USD_INPUT', "Input", items=[
         NodeItem('usd.ReadBlendDataNode'),
         NodeItem('usd.ReadUsdFileNode'),
     ]),
-    USDNodeCategory('HdUSD_OUTPUT', 'Output', items=[
+    USDNodeCategory('HdUSD_USD_OUTPUT', 'Output', items=[
         NodeItem('usd.HydraRenderNode'),
         NodeItem('usd.WriteFileNode'),
         # NodeItem('usd.PrintFileNode'),
     ]),
-    USDNodeCategory('HdUSD_CONVERTER', 'Converter', items=[
+    USDNodeCategory('HdUSD_USD_CONVERTER', 'Converter', items=[
         NodeItem('usd.MergeNode'),
         # NodeItem('usd.FilterNode'),
     ]),

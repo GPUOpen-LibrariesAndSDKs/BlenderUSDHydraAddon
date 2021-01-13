@@ -9,4 +9,6 @@ venv
 
 .DS_Store
 
-*.cmd
+/*.cmd
+/tmp
+/libs

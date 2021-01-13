@@ -17,7 +17,6 @@ import tempfile
 import os
 import shutil
 import platform
-import sys
 import numpy as np
 import math
 
@@ -68,7 +67,7 @@ def temp_pid_dir():
 
 
 def get_temp_file(suffix):
-    return tempfile.mktemp(suffix=suffix, dir=temp_pid_dir())
+    return Path(tempfile.mktemp(suffix, "tmp", temp_pid_dir()))
 
 
 def clear_temp_dir():
@@ -122,3 +121,11 @@ def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
             continue
 
         yield obj
+
+
+def title_str(str):
+    return str.replace('_', ' ').title()
+
+
+def code_str(str):
+    return str.replace(' ', '_').replace('.', '_').lower()

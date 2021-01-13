@@ -14,7 +14,7 @@
 #********************************************************************
 
 from . import HdUSD_Panel
-from hdusd.export.material import get_material_output_node
+from ..export.material import get_material_output_node
 
 
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):

@@ -21,11 +21,13 @@ from .. import utils
 
 
 os.environ['PATH'] = f"{utils.HDUSD_LIBS_DIR / 'usd'};{utils.HDUSD_LIBS_DIR / 'plugins'};" \
-                     f"{utils.HDUSD_LIBS_DIR / 'hdrpr'};{os.environ['PATH']}"
+                     f"{utils.HDUSD_LIBS_DIR / 'hdrpr/lib'};" \
+                     f"{os.environ['PATH']}"
 os.environ['PXR_PLUGINPATH_NAME'] = str(utils.HDUSD_LIBS_DIR / 'plugins')
+os.environ['RPR'] = str(utils.HDUSD_LIBS_DIR / 'hdrpr')
 
 sys.path.append(str(utils.HDUSD_LIBS_DIR / 'usd/python'))
-
+sys.path.append(str(utils.HDUSD_LIBS_DIR / 'materialx/python'))
 
 from . import engine, handlers
 

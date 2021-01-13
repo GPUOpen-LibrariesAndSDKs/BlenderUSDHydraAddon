@@ -18,50 +18,63 @@ from pathlib import Path
 import argparse
 
 
-def enumerate_libs(usd_dir, hdrpr_dir):
+def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
+    for f in path.glob(glob):
+        if f.is_dir() or f.suffix in ignore_suffix or any(p in f.parts for p in ignore_parts):
+            continue
+
+        yield f
+
+
+def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
     # USD libraries
-    for f in (usd_dir / "lib").glob("**/*"):
-        if f.is_dir():
-            continue
-        if "__pycache__" in f.parts:
-            continue
+    for f in iterate_files(usd_dir / "lib", "**/*",
+                           ignore_parts=("__pycache__",),
+                           ignore_suffix=(".cmake", ".pdb", ".lib", ".def")):
         if "cmake" in f.name or "cmake" in f.relative_to(usd_dir / "lib").parts:
             continue
-        if f.suffix in (".cmake", ".pdb", ".lib", ".def"):
-            continue
-
         yield f, Path("usd") / f.relative_to(usd_dir / "lib")
 
-    for f in (usd_dir / "bin").glob("*.dll"):
+    for f in iterate_files(usd_dir / "bin", "*",
+                           ignore_suffix=('.pdb',)):
         yield f, Path("usd") / f.relative_to(usd_dir / "bin")
 
     # copy RPR Hydra delegate libraries
-    for f in (hdrpr_dir / "lib").glob("**/*"):
-        if f.is_dir():
-            continue
-        if "python" in f.parts:
-            continue
-        if f.suffix == ".lib":
-            continue
+    for f in iterate_files(hdrpr_dir / "lib", "**/*",
+                           ignore_parts=("__pycache__",),
+                           ignore_suffix=(".lib",)):
+        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
-        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir / "lib")
+    for f in iterate_files(hdrpr_dir / "libraries", "**/*"):
+        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
+
+    for f in iterate_files(hdrpr_dir / "materials", "**/*"):
+        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
     # put all the plugins in the same folder so USD would load them all
-    for f in (usd_dir / "plugin").glob("**/*"):
-        if f.is_dir():
-            continue
-
+    for f in iterate_files(usd_dir / "plugin", "**/*",
+                           ignore_suffix=(".lib",)):
         yield f, Path("plugins") / f.relative_to(usd_dir / "./plugin")
 
-    for f in (hdrpr_dir / "plugin").glob("**/*"):
-        if f.is_dir():
-            continue
-        if "rprUsdviewMenu" in f.parts:
-            continue
-        if f.suffix == ".lib":
-            continue
-
+    for f in iterate_files(hdrpr_dir / "plugin", "**/*",
+                           ignore_suffix=(".lib",)):
         yield f, Path("plugins") / f.relative_to(hdrpr_dir / "./plugin")
+
+    # MaterialX libraries
+    for f in iterate_files(mx_dir / "python/MaterialX", "*",
+                           ignore_suffix=(".lib",)):
+        yield f, Path("materialx") / f.relative_to(mx_dir)
+
+    for f in iterate_files(mx_dir / "libraries", "**/*",
+                           ignore_suffix=(".lib",)):
+        yield f, Path("materialx") / f.relative_to(mx_dir)
+
+    for f in iterate_files(mx_dir / "resources", "**/*",
+                           ignore_suffix=(".lib",)):
+        yield f, Path("materialx") / f.relative_to(mx_dir)
+
+    for f in iterate_files(mx_dir / "bin", "*"):
+        yield f, Path("materialx") / f.relative_to(mx_dir)
 
 
 def main():
@@ -72,8 +85,12 @@ def main():
                     help="USD dir")
     ap.add_argument("-hdrpr", required=True, metavar="",
                     help="HdRPR dir")
+    ap.add_argument("-mx", required=True, metavar="",
+                    help="MaterialX dir")
     ap.add_argument("-libs", required=False, metavar="",
                     help="Libs dir")
+    ap.add_argument("-v", required=False, action="store_true",
+                    help="Print copying info")
     args = ap.parse_args()
 
     if not args.libs:
@@ -83,15 +100,19 @@ def main():
     if libs_dir.is_dir():
         shutil.rmtree(str(libs_dir))
 
-    print("Copying libs to:", libs_dir)
-    for f, relative in enumerate_libs(Path(args.usd), Path(args.hdrpr)):
-        print(f, '->', relative)
+    print(f"Copying libs to: {libs_dir}")
+
+    for f, relative in iterate_copied_files(Path(args.usd), Path(args.hdrpr), Path(args.mx)):
+        if args.v:
+            print(f, '->', relative)
 
         f_copy = libs_dir / relative
         if not f_copy.parent.is_dir():
             f_copy.parent.mkdir(parents=True)
 
         shutil.copy(str(f), str(f_copy))
+
+    print("Done.")
 
 
 if __name__ == "__main__":

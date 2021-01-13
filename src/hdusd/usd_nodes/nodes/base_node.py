@@ -18,22 +18,17 @@ from pxr import Usd
 from . import log
 
 
-class USDError(BaseException):
-    pass
-
-
 class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
     bl_compatibility = {'HdUSD'}
-    tree_idname = 'hdusd.USDTree'
 
     input_names = ("Input",)
     output_name = "Output"
 
     @classmethod
-    def poll(cls, tree: bpy.types.NodeTree):
-        return tree.bl_idname == cls.tree_idname
+    def poll(cls, tree):
+        return tree.bl_idname == 'hdusd.USDTree'
 
     def init(self, context):
         for name in self.input_names:
@@ -119,8 +114,3 @@ class USDNode(bpy.types.Node):
 
     def free(self):
         self.cached_stage.clear()
-
-
-class RenderTaskNode(USDNode):
-    """Base class for all hydra render task nodes"""
-    tree_idname = 'hdusd.RenderTaskTree'

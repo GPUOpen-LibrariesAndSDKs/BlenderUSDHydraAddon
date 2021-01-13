@@ -16,7 +16,7 @@ import tempfile
 
 from pxr import Usd
 
-from . import temp_pid_dir
+from . import get_temp_file
 
 
 ID_NO_STAGE = -1
@@ -30,7 +30,7 @@ class CachedStage:
 
     def create(self):
         self.clear()
-        stage = Usd.Stage.CreateNew(tempfile.mktemp(".usda", "tmp", temp_pid_dir()))
+        stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
         self.id = _stage_cache.Insert(stage).ToLongInt()
         self.is_owner = True
         return stage

@@ -107,3 +107,13 @@ class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):
     """Viewport render delegate and settings"""
     bl_label = "Viewport Render Settings"
     engine_type = 'VIEWPORT'
+
+
+class HDUSD_RENDER_PT_debug(HdUSD_Panel):
+    bl_label = "Debug"
+    bl_context = 'render'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(context.scene.hdusd, "rpr_viewport_cpu_device")
