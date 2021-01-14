@@ -48,7 +48,7 @@ class MxNodeSocket(bpy.types.NodeSocket):
         # rather than use the default val like blender sockets
         # this allows custom property UI
 
-        if self.is_linked:
+        if self.is_linked or self.name.endswith("shader"):
             layout.label(text=self.name)
         else:
             layout.prop(node.prop, self.node_prop_name)
@@ -145,7 +145,7 @@ class MxNode(bpy.types.ShaderNode):
             col = layout.column(align=True)
             r = None
             for i, f in enumerate(self.ui_folders):
-                if i % 3 == 0:
+                if i % 3 == 0:  # putting 3 buttons per row
                     r = col.row(align=True)
                 r.prop(self, self._folder_prop(f), toggle=True)
 
@@ -254,18 +254,21 @@ class MxNode(bpy.types.ShaderNode):
         node_name = nd.getNodeString()
 
         annotations = {}
-        var_items = []
-        for NodeDef_cls in NodeDef_classes:
+        data_type_items = []
+        index_default = 0
+        for i, NodeDef_cls in enumerate(NodeDef_classes):
             nd_name = NodeDef_cls.mx_nodedef.getName()
-            var_name = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
+            data_type = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
             annotations[MxNode._nodedef_prop(nd_name)] = (PointerProperty, {'type': NodeDef_cls})
-            var_items.append((nd_name, title_str(var_name), title_str(var_name)))
+            data_type_items.append((nd_name, title_str(data_type), title_str(data_type)))
+            if data_type == 'color3':
+                index_default = i
 
         annotations['data_type'] = (EnumProperty, {
             'name': "Data Type",
             'description': "Input Data Type",
-            'items': var_items,
-            'default': var_items[0][0],
+            'items': data_type_items,
+            'default': data_type_items[index_default][0],
         })
 
         ui_folders = []
@@ -287,6 +290,7 @@ class MxNode(bpy.types.ShaderNode):
             'bl_idname': f"{MxNode.bl_idname}_{nd.getName()}",
             'bl_description': nd.getAttribute('doc') if nd.hasAttribute('doc')
                    else title_str(nd.getName()),
+            'bl_width_default': 250 if len(ui_folders) > 2 else 200,
             'mx_nodedefs': mx_nodedefs,
             'ui_folders': tuple(ui_folders),
             '__annotations__': annotations
@@ -421,13 +425,18 @@ def parse_val(prop_type, val, first_only=False):
 
 
 def create_node_types(file_paths):
+    IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
+
     NodeDef_classes = []
     for p in file_paths:
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(p))
-        mx_node_defs = doc.getNodeDefs()
-        for mx_node_def in mx_node_defs:
-            NodeDef_classes.append(MxNode.NodeDef.new(mx_node_def))
+        mx_nodedefs = doc.getNodeDefs()
+        for mx_nodedef in mx_nodedefs:
+            if MxNode._nodedef_data_type(mx_nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+                continue
+
+            NodeDef_classes.append(MxNode.NodeDef.new(mx_nodedef))
 
     # grouping NodeDef_classes by node and nodegroup
     d = defaultdict(list)
@@ -436,11 +445,11 @@ def create_node_types(file_paths):
         d[(nd.getNodeString(), nd.getAttribute('nodegroup'))].append(NodeDef_cls)
 
     # creating MxNode types
-    node_types = []
+    MxNode_classes = []
     for node_name, nd_types in d.items():
-        node_types.append(MxNode.new(nd_types))
+        MxNode_classes.append(MxNode.new(nd_types))
 
-    return NodeDef_classes, node_types
+    return NodeDef_classes, MxNode_classes
 
 
 class MxNode_Output(MxNode):
