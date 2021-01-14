@@ -68,8 +68,9 @@ class MxNode(bpy.types.ShaderNode):
     bl_description = ""
     bl_width_default = 250
 
-    mx_nodedefs = ()
-    ui_folders: tuple
+    mx_nodedefs = ()    # list of nodedefs
+    ui_folders = ()     # list of ui folders mentioned in nodedef
+    data_type: EnumProperty
 
     @staticmethod
     def _param_prop(name):
@@ -86,6 +87,15 @@ class MxNode(bpy.types.ShaderNode):
     @staticmethod
     def _folder_prop(name):
         return 'f_' + code_str(name)
+
+    @staticmethod
+    def _nodedef_prop(name):
+        return 'nd_' + name
+
+    @staticmethod
+    def _nodedef_data_type(nd):
+        # nodedef name consists: ND_{node_name}_{data_type} therefore:
+        return nd.getName()[(4 + len(nd.getNodeString())):]
 
     class NodeDef(bpy.types.PropertyGroup):
         mx_nodedef: mx.NodeDef  # holds the materialx nodedef object
@@ -145,6 +155,13 @@ class MxNode(bpy.types.ShaderNode):
                 continue
 
             layout.prop(prop, self._param_prop(mx_param.getName()))
+
+    def draw_label(self):
+        label = self.bl_label
+        if len(self.mx_nodedefs) > 1:
+            label += f": {title_str(self._nodedef_data_type(self.prop.mx_nodedef))}"
+
+        return label
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
@@ -224,24 +241,24 @@ class MxNode(bpy.types.ShaderNode):
 
     @property
     def prop(self):
-        return getattr(self, self.data_type)
+        return getattr(self, self._nodedef_prop(self.data_type))
 
     @classmethod
     def poll(cls, tree):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
     @staticmethod
-    def new(nodedef_types):
-        mx_nodedefs = tuple(nd_type.mx_nodedef for nd_type in nodedef_types)
+    def new(NodeDef_classes):
+        mx_nodedefs = tuple(NodeDef_cls.mx_nodedef for NodeDef_cls in NodeDef_classes)
         nd = mx_nodedefs[0]
         node_name = nd.getNodeString()
 
         annotations = {}
         var_items = []
-        for nd_type in nodedef_types:
-            nd_name = nd_type.mx_nodedef.getName()
-            var_name = nd_name[(4 + len(node_name)):]
-            annotations[nd_name] = (PointerProperty, {'type': nd_type})
+        for NodeDef_cls in NodeDef_classes:
+            nd_name = NodeDef_cls.mx_nodedef.getName()
+            var_name = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
+            annotations[MxNode._nodedef_prop(nd_name)] = (PointerProperty, {'type': NodeDef_cls})
             var_items.append((nd_name, title_str(var_name), title_str(var_name)))
 
         annotations['data_type'] = (EnumProperty, {
@@ -404,26 +421,26 @@ def parse_val(prop_type, val, first_only=False):
 
 
 def create_node_types(file_paths):
-    nodedef_types = []
+    NodeDef_classes = []
     for p in file_paths:
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(p))
         mx_node_defs = doc.getNodeDefs()
         for mx_node_def in mx_node_defs:
-            nodedef_types.append(MxNode.NodeDef.new(mx_node_def))
+            NodeDef_classes.append(MxNode.NodeDef.new(mx_node_def))
 
-    # grouping nodedef_types by node and nodegroup
+    # grouping NodeDef_classes by node and nodegroup
     d = defaultdict(list)
-    for nd_type in nodedef_types:
-        nd = nd_type.mx_nodedef
-        d[(nd.getNodeString(), nd.getAttribute('nodegroup'))].append(nd_type)
+    for NodeDef_cls in NodeDef_classes:
+        nd = NodeDef_cls.mx_nodedef
+        d[(nd.getNodeString(), nd.getAttribute('nodegroup'))].append(NodeDef_cls)
 
     # creating MxNode types
     node_types = []
     for node_name, nd_types in d.items():
         node_types.append(MxNode.new(nd_types))
 
-    return nodedef_types, node_types
+    return NodeDef_classes, node_types
 
 
 class MxNode_Output(MxNode):
