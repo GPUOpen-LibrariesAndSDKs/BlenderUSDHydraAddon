@@ -34,6 +34,12 @@ class HdUSD_Panel(bpy.types.Panel):
         return context.engine in cls.COMPAT_ENGINES
 
 
+class HdUSD_ChildPanel(bpy.types.Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_parent_id = ''
+
+
 from . import (
     panels,
     render,
@@ -57,9 +63,10 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
 
     material.HDUSD_MATERIAL_PT_context,
     material.HDUSD_MATERIAL_PT_preview,
-    material.HDUSD_MATERIAL_PT_surface,
-    material.HDUSD_MATERIAL_PT_displacement,
-    material.HDUSD_MATERIAL_PT_volume,
+    material.HDUSD_MATERIAL_PT_material,
+    material.HDUSD_MATERIAL_PT_output_surface,
+    material.HDUSD_MATERIAL_PT_output_displacement,
+    material.HDUSD_MATERIAL_PT_output_volume,
 
     world.HDUSD_WORLD_PT_surface,
 
