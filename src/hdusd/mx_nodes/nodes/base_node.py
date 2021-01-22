@@ -37,52 +37,34 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_idname = 'hdusd.MxNodeInputSocket'
     bl_label = "MX Input Socket"
 
-    # TODO different type for draw color
-    # socket_type: bpy.props.EnumProperty()
-
-    # corresponding property name (if any) on node
-    node_prop_name: bpy.props.StringProperty(default='')
-    mx_input: mx.Input
+    @staticmethod
+    def get_color(type_name):
+        return (0.78, 0.78, 0.16, 1.0)
 
     def draw(self, context, layout, node, text):
-        # if not linked, we get custom property from the node
-        # rather than use the default val like blender sockets
-        # this allows custom property UI
+        mx_input = node.prop.mx_nodedef.getInput(self.name)
 
-        if self.is_linked or self.name.endswith("shader"):
-            layout.label(text=self.name)
+        if self.is_linked:
+            layout.label(text=mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname')
+                         else title_str(mx_input.getName()))
         else:
-            layout.prop(node.prop, self.node_prop_name)
+            layout.prop(node.prop, MxNode._input_prop(self.name))
 
     def draw_color(self, context, node):
-        # TODO get from type
-        return (0.78, 0.78, 0.16, 1.0)
+        return self.get_color(node.prop.mx_nodedef.getInput(self.name).getType())
 
 
 class MxNodeOutputSocket(bpy.types.NodeSocket):
     bl_idname = 'hdusd.MxNodeOutputSocket'
     bl_label = "MX Output Socket"
 
-    # TODO different type for draw color
-    # socket_type: bpy.props.EnumProperty()
-
-    # corresponding property name (if any) on node
-    node_prop_name: bpy.props.StringProperty(default='')
-    mx_output: mx.Output
-
     def draw(self, context, layout, node, text):
-        # if not linked, we get custom property from the node
-        # rather than use the default val like blender sockets
-        # this allows custom property UI
-
-        if self.is_linked or self.name.endswith("shader"):
-            layout.label(text=self.name)
-        else:
-            layout.prop(node.prop, self.node_prop_name)
+        mx_output = node.prop.mx_nodedef.getOutput(self.name)
+        layout.label(text=mx_output.getAttribute('uiname') if mx_output.hasAttribute('uiname')
+                     else title_str(mx_output.getName()))
 
     def draw_color(self, context, node):
-        # TODO get from type
-        return (0.78, 0.78, 0.16, 1.0)
+        return MxNodeInputSocket.get_color(node.prop.mx_nodedef.getOutput(self.name).getType())
 
 
 class MxNode(bpy.types.ShaderNode):
@@ -255,16 +237,16 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        return getattr(self.prop, self.inputs[in_key].node_prop_name)
+        return getattr(self.prop, self._input_prop(self.inputs[in_key].name))
 
     def get_param_value(self, name):
         return getattr(self.prop, self._param_prop(name))
 
     def get_nodedef_input(self, in_key: [str, int]):
-        return self.prop.mx_nodedef.getInput(self.inputs[in_key].node_prop_name[3:])
+        return self.prop.mx_nodedef.getInput(self.inputs[in_key].name)
 
     def get_nodedef_output(self, out_key: [str, int]):
-        return self.prop.mx_nodedef.getOutput(code_str(self.outputs[out_key].name))
+        return self.prop.mx_nodedef.getOutput(self.outputs[out_key].name)
 
     @property
     def prop(self):
@@ -417,17 +399,10 @@ class MxNode(bpy.types.ShaderNode):
         return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
-        input = self.inputs.new(MxNodeInputSocket.bl_idname,
-                                mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname')
-                                else title_str(mx_input.getName()))
-        input.node_prop_name = self._input_prop(mx_input.getName())
-        return input
+        return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
 
     def create_output(self, mx_output):
-        output = self.outputs.new('NodeSocketShader',
-                                  mx_output.getAttribute('uiname') if mx_output.hasAttribute('uiname')
-                                  else title_str(mx_output.getName()))
-        return output
+        return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
 
 
 def parse_val(prop_type, val, first_only=False):
