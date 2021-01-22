@@ -63,10 +63,14 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
 
     material.HDUSD_MATERIAL_PT_context,
     material.HDUSD_MATERIAL_PT_preview,
+    material.HDUSD_MATERIAL_OP_new_mx_node_tree,
     material.HDUSD_MATERIAL_PT_material,
     material.HDUSD_MATERIAL_PT_output_surface,
     material.HDUSD_MATERIAL_PT_output_displacement,
     material.HDUSD_MATERIAL_PT_output_volume,
+    material.HDUSD_MATERIAL_PT_mx_output_surface,
+    material.HDUSD_MATERIAL_PT_mx_output_displacement,
+    material.HDUSD_MATERIAL_PT_mx_output_volume,
 
     world.HDUSD_WORLD_PT_surface,
 

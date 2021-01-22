@@ -16,6 +16,7 @@ import bpy
 
 from . import HdUSD_Panel, HdUSD_ChildPanel
 from ..export.material import get_material_output_node
+from ..mx_nodes.node_tree import MxNodeTree
 
 
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
@@ -95,6 +96,19 @@ class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
         self.layout.template_preview(context.material)
 
 
+class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
+    """Link new MaterialX node tree for selected material"""
+    bl_idname = "hdusd.new_mx_node_tree"
+    bl_label = "Link New MaterialX"
+
+    def execute(self, context):
+        mat = context.material
+        node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+        mat.hdusd.mx_node_tree = node_tree
+
+        return {"FINISHED"}
+
+
 class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
@@ -104,12 +118,13 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         return context.material and super().poll(context)
 
     def draw(self, context):
+        mat_hdusd = context.material.hdusd
         layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
 
-
-        pass
+        col = layout.column(align=True)
+        col.label(text="MaterialX")
+        col.template_ID(mat_hdusd, "mx_node_tree",
+                        new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
 
     def draw_header(self, context):
         layout = self.layout
@@ -119,6 +134,10 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
     bl_label = ""
     bl_parent_id = 'HDUSD_MATERIAL_PT_material'
+
+    @classmethod
+    def poll(cls, context):
+        return not bool(context.material.hdusd.mx_node_tree)
 
     def draw(self, context):
         layout = self.layout
@@ -154,8 +173,21 @@ class HDUSD_MATERIAL_PT_mx_output_node(HdUSD_ChildPanel):
 
     @classmethod
     def poll(cls, context):
-        return context.material and super().poll(context)
+        return bool(context.material.hdusd.mx_node_tree)
 
     def draw(self, context):
         pass
 
+
+class HDUSD_MATERIAL_PT_mx_output_surface(HDUSD_MATERIAL_PT_mx_output_node):
+    bl_label = "MX Surface"
+
+
+class HDUSD_MATERIAL_PT_mx_output_displacement(HDUSD_MATERIAL_PT_mx_output_node):
+    bl_label = "MX Displacement"
+    bl_options = {'DEFAULT_CLOSED'}
+
+
+class HDUSD_MATERIAL_PT_mx_output_volume(HDUSD_MATERIAL_PT_mx_output_node):
+    bl_label = "MX Volume"
+    bl_options = {'DEFAULT_CLOSED'}
