@@ -176,7 +176,17 @@ class HDUSD_MATERIAL_PT_mx_output_node(HdUSD_ChildPanel):
         return bool(context.material.hdusd.mx_node_tree)
 
     def draw(self, context):
-        pass
+        node_tree = context.material.hdusd.mx_node_tree
+        output_node = node_tree.output_node
+
+        layout = self.layout
+
+        if not output_node:
+            layout.label(text="No output node")
+            return
+
+        input = output_node.inputs[0]
+        layout.template_node_view(node_tree, output_node, input)
 
 
 class HDUSD_MATERIAL_PT_mx_output_surface(HDUSD_MATERIAL_PT_mx_output_node):

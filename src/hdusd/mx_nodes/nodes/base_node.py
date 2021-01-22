@@ -33,11 +33,11 @@ from ...utils import title_str, code_str
 from . import log
 
 
-def is_shader_type(type_name):
-    return not (type_name in ('string', 'float', 'integer', 'boolean', 'filename') or
-                type_name.startswith('color') or
-                type_name.startswith('vector') or
-                type_name.endswith('array'))
+def is_shader_type(mx_type):
+    return not (mx_type in ('string', 'float', 'integer', 'boolean', 'filename') or
+                mx_type.startswith('color') or
+                mx_type.startswith('vector') or
+                mx_type.endswith('array'))
 
 
 class MxNodeInputSocket(bpy.types.NodeSocket):
@@ -48,14 +48,18 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     def get_color(type_name):
         return (0.78, 0.78, 0.16, 1.0) if is_shader_type(type_name) else (0.16, 0.78, 0.16, 1.0)
 
+    @property
+    def default_value(self):
+        return (0.0, 0.0, 0.0, 0.0)
+
     def draw(self, context, layout, node, text):
         mx_input = node.prop.mx_nodedef.getInput(self.name)
-        type_name = mx_input.getType()
+        nd_type = mx_input.getType()
 
-        if self.is_linked or is_shader_type(type_name):
+        if self.is_linked or is_shader_type(nd_type):
             uiname = mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname') else \
                      title_str(mx_input.getName())
-            uitype = title_str(type_name)
+            uitype = title_str(nd_type)
             layout.label(text=uiname if uiname == uitype else f"{uiname}: {uitype}")
         else:
             layout.prop(node.prop, MxNode._input_prop(self.name))
@@ -201,6 +205,9 @@ class MxNode(bpy.types.ShaderNode):
         node = doc.addNode(nodedef.getNodeString(), code_str(self.name), nd_output.getType())
         for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
+            if is_shader_type(nd_input.getType()) and not isinstance(val, mx.Node):
+                continue
+
             input = node.addInput(nd_input.getName(), nd_input.getType())
             set_value(input, val, nd_input.getType())
 

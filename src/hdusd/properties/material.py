@@ -22,7 +22,3 @@ class MaterialProperties(HdUSDProperties):
     bl_type = bpy.types.Material
 
     mx_node_tree: bpy.props.PointerProperty(type=MxNodeTree)
-    use_mx_node_tree: bpy.props.BoolProperty(
-        name="Use MaterialX Node Tree",
-        default=False,
-    )
