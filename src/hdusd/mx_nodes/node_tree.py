@@ -35,7 +35,13 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
     @property
     def output_node(self):
-        return next((node for node in self.nodes if isinstance(node, MxNode_Output)), None)
+        return next((node for node in self.nodes
+                     if node.bl_idname == 'hdusd.MxNode_ND_surfacematerial'), None)
+
+    @property
+    def output_node_volume(self):
+        return next((node for node in self.nodes
+                     if node.bl_idname == 'hdusd.MxNode_ND_volumematerial'), None)
 
     def export(self) -> mx.Document:
         output_node = self.output_node
