@@ -48,10 +48,6 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     def get_color(type_name):
         return (0.78, 0.78, 0.16, 1.0) if is_shader_type(type_name) else (0.16, 0.78, 0.16, 1.0)
 
-    @property
-    def default_value(self):
-        return (0.0, 0.0, 0.0, 0.0)
-
     def draw(self, context, layout, node, text):
         mx_input = node.prop.mx_nodedef.getInput(self.name)
         nd_type = mx_input.getType()
@@ -408,6 +404,74 @@ class MxNode(bpy.types.ShaderNode):
         return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
+        mx_type = mx_input.getType()
+        input = None
+
+        # while True:     # one way loop just for having break instead using nested 'if else'
+        #     if mx_type == 'string':
+        #         if mx_param.hasAttribute('enum'):
+        #             prop_type = EnumProperty
+        #             items = parse_val(prop_type, mx_param.getAttribute('enum'))
+        #             prop_attrs['items'] = tuple((it, title_str(it), title_str(it))
+        #                                         for it in items)
+        #             break
+        #         prop_type = StringProperty
+        #         break
+        #     if mx_type == 'filename':
+        #         prop_type = StringProperty
+        #         prop_attrs['subtype'] = 'FILE_PATH'
+        #         break
+        #     if mx_type == 'integer':
+        #         prop_type = IntProperty
+        #         break
+        #     if mx_type == 'float':
+        #         prop_type = FloatProperty
+        #         break
+        #     if mx_type == 'boolean':
+        #         prop_type = BoolProperty
+        #         break
+        #     if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
+        #                    'material', 'BSDF', 'VDF', 'EDF'):
+        #         prop_type = StringProperty
+        #         break
+        #
+        #     m = re.fullmatch('matrix(\d)(\d)', mx_type)
+        #     if m:
+        #         prop_type = FloatVectorProperty
+        #         prop_attrs['subtype'] = 'MATRIX'
+        #         prop_attrs['size'] = int(m[1]) * int(m[2])
+        #         break
+        #
+        #     m = re.fullmatch('color(\d)', mx_type)
+        #     if m:
+        #         prop_type = FloatVectorProperty
+        #         prop_attrs['subtype'] = 'COLOR'
+        #         prop_attrs['size'] = int(m[1])
+        #         break
+        #
+        #     m = re.fullmatch('vector(\d)', mx_type)
+        #     if m:
+        #         prop_type = FloatVectorProperty
+        #         dim = int(m[1])
+        #         prop_attrs['subtype'] = 'XYZ' if dim == 3 else 'NONE'
+        #         prop_attrs['size'] = dim
+        #         break
+        #
+        #     m = re.fullmatch('(.+)array', mx_type)
+        #     if m:
+        #         prop_type = StringProperty
+        #         # TODO: Change to CollectionProperty
+        #         break
+        #
+        #     prop_type = StringProperty
+        #     log.warn("Unsupported mx_type", mx_type, mx_param, mx_param.getParent().getName())
+        #     break
+
+        if mx_type.endswith('shader'):
+            input = self.inputs.new('NodeSocketShader', mx_input.getName())
+            input.name = title_str(mx_input.getName())
+            return input
+
         return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
 
     def create_output(self, mx_output):
