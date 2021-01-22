@@ -33,20 +33,30 @@ from ...utils import title_str, code_str
 from . import log
 
 
+def is_shader_type(type_name):
+    return not (type_name in ('string', 'float', 'integer', 'boolean', 'filename') or
+                type_name.startswith('color') or
+                type_name.startswith('vector') or
+                type_name.endswith('array'))
+
+
 class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_idname = 'hdusd.MxNodeInputSocket'
     bl_label = "MX Input Socket"
 
     @staticmethod
     def get_color(type_name):
-        return (0.78, 0.78, 0.16, 1.0)
+        return (0.78, 0.78, 0.16, 1.0) if is_shader_type(type_name) else (0.16, 0.78, 0.16, 1.0)
 
     def draw(self, context, layout, node, text):
         mx_input = node.prop.mx_nodedef.getInput(self.name)
+        type_name = mx_input.getType()
 
-        if self.is_linked:
-            layout.label(text=mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname')
-                         else title_str(mx_input.getName()))
+        if self.is_linked or is_shader_type(type_name):
+            uiname = mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname') else \
+                     title_str(mx_input.getName())
+            uitype = title_str(type_name)
+            layout.label(text=uiname if uiname == uitype else f"{uiname}: {uitype}")
         else:
             layout.prop(node.prop, MxNode._input_prop(self.name))
 
@@ -60,8 +70,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
 
     def draw(self, context, layout, node, text):
         mx_output = node.prop.mx_nodedef.getOutput(self.name)
-        layout.label(text=mx_output.getAttribute('uiname') if mx_output.hasAttribute('uiname')
-                     else title_str(mx_output.getName()))
+        layout.label(text=title_str(mx_output.getType()))
 
     def draw_color(self, context, node):
         return MxNodeInputSocket.get_color(node.prop.mx_nodedef.getOutput(self.name).getType())
@@ -164,13 +173,6 @@ class MxNode(bpy.types.ShaderNode):
                 continue
 
             layout.prop(prop, self._param_prop(mx_param.getName()))
-
-    def draw_label(self):
-        label = self.bl_label
-        if len(self.mx_nodedefs) > 1:
-            label += f": {title_str(self._nodedef_data_type(self.prop.mx_nodedef))}"
-
-        return label
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
@@ -452,39 +454,3 @@ def create_node_types(file_paths):
         MxNode_classes.append(MxNode.new(nd_types))
 
     return NodeDef_classes, MxNode_classes
-
-
-class MxNode_Output(MxNode):
-    bl_idname = 'hdusd.MxNode_output'
-    bl_label = "Material Output"
-    bl_description = "Material Output"
-    bl_width_default = 150
-
-    def init(self, context):
-        self.inputs.new('NodeSocketShader', "Surface")
-        self.inputs.new('NodeSocketShader', "Volume")
-        self.inputs.new('NodeSocketShader', "Displacement")
-
-    @property
-    def prop(self):
-        return None
-
-    def draw_buttons(self, context, layout):
-        pass
-
-    def compute(self, out_key, **kwargs):
-        log("compute", self)
-
-        node = self.get_input_link("Surface", **kwargs)
-        if not node:
-            return None
-
-        if node.getType() == 'surfaceshader':
-            return node
-
-        doc = kwargs['doc']
-        surface = doc.addNode('surface', 'surface', 'surfaceshader')
-        input = surface.addInput('bsdf', node.getType())
-        input.setNodeName(node.getName())
-
-        return surface

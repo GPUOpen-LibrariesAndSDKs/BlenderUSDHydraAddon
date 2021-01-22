@@ -16,9 +16,6 @@ import bpy
 
 import MaterialX as mx
 
-from .. import utils
-from .nodes.base_node import MxNode_Output
-
 
 class MxNodeTree(bpy.types.ShaderNodeTree):
     """
@@ -51,7 +48,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         doc = mx.createDocument()
         doc.setVersionString("1.38")
 
-        surfacematerial = output_node.compute('Out', doc=doc)
+        surfacematerial = output_node.compute(0, doc=doc)
         if not surfacematerial:
             return None
 
