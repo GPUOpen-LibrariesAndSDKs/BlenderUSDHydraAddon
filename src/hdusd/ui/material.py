@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import bpy
 
-from . import HdUSD_Panel
+from . import HdUSD_Panel, HdUSD_ChildPanel
 from ..export.material import get_material_output_node
 
 
@@ -94,13 +95,30 @@ class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
         self.layout.template_preview(context.material)
 
 
-class HDUSD_MaterialOutputSocket(HdUSD_Panel):
+class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
 
     @classmethod
     def poll(cls, context):
         return context.material and super().poll(context)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+
+        pass
+
+    def draw_header(self, context):
+        layout = self.layout
+        layout.label(text=f"Material: {context.material.name}")
+
+
+class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
+    bl_label = ""
+    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
 
     def draw(self, context):
         layout = self.layout
@@ -116,14 +134,28 @@ class HDUSD_MaterialOutputSocket(HdUSD_Panel):
         layout.template_node_view(node_tree, output_node, input)
 
 
-class HDUSD_MATERIAL_PT_surface(HDUSD_MaterialOutputSocket):
+class HDUSD_MATERIAL_PT_output_surface(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Surface"
 
 
-class HDUSD_MATERIAL_PT_displacement(HDUSD_MaterialOutputSocket):
+class HDUSD_MATERIAL_PT_output_displacement(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Displacement"
+    bl_options = {'DEFAULT_CLOSED'}
 
 
-class HDUSD_MATERIAL_PT_volume(HDUSD_MaterialOutputSocket):
+class HDUSD_MATERIAL_PT_output_volume(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Volume"
+    bl_options = {'DEFAULT_CLOSED'}
+
+
+class HDUSD_MATERIAL_PT_mx_output_node(HdUSD_ChildPanel):
+    bl_label = ""
+    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
+
+    @classmethod
+    def poll(cls, context):
+        return context.material and super().poll(context)
+
+    def draw(self, context):
+        pass
 
