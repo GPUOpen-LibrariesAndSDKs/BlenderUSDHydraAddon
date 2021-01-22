@@ -33,15 +33,42 @@ from ...utils import title_str, code_str
 from . import log
 
 
-class MxNodeSocket(bpy.types.NodeSocket):
-    bl_idname = 'hdusd.MxNodeSocket'
-    bl_label = "MaterialX Node Socket"
+class MxNodeInputSocket(bpy.types.NodeSocket):
+    bl_idname = 'hdusd.MxNodeInputSocket'
+    bl_label = "MX Input Socket"
 
     # TODO different type for draw color
     # socket_type: bpy.props.EnumProperty()
 
     # corresponding property name (if any) on node
     node_prop_name: bpy.props.StringProperty(default='')
+    mx_input: mx.Input
+
+    def draw(self, context, layout, node, text):
+        # if not linked, we get custom property from the node
+        # rather than use the default val like blender sockets
+        # this allows custom property UI
+
+        if self.is_linked or self.name.endswith("shader"):
+            layout.label(text=self.name)
+        else:
+            layout.prop(node.prop, self.node_prop_name)
+
+    def draw_color(self, context, node):
+        # TODO get from type
+        return (0.78, 0.78, 0.16, 1.0)
+
+
+class MxNodeOutputSocket(bpy.types.NodeSocket):
+    bl_idname = 'hdusd.MxNodeOutputSocket'
+    bl_label = "MX Output Socket"
+
+    # TODO different type for draw color
+    # socket_type: bpy.props.EnumProperty()
+
+    # corresponding property name (if any) on node
+    node_prop_name: bpy.props.StringProperty(default='')
+    mx_output: mx.Output
 
     def draw(self, context, layout, node, text):
         # if not linked, we get custom property from the node
@@ -390,7 +417,7 @@ class MxNode(bpy.types.ShaderNode):
         return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
-        input = self.inputs.new('hdusd.MxNodeSocket',
+        input = self.inputs.new(MxNodeInputSocket.bl_idname,
                                 mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname')
                                 else title_str(mx_input.getName()))
         input.node_prop_name = self._input_prop(mx_input.getName())
