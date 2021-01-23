@@ -242,16 +242,16 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        return getattr(self.prop, self._input_prop(self.inputs[in_key].name))
+        return getattr(self.prop, self._input_prop(self.inputs[in_key].identifier))
 
     def get_param_value(self, name):
         return getattr(self.prop, self._param_prop(name))
 
     def get_nodedef_input(self, in_key: [str, int]):
-        return self.prop.mx_nodedef.getInput(self.inputs[in_key].name)
+        return self.prop.mx_nodedef.getInput(self.inputs[in_key].identifier)
 
     def get_nodedef_output(self, out_key: [str, int]):
-        return self.prop.mx_nodedef.getOutput(self.outputs[out_key].name)
+        return self.prop.mx_nodedef.getOutput(self.outputs[out_key].identifier)
 
     @property
     def prop(self):
@@ -404,74 +404,6 @@ class MxNode(bpy.types.ShaderNode):
         return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
-        mx_type = mx_input.getType()
-        input = None
-
-        # while True:     # one way loop just for having break instead using nested 'if else'
-        #     if mx_type == 'string':
-        #         if mx_param.hasAttribute('enum'):
-        #             prop_type = EnumProperty
-        #             items = parse_val(prop_type, mx_param.getAttribute('enum'))
-        #             prop_attrs['items'] = tuple((it, title_str(it), title_str(it))
-        #                                         for it in items)
-        #             break
-        #         prop_type = StringProperty
-        #         break
-        #     if mx_type == 'filename':
-        #         prop_type = StringProperty
-        #         prop_attrs['subtype'] = 'FILE_PATH'
-        #         break
-        #     if mx_type == 'integer':
-        #         prop_type = IntProperty
-        #         break
-        #     if mx_type == 'float':
-        #         prop_type = FloatProperty
-        #         break
-        #     if mx_type == 'boolean':
-        #         prop_type = BoolProperty
-        #         break
-        #     if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
-        #                    'material', 'BSDF', 'VDF', 'EDF'):
-        #         prop_type = StringProperty
-        #         break
-        #
-        #     m = re.fullmatch('matrix(\d)(\d)', mx_type)
-        #     if m:
-        #         prop_type = FloatVectorProperty
-        #         prop_attrs['subtype'] = 'MATRIX'
-        #         prop_attrs['size'] = int(m[1]) * int(m[2])
-        #         break
-        #
-        #     m = re.fullmatch('color(\d)', mx_type)
-        #     if m:
-        #         prop_type = FloatVectorProperty
-        #         prop_attrs['subtype'] = 'COLOR'
-        #         prop_attrs['size'] = int(m[1])
-        #         break
-        #
-        #     m = re.fullmatch('vector(\d)', mx_type)
-        #     if m:
-        #         prop_type = FloatVectorProperty
-        #         dim = int(m[1])
-        #         prop_attrs['subtype'] = 'XYZ' if dim == 3 else 'NONE'
-        #         prop_attrs['size'] = dim
-        #         break
-        #
-        #     m = re.fullmatch('(.+)array', mx_type)
-        #     if m:
-        #         prop_type = StringProperty
-        #         # TODO: Change to CollectionProperty
-        #         break
-        #
-        #     prop_type = StringProperty
-        #     log.warn("Unsupported mx_type", mx_type, mx_param, mx_param.getParent().getName())
-        #     break
-
-        if mx_type.endswith('shader'):
-            input = self.inputs.new('NodeSocketShader', mx_input.getName())
-            input.name = title_str(mx_input.getName())
-            return input
-
         return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
 
     def create_output(self, mx_output):

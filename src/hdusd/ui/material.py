@@ -47,8 +47,8 @@ class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
 
             row = layout.row()
 
-            row.template_list("MATERIAL_UL_matslots", "", object, "material_slots", object, "active_material_index",
-                              rows=rows)
+            row.template_list("MATERIAL_UL_matslots", "", object, "material_slots", object,
+                              "active_material_index", rows=rows)
 
             col = row.column(align=True)
             col.operator("object.material_slot_add", icon='ADD', text="")
@@ -122,7 +122,7 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         layout = self.layout
 
         col = layout.column(align=True)
-        col.label(text="MaterialX")
+        col.label(text="MaterialX Node Tree:")
         col.template_ID(mat_hdusd, "mx_node_tree",
                         new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
 
@@ -164,40 +164,4 @@ class HDUSD_MATERIAL_PT_output_displacement(HDUSD_MATERIAL_PT_output_node):
 
 class HDUSD_MATERIAL_PT_output_volume(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Volume"
-    bl_options = {'DEFAULT_CLOSED'}
-
-
-class HDUSD_MATERIAL_PT_mx_output_node(HdUSD_ChildPanel):
-    bl_label = ""
-    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
-
-    @classmethod
-    def poll(cls, context):
-        return bool(context.material.hdusd.mx_node_tree)
-
-    def draw(self, context):
-        node_tree = context.material.hdusd.mx_node_tree
-        output_node = node_tree.output_node
-
-        layout = self.layout
-
-        if not output_node:
-            layout.label(text="No output node")
-            return
-
-        input = output_node.inputs[0]
-        layout.template_node_view(node_tree, output_node, input)
-
-
-class HDUSD_MATERIAL_PT_mx_output_surface(HDUSD_MATERIAL_PT_mx_output_node):
-    bl_label = "MX Surface"
-
-
-class HDUSD_MATERIAL_PT_mx_output_displacement(HDUSD_MATERIAL_PT_mx_output_node):
-    bl_label = "MX Displacement"
-    bl_options = {'DEFAULT_CLOSED'}
-
-
-class HDUSD_MATERIAL_PT_mx_output_volume(HDUSD_MATERIAL_PT_mx_output_node):
-    bl_label = "MX Volume"
     bl_options = {'DEFAULT_CLOSED'}
