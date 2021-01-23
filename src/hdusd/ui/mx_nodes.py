@@ -134,7 +134,7 @@ class HDUSD_MX_OP_assign_to_object(HdUSD_Operator):
 
 
 class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
-    bl_label = "MaterialX Import/Export"
+    bl_label = "Import/Export"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -148,13 +148,6 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
         layout = self.layout
         tree = context.space_data.edit_tree
         obj = context.object
-
-        col = layout.column(align=True)
-        col.enabled = HDUSD_MX_OP_assign_to_object.enabled(context)
-        col.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
-
-        if obj and obj.hdusd.material_x and obj.hdusd.material_x.name == tree.name:
-            col.label(text="Assigned")
 
         col = layout.column()
         col.enabled = HDUSD_MX_OP_export_file.enabled(context)

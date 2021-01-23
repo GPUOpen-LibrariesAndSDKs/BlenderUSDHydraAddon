@@ -227,11 +227,8 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
 
 def _assign_materials(obj_prim, obj, usd_mesh):
     usd_mat = None
-    if obj.hdusd.material_x:
-        usd_mat = material.sync_mx(obj_prim, obj.hdusd.material_x, obj=obj)
-
-    elif obj.material_slots and obj.material_slots[0].material:
-        usd_mat = material.sync(obj_prim, obj.material_slots[0].material, obj=obj)
+    if obj.material_slots and obj.material_slots[0].material:
+        usd_mat = material.sync(obj_prim, obj.material_slots[0].material, obj)
 
     if usd_mat:
         UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_mat)
