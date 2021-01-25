@@ -301,7 +301,7 @@ class MxNode(bpy.types.ShaderNode):
 
         data = {
             'bl_label': title_str(nd.getNodeString()),
-            'bl_idname': f"{MxNode.bl_idname}_{nd.getName()}",
+            'bl_idname': f"{MxNode.bl_idname}_{nd.getNodeString()}",
             'bl_description': nd.getAttribute('doc') if nd.hasAttribute('doc')
                    else title_str(nd.getName()),
             'bl_width_default': 250 if len(ui_folders) > 2 else 200,

@@ -103,8 +103,20 @@ class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
 
     def execute(self, context):
         mat = context.material
-        node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
-        mat.hdusd.mx_node_tree = node_tree
+        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+        mx_node_tree.create_basic_nodes()
+        mat.hdusd.mx_node_tree = mx_node_tree
+
+        # trying to show MaterialX area with created node tree
+        screen = context.screen
+        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
+        if not area:
+            area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
+
+        if area:
+            area.ui_type = 'hdusd.MxNodeTree'
+            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+            space.node_tree = mx_node_tree
 
         return {"FINISHED"}
 

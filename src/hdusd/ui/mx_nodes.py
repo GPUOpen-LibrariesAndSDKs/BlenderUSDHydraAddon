@@ -117,20 +117,15 @@ class HDUSD_MX_OP_export_console(HdUSD_Operator):
         return bool(context.space_data.edit_tree.output_node)
 
 
-class HDUSD_MX_OP_assign_to_object(HdUSD_Operator):
-    bl_idname = "hdusd.mx_assign_to_object"
-    bl_label = "Assign to Object"
-    bl_description = "Assign MaterialX to selected object"
+class HDUSD_MX_OP_create_basic_nodes(HdUSD_Operator):
+    bl_idname = "hdusd.mx_create_basic_nodes"
+    bl_label = "Create Basic Nodes"
+    bl_description = "Create basic MaterialX nodes"
 
-    # Perform the operator action.
     def execute(self, context):
-        context.object.hdusd.material_x = context.space_data.edit_tree
+        mx_node_tree = context.space_data.edit_tree
+        mx_node_tree.create_basic_nodes()
         return {"FINISHED"}
-
-    @staticmethod
-    def enabled(context):
-        return bool(context.object and context.object.type in ('MESH',)
-                    and context.space_data.edit_tree.output_node)
 
 
 class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
@@ -146,8 +141,8 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
 
     def draw(self, context):
         layout = self.layout
-        tree = context.space_data.edit_tree
-        obj = context.object
+
+        layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname)
 
         col = layout.column()
         col.enabled = HDUSD_MX_OP_export_file.enabled(context)
