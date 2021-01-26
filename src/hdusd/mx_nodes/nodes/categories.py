@@ -17,7 +17,6 @@ from collections import defaultdict
 from nodeitems_utils import NodeCategory, NodeItem
 
 from ...utils import title_str
-from .base_node import MxNode_Output
 
 
 class MxNodeCategory(NodeCategory):
@@ -27,19 +26,18 @@ class MxNodeCategory(NodeCategory):
 
 
 def get_node_categories():
-    from . import node_types
+    from . import mx_node_classes
 
     d = defaultdict(list)
-    for n_type in node_types:
-        nodegroup = n_type.mx_nodedefs[0].getAttribute('nodegroup')
-        d[nodegroup].append(n_type)
+    for MxNode_cls in mx_node_classes:
+        nodegroup = MxNode_cls.mx_nodedefs[0].getAttribute('nodegroup')
+        d[nodegroup].append(MxNode_cls)
 
     categories = []
-    for nodegroup, n_types in d.items():
+    for nodegroup,  category_classes in d.items():
         categories.append(
             MxNodeCategory('HdUSD_MX_NG_' + nodegroup, title_str(nodegroup),
-                           items=[NodeItem(n_type.bl_idname) for n_type in n_types]))
+                           items=[NodeItem(MxNode_cls.bl_idname)
+                                  for MxNode_cls in category_classes]))
 
-    categories.append(
-        MxNodeCategory('HdUSD_MX_NG_output', "Output", items=[NodeItem(MxNode_Output.bl_idname)]))
     return categories

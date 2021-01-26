@@ -44,7 +44,7 @@ class CachedStageProp(bpy.types.PropertyGroup, stage_cache.CachedStage):
         pass
 
 
-from . import scene, object, node, usd_list
+from . import scene, object, node, usd_list, material
 register, unregister = bpy.utils.register_classes_factory((
     CachedStageProp,
 
@@ -57,5 +57,7 @@ register, unregister = bpy.utils.register_classes_factory((
     scene.RenderSettings,
     scene.SceneProperties,
 
-    object.ObjectProperties
+    object.ObjectProperties,
+
+    material.MaterialProperties,
 ))

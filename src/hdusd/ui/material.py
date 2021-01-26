@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import bpy
 
-from . import HdUSD_Panel
+from . import HdUSD_Panel, HdUSD_ChildPanel
 from ..export.material import get_material_output_node
+from ..mx_nodes.node_tree import MxNodeTree
 
 
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
@@ -45,8 +47,8 @@ class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
 
             row = layout.row()
 
-            row.template_list("MATERIAL_UL_matslots", "", object, "material_slots", object, "active_material_index",
-                              rows=rows)
+            row.template_list("MATERIAL_UL_matslots", "", object, "material_slots", object,
+                              "active_material_index", rows=rows)
 
             col = row.column(align=True)
             col.operator("object.material_slot_add", icon='ADD', text="")
@@ -94,13 +96,60 @@ class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
         self.layout.template_preview(context.material)
 
 
-class HDUSD_MaterialOutputSocket(HdUSD_Panel):
+class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
+    """Link new MaterialX node tree for selected material"""
+    bl_idname = "hdusd.new_mx_node_tree"
+    bl_label = "Link New MaterialX"
+
+    def execute(self, context):
+        mat = context.material
+        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+        mx_node_tree.create_basic_nodes()
+        mat.hdusd.mx_node_tree = mx_node_tree
+
+        # trying to show MaterialX area with created node tree
+        screen = context.screen
+        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
+        if not area:
+            area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
+
+        if area:
+            area.ui_type = 'hdusd.MxNodeTree'
+            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+            space.node_tree = mx_node_tree
+
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
 
     @classmethod
     def poll(cls, context):
         return context.material and super().poll(context)
+
+    def draw(self, context):
+        mat_hdusd = context.material.hdusd
+        layout = self.layout
+
+        col = layout.column(align=True)
+        col.label(text="MaterialX Node Tree:")
+        col.template_ID(mat_hdusd, "mx_node_tree",
+                        new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
+
+    def draw_header(self, context):
+        layout = self.layout
+        layout.label(text=f"Material: {context.material.name}")
+
+
+class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
+    bl_label = ""
+    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
+
+    @classmethod
+    def poll(cls, context):
+        return not bool(context.material.hdusd.mx_node_tree)
 
     def draw(self, context):
         layout = self.layout
@@ -116,14 +165,15 @@ class HDUSD_MaterialOutputSocket(HdUSD_Panel):
         layout.template_node_view(node_tree, output_node, input)
 
 
-class HDUSD_MATERIAL_PT_surface(HDUSD_MaterialOutputSocket):
+class HDUSD_MATERIAL_PT_output_surface(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Surface"
 
 
-class HDUSD_MATERIAL_PT_displacement(HDUSD_MaterialOutputSocket):
+class HDUSD_MATERIAL_PT_output_displacement(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Displacement"
+    bl_options = {'DEFAULT_CLOSED'}
 
 
-class HDUSD_MATERIAL_PT_volume(HDUSD_MaterialOutputSocket):
+class HDUSD_MATERIAL_PT_output_volume(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Volume"
-
+    bl_options = {'DEFAULT_CLOSED'}

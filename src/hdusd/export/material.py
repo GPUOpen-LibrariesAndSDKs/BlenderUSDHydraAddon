@@ -20,7 +20,7 @@ import MaterialX as mx
 from . import sdf_path
 from .. import utils
 from ..utils import logging
-log = logging.Log(tag='export.Material')
+log = logging.Log(tag='export.material')
 
 
 def sdf_name(mat: bpy.types.Material, input_socket_key='Surface'):
@@ -42,43 +42,43 @@ def get_material_output_node(material):
                 None)
 
 
-def get_material_input_node(material, input_socket_key: str):
+def get_material_input_node(mat):
     """ Find the material node attached to output node 'input_socket_key' input """
-    output_node = get_material_output_node(material)
+    output_node = get_material_output_node(mat)
     if not output_node:
         return None
 
-    socket_in = output_node.inputs[input_socket_key]
+    socket_in = output_node.inputs['Surface']
     if not socket_in.is_linked or not socket_in.links[0].is_valid:
         return None
 
     return socket_in.links[0].from_node
 
 
-def sync(materials_prim, mat: bpy.types.Material, input_socket_key='Surface', *,
-         obj: bpy.types.Object = None):
+def sync(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
     """
     If material exists: returns existing material unless force_update is used
     In other cases: returns None
     """
 
-    log(f"sync {mat} '{input_socket_key}'; obj {obj}")
+    log("sync", mat, obj)
+
+    if mat.hdusd.mx_node_tree:
+        return sync_mx(materials_prim, mat.hdusd.mx_node_tree, obj)
 
     output_node = get_material_output_node(mat)
     if not output_node:
         log("No output node", mat)
         return None
 
-    node = get_material_input_node(mat, input_socket_key)
+    node = get_material_input_node(mat)
     if not node:
         return None
 
-    # TODO store refs to existing materials for reuse
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
     usd_mat = UsdShade.Material.Define(stage, mat_path)
 
-    # TODO use MaterialX for material
     # create appropriate USD shader
     if node.bl_idname == 'ShaderNodeBsdfPrincipled':
         create_principled_shader(usd_mat, node)
@@ -87,31 +87,23 @@ def sync(materials_prim, mat: bpy.types.Material, input_socket_key='Surface', *,
     elif node.bl_idname == 'ShaderNodeBsdfDiffuse':  # used by Material Preview
         create_diffuse_shader(usd_mat, node)
     else:
-        log.info(f"unsupported node {node.bl_idname} of material {mat.name_full}")
-
-    # TODO export volumetric and displacement
+        log.warn("Unsupported node", node, mat)
 
     return usd_mat
 
 
-# TODO move parsing to shader nodes parser
 def get_input_default(node, socket_key):
-    def _parse_val(val):
-        """ Turn a blender node val or default value for input into something that works well with USD """
+    val = node.inputs[socket_key].default_value
+    if isinstance(val, (int, float)):
+        return float(val)
 
-        if isinstance(val, (int, float)):
-            return float(val)
+    if len(val) in (3, 4):
+        return tuple(val[:3])
 
-        if len(val) in (3, 4):
-            return tuple(val[:3])
+    if isinstance(val, str):
+        return val
 
-        if isinstance(val, str):
-            return val
-
-        raise TypeError("Unknown value type to pass to rpr", val)
-
-    socket_in = node.inputs[socket_key]
-    return _parse_val(socket_in.default_value)
+    raise TypeError("Unknown value type", val)
 
 
 def create_principled_shader(usd_mat, node):
@@ -160,7 +152,7 @@ def create_emission_shader(usd_mat, node):
     usd_mat.CreateSurfaceOutput().ConnectToSource(pbr_shader, "surface")
 
 
-def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object = None):
+def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
     """ Recreates existing material """
 
     log("sync_update", mat)
@@ -171,34 +163,11 @@ def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object =
     if usd_mat.IsValid():
         stage.RemovePrim(mat_path)
 
-    sync(materials_prim, mat, obj=obj)
-
-    # TODO update displacement
-    # TODO update volume
+    sync(materials_prim, mat, obj)
 
 
-def create_materialx_shader(usd_mat):
-    import shutil
-    from .. import utils
-
-    stage = usd_mat.GetPrim().GetStage()
-    shader_key = f"{usd_mat.GetPath()}/rpr_materialx_node"
-
-    shader = UsdShade.Shader.Define(stage, shader_key)
-    shader.CreateIdAttr("rpr_materialx_node")
-
-    shutil.copyfile("standard_surface_carpaint.mtlx", str(utils.temp_pid_dir() / "standard_surface_carpaint.mtlx"))
-
-    shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(r"./standard_surface_carpaint.mtlx")
-    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set("Car_Paint")
-    
-    out = usd_mat.CreateSurfaceOutput("rpr")
-    out.ConnectToSource(shader, "surface")
-
-
-def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
-            obj: bpy.types.Object = None):
-    log(f"sync_mx {mx_node_tree} '{input_socket_key}'; obj {obj}")
+def sync_mx(materials_prim, mx_node_tree, obj):
+    log("sync_mx", mx_node_tree, obj)
 
     doc = mx_node_tree.export()
     if not doc:
@@ -207,6 +176,8 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
 
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
+    surfacematerial = next(node for node in doc.getNodes()
+                           if node.getNamePath() == 'surfacematerial')
 
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"
@@ -215,7 +186,6 @@ def sync_mx(materials_prim, mx_node_tree, input_socket_key='Surface', *,
     shader.CreateIdAttr("rpr_materialx_node")
 
     shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
-    surfacematerial = doc.getNodes()[-1]    # surfacematerial is the last node
     shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(surfacematerial.getName())
 
     out = usd_mat.CreateSurfaceOutput("rpr")

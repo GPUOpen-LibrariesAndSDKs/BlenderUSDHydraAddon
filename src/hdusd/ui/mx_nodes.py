@@ -117,24 +117,19 @@ class HDUSD_MX_OP_export_console(HdUSD_Operator):
         return bool(context.space_data.edit_tree.output_node)
 
 
-class HDUSD_MX_OP_assign_to_object(HdUSD_Operator):
-    bl_idname = "hdusd.mx_assign_to_object"
-    bl_label = "Assign to Object"
-    bl_description = "Assign MaterialX to selected object"
+class HDUSD_MX_OP_create_basic_nodes(HdUSD_Operator):
+    bl_idname = "hdusd.mx_create_basic_nodes"
+    bl_label = "Create Basic Nodes"
+    bl_description = "Create basic MaterialX nodes"
 
-    # Perform the operator action.
     def execute(self, context):
-        context.object.hdusd.material_x = context.space_data.edit_tree
+        mx_node_tree = context.space_data.edit_tree
+        mx_node_tree.create_basic_nodes()
         return {"FINISHED"}
-
-    @staticmethod
-    def enabled(context):
-        return bool(context.object and context.object.type in ('MESH',)
-                    and context.space_data.edit_tree.output_node)
 
 
 class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
-    bl_label = "MaterialX Import/Export"
+    bl_label = "Import/Export"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -146,15 +141,8 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
 
     def draw(self, context):
         layout = self.layout
-        tree = context.space_data.edit_tree
-        obj = context.object
 
-        col = layout.column(align=True)
-        col.enabled = HDUSD_MX_OP_assign_to_object.enabled(context)
-        col.operator(HDUSD_MX_OP_assign_to_object.bl_idname)
-
-        if obj and obj.hdusd.material_x and obj.hdusd.material_x.name == tree.name:
-            col.label(text="Assigned")
+        layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname)
 
         col = layout.column()
         col.enabled = HDUSD_MX_OP_export_file.enabled(context)

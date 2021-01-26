@@ -33,29 +33,47 @@ from ...utils import title_str, code_str
 from . import log
 
 
-class MxNodeSocket(bpy.types.NodeSocket):
-    bl_idname = 'hdusd.MxNodeSocket'
-    bl_label = "MaterialX Node Socket"
+def is_shader_type(mx_type):
+    return not (mx_type in ('string', 'float', 'integer', 'boolean', 'filename') or
+                mx_type.startswith('color') or
+                mx_type.startswith('vector') or
+                mx_type.endswith('array'))
 
-    # TODO different type for draw color
-    # socket_type: bpy.props.EnumProperty()
 
-    # corresponding property name (if any) on node
-    node_prop_name: bpy.props.StringProperty(default='')
+class MxNodeInputSocket(bpy.types.NodeSocket):
+    bl_idname = 'hdusd.MxNodeInputSocket'
+    bl_label = "MX Input Socket"
+
+    @staticmethod
+    def get_color(type_name):
+        return (0.78, 0.78, 0.16, 1.0) if is_shader_type(type_name) else (0.16, 0.78, 0.16, 1.0)
 
     def draw(self, context, layout, node, text):
-        # if not linked, we get custom property from the node
-        # rather than use the default val like blender sockets
-        # this allows custom property UI
+        mx_input = node.prop.mx_nodedef.getInput(self.name)
+        nd_type = mx_input.getType()
 
-        if self.is_linked or self.name.endswith("shader"):
-            layout.label(text=self.name)
+        if self.is_linked or is_shader_type(nd_type):
+            uiname = mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname') else \
+                     title_str(mx_input.getName())
+            uitype = title_str(nd_type)
+            layout.label(text=uiname if uiname == uitype else f"{uiname}: {uitype}")
         else:
-            layout.prop(node.prop, self.node_prop_name)
+            layout.prop(node.prop, MxNode._input_prop(self.name))
 
     def draw_color(self, context, node):
-        # TODO get from type
-        return (0.78, 0.78, 0.16, 1.0)
+        return self.get_color(node.prop.mx_nodedef.getInput(self.name).getType())
+
+
+class MxNodeOutputSocket(bpy.types.NodeSocket):
+    bl_idname = 'hdusd.MxNodeOutputSocket'
+    bl_label = "MX Output Socket"
+
+    def draw(self, context, layout, node, text):
+        mx_output = node.prop.mx_nodedef.getOutput(self.name)
+        layout.label(text=title_str(mx_output.getType()))
+
+    def draw_color(self, context, node):
+        return MxNodeInputSocket.get_color(node.prop.mx_nodedef.getOutput(self.name).getType())
 
 
 class MxNode(bpy.types.ShaderNode):
@@ -156,13 +174,6 @@ class MxNode(bpy.types.ShaderNode):
 
             layout.prop(prop, self._param_prop(mx_param.getName()))
 
-    def draw_label(self):
-        label = self.bl_label
-        if len(self.mx_nodedefs) > 1:
-            label += f": {title_str(self._nodedef_data_type(self.prop.mx_nodedef))}"
-
-        return label
-
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
         def set_value(param, val, nd_type):
@@ -190,6 +201,9 @@ class MxNode(bpy.types.ShaderNode):
         node = doc.addNode(nodedef.getNodeString(), code_str(self.name), nd_output.getType())
         for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
+            if is_shader_type(nd_input.getType()) and not isinstance(val, mx.Node):
+                continue
+
             input = node.addInput(nd_input.getName(), nd_input.getType())
             set_value(input, val, nd_input.getType())
 
@@ -228,16 +242,16 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        return getattr(self.prop, self.inputs[in_key].node_prop_name)
+        return getattr(self.prop, self._input_prop(self.inputs[in_key].identifier))
 
     def get_param_value(self, name):
         return getattr(self.prop, self._param_prop(name))
 
     def get_nodedef_input(self, in_key: [str, int]):
-        return self.prop.mx_nodedef.getInput(self.inputs[in_key].node_prop_name[3:])
+        return self.prop.mx_nodedef.getInput(self.inputs[in_key].identifier)
 
     def get_nodedef_output(self, out_key: [str, int]):
-        return self.prop.mx_nodedef.getOutput(code_str(self.outputs[out_key].name))
+        return self.prop.mx_nodedef.getOutput(self.outputs[out_key].identifier)
 
     @property
     def prop(self):
@@ -248,15 +262,15 @@ class MxNode(bpy.types.ShaderNode):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
     @staticmethod
-    def new(NodeDef_classes):
-        mx_nodedefs = tuple(NodeDef_cls.mx_nodedef for NodeDef_cls in NodeDef_classes)
+    def new(node_def_classes):
+        mx_nodedefs = tuple(NodeDef_cls.mx_nodedef for NodeDef_cls in node_def_classes)
         nd = mx_nodedefs[0]
         node_name = nd.getNodeString()
 
         annotations = {}
         data_type_items = []
         index_default = 0
-        for i, NodeDef_cls in enumerate(NodeDef_classes):
+        for i, NodeDef_cls in enumerate(node_def_classes):
             nd_name = NodeDef_cls.mx_nodedef.getName()
             data_type = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
             annotations[MxNode._nodedef_prop(nd_name)] = (PointerProperty, {'type': NodeDef_cls})
@@ -287,7 +301,7 @@ class MxNode(bpy.types.ShaderNode):
 
         data = {
             'bl_label': title_str(nd.getNodeString()),
-            'bl_idname': f"{MxNode.bl_idname}_{nd.getName()}",
+            'bl_idname': f"{MxNode.bl_idname}_{nd.getNodeString()}",
             'bl_description': nd.getAttribute('doc') if nd.hasAttribute('doc')
                    else title_str(nd.getName()),
             'bl_width_default': 250 if len(ui_folders) > 2 else 200,
@@ -390,17 +404,10 @@ class MxNode(bpy.types.ShaderNode):
         return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
-        input = self.inputs.new('hdusd.MxNodeSocket',
-                                mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname')
-                                else title_str(mx_input.getName()))
-        input.node_prop_name = self._input_prop(mx_input.getName())
-        return input
+        return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
 
     def create_output(self, mx_output):
-        output = self.outputs.new('NodeSocketShader',
-                                  mx_output.getAttribute('uiname') if mx_output.hasAttribute('uiname')
-                                  else title_str(mx_output.getName()))
-        return output
+        return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
 
 
 def parse_val(prop_type, val, first_only=False):
@@ -427,7 +434,7 @@ def parse_val(prop_type, val, first_only=False):
 def create_node_types(file_paths):
     IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
 
-    NodeDef_classes = []
+    node_def_classes = []
     for p in file_paths:
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(p))
@@ -436,53 +443,17 @@ def create_node_types(file_paths):
             if MxNode._nodedef_data_type(mx_nodedef) in IGNORE_NODEDEF_DATA_TYPE:
                 continue
 
-            NodeDef_classes.append(MxNode.NodeDef.new(mx_nodedef))
+            node_def_classes.append(MxNode.NodeDef.new(mx_nodedef))
 
-    # grouping NodeDef_classes by node and nodegroup
+    # grouping node_def_classes by node and nodegroup
     d = defaultdict(list)
-    for NodeDef_cls in NodeDef_classes:
+    for NodeDef_cls in node_def_classes:
         nd = NodeDef_cls.mx_nodedef
         d[(nd.getNodeString(), nd.getAttribute('nodegroup'))].append(NodeDef_cls)
 
     # creating MxNode types
-    MxNode_classes = []
+    mx_node_classes = []
     for node_name, nd_types in d.items():
-        MxNode_classes.append(MxNode.new(nd_types))
+        mx_node_classes.append(MxNode.new(nd_types))
 
-    return NodeDef_classes, MxNode_classes
-
-
-class MxNode_Output(MxNode):
-    bl_idname = 'hdusd.MxNode_output'
-    bl_label = "Material Output"
-    bl_description = "Material Output"
-    bl_width_default = 150
-
-    def init(self, context):
-        self.inputs.new('NodeSocketShader', "Surface")
-        self.inputs.new('NodeSocketShader', "Volume")
-        self.inputs.new('NodeSocketShader', "Displacement")
-
-    @property
-    def prop(self):
-        return None
-
-    def draw_buttons(self, context, layout):
-        pass
-
-    def compute(self, out_key, **kwargs):
-        log("compute", self)
-
-        node = self.get_input_link("Surface", **kwargs)
-        if not node:
-            return None
-
-        if node.getType() == 'surfaceshader':
-            return node
-
-        doc = kwargs['doc']
-        surface = doc.addNode('surface', 'surface', 'surfaceshader')
-        input = surface.addInput('bsdf', node.getType())
-        input.setNodeName(node.getName())
-
-        return surface
+    return node_def_classes, mx_node_classes
