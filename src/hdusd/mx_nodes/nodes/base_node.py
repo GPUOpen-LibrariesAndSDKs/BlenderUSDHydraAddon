@@ -262,15 +262,15 @@ class MxNode(bpy.types.ShaderNode):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
     @staticmethod
-    def new(NodeDef_classes):
-        mx_nodedefs = tuple(NodeDef_cls.mx_nodedef for NodeDef_cls in NodeDef_classes)
+    def new(node_def_classes):
+        mx_nodedefs = tuple(NodeDef_cls.mx_nodedef for NodeDef_cls in node_def_classes)
         nd = mx_nodedefs[0]
         node_name = nd.getNodeString()
 
         annotations = {}
         data_type_items = []
         index_default = 0
-        for i, NodeDef_cls in enumerate(NodeDef_classes):
+        for i, NodeDef_cls in enumerate(node_def_classes):
             nd_name = NodeDef_cls.mx_nodedef.getName()
             data_type = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
             annotations[MxNode._nodedef_prop(nd_name)] = (PointerProperty, {'type': NodeDef_cls})
@@ -434,7 +434,7 @@ def parse_val(prop_type, val, first_only=False):
 def create_node_types(file_paths):
     IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
 
-    NodeDef_classes = []
+    node_def_classes = []
     for p in file_paths:
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(p))
@@ -443,17 +443,17 @@ def create_node_types(file_paths):
             if MxNode._nodedef_data_type(mx_nodedef) in IGNORE_NODEDEF_DATA_TYPE:
                 continue
 
-            NodeDef_classes.append(MxNode.NodeDef.new(mx_nodedef))
+            node_def_classes.append(MxNode.NodeDef.new(mx_nodedef))
 
-    # grouping NodeDef_classes by node and nodegroup
+    # grouping node_def_classes by node and nodegroup
     d = defaultdict(list)
-    for NodeDef_cls in NodeDef_classes:
+    for NodeDef_cls in node_def_classes:
         nd = NodeDef_cls.mx_nodedef
         d[(nd.getNodeString(), nd.getAttribute('nodegroup'))].append(NodeDef_cls)
 
     # creating MxNode types
-    MxNode_classes = []
+    mx_node_classes = []
     for node_name, nd_types in d.items():
-        MxNode_classes.append(MxNode.new(nd_types))
+        mx_node_classes.append(MxNode.new(nd_types))
 
-    return NodeDef_classes, MxNode_classes
+    return node_def_classes, mx_node_classes

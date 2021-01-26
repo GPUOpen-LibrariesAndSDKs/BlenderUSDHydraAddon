@@ -20,7 +20,7 @@ from .. import log
 from . import base_node, categories
 
 
-NodeDef_classes, MxNode_classes = base_node.create_node_types([
+node_def_classes, mx_node_classes = base_node.create_node_types([
     HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx",
     HDUSD_LIBS_DIR / "materialx/libraries/stdlib/stdlib_defs.mtlx",
     HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx",
@@ -31,8 +31,8 @@ register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
     base_node.MxNodeInputSocket,
     base_node.MxNodeOutputSocket,
 ])
-register_nodedefs, unregister_nodedefs = bpy.utils.register_classes_factory(NodeDef_classes)
-register_nodes, unregister_nodes = bpy.utils.register_classes_factory(MxNode_classes)
+register_nodedefs, unregister_nodedefs = bpy.utils.register_classes_factory(node_def_classes)
+register_nodes, unregister_nodes = bpy.utils.register_classes_factory(mx_node_classes)
 
 
 def register():

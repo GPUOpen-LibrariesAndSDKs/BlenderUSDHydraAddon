@@ -26,17 +26,17 @@ class MxNodeCategory(NodeCategory):
 
 
 def get_node_categories():
-    from . import MxNode_classes
+    from . import mx_node_classes
 
     d = defaultdict(list)
-    for n_type in MxNode_classes:
-        nodegroup = n_type.mx_nodedefs[0].getAttribute('nodegroup')
-        d[nodegroup].append(n_type)
+    for MxNode_cls in mx_node_classes:
+        nodegroup = MxNode_cls.mx_nodedefs[0].getAttribute('nodegroup')
+        d[nodegroup].append(MxNode_cls)
 
     categories = []
-    for nodegroup, n_types in d.items():
+    for nodegroup,  cat_classes in d.items():
         categories.append(
             MxNodeCategory('HdUSD_MX_NG_' + nodegroup, title_str(nodegroup),
-                           items=[NodeItem(n_type.bl_idname) for n_type in n_types]))
+                           items=[NodeItem(MxNode_cls.bl_idname) for MxNode_cls in cat_classes]))
 
     return categories
