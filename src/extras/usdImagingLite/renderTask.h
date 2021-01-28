@@ -12,8 +12,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 ********************************************************************/
-#ifndef HDRPR_RENDER_TASK_H
-#define HDRPR_RENDER_TASK_H
+#ifndef PXR_USD_IMAGING_USD_IMAGING_LITE_RENDER_TASK_H
+#define PXR_USD_IMAGING_USD_IMAGING_LITE_RENDER_TASK_H
 
 #include "pxr/imaging/hd/task.h"
 #include "pxr/imaging/hd/renderPass.h"
@@ -73,4 +73,4 @@ bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs);
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif // HDRPR_RENDER_TASK_H
+#endif // PXR_USD_IMAGING_USD_IMAGING_LITE_RENDER_TASK_H

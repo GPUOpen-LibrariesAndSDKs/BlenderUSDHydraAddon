@@ -82,11 +82,11 @@ def main():
 
     # Add the arguments to the parser
     ap.add_argument("-usd", required=True, metavar="",
-                    help="USD dir")
+                    help="USD build dir")
     ap.add_argument("-hdrpr", required=True, metavar="",
-                    help="HdRPR dir")
+                    help="HdRPR install dir")
     ap.add_argument("-mx", required=True, metavar="",
-                    help="MaterialX dir")
+                    help="MaterialX build dir")
     ap.add_argument("-libs", required=False, metavar="",
                     help="Libs dir")
     ap.add_argument("-v", required=False, action="store_true",
