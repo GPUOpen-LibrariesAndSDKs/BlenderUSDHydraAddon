@@ -33,16 +33,17 @@ in USD repository.
     usd_imaging_lite_path = Path(__file__).parent.parent / "src/extras/usdImagingLite"
 
     usd_imaging_cmake = usd_path / "pxr/usdImaging/CMakeLists.txt"
+    print("Modifying:", usd_imaging_cmake)
     cmake_txt = usd_imaging_cmake.read_text()
     usd_imaging_cmake.write_text(cmake_txt + f"""
 add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
 """)
 
-    subprocess.run([
-        sys.executable, str(usd_path / "build_scripts/build_usd.py"),
-        *args[1:]
-    ])
+    call_args = (sys.executable, str(usd_path / "build_scripts/build_usd.py"), *args[1:])
+    print("Running:", call_args)
+    subprocess.run(call_args)
 
+    print("Reverting:", usd_imaging_cmake)
     usd_imaging_cmake.write_text(cmake_txt)
 
 
