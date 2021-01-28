@@ -13,7 +13,7 @@
 # limitations under the License.
 #********************************************************************
 
-#script to load addon from within blender text editor
+"""Blender's start script, which loads USD Hydra addon"""
 
 import faulthandler
 from pathlib import Path
