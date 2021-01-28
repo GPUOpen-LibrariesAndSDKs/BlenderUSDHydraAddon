@@ -1,0 +1,174 @@
+#ifndef PXR_USD_IMAGING_USD_IMAGING_LITE_ENGINE_H
+#define PXR_USD_IMAGING_USD_IMAGING_LITE_ENGINE_H
+
+#include "pxr/pxr.h"
+#include "pxr/usd/usd/stage.h"
+
+#include "pxr/imaging/hd/engine.h"
+#include "pxr/imaging/hd/rendererPlugin.h"
+#include "pxr/imaging/hdx/taskController.h"
+#include "pxr/usdImaging/usdImaging/delegate.h"
+
+#include "pxr/usdImaging/usdImagingLite/api.h"
+#include "pxr/usdImaging/usdImagingLite/renderParams.h"
+#include "pxr/usdImaging/usdImagingLite/renderDataDelegate.h"
+#include "pxr/usdImaging/usdImagingLite/renderTask.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+USDIMAGINGLITE_API
+int render(UsdPrim root, const UsdImagingLiteRenderParams &params);
+
+
+/// \class UsdImagingLiteEngine
+///
+/// The UsdImagingGLEngine is the main entry point API for rendering USD scenes.
+///
+class UsdImagingLiteEngine
+{
+public:
+    // ---------------------------------------------------------------------
+    /// \name Construction
+    /// @{
+    // ---------------------------------------------------------------------
+    USDIMAGINGLITE_API
+    UsdImagingLiteEngine();
+
+    // Disallow copies
+    UsdImagingLiteEngine(const UsdImagingLiteEngine&) = delete;
+    UsdImagingLiteEngine& operator=(const UsdImagingLiteEngine&) = delete;
+
+    USDIMAGINGLITE_API
+    ~UsdImagingLiteEngine();
+
+    /// @}
+
+    // ---------------------------------------------------------------------
+    /// \name Rendering
+    /// @{
+    // ---------------------------------------------------------------------
+
+    /// Entry point for kicking off a render
+    USDIMAGINGLITE_API
+    void Render(UsdPrim root, const UsdImagingLiteRenderParams &params);
+
+    USDIMAGINGLITE_API
+    void InvalidateBuffers();
+
+    /// Returns true if the resulting image is fully converged.
+    /// (otherwise, caller may need to call Render() again to refine the result)
+    USDIMAGINGLITE_API
+    bool IsConverged() const;
+
+    USDIMAGINGLITE_API
+    bool SetRendererAov(TfToken const &id);
+
+    USDIMAGINGLITE_API
+    bool GetRendererAov(TfToken const &id, void *buf);
+    /// @}
+
+    // ---------------------------------------------------------------------
+    /// \name Camera State
+    /// @{
+    // ---------------------------------------------------------------------
+
+    /// Set the viewport to use for rendering as (x,y,w,h), where (x,y)
+    /// represents the lower left corner of the viewport rectangle, and (w,h)
+    /// is the width and height of the viewport in pixels.
+    USDIMAGINGLITE_API
+    void SetRenderViewport(GfVec4d const& viewport);
+
+    /// Scene camera API
+    /// Set the scene camera path to use for rendering.
+    USDIMAGINGLITE_API
+    void SetCameraPath(SdfPath const& id);
+
+    /// Free camera API
+    /// Set camera framing state directly (without pointing to a camera on the 
+    /// USD stage). The projection matrix is expected to be pre-adjusted for the
+    /// window policy.
+    USDIMAGINGLITE_API
+    void SetCameraState(const GfMatrix4d& viewMatrix, const GfMatrix4d& projectionMatrix);
+
+    /// @}
+
+    // ---------------------------------------------------------------------
+    /// \name Renderer Plugin Management
+    /// @{
+    // ---------------------------------------------------------------------
+
+    /// Return the vector of available render-graph delegate plugins.
+    USDIMAGINGLITE_API
+    static TfTokenVector GetRendererPlugins();
+
+    /// Return the user-friendly description of a renderer plugin.
+    USDIMAGINGLITE_API
+    static std::string GetRendererDisplayName(TfToken const &id);
+
+    /// Set the current render-graph delegate to \p id.
+    /// the plugin will be loaded if it's not yet.
+    USDIMAGINGLITE_API
+    bool SetRendererPlugin(TfToken const &id);
+
+    /// @}
+
+    // ---------------------------------------------------------------------
+    /// \name Control of background rendering threads.
+    /// @{
+    // ---------------------------------------------------------------------
+
+    /// Query the renderer as to whether it supports pausing and resuming.
+    USDIMAGINGLITE_API
+    bool IsPauseRendererSupported() const;
+
+    /// Pause the renderer.
+    ///
+    /// Returns \c true if successful.
+    USDIMAGINGLITE_API
+    bool PauseRenderer();
+
+    /// Resume the renderer.
+    ///
+    /// Returns \c true if successful.
+    USDIMAGINGLITE_API
+    bool ResumeRenderer();
+
+    /// Stop the renderer.
+    ///
+    /// Returns \c true if successful.
+    USDIMAGINGLITE_API
+    bool StopRenderer();
+
+    /// Restart the renderer.
+    ///
+    /// Returns \c true if successful.
+    USDIMAGINGLITE_API
+    bool RestartRenderer();
+
+    /// @}
+
+protected:
+    HdEngine _engine;
+    HdRenderIndex *_renderIndex;
+    UsdImagingDelegate *_delegate;
+
+    HdRendererPlugin *_rendererPlugin;
+    TfToken _rendererId;
+    HdRenderDataDelegate *_taskDataDelegate;
+    HdRenderPassAovBindingVector _aovBindings;
+    HdRenderTaskParams _renderTaskParams;
+
+    HdxTaskController *_taskController;
+
+    // This function disposes of: the render index, the render plugin,
+    // the task controller, and the usd imaging delegate.
+    void _DeleteHydraResources();
+
+private:
+    
+
+};
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // PXR_USD_IMAGING_USD_IMAGING_LITE_ENGINE_H
