@@ -13,9 +13,14 @@
 # limitations under the License.
 #********************************************************************
 import os
+import platform
 import shutil
+import subprocess
 from pathlib import Path
 import argparse
+
+
+OS = platform.system()
 
 
 def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
@@ -111,6 +116,15 @@ def main():
             f_copy.parent.mkdir(parents=True)
 
         shutil.copy(str(f), str(f_copy))
+
+    if OS == 'Linux':
+        print("Configuring rpath")
+        patchelf_args = ['patchelf', '--set-rpath', "$ORIGIN/../../usd:$ORIGIN/../../hdrpr/lib",
+                         str(libs_dir / 'plugins/usd/hdRpr.so')]
+        if args.v:
+            print(patchelf_args)
+
+        subprocess.check_call(patchelf_args)
 
     print("Done.")
 
