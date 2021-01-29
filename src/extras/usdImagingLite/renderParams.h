@@ -44,7 +44,7 @@ public:
     GfMatrix4d viewMatrix;
     GfMatrix4d projMatrix;
     TfTokenVector aovs;
-    std::vector<__int64> aovBuffers;
+    std::vector<int64_t> aovBuffers;
 
     inline UsdImagingLiteRenderParams();
 

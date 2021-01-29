@@ -199,7 +199,7 @@ int render_old(UsdPrim root, const UsdImagingLiteRenderParams &params) {
     }
     printf("\nrendering finished\n");
 
-    for (int i = 0; i < params.aovBuffers.size(); i++) {
+    for (auto i = 0; i != params.aovBuffers.size(); i++) {
         void *buf = reinterpret_cast<void *>(params.aovBuffers[i]);
         if (buf == nullptr)
             continue;
@@ -252,7 +252,7 @@ int render(UsdPrim root, const UsdImagingLiteRenderParams &params) {
 
 
 
-    for (int i = 0; i < params.aovBuffers.size(); i++) {
+    for (auto i = 0; i != params.aovBuffers.size(); i++) {
         void *buf = reinterpret_cast<void *>(params.aovBuffers[i]);
         if (buf == nullptr)
             continue;

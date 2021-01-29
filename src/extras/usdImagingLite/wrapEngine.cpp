@@ -33,7 +33,7 @@ PXR_NAMESPACE_USING_DIRECTIVE
 class UsdImagingLiteEngine_wrap : public UsdImagingLiteEngine
 {
 public:
-    bool GetRendererAov_wrap(TfToken const &id, __int64 buf_ptr)
+    bool GetRendererAov_wrap(TfToken const &id, int64_t buf_ptr)
     {
         return GetRendererAov(id, reinterpret_cast<void *>(buf_ptr));
     }
