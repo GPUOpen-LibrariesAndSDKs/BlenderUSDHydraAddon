@@ -16,7 +16,7 @@
 #define PXR_USD_IMAGING_USD_IMAGING_LITE_RENDER_PARAMS_H
 
 #include "pxr/pxr.h"
-#include "pxr/usdImaging/usdImagingLite/api.h"
+#include "api.h"
 
 #include "pxr/usd/usd/timeCode.h"
 

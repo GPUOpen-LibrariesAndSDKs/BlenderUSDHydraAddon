@@ -19,7 +19,7 @@
 #include <boost/python/converter/from_python.hpp>
 
 #include "pxr/pxr.h"
-#include "pxr/usdImaging/usdImagingLite/engine.h"
+#include "engine.h"
 #include "pxr/base/tf/pyContainerConversions.h"
 #include "pxr/base/tf/pyResultConversions.h"
 
