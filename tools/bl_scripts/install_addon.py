@@ -17,5 +17,7 @@ import bpy
 
 
 zip_addon = next((Path(__file__).parent.parent.parent / "build").glob("*.zip"))
+print("Installing zip addon:", zip_addon)
 bpy.ops.preferences.addon_install(filepath=str(zip_addon))
 bpy.ops.preferences.addon_enable(module="hdusd")
+bpy.ops.wm.save_userpref()

@@ -16,3 +16,4 @@ import bpy
 
 
 bpy.ops.preferences.addon_remove(module="hdusd")
+bpy.ops.wm.save_userpref()
