@@ -25,7 +25,7 @@ import re
 
 OS = platform.system()
 
-repo_dir = Path("..")
+repo_dir = Path(__file__).parent.parent
 
 
 def enumerate_addon_data():
@@ -103,7 +103,7 @@ def create_zip_addon(build_dir):
 
 
 def main():
-    build_dir = Path(".build")
+    build_dir = repo_dir / "build"
     if build_dir.is_dir():
         shutil.rmtree(build_dir)
     build_dir.mkdir()

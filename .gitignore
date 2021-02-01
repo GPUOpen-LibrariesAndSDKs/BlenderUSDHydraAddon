@@ -13,3 +13,4 @@ venv
 /*.sh
 /tmp
 /libs
+/build
