@@ -18,7 +18,7 @@
 #include <boost/python.hpp>
 #include <boost/python/converter/from_python.hpp>
 
-#include "pxr/usdImaging/usdImagingLite/renderParams.h"
+#include "renderParams.h"
 
 using namespace boost::python;
 

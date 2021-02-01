@@ -27,8 +27,6 @@
 #include "pxr/usd/usd/stage.h"
 #include "pxr/usd/usdGeom/metrics.h"
 
-#include "pxr/imaging/glf/image.h"
-
 #include "pxr/base/work/loops.h"
 
 #include "pxr/base/gf/rotation.h"

@@ -23,10 +23,10 @@
 #include "pxr/imaging/hdx/taskController.h"
 #include "pxr/usdImaging/usdImaging/delegate.h"
 
-#include "pxr/usdImaging/usdImagingLite/api.h"
-#include "pxr/usdImaging/usdImagingLite/renderParams.h"
-#include "pxr/usdImaging/usdImagingLite/renderDataDelegate.h"
-#include "pxr/usdImaging/usdImagingLite/renderTask.h"
+#include "api.h"
+#include "renderParams.h"
+#include "renderDataDelegate.h"
+#include "renderTask.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -36,7 +36,9 @@ int render(UsdPrim root, const UsdImagingLiteRenderParams &params);
 
 /// \class UsdImagingLiteEngine
 ///
-/// The UsdImagingGLEngine is the main entry point API for rendering USD scenes.
+/// The UsdImagingLiteEngine is entry point API for rendering USD scenes for delegates
+/// which don't require to use OpenGL. This is more lightweight engine comparing to
+/// UsdImagingGLEngine.
 ///
 class UsdImagingLiteEngine
 {
