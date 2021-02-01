@@ -26,7 +26,7 @@ def run_blender(script, v):
     call_args = [blender_exe, '--background', '--python', str(script)]
     if v:
         print("Running:", call_args)
-    subprocess.check_call(call_args)
+    subprocess.run(call_args)
 
 
 def main():
