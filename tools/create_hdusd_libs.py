@@ -94,8 +94,8 @@ def main():
                     help="Directory where MaterialX was built")
     ap.add_argument("-libs", required=False, metavar="",
                     help="Target libs directory")
-    ap.add_argument("-v", required=False, action="store_false",
-                    help="Print copying info")
+    ap.add_argument("-v", required=False, action="store_true",
+                    help="Visualize copying info")
     args = ap.parse_args()
 
     if not args.libs:
