@@ -115,7 +115,7 @@ def main():
         if not f_copy.parent.is_dir():
             f_copy.parent.mkdir(parents=True)
 
-        shutil.copy(str(f), str(f_copy))
+        shutil.copy(str(f), str(f_copy), follow_symlinks=False)
 
     if OS == 'Linux':
         print("Configuring rpath")

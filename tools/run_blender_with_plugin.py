@@ -27,7 +27,7 @@ def main(*blender_args):
     os.environ['HDUSD_BLENDER_DEBUG'] = "1"
 
     # Running Blender
-    start_script = Path(__file__).parent / "start_plugin_script.py"
+    start_script = Path(__file__).parent / "start_plugin.py"
     call_args = [blender_exe, *blender_args, '--python', str(start_script)]
     print("Running blender:", call_args)
     subprocess.check_call(call_args)
