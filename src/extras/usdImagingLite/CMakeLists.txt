@@ -16,6 +16,7 @@ set(PXR_PREFIX pxr/usdImaging)
 set(PXR_PACKAGE usdImagingLite)
 
 pxr_library(usdImagingLite
+    DISABLE_PRECOMPILED_HEADERS
     LIBRARIES
         garch
         gf
