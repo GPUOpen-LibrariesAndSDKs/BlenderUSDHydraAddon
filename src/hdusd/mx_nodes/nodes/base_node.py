@@ -452,14 +452,15 @@ def create_node_types(file_paths):
             node_def_cls_id += 1
 
         # grouping node_def_classes by node and nodegroup
-        d = defaultdict(list)
+        node_def_classes_by_node = defaultdict(list)
         for NodeDef_cls in node_def_classes:
             nd = NodeDef_cls.mx_nodedef
-            d[(nd.getNodeString(), nd.getAttribute('nodegroup'))].append(NodeDef_cls)
+            node_def_classes_by_node[(nd.getNodeString(), nd.getAttribute('nodegroup'))].\
+                append(NodeDef_cls)
 
         # creating MxNode types
         mx_node_classes = []
-        for node_name, nd_types in d.items():
+        for _, nd_types in node_def_classes_by_node.items():
             mx_node_classes.append(MxNode.new(nd_types, mx_node_cls_id))
             mx_node_cls_id += 1
 
