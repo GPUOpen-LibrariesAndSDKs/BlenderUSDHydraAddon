@@ -33,7 +33,7 @@ from .utils import logging
 
 
 log = logging.Log(tag='init')
-log.info("Loading USD Hydra addon {}".format(bl_info['version']))
+log.info(f"Loading USD Hydra addon version={bl_info['version']}, build={version_build}")
 
 
 from . import engine, properties, ui, usd_nodes, mx_nodes

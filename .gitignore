@@ -10,5 +10,7 @@ venv
 .DS_Store
 
 /*.cmd
+/*.sh
 /tmp
 /libs
+/build

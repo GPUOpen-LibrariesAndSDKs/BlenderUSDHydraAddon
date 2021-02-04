@@ -20,9 +20,10 @@ import bpy
 from .. import utils
 
 
-os.environ['PATH'] = f"{utils.HDUSD_LIBS_DIR / 'usd'};{utils.HDUSD_LIBS_DIR / 'plugins'};" \
-                     f"{utils.HDUSD_LIBS_DIR / 'hdrpr/lib'};" \
-                     f"{os.environ['PATH']}"
+if utils.IS_WIN:
+    os.environ['PATH'] = f"{utils.HDUSD_LIBS_DIR / 'usd'};{utils.HDUSD_LIBS_DIR / 'plugins/usd'};" \
+                         f"{utils.HDUSD_LIBS_DIR / 'hdrpr/lib'};{os.environ['PATH']}"
+
 os.environ['PXR_PLUGINPATH_NAME'] = str(utils.HDUSD_LIBS_DIR / 'plugins')
 os.environ['RPR'] = str(utils.HDUSD_LIBS_DIR / 'hdrpr')
 

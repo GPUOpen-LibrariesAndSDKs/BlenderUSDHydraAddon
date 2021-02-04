@@ -13,9 +13,14 @@
 # limitations under the License.
 #********************************************************************
 import os
+import platform
 import shutil
+import subprocess
 from pathlib import Path
 import argparse
+
+
+OS = platform.system()
 
 
 def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
@@ -89,8 +94,8 @@ def main():
                     help="Directory where MaterialX was built")
     ap.add_argument("-libs", required=False, metavar="",
                     help="Target libs directory")
-    ap.add_argument("-v", required=False, action="store_false",
-                    help="Print copying info")
+    ap.add_argument("-v", required=False, action="store_true",
+                    help="Visualize copying info")
     args = ap.parse_args()
 
     if not args.libs:
@@ -110,7 +115,16 @@ def main():
         if not f_copy.parent.is_dir():
             f_copy.parent.mkdir(parents=True)
 
-        shutil.copy(str(f), str(f_copy))
+        shutil.copy(str(f), str(f_copy), follow_symlinks=False)
+
+    if OS == 'Linux':
+        print("Configuring rpath")
+        patchelf_args = ['patchelf', '--set-rpath', "$ORIGIN/../../usd:$ORIGIN/../../hdrpr/lib",
+                         str(libs_dir / 'plugins/usd/hdRpr.so')]
+        if args.v:
+            print(patchelf_args)
+
+        subprocess.check_call(patchelf_args)
 
     print("Done.")
 
