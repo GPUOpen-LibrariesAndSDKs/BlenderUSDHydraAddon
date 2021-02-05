@@ -119,7 +119,7 @@ class MxNode(bpy.types.ShaderNode):
         mx_nodedef: mx.NodeDef  # holds the materialx nodedef object
 
         @staticmethod
-        def new(mx_nodedef, id):
+        def new(mx_nodedef, prefix):
             annotations = {}
             for mx_param in mx_nodedef.getParameters():
                 prop_name, prop_type, prop_attrs = MxNode.create_property(mx_param)
@@ -138,7 +138,7 @@ class MxNode(bpy.types.ShaderNode):
                 '__annotations__': annotations
             }
 
-            return type(f'MxNodeDef_{id}_{mx_nodedef.getName()}', (MxNode.NodeDef,), data)
+            return type(f'MxNodeDef_{prefix}_{mx_nodedef.getName()}', (MxNode.NodeDef,), data)
 
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
@@ -262,7 +262,7 @@ class MxNode(bpy.types.ShaderNode):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
     @staticmethod
-    def new(node_def_classes, id):
+    def new(node_def_classes, prefix):
         mx_nodedefs = tuple(NodeDef_cls.mx_nodedef for NodeDef_cls in node_def_classes)
         nd = mx_nodedefs[0]
         node_name = nd.getNodeString()
@@ -301,7 +301,7 @@ class MxNode(bpy.types.ShaderNode):
 
         data = {
             'bl_label': title_str(nd.getNodeString()),
-            'bl_idname': f"{MxNode.bl_idname}_{id}_{node_name}",
+            'bl_idname': f"{MxNode.bl_idname}_{prefix}_{node_name}",
             'bl_description': nd.getAttribute('doc') if nd.hasAttribute('doc')
                    else title_str(nd.getName()),
             'bl_width_default': 250 if len(ui_folders) > 2 else 200,
@@ -310,7 +310,7 @@ class MxNode(bpy.types.ShaderNode):
             '__annotations__': annotations
         }
 
-        return type(f'MxNode_{id}_{node_name}', (MxNode,), data)
+        return type(f'MxNode_{prefix}_{node_name}', (MxNode,), data)
 
     def ui_folders_update(self, context):
         for i, mx_input in enumerate(self.prop.mx_nodedef.getInputs()):
@@ -435,21 +435,18 @@ def create_node_types(file_paths):
     IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
 
     all_node_def_classes = []
-    node_def_cls_id = 0
     all_mx_node_classes = []
-    mx_node_cls_id = 0
 
-    for p in file_paths:
+    for prefix, file_path in file_paths:
         doc = mx.createDocument()
-        mx.readFromXmlFile(doc, str(p))
+        mx.readFromXmlFile(doc, str(file_path))
         mx_nodedefs = doc.getNodeDefs()
         node_def_classes = []
         for mx_nodedef in mx_nodedefs:
             if MxNode._nodedef_data_type(mx_nodedef) in IGNORE_NODEDEF_DATA_TYPE:
                 continue
 
-            node_def_classes.append(MxNode.NodeDef.new(mx_nodedef, node_def_cls_id))
-            node_def_cls_id += 1
+            node_def_classes.append(MxNode.NodeDef.new(mx_nodedef, prefix))
 
         # grouping node_def_classes by node and nodegroup
         node_def_classes_by_node = defaultdict(list)
@@ -461,8 +458,7 @@ def create_node_types(file_paths):
         # creating MxNode types
         mx_node_classes = []
         for _, nd_types in node_def_classes_by_node.items():
-            mx_node_classes.append(MxNode.new(nd_types, mx_node_cls_id))
-            mx_node_cls_id += 1
+            mx_node_classes.append(MxNode.new(nd_types, prefix))
 
         all_node_def_classes.extend(node_def_classes)
         all_mx_node_classes.extend(mx_node_classes)

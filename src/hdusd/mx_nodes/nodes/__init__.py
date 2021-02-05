@@ -21,9 +21,9 @@ from . import base_node, categories
 
 
 node_def_classes, mx_node_classes = base_node.create_node_types([
-    HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx",
-    HDUSD_LIBS_DIR / "materialx/libraries/stdlib/stdlib_defs.mtlx",
-    HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx",
+    ('PBR', HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx"),
+    ('STD', HDUSD_LIBS_DIR / "materialx/libraries/stdlib/stdlib_defs.mtlx"),
+    ('PBR', HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx"),
 ])
 
 
