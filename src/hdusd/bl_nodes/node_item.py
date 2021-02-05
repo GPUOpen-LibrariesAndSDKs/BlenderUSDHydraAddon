@@ -13,12 +13,9 @@
 # limitations under the License.
 #********************************************************************
 import math
+import MaterialX as mx
 
-import pyrpr
-from rprblender.engine import context_hybrid
-
-from rprblender.utils import logging
-log = logging.Log(tag='export.node')
+from . import log
 
 
 class NodeItem:
@@ -33,10 +30,10 @@ class NodeItem:
         NodeItems can retrieve their data with () operator, or index RGBA etc with []
         '''
     
-    def __init__(self, rpr_context, data: [tuple, float, pyrpr.MaterialNode]):
+    def __init__(self, mx_doc:mx.Document, data: [tuple, float, mx.Node]):
         # save the data as vec4 if num data
         self.data = data
-        self.rpr_context = rpr_context
+        self.mx_doc = mx_doc
 
     def set_input(self, name, value):
         if value is not None:
