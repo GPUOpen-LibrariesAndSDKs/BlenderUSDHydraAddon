@@ -33,12 +33,12 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     @property
     def output_node(self):
         return next((node for node in self.nodes
-                     if node.bl_idname == 'hdusd.MxNode_surfacematerial'), None)
+                     if node.bl_idname == 'hdusd.MxNode_STD_surfacematerial'), None)
 
     @property
     def output_node_volume(self):
         return next((node for node in self.nodes
-                     if node.bl_idname == 'hdusd.MxNode_volumematerial'), None)
+                     if node.bl_idname == 'hdusd.MxNode_STD_volumematerial'), None)
 
     def export(self) -> mx.Document:
         output_node = self.output_node
@@ -54,24 +54,24 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
         return doc
 
-    def create_basic_nodes(self, node_name='standard_surface'):
+    def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """
         self.nodes.clear()
         SEP_WIDTH = 70
 
-        mat_node = self.nodes.new('hdusd.MxNode_surfacematerial')
-        if node_name == 'standard_surface':
-            node = self.nodes.new('hdusd.MxNode_standard_surface')
+        mat_node = self.nodes.new('hdusd.MxNode_STD_surfacematerial')
+        if node_name == 'PBR_standard_surface':
+            node = self.nodes.new(f'hdusd.MxNode_{node_name}')
             node.location = (mat_node.location[0] - node.width - SEP_WIDTH,
                              mat_node.location[1])
             self.links.new(node.outputs[0], mat_node.inputs[0])
         else:
-            surface_node = self.nodes.new('hdusd.MxNode_surface')
+            surface_node = self.nodes.new('hdusd.MxNode_PBR_surface')
             surface_node.location = (mat_node.location[0] - surface_node.width - SEP_WIDTH,
                                      mat_node.location[1])
             self.links.new(surface_node.outputs[0], mat_node.inputs[0])
 
-            node = self.nodes.new('hdusd.MxNode_' + node_name)
+            node = self.nodes.new(f'hdusd.MxNode_{node_name}')
             node.location = (surface_node.location[0] - node.width - SEP_WIDTH,
                              surface_node.location[1])
             self.links.new(node.outputs[0], surface_node.inputs[0])
