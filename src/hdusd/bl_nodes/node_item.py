@@ -20,16 +20,24 @@ from ..utils import set_mx_param_value
 
 class NodeItem:
     """This class is a wrapper used for doing operations on MaterialX nodes"""
-    id = 0
+    _id = 0
+
+    @classmethod
+    def id(cls):
+        cls._id += 1
+        return cls._id
     
-    def __init__(self, doc:mx.Document, data: [tuple, float, mx.Node]):
+    def __init__(self, doc: mx.Document, data: [tuple, float, mx.Node]):
         # save the data as vec4 if num data
         self.data = data
         self.doc = doc
 
-    def set_input(self, name, value):
-        if value is not None:
-            self.data.set_input(name, value.data if isinstance(value, NodeItem) else value)
+    def set_input(self, name, value, nd_type):
+        if value is None:
+            return
+
+        input = self.data.addInput(name, nd_type)
+        set_mx_param_value(input, self.data, input.getType())
 
     # MATH OPERATIONS
     def _arithmetic_helper(self, other, op_node, func):
@@ -43,11 +51,10 @@ class NodeItem:
             elif isinstance(self.data, tuple):
                 result_data = tuple(map(func, self.data))
             else:
-                result_data = self.doc.addNode(op_node, f"{op_node}_{NodeItem.id}",
+                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
                                                self.data.getType())
                 input = result_data.addInput('in', self.data.getType())
                 set_mx_param_value(input, self.data, self.data.getType())
-                NodeItem.id += 1
 
         else:
             other_data = other.data if isinstance(other, NodeItem) else other
@@ -70,13 +77,12 @@ class NodeItem:
                     result_data = tuple(map(func, data, other_data))
 
             else:
-                result_data = self.doc.addNode(op_node, f"{op_node}_{NodeItem.id}",
+                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
                                                self.data.getType())
                 input1 = result_data.addInput('in1', self.data.getType())
                 set_mx_param_value(input1, self.data, self.data.getType())
                 input2 = result_data.addInput('in2', self.data.getType())
                 set_mx_param_value(input2, other_data, self.data.getType())
-                NodeItem.id += 1
 
         return NodeItem(self.doc, result_data)
 
@@ -109,11 +115,7 @@ class NodeItem:
         return self._arithmetic_helper(None, 'floor', lambda a: float(math.floor(a)))
 
     def ceil(self):
-        f = self.floor()
-        return (self == f).if_else(self, f + 1.0)
-
-    def fract(self):
-        return self - self.floor()
+        return self._arithmetic_helper(None, 'ceil', lambda a: float(math.floor(a)))
 
     # right hand methods for doing something like 1.0 - Node
     def __radd__(self, other):
