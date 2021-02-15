@@ -29,7 +29,7 @@ from bpy.props import (
     PointerProperty,
 )
 
-from ...utils import title_str, code_str
+from ...utils import title_str, code_str, set_mx_param_value
 from . import log
 
 
@@ -176,18 +176,6 @@ class MxNode(bpy.types.ShaderNode):
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
-        def set_value(param, val, nd_type):
-            if isinstance(val, mx.Node):
-                param.setNodeName(val.getName())
-            elif nd_type == 'filename':
-                param.setValueString(val)
-            else:
-                mx_type = getattr(mx, title_str(nd_type), None)
-                if mx_type:
-                    param.setValue(mx_type(val))
-                else:
-                    param.setValue(val)
-
         log("compute", self, out_key)
 
         doc = kwargs['doc']
@@ -205,12 +193,12 @@ class MxNode(bpy.types.ShaderNode):
                 continue
 
             input = node.addInput(nd_input.getName(), nd_input.getType())
-            set_value(input, val, nd_input.getType())
+            set_mx_param_value(input, val, nd_input.getType())
 
         for nd_param in nodedef.getParameters():
             val = self.get_param_value(nd_param.getName())
             param = node.addParameter(nd_param.getName(), nd_param.getType())
-            set_value(param, val, nd_param.getType())
+            set_mx_param_value(param, val, nd_param.getType())
 
         return node
 
