@@ -14,3 +14,8 @@
 #********************************************************************
 from ..node_parser import NodeParser
 
+
+class ShaderNodeBsdfPrincipled(NodeParser):
+    def export(self):
+        standard_surface = self.create_node('standard_surface', 'surfaceshader')
+        return standard_surface

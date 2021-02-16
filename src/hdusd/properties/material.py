@@ -13,12 +13,28 @@
 # limitations under the License.
 #********************************************************************
 import bpy
+import MaterialX as mx
 
 from . import HdUSDProperties
 from ..mx_nodes.node_tree import MxNodeTree
+from ..bl_nodes.nodes import ShaderNodeOutputMaterial
 
 
 class MaterialProperties(HdUSDProperties):
     bl_type = bpy.types.Material
 
     mx_node_tree: bpy.props.PointerProperty(type=MxNodeTree)
+
+    def export(self) -> [mx.Document, None]:
+        material = self.id_data
+        output_node = next((node for node in material.node_tree.nodes if
+                            node.bl_idname == ShaderNodeOutputMaterial.__name__), None)
+
+        if not output_node:
+            return None
+
+        doc = mx.createDocument()
+        doc.setVersionString("1.38")
+
+        ShaderNodeOutputMaterial(doc, material, output_node, None, None).export()
+        return doc

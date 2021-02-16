@@ -129,11 +129,15 @@ class NodeParser:
 
         return self.get_input_default(in_key)
 
-    def node_item(self, mx_node_name, nd_type, inputs=None):
+    def create_node(self, node_name, nd_type, inputs=None):
         node_item = NodeItem(
-            self.doc, self.doc.addNode(mx_node_name, f"{mx_node_name}_{NodeItem.id()}", nd_type))
+            self.doc, self.doc.addNode(node_name, f"{node_name}_{NodeItem.id()}", nd_type))
+
         if inputs:
             for name, (value, nd_type) in inputs.items():
+                if value is None:
+                    continue
+
                 node_item.set_input(name, value, nd_type)
 
         return node_item

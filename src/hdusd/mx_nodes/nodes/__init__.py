@@ -49,3 +49,13 @@ def unregister():
     unregister_nodes()
     unregister_nodedefs()
     unregister_sockets()
+
+
+def get_node_def_cls(node_name, nd_type, prefix='STD'):
+    name = f"MxNodeDef_{prefix}_ND_{node_name}_{nd_type}"
+    return next(cls for cls in node_def_classes if cls.__name__ == name)
+
+
+def get_mx_node_cls(node_name, prefix='STD'):
+    name = f"MxNode_{prefix}_{node_name}"
+    return next(cls for cls in mx_node_classes if cls.__name__ == name)

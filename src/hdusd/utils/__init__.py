@@ -20,8 +20,6 @@ import platform
 import numpy as np
 import math
 
-import MaterialX as mx
-
 import bpy
 import hdusd
 
@@ -134,6 +132,8 @@ def code_str(str):
 
 
 def set_mx_param_value(mx_param, val, nd_type):
+    import MaterialX as mx
+
     if isinstance(val, mx.Node):
         mx_param.setNodeName(val.getName())
     elif nd_type == 'filename':

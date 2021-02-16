@@ -12,5 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from .output import *
-from .bsdf import *
+from ..node_parser import NodeParser
+
+
+class ShaderNodeOutputMaterial(NodeParser):
+    def export(self):
+        surface = self.get_input_link('Surface')
+
+        surfacematerial = self.create_node('surfacematerial', 'material', {
+            'surfaceshader': (surface, 'surfaceshader')
+        })
+
+        return surfacematerial
