@@ -47,6 +47,15 @@ class NodeItem:
 
         return NodeItem(self.id, self.doc, value)
 
+    @property
+    def type(self):
+        if isinstance(self.data, float):
+            return 'float_'
+        elif isinstance(self.data, tuple):
+            return 'tuple_'
+        else:
+            return self.data.getType()
+
     def set_input(self, name, value):
         if value is None:
             return
@@ -160,46 +169,28 @@ class NodeItem:
 
         return dot
 
-    # def if_else(self, cond, other, if_value, else_value):
-    #     other_data = other.data if isinstance(other, NodeItem) else other
-    #     if_data = if_value.data if isinstance(if_value, NodeItem) else if_value
-    #     else_data = else_value.data if isinstance(else_value, NodeItem) else else_value
-    #
-    #     if isinstance(self.data, float):
-    #         result_data = if_data if bool(self.data) else else_data
-    #     else:
-    #         result_data = self.rpr_context.create_material_node(pyrpr.MATERIAL_NODE_ARITHMETIC)
-    #         result_data.set_input(pyrpr.MATERIAL_INPUT_OP, pyrpr.MATERIAL_NODE_OP_TERNARY)
-    #         result_data.set_input(pyrpr.MATERIAL_INPUT_COLOR0, self.data)
-    #         result_data.set_input(pyrpr.MATERIAL_INPUT_COLOR1, if_data)
-    #         result_data.set_input(pyrpr.MATERIAL_INPUT_COLOR2, else_data)
-    #
-    #     return NodeItem(self.rpr_context, result_data)
-    #
-    # def __gt__(self, other):
-    #     return self._arithmetic_helper(other, 'ifgreater',
-    #                                    lambda a, b: float(a > b))
-    #
-    # def __ge__(self, other):
-    #     return self._arithmetic_helper(other, 'ifgreatereq',
-    #                                    lambda a, b: float(a >= b))
-    #
-    # def __lt__(self, other):
-    #     if not isinstance(other, NodeItem):
-    #         other = NodeItem(self.doc, other)
-    #     return other >= self
-    #
-    # def __le__(self, other):
-    #     if not isinstance(other, NodeItem):
-    #         other = NodeItem(self.doc, other)
-    #     return other > self
-    #
-    # def __eq__(self, other):
-    #     return self._arithmetic_helper(other, 'ifequal',
-    #                                    lambda a, b: float(a == b))
-    #
-    # def __ne__(self, other):
-    #     return 1.0 - (self == other)
+    def if_else(self, cond: str, other, if_value, else_value):
+        if cond == '>':
+            res = self._arithmetic_helper(other, 'ifgreater', lambda a, b: float(a > b))
+        elif cond == '>=':
+            res = self._arithmetic_helper(other, 'ifgreatereq', lambda a, b: float(a >= b))
+        elif cond == '==':
+            res = self._arithmetic_helper(other, 'ifequal', lambda a, b: float(a == b))
+        elif cond == '<':
+            return self.node_item(other).if_else('>', self, else_value, if_value)
+        elif cond == '<=':
+            return self.node_item(other).if_else('>=', self, else_value, if_value)
+        else:
+            raise ValueError("Incorrect condition:", cond)
+
+        if isinstance(res.data, float):
+            return if_value if res.data == 1.0 else else_value
+        elif isinstance(res.data, tuple):
+            return if_value if res.data[0] == 1.0 else else_value
+        else:
+            res.set_input('value1', if_value)
+            res.set_input('value2', else_value)
+            return res
 
     def min(self, other):
         return self._arithmetic_helper(other, 'min', lambda a, b: min(a, b))
@@ -207,9 +198,9 @@ class NodeItem:
     def max(self, other):
         return self._arithmetic_helper(other, 'max', lambda a, b: max(a, b))
 
-    def clamp(self, min_val=0.0, max_val=1.0):
-        ''' clamp data to min/max '''
-        return self.min(max_val).max(min_val)
+    # def clamp(self, min_val=0.0, max_val=1.0):
+    #     ''' clamp data to min/max '''
+    #     return self.min(max_val).max(min_val)
 
     def sin(self):
         return self._arithmetic_helper(None, 'sin', lambda a: math.sin(a))
