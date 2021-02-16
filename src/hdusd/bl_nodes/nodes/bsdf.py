@@ -91,7 +91,64 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         standard_surface = self.create_node('standard_surface', 'surfaceshader', {
             'base': 1.0,
             'base_color': base_color,
+            'diffuse_roughness': roughness,
+            'normal': normal,
+            'tangent': tangent,
         })
+
+        if enabled(metallic):
+            standard_surface.set_input('metalness', metallic)
+
+        if enabled(specular):
+            standard_surface.set_inputs({
+                'specular': specular,
+                'specular_color': base_color,
+                'specular_roughness': roughness,
+                'specular_IOR': ior,
+                'specular_anisotropy': anisotropic,
+                'specular_rotation': anisotropic_rotation,
+            })
+
+        if enabled(transmission):
+            standard_surface.set_inputs({
+                'transmission': transmission,
+                'transmission_color': base_color,
+                'transmission_roughness': transmission_roughness,
+                'transmission_anisotropy': anisotropic,
+                'transmission_rotation': anisotropic_rotation,
+            })
+
+        if enabled(subsurface):
+            standard_surface.set_inputs({
+                'subsurface': subsurface,
+                'subsurface_color': subsurface_color,
+                'subsurface_radius': subsurface_radius,
+                'subsurface_anisotropy': anisotropic,
+            })
+
+        if enabled(sheen):
+            standard_surface.set_inputs({
+                'sheen': sheen,
+                'sheen_color': base_color,
+                'sheen_roughness': roughness,
+            })
+
+        if enabled(clearcoat):
+            standard_surface.set_inputs({
+                'coat': clearcoat,
+                'coat_color': base_color,
+                'coat_roughness': clearcoat_roughness,
+                'coat_IOR': ior,
+                'coat_anisotropy': anisotropic,
+                'coat_rotation': anisotropic_rotation,
+                'coat_normal': clearcoat_normal,
+            })
+
+        if enabled(emission):
+            standard_surface.set_inputs({
+                'emission': emission_strength,
+                'emission_color': emission,
+            })
 
         return standard_surface
 

@@ -65,6 +65,10 @@ class NodeItem:
         input = self.data.addInput(name, nd_input.getType())
         set_mx_param_value(input, val_data, input.getType())
 
+    def set_inputs(self, inputs):
+        for name, value in inputs.items():
+            self.set_input(name, value)
+
     # MATH OPERATIONS
     def _arithmetic_helper(self, other, op_node, func):
         ''' helper function for overridden math functions.
