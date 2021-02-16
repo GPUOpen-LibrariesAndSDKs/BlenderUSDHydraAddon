@@ -30,10 +30,10 @@ class HDUSD_MATERIAL_OP_export_mx_console(HdUSD_Operator):
     bl_description = "Export material as MaterialX node tree to console"
 
     def execute(self, context):
-        mx_node_tree = context.space_data.edit_tree
-        doc = mx_node_tree.export()
+        material = context.material
+
+        doc = material.hdusd.export()
         if not doc:
-            log.warn("Incorrect node tree to export", mx_node_tree)
             return {'CANCELLED'}
 
         print(mx.writeToXmlString(doc))
@@ -41,7 +41,7 @@ class HDUSD_MATERIAL_OP_export_mx_console(HdUSD_Operator):
 
     @staticmethod
     def enabled(context):
-        return bool(context.space_data.edit_tree.output_node)
+        return True
 
 
 class HDUSD_MATERIAL_PT_import_export(HdUSD_Panel):

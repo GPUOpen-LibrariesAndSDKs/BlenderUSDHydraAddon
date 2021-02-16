@@ -12,11 +12,213 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import math
+
 import bpy
 import MaterialX as mx
 
-from .node_item import NodeItem
+from ..utils import set_mx_param_value
+from ..mx_nodes.nodes import get_node_def_cls
 from . import log
+
+
+class Id:
+    def __init__(self):
+        self.id = 0
+
+    def __call__(self):
+        self.id += 1
+        return self.id
+
+
+class NodeItem:
+    """This class is a wrapper used for doing operations on MaterialX nodes"""
+
+    def __init__(self, id: Id, doc: mx.Document, data: [tuple, float, mx.Node]):
+        self.id = id
+        self.doc = doc
+        self.data = data
+        self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).mx_nodedef \
+            if isinstance(data, mx.Node) else None
+
+    def node_item(self, value):
+        if isinstance(value, NodeItem):
+            return value
+
+        return NodeItem(self.id, self.doc, value)
+
+    def set_input(self, name, value):
+        if value is None:
+            return
+
+        val_data = value.data if isinstance(value, NodeItem) else value
+        nd_input = self.nodedef.getInput(name)
+        input = self.data.addInput(name, nd_input.getType())
+        set_mx_param_value(input, val_data, input.getType())
+
+    # MATH OPERATIONS
+    def _arithmetic_helper(self, other, op_node, func):
+        ''' helper function for overridden math functions.
+            This simply creates an arithmetic node of rpr_type
+            if one of the operands has node data, else maps the function to data '''
+
+        if other is None:
+            if isinstance(self.data, float):
+                result_data = func(self.data)
+            elif isinstance(self.data, tuple):
+                result_data = tuple(map(func, self.data))
+            else:
+                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
+                                               self.data.getType())
+                input = result_data.addInput('in', self.data.getType())
+                set_mx_param_value(input, self.data, self.data.getType())
+
+        else:
+            other_data = other.data if isinstance(other, NodeItem) else other
+            if isinstance(self.data, (float, tuple)) and isinstance(other_data, (float, tuple)):
+                if isinstance(self.data, float) and isinstance(other_data, float):
+                    result_data = func(self.data, other_data)
+                else:
+                    data = self.data
+
+                    # converting data or other_data to have equal length
+                    if isinstance(data, float):
+                        data = (data,) * len(other_data)
+                    elif isinstance(other_data, float):
+                        other_data = (other_data,) * len(data)
+                    elif len(data) < len(other_data):
+                        data = (*data, 1.0)
+                    elif len(other_data) < len(data):
+                        other_data = (*other_data, 1.0)
+
+                    result_data = tuple(map(func, data, other_data))
+
+            else:
+                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
+                                               self.data.getType())
+                input1 = result_data.addInput('in1', self.data.getType())
+                set_mx_param_value(input1, self.data, self.data.getType())
+                input2 = result_data.addInput('in2', self.data.getType())
+                set_mx_param_value(input2, other_data, self.data.getType())
+
+        return self.node_item(result_data)
+
+    def __add__(self, other):
+        return self._arithmetic_helper(other, 'add', lambda a, b: a + b)
+
+    def __sub__(self, other):
+        return self._arithmetic_helper(other, 'subtract', lambda a, b: a - b)
+
+    def __mul__(self, other):
+        return self._arithmetic_helper(other, 'multiply', lambda a, b: a * b)
+
+    def __truediv__(self, other):
+        return self._arithmetic_helper(other, 'divide',
+                                       lambda a, b: a / b if not math.isclose(b, 0.0) else 0.0)
+
+    def __mod__(self, other):
+        return self._arithmetic_helper(other, 'modulo', lambda a, b: a % b)
+
+    def __pow__(self, other):
+        return self._arithmetic_helper(other, 'power', lambda a, b: a ** b)
+
+    def __neg__(self):
+        return 0.0 - self
+
+    def __abs__(self):
+        return self._arithmetic_helper(None, 'absval', lambda a: abs(a))
+
+    def floor(self):
+        return self._arithmetic_helper(None, 'floor', lambda a: float(math.floor(a)))
+
+    def ceil(self):
+        return self._arithmetic_helper(None, 'ceil', lambda a: float(math.floor(a)))
+
+    # right hand methods for doing something like 1.0 - Node
+    def __radd__(self, other):
+        return self + other
+
+    def __rsub__(self, other):
+        return self.node_item(other) - self
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __rtruediv__(self, other):
+        return self.node_item(other) / self
+
+    def __rmod__(self, other):
+        return self.node_item(other) % self
+
+    def __rpow__(self, other):
+        return self.node_item(other) ** self
+
+    def dot(self, other):
+        dot = self._arithmetic_helper(other, 'dotproduct', lambda a, b: a * b)
+        if isinstance(dot.data, tuple):
+            dot.data = sum(dot.data)
+
+        return dot
+
+    # def if_else(self, cond, other, if_value, else_value):
+    #     other_data = other.data if isinstance(other, NodeItem) else other
+    #     if_data = if_value.data if isinstance(if_value, NodeItem) else if_value
+    #     else_data = else_value.data if isinstance(else_value, NodeItem) else else_value
+    #
+    #     if isinstance(self.data, float):
+    #         result_data = if_data if bool(self.data) else else_data
+    #     else:
+    #         result_data = self.rpr_context.create_material_node(pyrpr.MATERIAL_NODE_ARITHMETIC)
+    #         result_data.set_input(pyrpr.MATERIAL_INPUT_OP, pyrpr.MATERIAL_NODE_OP_TERNARY)
+    #         result_data.set_input(pyrpr.MATERIAL_INPUT_COLOR0, self.data)
+    #         result_data.set_input(pyrpr.MATERIAL_INPUT_COLOR1, if_data)
+    #         result_data.set_input(pyrpr.MATERIAL_INPUT_COLOR2, else_data)
+    #
+    #     return NodeItem(self.rpr_context, result_data)
+    #
+    # def __gt__(self, other):
+    #     return self._arithmetic_helper(other, 'ifgreater',
+    #                                    lambda a, b: float(a > b))
+    #
+    # def __ge__(self, other):
+    #     return self._arithmetic_helper(other, 'ifgreatereq',
+    #                                    lambda a, b: float(a >= b))
+    #
+    # def __lt__(self, other):
+    #     if not isinstance(other, NodeItem):
+    #         other = NodeItem(self.doc, other)
+    #     return other >= self
+    #
+    # def __le__(self, other):
+    #     if not isinstance(other, NodeItem):
+    #         other = NodeItem(self.doc, other)
+    #     return other > self
+    #
+    # def __eq__(self, other):
+    #     return self._arithmetic_helper(other, 'ifequal',
+    #                                    lambda a, b: float(a == b))
+    #
+    # def __ne__(self, other):
+    #     return 1.0 - (self == other)
+
+    def min(self, other):
+        return self._arithmetic_helper(other, 'min', lambda a, b: min(a, b))
+
+    def max(self, other):
+        return self._arithmetic_helper(other, 'max', lambda a, b: max(a, b))
+
+    def clamp(self, min_val=0.0, max_val=1.0):
+        ''' clamp data to min/max '''
+        return self.min(max_val).max(min_val)
+
+    def sin(self):
+        return self._arithmetic_helper(None, 'sin', lambda a: math.sin(a))
+
+    def cos(self):
+        return self._arithmetic_helper(None, 'cos', lambda a: math.cos(a))
+
+    def tan(self):
+        return self._arithmetic_helper(None, 'tan', lambda a: math.tan(a))
 
 
 class NodeParser:
@@ -25,8 +227,9 @@ class NodeParser:
     Subclasses should override only export() function.
     """
 
-    def __init__(self, doc: mx.Document, material: bpy.types.Material, node: bpy.types.Node,
-                 obj: bpy.types.Object, out_key, group_nodes=(), **kwargs):
+    def __init__(self, id: Id, doc: mx.Document, material: bpy.types.Material,
+                 node: bpy.types.Node, obj: bpy.types.Object, out_key, group_nodes=(), **kwargs):
+        self.id = id
         self.doc = doc
         self.material = material
         self.node = node
@@ -68,9 +271,9 @@ class NodeParser:
         # getting corresponded NodeParser class
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
         if NodeParser_cls:
-            node_parser = NodeParser_cls(self.doc, self.material, node, out_key,
+            node_parser = NodeParser_cls(self.id, self.doc, self.material, node, out_key,
                                          group_nodes, **self.kwargs)
-            return node_parser.final_export()
+            return node_parser.export()
 
         log.warn("Ignoring unsupported node", node, self.material)
         return None
@@ -89,18 +292,24 @@ class NodeParser:
 
         raise TypeError("Unknown value type to pass to rpr", val)
 
+    def node_item(self, value):
+        if isinstance(value, NodeItem):
+            return value
+
+        return NodeItem(self.id, self.doc, value)
+
     # HELPER FUNCTIONS
     # Child classes should use them to do their export
     def get_output_default(self):
         """ Returns default value of output socket """
         socket_out = self.node.outputs[self.out_key]
-        return self._parse_val(socket_out.default_value)
+        return self.node_item(self._parse_val(socket_out.default_value))
 
     def get_input_default(self, in_key):
         """ Returns default value of input socket """
 
         socket_in = self.node.inputs[in_key]
-        return self._parse_val(socket_in.default_value)
+        return self.node_item(self._parse_val(socket_in.default_value))
 
     def get_input_link(self, in_key: [str, int]):
         """Returns linked parsed node or None if nothing is linked or not link is not valid"""
@@ -130,15 +339,15 @@ class NodeParser:
         return self.get_input_default(in_key)
 
     def create_node(self, node_name, nd_type, inputs=None):
-        node_item = NodeItem(
-            self.doc, self.doc.addNode(node_name, f"{node_name}_{NodeItem.id()}", nd_type))
+        node = self.doc.addNode(node_name, f"{node_name}_{self.id()}", nd_type)
+        node_item = NodeItem(self.id, self.doc, node)
 
         if inputs:
-            for name, (value, nd_type) in inputs.items():
+            for name, value in inputs.items():
                 if value is None:
                     continue
 
-                node_item.set_input(name, value, nd_type)
+                node_item.set_input(name, value)
 
         return node_item
 
@@ -146,12 +355,3 @@ class NodeParser:
     def export(self) -> [NodeItem, None]:
         """Main export function which should be overridable in child classes"""
         return None
-
-    def final_export(self):
-        """
-        This is the entry point of NodeParser classes.
-        This function does some useful preparation before and after calling export() function.
-        """
-        log("export", self.object, self.material, self.node, self.out_key, self.group_nodes)
-
-        return self.export()

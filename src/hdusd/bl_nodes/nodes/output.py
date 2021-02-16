@@ -20,7 +20,7 @@ class ShaderNodeOutputMaterial(NodeParser):
         surface = self.get_input_link('Surface')
 
         surfacematerial = self.create_node('surfacematerial', 'material', {
-            'surfaceshader': (surface, 'surfaceshader')
+            'surfaceshader': surface,
         })
 
         return surfacematerial

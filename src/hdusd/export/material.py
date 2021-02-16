@@ -193,5 +193,3 @@ def sync_mx(materials_prim, mx_node_tree, obj):
     # shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
 
     return usd_mat
-
-

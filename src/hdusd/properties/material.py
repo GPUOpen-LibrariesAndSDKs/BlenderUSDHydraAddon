@@ -18,6 +18,7 @@ import MaterialX as mx
 from . import HdUSDProperties
 from ..mx_nodes.node_tree import MxNodeTree
 from ..bl_nodes.nodes import ShaderNodeOutputMaterial
+from ..bl_nodes.node_parser import Id
 
 
 class MaterialProperties(HdUSDProperties):
@@ -36,5 +37,5 @@ class MaterialProperties(HdUSDProperties):
         doc = mx.createDocument()
         doc.setVersionString("1.38")
 
-        ShaderNodeOutputMaterial(doc, material, output_node, None, None).export()
+        ShaderNodeOutputMaterial(Id(), doc, material, output_node, None, None).export()
         return doc
