@@ -48,7 +48,6 @@ from . import (
     world,
     usd_list,
     mx_nodes,
-    bl_nodes,
 )
 
 
@@ -69,6 +68,9 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_PT_output_surface,
     material.HDUSD_MATERIAL_PT_output_displacement,
     material.HDUSD_MATERIAL_PT_output_volume,
+    material.HDUSD_MATERIAL_OP_export_mx_file,
+    material.HDUSD_MATERIAL_OP_export_mx_console,
+    material.HDUSD_MATERIAL_PT_export_mx,
 
     world.HDUSD_WORLD_PT_surface,
 
@@ -86,10 +88,6 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     mx_nodes.HDUSD_MX_OP_export_console,
     mx_nodes.HDUSD_MX_OP_create_basic_nodes,
     mx_nodes.HDUSD_MX_MATERIAL_PT_import_export,
-
-    bl_nodes.HDUSD_MATERIAL_OP_export_mx_file,
-    bl_nodes.HDUSD_MATERIAL_OP_export_mx_console,
-    bl_nodes.HDUSD_MATERIAL_PT_import_export,
 ])
 
 
