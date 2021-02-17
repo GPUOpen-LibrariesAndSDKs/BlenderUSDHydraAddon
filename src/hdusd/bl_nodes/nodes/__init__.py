@@ -13,4 +13,5 @@
 # limitations under the License.
 #********************************************************************
 from .output import *
-from .bsdf import *
+from .shader import *
+from .texture import *

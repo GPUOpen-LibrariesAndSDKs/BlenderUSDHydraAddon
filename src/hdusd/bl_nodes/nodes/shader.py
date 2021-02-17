@@ -88,7 +88,7 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         tangent = self.get_input_link('Tangent')
 
         # CREATING STANDARD SURFACE
-        standard_surface = self.create_node('standard_surface', 'surfaceshader', {
+        result = self.create_node('standard_surface', 'surfaceshader', {
             'base': 1.0,
             'base_color': base_color,
             'diffuse_roughness': roughness,
@@ -97,10 +97,10 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         })
 
         if enabled(metallic):
-            standard_surface.set_input('metalness', metallic)
+            result.set_input('metalness', metallic)
 
         if enabled(specular):
-            standard_surface.set_inputs({
+            result.set_inputs({
                 'specular': specular,
                 'specular_color': base_color,
                 'specular_roughness': roughness,
@@ -110,14 +110,14 @@ class ShaderNodeBsdfPrincipled(NodeParser):
             })
 
         if enabled(transmission):
-            standard_surface.set_inputs({
+            result.set_inputs({
                 'transmission': transmission,
                 'transmission_color': base_color,
                 'transmission_extra_roughness': transmission_roughness,
             })
 
         if enabled(subsurface):
-            standard_surface.set_inputs({
+            result.set_inputs({
                 'subsurface': subsurface,
                 'subsurface_color': subsurface_color,
                 'subsurface_radius': subsurface_radius,
@@ -125,14 +125,14 @@ class ShaderNodeBsdfPrincipled(NodeParser):
             })
 
         if enabled(sheen):
-            standard_surface.set_inputs({
+            result.set_inputs({
                 'sheen': sheen,
                 'sheen_color': base_color,
                 'sheen_roughness': roughness,
             })
 
         if enabled(clearcoat):
-            standard_surface.set_inputs({
+            result.set_inputs({
                 'coat': clearcoat,
                 'coat_color': base_color,
                 'coat_roughness': clearcoat_roughness,
@@ -143,12 +143,12 @@ class ShaderNodeBsdfPrincipled(NodeParser):
             })
 
         if enabled(emission):
-            standard_surface.set_inputs({
+            result.set_inputs({
                 'emission': emission_strength,
                 'emission_color': emission,
             })
 
-        return standard_surface
+        return result
 
 
 class ShaderNodeBsdfDiffuse(NodeParser):
@@ -157,10 +157,22 @@ class ShaderNodeBsdfDiffuse(NodeParser):
         roughness = self.get_input_value('Roughness')
         normal = self.get_input_link('Normal')
 
-        diffuse = self.create_node('diffuse_brdf', 'BSDF', {
+        result = self.create_node('diffuse_brdf', 'BSDF', {
             'color': color,
             'roughness': roughness,
             'normal': normal,
         })
 
-        return diffuse
+        return result
+
+
+class ShaderNodeEmission(NodeParser):
+    def export(self):
+        color = self.get_input_value('Color')
+        strength = self.get_input_value('Strength')
+
+        result = self.create_node('uniform_edf', 'EDF', {
+            'color': color * strength,
+        })
+
+        return result

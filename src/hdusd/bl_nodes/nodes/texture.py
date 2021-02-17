@@ -12,27 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from ..node_parser import NodeParser, Id
+from ..node_parser import NodeParser
 
 
-class ShaderNodeOutputMaterial(NodeParser):
-    def __init__(self, doc, material, node, obj, **kwargs):
-        super().__init__(Id(), doc, material, node, obj, None, **kwargs)
-
+class ShaderNodeTexImage(NodeParser):
     def export(self):
-        surface = self.get_input_link('Surface')
-
-        if surface.type == 'BSDF':
-            surface = self.create_node('surface', 'surfaceshader', {
-                'bsdf': surface,
-            })
-        elif surface.type == 'EDF':
-            surface = self.create_node('surface', 'surfaceshader', {
-                'edf': surface,
-            })
-
-        result = self.create_node('surfacematerial', 'material', {
-            'surfaceshader': surface,
-        })
-
-        return result
+        return None
