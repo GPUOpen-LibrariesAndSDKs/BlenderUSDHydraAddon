@@ -113,9 +113,7 @@ class ShaderNodeBsdfPrincipled(NodeParser):
             standard_surface.set_inputs({
                 'transmission': transmission,
                 'transmission_color': base_color,
-                'transmission_roughness': transmission_roughness,
-                'transmission_anisotropy': anisotropic,
-                'transmission_rotation': anisotropic_rotation,
+                'transmission_extra_roughness': transmission_roughness,
             })
 
         if enabled(subsurface):

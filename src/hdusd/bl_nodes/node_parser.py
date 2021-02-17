@@ -338,11 +338,7 @@ class NodeParser:
         node_item = NodeItem(self.id, self.doc, node)
 
         if inputs:
-            for name, value in inputs.items():
-                if value is None:
-                    continue
-
-                node_item.set_input(name, value)
+            node_item.set_inputs(inputs)
 
         return node_item
 

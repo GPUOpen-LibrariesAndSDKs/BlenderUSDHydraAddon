@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from ..node_parser import NodeParser
+from ..node_parser import NodeParser, Id
 
 
 class ShaderNodeOutputMaterial(NodeParser):
+    def __init__(self, doc, material, node, obj, **kwargs):
+        super().__init__(Id(), doc, material, node, obj, None, **kwargs)
+
     def export(self):
         surface = self.get_input_link('Surface')
 
