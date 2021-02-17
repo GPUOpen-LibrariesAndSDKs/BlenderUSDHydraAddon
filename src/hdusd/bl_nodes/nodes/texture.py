@@ -18,3 +18,8 @@ from ..node_parser import NodeParser
 class ShaderNodeTexImage(NodeParser):
     def export(self):
         return None
+
+
+class ShaderNodeTexChecker(NodeParser):
+    def export(self):
+        return None

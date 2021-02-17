@@ -18,10 +18,31 @@ import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_Operator
-from ..mx_nodes.node_tree import MxNodeTree
 
 from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
+
+
+class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
+    bl_idname = "hdusd.material_export_mx_file"
+    bl_label = "MaterialX Export to File"
+    bl_description = "Export material as MaterialX node tree to .mtlx file"
+
+    filename_ext = ".mtlx"
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="File path used for exporting material as MaterialX node tree to .mtlx file",
+        maxlen=1024, subtype="FILE_PATH"
+    )
+    filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
+
+    def execute(self, context):
+        doc = context.material.hdusd.export()
+        if not doc:
+            return {'CANCELLED'}
+
+        mx.writeToXmlFile(doc, self.filepath)
+        return {'FINISHED'}
 
 
 class HDUSD_MATERIAL_OP_export_mx_console(HdUSD_Operator):
@@ -30,18 +51,12 @@ class HDUSD_MATERIAL_OP_export_mx_console(HdUSD_Operator):
     bl_description = "Export material as MaterialX node tree to console"
 
     def execute(self, context):
-        material = context.material
-
-        doc = material.hdusd.export()
+        doc = context.material.hdusd.export()
         if not doc:
             return {'CANCELLED'}
 
         print(mx.writeToXmlString(doc))
         return {'FINISHED'}
-
-    @staticmethod
-    def enabled(context):
-        return True
 
 
 class HDUSD_MATERIAL_PT_import_export(HdUSD_Panel):
@@ -59,4 +74,5 @@ class HDUSD_MATERIAL_PT_import_export(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
 
+        layout.operator(HDUSD_MATERIAL_OP_export_mx_file.bl_idname)
         layout.operator(HDUSD_MATERIAL_OP_export_mx_console.bl_idname)

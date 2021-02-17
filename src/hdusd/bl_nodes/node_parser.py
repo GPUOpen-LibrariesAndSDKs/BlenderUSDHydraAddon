@@ -32,7 +32,7 @@ class Id:
 
 
 class NodeItem:
-    """This class is a wrapper used for doing operations on MaterialX nodes"""
+    """This class is a wrapper used for doing operations on MaterialX nodes, floats, and tuples"""
 
     def __init__(self, id: Id, doc: mx.Document, data: [tuple, float, mx.Node]):
         self.id = id
@@ -241,13 +241,6 @@ class NodeParser:
 
     # INTERNAL FUNCTIONS
     def _export_node(self, node, out_key, group_node=None):
-        """
-        Exports node with output socket.
-        1. Checks if such node was already exported and returns it.
-        2. Searches corresponded NodeParser class and do export through it
-        3. Store group node reference if new one passed
-        """
-        # Keep reference for group node if present
         if group_node:
             if self.group_nodes:
                 group_nodes = self.group_nodes + (group_node,)
@@ -256,12 +249,7 @@ class NodeParser:
         else:
             group_nodes = self.group_nodes
 
-        # # check if this node was already parsed
-        # node_key = key(self.material_key, node, socket_out, group_nodes)
-        #
-        # rpr_node = self.rpr_context.material_nodes.get(node_key, None)
-        # if rpr_node:
-        #     return rpr_node
+        # TODO: check if this node was already parsed
 
         # getting corresponded NodeParser class
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
@@ -274,7 +262,7 @@ class NodeParser:
         return None
 
     def _parse_val(self, val):
-        """Turn a blender node val or default value into something that works well with rpr """
+        """Turn blender socket value into python's value"""
 
         if isinstance(val, (int, float)):
             return float(val)
@@ -310,7 +298,6 @@ class NodeParser:
         """Returns linked parsed node or None if nothing is linked or not link is not valid"""
 
         socket_in = self.node.inputs[in_key]
-
         if not socket_in.is_linked:
             return None
 
@@ -320,9 +307,7 @@ class NodeParser:
         # if not self.is_link_allowed(link):
         #     raise MaterialError("Invalid link found", link, socket_in, self.node, self.material)
 
-        result = self._export_node(link.from_node, link.from_socket.identifier)
-
-        return result
+        return self._export_node(link.from_node, link.from_socket.identifier)
 
     def get_input_value(self, in_key):
         """ Returns linked node or default socket value """
