@@ -180,7 +180,7 @@ def sync_mx(materials_prim, mx_node_tree, obj):
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
     surfacematerial = next(node for node in doc.getNodes()
-                           if node.getNamePath() == 'surfacematerial')
+                           if node.getCategory() == 'surfacematerial')
 
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"

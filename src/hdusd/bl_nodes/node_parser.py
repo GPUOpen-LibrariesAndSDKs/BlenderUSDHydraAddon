@@ -184,6 +184,8 @@ class NodeItem:
             return self.node_item(other).if_else('>', self, else_value, if_value)
         elif cond == '<=':
             return self.node_item(other).if_else('>=', self, else_value, if_value)
+        elif cond == '!=':
+            return self.if_else('==', other, else_value, if_value)
         else:
             raise ValueError("Incorrect condition:", cond)
 
