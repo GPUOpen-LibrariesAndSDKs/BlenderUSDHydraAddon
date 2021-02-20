@@ -365,6 +365,8 @@ class MxNode(bpy.types.ShaderNode):
                 prop_type = FloatVectorProperty
                 prop_attrs['subtype'] = 'COLOR'
                 prop_attrs['size'] = int(m[1])
+                prop_attrs['soft_min'] = 0.0
+                prop_attrs['soft_max'] = 1.0
                 break
 
             m = re.fullmatch('vector(\d)', mx_type)
