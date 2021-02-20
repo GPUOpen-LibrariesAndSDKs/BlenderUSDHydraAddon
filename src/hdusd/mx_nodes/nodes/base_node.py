@@ -49,14 +49,18 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
         return (0.78, 0.78, 0.16, 1.0) if is_shader_type(type_name) else (0.16, 0.78, 0.16, 1.0)
 
     def draw(self, context, layout, node, text):
-        mx_input = node.prop.mx_nodedef.getInput(self.name)
+        nd = node.prop.mx_nodedef
+        mx_input = nd.getInput(self.name)
         nd_type = mx_input.getType()
 
         if self.is_linked or is_shader_type(nd_type):
             uiname = mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname') else \
                      title_str(mx_input.getName())
             uitype = title_str(nd_type)
-            layout.label(text=uiname if uiname == uitype else f"{uiname}: {uitype}")
+            if uiname.lower() == uitype.lower() or len(nd.getInputs()) == 1:
+                layout.label(text=uitype)
+            else:
+                layout.label(text=f"{uiname}: {uitype}")
         else:
             layout.prop(node.prop, MxNode._input_prop(self.name))
 
@@ -69,8 +73,15 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
     bl_label = "MX Output Socket"
 
     def draw(self, context, layout, node, text):
-        mx_output = node.prop.mx_nodedef.getOutput(self.name)
-        layout.label(text=title_str(mx_output.getType()))
+        nd = node.prop.mx_nodedef
+        mx_output = nd.getOutput(self.name)
+        uiname = mx_output.getAttribute('uiname') if mx_output.hasAttribute('uiname') else \
+            title_str(mx_output.getName())
+        uitype = title_str(mx_output.getType())
+        if uiname.lower() == uitype.lower() or len(nd.getOutputs()) == 1:
+            layout.label(text=uitype)
+        else:
+            layout.label(text=f"{uiname}: {uitype}")
 
     def draw_color(self, context, node):
         return MxNodeInputSocket.get_color(node.prop.mx_nodedef.getOutput(self.name).getType())
@@ -89,6 +100,7 @@ class MxNode(bpy.types.ShaderNode):
     mx_nodedefs = ()    # list of nodedefs
     ui_folders = ()     # list of ui folders mentioned in nodedef
     data_type: EnumProperty
+    category = ""
 
     @staticmethod
     def _param_prop(name):
@@ -267,7 +279,7 @@ class MxNode(bpy.types.ShaderNode):
                 index_default = i
 
         annotations['data_type'] = (EnumProperty, {
-            'name': "Data Type",
+            'name': "Type",
             'description': "Input Data Type",
             'items': data_type_items,
             'default': data_type_items[index_default][0],
@@ -291,10 +303,11 @@ class MxNode(bpy.types.ShaderNode):
             'bl_label': title_str(nd.getNodeString()),
             'bl_idname': f"{MxNode.bl_idname}_{prefix}_{node_name}",
             'bl_description': nd.getAttribute('doc') if nd.hasAttribute('doc')
-                   else title_str(nd.getName()),
+                    else title_str(nd.getName()),
             'bl_width_default': 250 if len(ui_folders) > 2 else 200,
             'mx_nodedefs': mx_nodedefs,
             'ui_folders': tuple(ui_folders),
+            'category': nd.getAttribute('nodegroup') if nd.hasAttribute('nodegroup') else prefix,
             '__annotations__': annotations
         }
 

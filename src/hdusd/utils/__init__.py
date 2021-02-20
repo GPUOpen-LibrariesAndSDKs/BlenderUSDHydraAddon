@@ -124,7 +124,8 @@ def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
 
 
 def title_str(str):
-    return str.replace('_', ' ').title()
+    s = str.replace('_', ' ')
+    return s[:1].upper() + s[1:]
 
 
 def code_str(str):
