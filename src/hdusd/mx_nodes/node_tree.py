@@ -16,6 +16,8 @@ import bpy
 
 import MaterialX as mx
 
+from .nodes import get_mx_node_cls
+
 
 NODE_SEPARATION_WIDTH = 70
 
@@ -58,8 +60,15 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         return doc
 
     def import_(self, doc: mx.Document):
+        loc_x, loc_y = 0, 0
 
-        pass
+        for mx_node in reversed(doc.getNodes()):
+            MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+            node = self.nodes.new(MxNode_cls.bl_idname)
+            node.import_values(mx_node)
+
+            node.location = (loc_x, loc_y)
+            loc_x -= node.width + NODE_SEPARATION_WIDTH
 
     def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """
