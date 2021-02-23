@@ -15,7 +15,7 @@
 import MaterialX as mx
 
 import bpy
-from bpy_extras.io_utils import ExportHelper
+from bpy_extras.io_utils import ImportHelper, ExportHelper
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
@@ -24,49 +24,32 @@ from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
 
 
-class HDUSD_MX_OP_import_file(HdUSD_Operator, ExportHelper):
+class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
     bl_idname = "hdusd.mx_import_file"
-    bl_label = "Import Material"
-    bl_description = "Import selected mtlx file"
+    bl_label = "Import from File"
+    bl_description = "Import MaterialX node tree from .mtlx file"
 
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     filename_ext = ".mtlx"
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="File path used for importing MaterialX node tree from .mtlx file",
+        maxlen=1024, subtype="FILE_PATH"
+    )
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
-    # Perform the operator action.
     def execute(self, context):
         doc = mx.createDocument()
         try:
             mx.readFromXmlFile(doc, self.filepath)
 
-        except mx.ExceptionFileMissing as err:
-            log.error(err, self.filepath)
+        except Exception as e:
+            log.error(e, self.filepath)
             return {'CANCELLED'}
 
-        except mx.ExceptionParseError as err:
-            log.error("Invalid MaterialX XML file", self.filepath, err)
-            return {'CANCELLED'}
+        mx_node_tree = context.space_data.edit_tree
+        mx_node_tree.import_(doc)
 
-        # # create sub node graphs
-        # for sub_ng in doc.getNodeGraphs():
-        #     create_node_graph(doc, sub_ng)
-
-        # for mat in materials:
-        #     # material in materialx takes the first node as the shader
-        #     print("creating mat", mat.getName())
-        #
-        #     # create material nodetree
-        #     nt = bpy.data.node_groups.new(mat.getName(), 'mx.NodeTree')
-        #     mat_node = nt.nodes.new("mx.surfacematerial")
-        #
-        #     # surface
-        #     for i, s_ref in enumerate(mat.getShaderRefs()):
-        #         created_item = create_item_from_shaderref(doc, s_ref, nt)
-        #         if created_item:
-        #             # TODO should be smarter about hooking up types
-        #             nt.links.new(mat_node.inputs[i], created_item.outputs[0])
-
-        return {"FINISHED"}
+        return {'FINISHED'}
 
 
 class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
@@ -143,6 +126,7 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
         layout = self.layout
 
         layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname)
+        layout.operator(HDUSD_MX_OP_import_file.bl_idname)
 
         col = layout.column()
         col.enabled = HDUSD_MX_OP_export_file.enabled(context)
