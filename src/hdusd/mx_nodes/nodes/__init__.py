@@ -22,6 +22,7 @@ from . import base_node, categories
 
 node_def_classes, mx_node_classes = base_node.create_node_types([
     ('PBR', HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx"),
+    ('USD', HDUSD_LIBS_DIR / "materialx/libraries/bxdf/usd_preview_surface.mtlx"),
     ('STD', HDUSD_LIBS_DIR / "materialx/libraries/stdlib/stdlib_defs.mtlx"),
     ('PBR', HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx"),
 ])
@@ -49,3 +50,19 @@ def unregister():
     unregister_nodes()
     unregister_nodedefs()
     unregister_sockets()
+
+
+def get_node_def_cls(node_name, nd_type):
+    nd_name = f"ND_{node_name}_{nd_type}"
+    node_def_cls = next((cls for cls in node_def_classes if cls.mx_nodedef.getName() == nd_name),
+                        None)
+    if node_def_cls:
+        return node_def_cls
+
+    nd_name = f"ND_{node_name}"
+    return next(cls for cls in node_def_classes if cls.mx_nodedef.getName() == nd_name)
+
+
+def get_mx_node_cls(node_name, prefix='STD'):
+    name = f"MxNode_{prefix}_{node_name}"
+    return next(cls for cls in mx_node_classes if cls.__name__ == name)

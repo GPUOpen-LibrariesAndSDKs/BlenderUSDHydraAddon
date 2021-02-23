@@ -66,6 +66,9 @@ def sync(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
     if mat.hdusd.mx_node_tree:
         return sync_mx(materials_prim, mat.hdusd.mx_node_tree, obj)
 
+    if mat.hdusd.export_as_mx:
+        return sync_as_mx(materials_prim, mat, obj)
+
     output_node = get_material_output_node(mat)
     if not output_node:
         log("No output node", mat)
@@ -171,16 +174,45 @@ def sync_mx(materials_prim, mx_node_tree, obj):
 
     doc = mx_node_tree.export()
     if not doc:
-        log.warn("No output node", mx_node_tree)
+        log.warn("MX export failed", mx_node_tree)
         return None
 
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
     surfacematerial = next(node for node in doc.getNodes()
-                           if node.getNamePath() == 'surfacematerial')
+                           if node.getCategory() == 'surfacematerial')
 
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"
+    usd_mat = UsdShade.Material.Define(stage, mat_path)
+    shader = UsdShade.Shader.Define(stage, f"{usd_mat.GetPath()}/rpr_materialx_node")
+    shader.CreateIdAttr("rpr_materialx_node")
+
+    shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
+    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(surfacematerial.getName())
+
+    out = usd_mat.CreateSurfaceOutput("rpr")
+    out.ConnectToSource(shader, "surface")
+    # shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
+
+    return usd_mat
+
+
+def sync_as_mx(materials_prim, mat, obj):
+    log("sync_as_mx", mat, obj)
+
+    doc = mat.hdusd.export(obj)
+    if not doc:
+        log.warn("Material export as MX failed", mat)
+        return None
+
+    mx_file = utils.get_temp_file(".mtlx")
+    mx.writeToXmlFile(doc, str(mx_file))
+    surfacematerial = next(node for node in doc.getNodes()
+                           if node.getCategory() == 'surfacematerial')
+
+    stage = materials_prim.GetStage()
+    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
     usd_mat = UsdShade.Material.Define(stage, mat_path)
     shader = UsdShade.Shader.Define(stage, f"{usd_mat.GetPath()}/rpr_materialx_node")
     shader.CreateIdAttr("rpr_materialx_node")

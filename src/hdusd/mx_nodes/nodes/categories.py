@@ -30,13 +30,12 @@ def get_node_categories():
 
     d = defaultdict(list)
     for MxNode_cls in mx_node_classes:
-        nodegroup = MxNode_cls.mx_nodedefs[0].getAttribute('nodegroup')
-        d[nodegroup].append(MxNode_cls)
+        d[MxNode_cls.category].append(MxNode_cls)
 
     categories = []
-    for nodegroup,  category_classes in d.items():
+    for category,  category_classes in d.items():
         categories.append(
-            MxNodeCategory('HdUSD_MX_NG_' + nodegroup, title_str(nodegroup),
+            MxNodeCategory('HdUSD_MX_NG_' + category, title_str(category),
                            items=[NodeItem(MxNode_cls.bl_idname)
                                   for MxNode_cls in category_classes]))
 

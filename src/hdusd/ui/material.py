@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import bpy
+import MaterialX as mx
 
-from . import HdUSD_Panel, HdUSD_ChildPanel
+import bpy
+from bpy_extras.io_utils import ExportHelper
+
+from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..export.material import get_material_output_node
 from ..mx_nodes.node_tree import MxNodeTree
 
@@ -138,6 +141,9 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         col.template_ID(mat_hdusd, "mx_node_tree",
                         new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
 
+        if not mat_hdusd.mx_node_tree:
+            layout.prop(mat_hdusd, "export_as_mx")
+
     def draw_header(self, context):
         layout = self.layout
         layout.label(text=f"Material: {context.material.name}")
@@ -177,3 +183,58 @@ class HDUSD_MATERIAL_PT_output_displacement(HDUSD_MATERIAL_PT_output_node):
 class HDUSD_MATERIAL_PT_output_volume(HDUSD_MATERIAL_PT_output_node):
     bl_label = "Volume"
     bl_options = {'DEFAULT_CLOSED'}
+
+
+class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
+    bl_idname = "hdusd.material_export_mx_file"
+    bl_label = "MaterialX Export to File"
+    bl_description = "Export material as MaterialX node tree to .mtlx file"
+
+    filename_ext = ".mtlx"
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="File path used for exporting material as MaterialX node tree to .mtlx file",
+        maxlen=1024, subtype="FILE_PATH"
+    )
+    filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
+
+    def execute(self, context):
+        doc = context.material.hdusd.export(context.object)
+        if not doc:
+            return {'CANCELLED'}
+
+        mx.writeToXmlFile(doc, self.filepath)
+        return {'FINISHED'}
+
+
+class HDUSD_MATERIAL_OP_export_mx_console(HdUSD_Operator):
+    bl_idname = "hdusd.material_export_mx_console"
+    bl_label = "MaterialX Export to Console"
+    bl_description = "Export material as MaterialX node tree to console"
+
+    def execute(self, context):
+        doc = context.material.hdusd.export(context.object)
+        if not doc:
+            return {'CANCELLED'}
+
+        print(mx.writeToXmlString(doc))
+        return {'FINISHED'}
+
+
+class HDUSD_MATERIAL_PT_export_mx(HdUSD_Panel):
+    bl_label = "MaterialX Export"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "Tool"
+
+    @classmethod
+    def poll(cls, context):
+        tree = context.space_data.edit_tree
+        return super().poll(context) and tree and \
+               tree.bl_idname == bpy.types.ShaderNodeTree.__name__
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator(HDUSD_MATERIAL_OP_export_mx_file.bl_idname)
+        layout.operator(HDUSD_MATERIAL_OP_export_mx_console.bl_idname)

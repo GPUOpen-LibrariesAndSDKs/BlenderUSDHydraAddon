@@ -124,8 +124,24 @@ def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
 
 
 def title_str(str):
-    return str.replace('_', ' ').title()
+    s = str.replace('_', ' ')
+    return s[:1].upper() + s[1:]
 
 
 def code_str(str):
     return str.replace(' ', '_').replace('.', '_').lower()
+
+
+def set_mx_param_value(mx_param, val, nd_type):
+    import MaterialX as mx
+
+    if isinstance(val, mx.Node):
+        mx_param.setNodeName(val.getName())
+    elif nd_type == 'filename':
+        mx_param.setValueString(val)
+    else:
+        mx_type = getattr(mx, title_str(nd_type), None)
+        if mx_type:
+            mx_param.setValue(mx_type(val))
+        else:
+            mx_param.setValue(val)
