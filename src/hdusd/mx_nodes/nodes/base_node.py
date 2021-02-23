@@ -437,6 +437,10 @@ class MxNode(bpy.types.ShaderNode):
             setattr(self.prop, self._input_prop(mx_input.getName()),
                     mx_utils.parse_value(val, mx_input.getType()))
 
+        for mx_param in mx_node.getParameters():
+            setattr(self.prop, self._param_prop(mx_param.getName()),
+                    mx_utils.parse_value(mx_param.getValue(), mx_param.getType()))
+
 
 def create_node_types(file_paths):
     IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
