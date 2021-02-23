@@ -30,7 +30,7 @@ from bpy.props import (
 )
 
 from ...utils import title_str, code_str
-from ...utils.mx import set_param_value, is_value_equal, is_shader_type
+from ...utils import mx as mx_utils
 from . import log
 
 
@@ -40,18 +40,19 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
 
     @staticmethod
     def get_color(type_name):
-        return (0.78, 0.78, 0.16, 1.0) if is_shader_type(type_name) else (0.16, 0.78, 0.16, 1.0)
+        return (0.78, 0.78, 0.16, 1.0) if mx_utils.is_shader_type(type_name) else \
+               (0.16, 0.78, 0.16, 1.0)
 
     def draw(self, context, layout, node, text):
         nd = node.prop.mx_nodedef
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
 
-        if self.is_linked or is_shader_type(nd_type) or nd_input.getValue() is None:
+        if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
             uiname = nd_input.getAttribute('uiname') if nd_input.hasAttribute('uiname') else \
                      title_str(nd_input.getName())
             uitype = title_str(nd_type)
-            if uiname.lower() == uitype.lower() or len(nd.getInputs()) == 1:
+            if uiname.lower() == uitype.lower():
                 layout.label(text=uitype)
             else:
                 layout.label(text=f"{uiname}: {uitype}")
@@ -118,8 +119,7 @@ class MxNode(bpy.types.ShaderNode):
 
     @staticmethod
     def _nodedef_data_type(nd):
-        # nodedef name consists: ND_{node_name}_{data_type} therefore:
-        return nd.getName()[(4 + len(nd.getNodeString())):]
+        return nd.getOutputs()[0].getType()
 
     class NodeDef(bpy.types.PropertyGroup):
         mx_nodedef: mx.NodeDef  # holds the materialx nodedef object
@@ -197,24 +197,24 @@ class MxNode(bpy.types.ShaderNode):
             nd_input = self.get_nodedef_input(in_key)
             nd_type = nd_input.getType()
             if not isinstance(val, mx.Node):
-                if is_shader_type(nd_type):
+                if mx_utils.is_shader_type(nd_type):
                     continue
 
                 nd_val = nd_input.getValue()
-                if nd_val is None or is_value_equal(nd_val, val, nd_type):
+                if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
                     continue
 
             input = node.addInput(nd_input.getName(), nd_type)
-            set_param_value(input, val, nd_type)
+            mx_utils.set_param_value(input, val, nd_type)
 
         for nd_param in nodedef.getParameters():
             val = self.get_param_value(nd_param.getName())
             nd_type = nd_param.getType()
-            if is_value_equal(nd_param.getValue(), val, nd_type):
+            if mx_utils.is_value_equal(nd_param.getValue(), val, nd_type):
                 continue
 
             param = node.addParameter(nd_param.getName(), nd_type)
-            set_param_value(param, val, nd_type)
+            mx_utils.set_param_value(param, val, nd_type)
 
         return node
 
@@ -276,10 +276,10 @@ class MxNode(bpy.types.ShaderNode):
         index_default = 0
         for i, NodeDef_cls in enumerate(node_def_classes):
             nd_name = NodeDef_cls.mx_nodedef.getName()
-            data_type = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
-            annotations[MxNode._nodedef_prop(nd_name)] = (PointerProperty, {'type': NodeDef_cls})
-            data_type_items.append((nd_name, title_str(data_type), title_str(data_type)))
-            if data_type == 'color3':
+            nd_type = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
+            annotations[MxNode._nodedef_prop(nd_type)] = (PointerProperty, {'type': NodeDef_cls})
+            data_type_items.append((nd_type, title_str(nd_type), title_str(nd_type)))
+            if nd_type == 'color3':
                 index_default = i
 
         annotations['data_type'] = (EnumProperty, {
@@ -333,7 +333,7 @@ class MxNode(bpy.types.ShaderNode):
             if mx_type == 'string':
                 if mx_param.hasAttribute('enum'):
                     prop_type = EnumProperty
-                    items = parse_val(prop_type, mx_param.getAttribute('enum'))
+                    items = mx_utils.parse_value_str(prop_type, mx_param.getAttribute('enum'))
                     prop_attrs['items'] = tuple((it, title_str(it), title_str(it))
                                                 for it in items)
                     break
@@ -396,17 +396,21 @@ class MxNode(bpy.types.ShaderNode):
         prop_attrs['description'] = mx_param.getAttribute('doc')
 
         if mx_param.hasAttribute('uimin'):
-            prop_attrs['min'] = parse_val(prop_type, mx_param.getAttribute('uimin'), True)
+            prop_attrs['min'] = mx_utils.parse_value_str(prop_type,
+                mx_param.getAttribute('uimin'), True)
         if mx_param.hasAttribute('uimax'):
-            prop_attrs['max'] = parse_val(prop_type, mx_param.getAttribute('uimax'), True)
+            prop_attrs['max'] = mx_utils.parse_value_str(prop_type,
+                mx_param.getAttribute('uimax'), True)
         if mx_param.hasAttribute('uisoftmin'):
-            prop_attrs['soft_min'] = parse_val(prop_type, mx_param.getAttribute('uisoftmin'), True)
+            prop_attrs['soft_min'] = mx_utils.parse_value_str(prop_type,
+                mx_param.getAttribute('uisoftmin'), True)
         if mx_param.hasAttribute('uisoftmax'):
-            prop_attrs['soft_max'] = parse_val(prop_type, mx_param.getAttribute('uisoftmax'), True)
+            prop_attrs['soft_max'] = mx_utils.parse_value_str(prop_type,
+                mx_param.getAttribute('uisoftmax'), True)
 
         if mx_param.hasAttribute('value'):
-            prop_attrs['default'] = parse_val(prop_type, mx_param.getAttribute('value'),
-                                              prop_type == EnumProperty)
+            prop_attrs['default'] = mx_utils.parse_value_str(prop_type,
+                mx_param.getAttribute('value'), prop_type == EnumProperty)
 
         return prop_name, prop_type, prop_attrs
 
@@ -416,26 +420,15 @@ class MxNode(bpy.types.ShaderNode):
     def create_output(self, mx_output):
         return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
 
+    def import_values(self, mx_node):
+        self.data_type = mx_node.getType()
+        for mx_input in mx_node.getInputs():
+            val = mx_input.getValue()
+            if val is None:
+                continue
 
-def parse_val(prop_type, val, first_only=False):
-    if prop_type == StringProperty:
-        return val
-    if prop_type == IntProperty:
-        return int(val)
-    if prop_type == FloatProperty:
-        return float(val)
-    if prop_type == BoolProperty:
-        return val == "true"
-    if prop_type == FloatVectorProperty:
-        res = tuple(float(x) for x in val.split(','))
-        if first_only:
-            return res[0]
-        return res
-    if prop_type == EnumProperty:
-        res = tuple(x.strip() for x in val.split(','))
-        if first_only:
-            return res[0]
-        return res
+            setattr(self.prop, self._input_prop(mx_input.getName()),
+                    mx_utils.parse_value(val, mx_input.getType()))
 
 
 def create_node_types(file_paths):
