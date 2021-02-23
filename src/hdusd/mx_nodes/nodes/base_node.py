@@ -119,7 +119,12 @@ class MxNode(bpy.types.ShaderNode):
 
     @staticmethod
     def _nodedef_data_type(nd):
-        return nd.getOutputs()[0].getType()
+        # nodedef name consists: ND_{node_name}_{data_type} therefore:
+        res = nd.getName()[(4 + len(nd.getNodeString())):]
+        if not res:
+            res = nd.getOutputs()[0].getType()
+
+        return res
 
     class NodeDef(bpy.types.PropertyGroup):
         mx_nodedef: mx.NodeDef  # holds the materialx nodedef object
@@ -333,7 +338,8 @@ class MxNode(bpy.types.ShaderNode):
             if mx_type == 'string':
                 if mx_param.hasAttribute('enum'):
                     prop_type = EnumProperty
-                    items = mx_utils.parse_value_str(prop_type, mx_param.getAttribute('enum'))
+                    items = mx_utils.parse_value_str(mx_param.getAttribute('enum'), mx_type,
+                                                     is_enum=True)
                     prop_attrs['items'] = tuple((it, title_str(it), title_str(it))
                                                 for it in items)
                     break
@@ -396,21 +402,22 @@ class MxNode(bpy.types.ShaderNode):
         prop_attrs['description'] = mx_param.getAttribute('doc')
 
         if mx_param.hasAttribute('uimin'):
-            prop_attrs['min'] = mx_utils.parse_value_str(prop_type,
-                mx_param.getAttribute('uimin'), True)
+            prop_attrs['min'] = mx_utils.parse_value_str(
+                mx_param.getAttribute('uimin'), mx_type, first_only=True)
         if mx_param.hasAttribute('uimax'):
-            prop_attrs['max'] = mx_utils.parse_value_str(prop_type,
-                mx_param.getAttribute('uimax'), True)
+            prop_attrs['max'] = mx_utils.parse_value_str(
+                mx_param.getAttribute('uimax'), mx_type, first_only=True)
         if mx_param.hasAttribute('uisoftmin'):
-            prop_attrs['soft_min'] = mx_utils.parse_value_str(prop_type,
-                mx_param.getAttribute('uisoftmin'), True)
+            prop_attrs['soft_min'] = mx_utils.parse_value_str(
+                mx_param.getAttribute('uisoftmin'), mx_type, first_only=True)
         if mx_param.hasAttribute('uisoftmax'):
-            prop_attrs['soft_max'] = mx_utils.parse_value_str(prop_type,
-                mx_param.getAttribute('uisoftmax'), True)
+            prop_attrs['soft_max'] = mx_utils.parse_value_str(
+                mx_param.getAttribute('uisoftmax'), mx_type, first_only=True)
 
         if mx_param.hasAttribute('value'):
-            prop_attrs['default'] = mx_utils.parse_value_str(prop_type,
-                mx_param.getAttribute('value'), prop_type == EnumProperty)
+            is_enum = prop_type == EnumProperty
+            prop_attrs['default'] = mx_utils.parse_value_str(
+                mx_param.getAttribute('value'), mx_type, is_enum=is_enum, first_only=is_enum)
 
         return prop_name, prop_type, prop_attrs
 

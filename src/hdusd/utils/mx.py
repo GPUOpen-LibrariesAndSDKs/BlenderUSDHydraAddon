@@ -51,55 +51,24 @@ def parse_value(mx_val, mx_type):
     return tuple(mx_val)
 
 
-def parse_value_str_new(val_str, mx_type, *, first_only=False, is_enum=False):
+def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
     if mx_type == 'string':
         if is_enum:
             res = tuple(x.strip() for x in val_str.split(','))
             return res[0] if first_only else res
         return val_str
 
-    if mx_type == 'filename':
-        return val_str
     if mx_type == 'integer':
         return int(val_str)
     if mx_type == 'float':
         return float(val_str)
     if mx_type == 'boolean':
         return val_str == "true"
+    if mx_type.endswith('array'):
+        return val_str
 
-    if mx_type.startswith('color') or mx_type.startswith('vector') or mx_type.endswith('array'):
+    if mx_type.startswith('color') or mx_type.startswith('vector') or mx_type.startswith('matrix'):
         res = tuple(float(x) for x in val_str.split(','))
-        if first_only:
-            return res[0]
-        return res
+        return res[0] if first_only else res
 
-
-def parse_value_str(prop_type, val, first_only=False):
-    from bpy.props import (
-        StringProperty,
-        IntProperty,
-        FloatProperty,
-        EnumProperty,
-        FloatVectorProperty,
-        BoolProperty,
-    )
-
-    if prop_type == StringProperty:
-        return val
-    if prop_type == IntProperty:
-        return int(val)
-    if prop_type == FloatProperty:
-        return float(val)
-    if prop_type == BoolProperty:
-        return val == "true"
-    if prop_type == FloatVectorProperty:
-        res = tuple(float(x) for x in val.split(','))
-        if first_only:
-            return res[0]
-        return res
-    if prop_type == EnumProperty:
-        res = tuple(x.strip() for x in val.split(','))
-        if first_only:
-            return res[0]
-        return res
-
+    return val_str
