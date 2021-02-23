@@ -17,7 +17,7 @@ import math
 import bpy
 import MaterialX as mx
 
-from ..utils import set_mx_param_value
+from ..utils.mx import set_param_value
 from ..mx_nodes.nodes import get_node_def_cls
 from . import log
 
@@ -63,7 +63,7 @@ class NodeItem:
         val_data = value.data if isinstance(value, NodeItem) else value
         nd_input = self.nodedef.getInput(name)
         input = self.data.addInput(name, nd_input.getType())
-        set_mx_param_value(input, val_data, input.getType())
+        set_param_value(input, val_data, input.getType())
 
     def set_inputs(self, inputs):
         for name, value in inputs.items():
@@ -84,7 +84,7 @@ class NodeItem:
                 result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
                                                self.data.getType())
                 input = result_data.addInput('in', self.data.getType())
-                set_mx_param_value(input, self.data, self.data.getType())
+                set_param_value(input, self.data, self.data.getType())
 
         else:
             other_data = other.data if isinstance(other, NodeItem) else other
@@ -110,9 +110,9 @@ class NodeItem:
                 result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
                                                self.data.getType())
                 input1 = result_data.addInput('in1', self.data.getType())
-                set_mx_param_value(input1, self.data, self.data.getType())
+                set_param_value(input1, self.data, self.data.getType())
                 input2 = result_data.addInput('in2', self.data.getType())
-                set_mx_param_value(input2, other_data, self.data.getType())
+                set_param_value(input2, other_data, self.data.getType())
 
         return self.node_item(result_data)
 
