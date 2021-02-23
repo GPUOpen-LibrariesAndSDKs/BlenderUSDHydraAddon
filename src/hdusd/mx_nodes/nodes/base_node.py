@@ -29,15 +29,9 @@ from bpy.props import (
     PointerProperty,
 )
 
-from ...utils import title_str, code_str, set_mx_param_value
+from ...utils import title_str, code_str
+from ...utils.mx import set_param_value, is_value_equal, is_shader_type
 from . import log
-
-
-def is_shader_type(mx_type):
-    return not (mx_type in ('string', 'float', 'integer', 'boolean', 'filename') or
-                mx_type.startswith('color') or
-                mx_type.startswith('vector') or
-                mx_type.endswith('array'))
 
 
 class MxNodeInputSocket(bpy.types.NodeSocket):
@@ -50,12 +44,12 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
 
     def draw(self, context, layout, node, text):
         nd = node.prop.mx_nodedef
-        mx_input = nd.getInput(self.name)
-        nd_type = mx_input.getType()
+        nd_input = nd.getInput(self.name)
+        nd_type = nd_input.getType()
 
-        if self.is_linked or is_shader_type(nd_type):
-            uiname = mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname') else \
-                     title_str(mx_input.getName())
+        if self.is_linked or is_shader_type(nd_type) or nd_input.getValue() is None:
+            uiname = nd_input.getAttribute('uiname') if nd_input.hasAttribute('uiname') else \
+                     title_str(nd_input.getName())
             uitype = title_str(nd_type)
             if uiname.lower() == uitype.lower() or len(nd.getInputs()) == 1:
                 layout.label(text=uitype)
@@ -201,16 +195,26 @@ class MxNode(bpy.types.ShaderNode):
         node = doc.addNode(nodedef.getNodeString(), code_str(self.name), nd_output.getType())
         for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
-            if is_shader_type(nd_input.getType()) and not isinstance(val, mx.Node):
-                continue
+            nd_type = nd_input.getType()
+            if not isinstance(val, mx.Node):
+                if is_shader_type(nd_type):
+                    continue
 
-            input = node.addInput(nd_input.getName(), nd_input.getType())
-            set_mx_param_value(input, val, nd_input.getType())
+                nd_val = nd_input.getValue()
+                if nd_val is None or is_value_equal(nd_val, val, nd_type):
+                    continue
+
+            input = node.addInput(nd_input.getName(), nd_type)
+            set_param_value(input, val, nd_type)
 
         for nd_param in nodedef.getParameters():
             val = self.get_param_value(nd_param.getName())
-            param = node.addParameter(nd_param.getName(), nd_param.getType())
-            set_mx_param_value(param, val, nd_param.getType())
+            nd_type = nd_param.getType()
+            if is_value_equal(nd_param.getValue(), val, nd_type):
+                continue
+
+            param = node.addParameter(nd_param.getName(), nd_type)
+            set_param_value(param, val, nd_type)
 
         return node
 
