@@ -94,6 +94,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         new_mx_nodes.append(doc.getNode(node_name))
                         new_links.append((node_name, node.name, mx_input.getName()))
 
+                # setting links connected from created node
                 for mx_name, node_name, in_key in links:
                     if mx_name == mx_node.getName():
                         self.links.new(node.outputs[0], self.nodes[node_name].inputs[in_key])

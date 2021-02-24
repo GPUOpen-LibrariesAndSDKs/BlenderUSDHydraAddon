@@ -224,9 +224,10 @@ class MxNode(bpy.types.ShaderNode):
         return node
 
     def _compute_node(self, node, out_key, **kwargs):
-        if not isinstance(node, MxNode):
-            log.warn("Ignoring unsupported node", node)
-            return None
+        doc = kwargs['doc']
+        mx_node = doc.getNode(code_str(node.name))
+        if mx_node:
+            return mx_node
 
         return node.compute(out_key, **kwargs)
 
