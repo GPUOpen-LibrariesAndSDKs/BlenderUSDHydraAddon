@@ -112,15 +112,18 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
     def import_(self, doc: mx.Document):
         self.nodes.clear()
+        layers = {}
 
-        def import_node(mx_node):
+        def import_node(mx_node, layer):
             name = mx_node.getName()
-            if name in self:
-                return self[name]
+            if name in self.nodes:
+                layers[name] = max(layers[name], layer)
+                return self.nodes[name]
 
             MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
             node = self.nodes.new(MxNode_cls.bl_idname)
             node.name = name
+            layers[name] = layer
 
             node.data_type = mx_node.getType()
             for mx_param in mx_node.getParameters():
@@ -138,13 +141,15 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                 node_name = mx_input.getNodeName()
                 if node_name:
                     new_mx_node = doc.getNode(node_name)
-                    new_node = import_node(new_mx_node)
+                    new_node = import_node(new_mx_node, layer + 1)
                     self.links.new(new_node.outputs[0], node.inputs[input_name])
 
             return node
 
         mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
-        import_node(mx_node)
+        import_node(mx_node, 0)
+
+        self.nodes.update()
 
     def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """
