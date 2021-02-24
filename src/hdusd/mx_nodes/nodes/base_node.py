@@ -262,6 +262,12 @@ class MxNode(bpy.types.ShaderNode):
     def get_nodedef_output(self, out_key: [str, int]):
         return self.prop.mx_nodedef.getOutput(self.outputs[out_key].identifier)
 
+    def set_input_default(self, in_key, value):
+        setattr(self.prop, self._input_prop(self.inputs[in_key].identifier), value)
+
+    def set_param_value(self, name, value):
+        setattr(self.prop, self._param_prop(name), value)
+
     @property
     def prop(self):
         return getattr(self, self._nodedef_prop(self.data_type))
@@ -415,9 +421,8 @@ class MxNode(bpy.types.ShaderNode):
                 mx_param.getAttribute('uisoftmax'), mx_type, first_only=True)
 
         if mx_param.hasAttribute('value'):
-            is_enum = prop_type == EnumProperty
             prop_attrs['default'] = mx_utils.parse_value_str(
-                mx_param.getAttribute('value'), mx_type, is_enum=is_enum, first_only=is_enum)
+                mx_param.getAttribute('value'), mx_type)
 
         return prop_name, prop_type, prop_attrs
 
@@ -426,20 +431,6 @@ class MxNode(bpy.types.ShaderNode):
 
     def create_output(self, mx_output):
         return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
-
-    def import_values(self, mx_node):
-        self.data_type = mx_node.getType()
-        for mx_input in mx_node.getInputs():
-            val = mx_input.getValue()
-            if val is None:
-                continue
-
-            setattr(self.prop, self._input_prop(mx_input.getName()),
-                    mx_utils.parse_value(val, mx_input.getType()))
-
-        for mx_param in mx_node.getParameters():
-            setattr(self.prop, self._param_prop(mx_param.getName()),
-                    mx_utils.parse_value(mx_param.getValue(), mx_param.getType()))
 
 
 def create_node_types(file_paths):

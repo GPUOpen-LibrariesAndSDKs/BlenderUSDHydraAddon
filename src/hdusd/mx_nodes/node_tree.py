@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import bpy
+from collections import defaultdict
 
 import MaterialX as mx
 
+import bpy
+
 from .nodes import get_mx_node_cls
+from ..utils import mx as mx_utils
 
 
 NODE_SEPARATION_WIDTH = 70
@@ -62,13 +65,46 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     def import_(self, doc: mx.Document):
         loc_x, loc_y = 0, 0
 
-        for mx_node in reversed(doc.getNodes()):
-            MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
-            node = self.nodes.new(MxNode_cls.bl_idname)
-            node.import_values(mx_node)
+        mx_nodes = [n for n in doc.getNodes() if n.getCategory() == 'surfacematerial']
+        links = []
 
-            node.location = (loc_x, loc_y)
-            loc_x -= node.width + NODE_SEPARATION_WIDTH
+        while mx_nodes:
+            new_mx_nodes = []
+            new_links = []
+            layer_width = 0
+            loc_y = 0
+            for mx_node in mx_nodes:
+                MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+                node = self.nodes.new(MxNode_cls.bl_idname)
+
+                node.data_type = mx_node.getType()
+                for mx_param in mx_node.getParameters():
+                    node.set_param_value(mx_param.getName(),
+                        mx_utils.parse_value(mx_param.getValue(), mx_param.getType()))
+
+                for mx_input in mx_node.getInputs():
+                    val = mx_input.getValue()
+                    if val is not None:
+                        node.set_input_default(mx_input.getName(),
+                            mx_utils.parse_value(val, mx_input.getType()))
+                        continue
+
+                    node_name = mx_input.getNodeName()
+                    if node_name:
+                        new_mx_nodes.append(doc.getNode(node_name))
+                        new_links.append((node_name, node.name, mx_input.getName()))
+
+                for mx_name, node_name, in_key in links:
+                    if mx_name == mx_node.getName():
+                        self.links.new(node.outputs[0], self.nodes[node_name].inputs[in_key])
+
+                node.location = (loc_x, loc_y)
+                loc_y -= node.height + NODE_SEPARATION_WIDTH
+                layer_width = max(layer_width, node.width)
+
+            loc_x -= layer_width + NODE_SEPARATION_WIDTH
+            mx_nodes = new_mx_nodes
+            links = new_links
 
     def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """
