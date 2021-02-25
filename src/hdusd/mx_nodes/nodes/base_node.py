@@ -335,6 +335,32 @@ class MxNode(bpy.types.ShaderNode):
             if f:
                 self.inputs[i].hide = not getattr(self, self._folder_prop(f))
 
+    def ui_folders_check(self):
+        if not self.ui_folders:
+            return
+
+        for f in self.ui_folders:
+            setattr(self, self._folder_prop(f), False)
+
+        for in_key, mx_input in enumerate(self.prop.mx_nodedef.getInputs()):
+            f = mx_input.getAttribute('uifolder')
+            if not f:
+                continue
+
+            if self.inputs[in_key].links:
+                setattr(self, self._folder_prop(f), True)
+                continue
+
+            nd_input = self.get_nodedef_input(in_key)
+            val = self.get_input_default(in_key)
+            nd_val = nd_input.getValue()
+            if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_input.getType()):
+                continue
+
+            setattr(self, self._folder_prop(f), True)
+
+        self.ui_folders_update(None)
+
     @staticmethod
     def create_property(mx_param):
         mx_type = mx_param.getType()

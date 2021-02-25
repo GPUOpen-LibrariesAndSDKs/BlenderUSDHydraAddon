@@ -96,6 +96,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     new_node = import_node(new_mx_node, layer + 1)
                     self.links.new(new_node.outputs[0], node.inputs[input_name])
 
+            node.ui_folders_check()
             return node
 
         mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
