@@ -62,54 +62,6 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
         return doc
 
-    def import_old(self, doc: mx.Document):
-        self.nodes.clear()
-
-        loc_x, loc_y = 0, 0
-
-        mx_nodes = [n for n in doc.getNodes() if n.getCategory() == 'surfacematerial']
-        links = []
-
-        while mx_nodes:
-            new_mx_nodes = []
-            new_links = []
-            layer_width = 0
-            loc_y = 0
-            for mx_node in mx_nodes:
-                MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
-                node = self.nodes.new(MxNode_cls.bl_idname)
-                node.name = mx_node.getName()
-
-                node.data_type = mx_node.getType()
-                for mx_param in mx_node.getParameters():
-                    node.set_param_value(mx_param.getName(),
-                        mx_utils.parse_value(mx_param.getValue(), mx_param.getType()))
-
-                for mx_input in mx_node.getInputs():
-                    val = mx_input.getValue()
-                    if val is not None:
-                        node.set_input_default(mx_input.getName(),
-                            mx_utils.parse_value(val, mx_input.getType()))
-                        continue
-
-                    node_name = mx_input.getNodeName()
-                    if node_name:
-                        new_mx_nodes.append(doc.getNode(node_name))
-                        new_links.append((node_name, node.name, mx_input.getName()))
-
-                # setting links connected from created node
-                for out_node_name, node_name, in_key in links:
-                    if out_node_name == node.name:
-                        self.links.new(node.outputs[0], self.nodes[node_name].inputs[in_key])
-
-                node.location = (loc_x, loc_y)
-                loc_y -= node.height + NODE_SEPARATION_WIDTH
-                layer_width = max(layer_width, node.width)
-
-            loc_x -= layer_width + NODE_SEPARATION_WIDTH
-            mx_nodes = new_mx_nodes
-            links = new_links
-
     def import_(self, doc: mx.Document):
         self.nodes.clear()
         layers = {}
@@ -149,7 +101,20 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
         import_node(mx_node, 0)
 
-        self.nodes.update()
+        # placing nodes by layers
+        node_layers = [[] for _ in range(max(layers.values()) + 1)]
+        for node in self.nodes:
+            node_layers[layers[node.name]].append(node.name)
+
+        loc_x = 0
+        for i, node_names in enumerate(node_layers):
+            width = max(self.nodes[name].bl_width_default for name in node_names)
+            loc_x -= (width + NODE_SEPARATION_WIDTH) if i > 0 else 0
+            loc_y = 0
+            for name in node_names:
+                node = self.nodes[name]
+                node.location = (loc_x, loc_y)
+                loc_y -= node.height + NODE_SEPARATION_WIDTH
 
     def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """
@@ -158,7 +123,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         mat_node = self.nodes.new('hdusd.MxNode_STD_surfacematerial')
         if node_name == 'PBR_standard_surface':
             node = self.nodes.new(f'hdusd.MxNode_{node_name}')
-            node.location = (mat_node.location[0] - node.width - NODE_SEPARATION_WIDTH,
+            node.location = (mat_node.location[0] - node.bl_width_default - NODE_SEPARATION_WIDTH,
                              mat_node.location[1])
             self.links.new(node.outputs[0], mat_node.inputs[0])
         else:

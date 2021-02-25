@@ -129,4 +129,4 @@ def title_str(str):
 
 
 def code_str(str):
-    return str.replace(' ', '_').replace('.', '_').lower()
+    return str.replace(' ', '_').replace('.', '_')
