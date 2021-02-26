@@ -434,22 +434,12 @@ class MxNode(bpy.types.ShaderNode):
             else title_str(prop_name)
         prop_attrs['description'] = mx_param.getAttribute('doc')
 
-        if mx_param.hasAttribute('uimin'):
-            prop_attrs['min'] = mx_utils.parse_value_str(
-                mx_param.getAttribute('uimin'), mx_type, first_only=True)
-        if mx_param.hasAttribute('uimax'):
-            prop_attrs['max'] = mx_utils.parse_value_str(
-                mx_param.getAttribute('uimax'), mx_type, first_only=True)
-        if mx_param.hasAttribute('uisoftmin'):
-            prop_attrs['soft_min'] = mx_utils.parse_value_str(
-                mx_param.getAttribute('uisoftmin'), mx_type, first_only=True)
-        if mx_param.hasAttribute('uisoftmax'):
-            prop_attrs['soft_max'] = mx_utils.parse_value_str(
-                mx_param.getAttribute('uisoftmax'), mx_type, first_only=True)
-
-        if mx_param.hasAttribute('value'):
-            prop_attrs['default'] = mx_utils.parse_value_str(
-                mx_param.getAttribute('value'), mx_type)
+        for mx_attr, prop_attr in (('uimin', 'min'), ('uimax', 'max'),
+                                   ('uisoftmin', 'soft_min'), ('uisoftmax', 'soft_max'),
+                                   ('value', 'default')):
+            if mx_param.hasAttribute(mx_attr):
+                prop_attrs[prop_attr] = mx_utils.parse_value_str(
+                    mx_param.getAttribute(mx_attr), mx_type, first_only=mx_attr != 'value')
 
         return prop_name, prop_type, prop_attrs
 
