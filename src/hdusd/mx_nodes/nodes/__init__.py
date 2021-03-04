@@ -63,6 +63,15 @@ def get_node_def_cls(node_name, nd_type):
     return next(cls for cls in node_def_classes if cls.mx_nodedef.getName() == nd_name)
 
 
-def get_mx_node_cls(node_name, prefix='STD'):
-    name = f"MxNode_{prefix}_{node_name}"
-    return next(cls for cls in mx_node_classes if cls.__name__ == name)
+def get_mx_node_cls(node_name, nd_type):
+    nd_name = f"ND_{node_name}_{nd_type}"
+    for cls in mx_node_classes:
+        if next((nd for nd in cls.mx_nodedefs if nd.getName() == nd_name), None):
+            return cls
+
+    nd_name = f"ND_{node_name}"
+    for cls in mx_node_classes:
+        if next((nd for nd in cls.mx_nodedefs if nd.getName() == nd_name), None):
+            return cls
+
+    raise StopIteration(node_name, nd_type)

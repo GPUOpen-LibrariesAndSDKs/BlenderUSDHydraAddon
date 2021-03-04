@@ -12,9 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import bpy
+from collections import defaultdict
 
 import MaterialX as mx
+
+import bpy
+
+from .nodes import get_mx_node_cls
+from ..utils import mx as mx_utils
+
+
+NODE_LAYER_SEPARATION_WIDTH = 280
+NODE_LAYER_SHIFT_X = 30
+NODE_LAYER_SHIFT_Y = 100
 
 
 class MxNodeTree(bpy.types.ShaderNodeTree):
@@ -54,24 +64,79 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
         return doc
 
+    def import_(self, doc: mx.Document):
+        self.nodes.clear()
+        layers = {}
+
+        def import_node(mx_node, layer):
+            name = mx_node.getName()
+            if name in self.nodes:
+                layers[name] = max(layers[name], layer)
+                return self.nodes[name]
+
+            MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+            node = self.nodes.new(MxNode_cls.bl_idname)
+            node.name = name
+            layers[name] = layer
+
+            node.data_type = mx_node.getType()
+            for mx_param in mx_node.getParameters():
+                node.set_param_value(mx_param.getName(),
+                                     mx_utils.parse_value(mx_param.getValue(), mx_param.getType()))
+
+            for mx_input in mx_node.getInputs():
+                input_name = mx_input.getName()
+                val = mx_input.getValue()
+                if val is not None:
+                    node.set_input_default(input_name,
+                                           mx_utils.parse_value(val, mx_input.getType()))
+                    continue
+
+                node_name = mx_input.getNodeName()
+                if node_name:
+                    new_mx_node = doc.getNode(node_name)
+                    new_node = import_node(new_mx_node, layer + 1)
+                    self.links.new(new_node.outputs[0], node.inputs[input_name])
+
+            node.ui_folders_check()
+            return node
+
+        mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
+        import_node(mx_node, 0)
+
+        # placing nodes by layers
+        node_layers = [[] for _ in range(max(layers.values()) + 1)]
+        for node in self.nodes:
+            node_layers[layers[node.name]].append(node.name)
+
+        loc_x = 0
+        for i, node_names in enumerate(node_layers):
+            loc_y = 0
+            for name in node_names:
+                node = self.nodes[name]
+                node.location = (loc_x, loc_y)
+                loc_y -= NODE_LAYER_SHIFT_Y
+                loc_x -= NODE_LAYER_SHIFT_X
+
+            loc_x -= NODE_LAYER_SEPARATION_WIDTH
+
     def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """
         self.nodes.clear()
-        SEP_WIDTH = 70
 
         mat_node = self.nodes.new('hdusd.MxNode_STD_surfacematerial')
         if node_name == 'PBR_standard_surface':
             node = self.nodes.new(f'hdusd.MxNode_{node_name}')
-            node.location = (mat_node.location[0] - node.width - SEP_WIDTH,
+            node.location = (mat_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
                              mat_node.location[1])
             self.links.new(node.outputs[0], mat_node.inputs[0])
         else:
             surface_node = self.nodes.new('hdusd.MxNode_PBR_surface')
-            surface_node.location = (mat_node.location[0] - surface_node.width - SEP_WIDTH,
+            surface_node.location = (mat_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
                                      mat_node.location[1])
             self.links.new(surface_node.outputs[0], mat_node.inputs[0])
 
             node = self.nodes.new(f'hdusd.MxNode_{node_name}')
-            node.location = (surface_node.location[0] - node.width - SEP_WIDTH,
+            node.location = (surface_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
                              surface_node.location[1])
             self.links.new(node.outputs[0], surface_node.inputs[0])
