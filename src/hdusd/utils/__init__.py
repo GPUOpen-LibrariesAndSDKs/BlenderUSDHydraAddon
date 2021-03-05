@@ -130,3 +130,8 @@ def title_str(str):
 
 def code_str(str):
     return str.replace(' ', '_').replace('.', '_')
+
+
+def property_annotation(prop_type, data):
+    # if BLENDER_VERSION >
+    return prop_type, data

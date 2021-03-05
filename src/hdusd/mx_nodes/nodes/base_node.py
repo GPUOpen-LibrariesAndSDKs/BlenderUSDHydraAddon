@@ -149,7 +149,8 @@ class MxNode(bpy.types.ShaderNode):
                 '__annotations__': annotations
             }
 
-            return type(f'MxNodeDef_{prefix}_{mx_nodedef.getName()}', (MxNode.NodeDef,), data)
+            return create_property_class(f'MxNodeDef_{prefix}_{mx_nodedef.getName()}',
+                                         MxNode.NodeDef, data)
 
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
@@ -287,7 +288,6 @@ class MxNode(bpy.types.ShaderNode):
         data_type_items = []
         index_default = 0
         for i, NodeDef_cls in enumerate(node_def_classes):
-            nd_name = NodeDef_cls.mx_nodedef.getName()
             nd_type = MxNode._nodedef_data_type(NodeDef_cls.mx_nodedef)
             annotations[MxNode._nodedef_prop(nd_type)] = (PointerProperty, {'type': NodeDef_cls})
             data_type_items.append((nd_type, title_str(nd_type), title_str(nd_type)))
@@ -327,7 +327,7 @@ class MxNode(bpy.types.ShaderNode):
             '__annotations__': annotations
         }
 
-        return type(f'MxNode_{prefix}_{node_name}', (MxNode,), data)
+        return create_property_class(f'MxNode_{prefix}_{node_name}', MxNode, data)
 
     def ui_folders_update(self, context):
         for i, mx_input in enumerate(self.prop.mx_nodedef.getInputs()):
@@ -483,3 +483,39 @@ def create_node_types(file_paths):
         all_mx_node_classes.extend(mx_node_classes)
 
     return all_node_def_classes, all_mx_node_classes
+
+
+def create_property_class(name, parent_cls, data):
+    a = data['__annotations__']
+    for prop_name, (prop_type, attrs) in a.items():
+        a[prop_name] = bpy.props._PropertyDeferred, prop_type, attrs
+    return type(name, (parent_cls,), data)
+
+
+def create_property_class_1(cls_name, parent_cls, data):
+    prop_strings = []
+    for prop_name, (prop_type, prop_data) in data['__annotations__'].items():
+        attr_string = []
+        for name, val in prop_data.items():
+            if isinstance(val, str):
+                val_str = f'"{val}"'
+            elif isinstance(val, MxNode.NodeDef):
+                val_str = val.__name__
+            else:
+                val_str = str(val)
+            attr_string.append(f"{name}={val_str}")
+        prop_strings.append(f"    {prop_name}: {prop_type.__name__}({', '.join(attr_string)})")
+
+    class_str = f"class {cls_name}({'MxNode' if parent_cls == MxNode else 'MxNode.NodeDef'}):\n" + \
+                '\n'.join(prop_strings)
+    print(class_str)
+    exec(class_str)
+    cls = eval(cls_name)
+
+    for name, val in data.items():
+        if name == '__annotations__':
+            continue
+
+        setattr(cls, name, val)
+
+    return cls
