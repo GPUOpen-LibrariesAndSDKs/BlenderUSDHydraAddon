@@ -42,9 +42,9 @@ class FilterNode(USDNode):
             return None
 
         # creating search regex pattern and getting filtered rpims
-        prog = re.compile(self.filter_path.replace('*', '#')\
-                                          .replace('/', '\/')\
-                                          .replace('##', '[\w\/]*')\
+        prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
+                                          .replace('/', '\/')       # for correct regex pattern
+                                          .replace('##', '[\w\/]*') # creation
                                           .replace('#', '\w*'))
 
         def get_child_prims(prim):
