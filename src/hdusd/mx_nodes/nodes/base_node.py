@@ -15,6 +15,7 @@
 import os
 from collections import defaultdict
 from pathlib import Path
+import importlib
 
 import MaterialX as mx
 
@@ -109,7 +110,7 @@ class MxNodeDef(bpy.types.PropertyGroup):
 f"""
 class {cls.get_class_name(nodedef, prefix)}(MxNodeDef):
     _file_path = FILE_PATH
-    _nodedef_name = {nodedef.getName()}
+    _nodedef_name = '{nodedef.getName()}'
 """)
         for param in nodedef.getParameters():
             prop_code = mx_utils.get_property_code(param)
@@ -393,41 +394,6 @@ class {class_name}(MxNode):
         return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
 
 
-def create_node_types(file_paths):
-    IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
-
-    all_node_def_classes = []
-    all_mx_node_classes = []
-
-    for prefix, file_path in file_paths:
-        doc = mx.createDocument()
-        mx.readFromXmlFile(doc, str(file_path))
-        mx_nodedefs = doc.getNodeDefs()
-        node_def_classes = []
-        for mx_nodedef in mx_nodedefs:
-            if mx_utils.nodedef_data_type(mx_nodedef) in IGNORE_NODEDEF_DATA_TYPE:
-                continue
-
-            node_def_classes.append(MxNodeDef.new(mx_nodedef, prefix))
-
-        # grouping node_def_classes by node and nodegroup
-        node_def_classes_by_node = defaultdict(list)
-        for NodeDef_cls in node_def_classes:
-            nd = NodeDef_cls.mx_nodedef
-            node_def_classes_by_node[(nd.getNodeString(), nd.getAttribute('nodegroup'))].\
-                append(NodeDef_cls)
-
-        # creating MxNode types
-        mx_node_classes = []
-        for _, nd_types in node_def_classes_by_node.items():
-            mx_node_classes.append(MxNode.new(nd_types, prefix))
-
-        all_node_def_classes.extend(node_def_classes)
-        all_mx_node_classes.extend(mx_node_classes)
-
-    return all_node_def_classes, all_mx_node_classes
-
-
 def generate_classes_code(file_path, prefix):
     IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
 
@@ -436,7 +402,15 @@ def generate_classes_code(file_path, prefix):
 f"""
 # This file was generated from {file_path}
 
-from bpy.props import 
+from bpy.props import (
+    EnumProperty,
+    FloatProperty,
+    IntProperty,
+    BoolProperty,
+    StringProperty,
+    PointerProperty,
+    FloatVectorProperty,
+) 
 from .base_node import MxNodeDef, MxNode
 
 
@@ -474,3 +448,25 @@ FILE_PATH = '{file_path}'
     code_strings.append(f"mx_node_class_names = {tuple(mx_node_class_names)}")
 
     return os.linesep.join(code_strings)
+
+
+def create_node_types(prefix_file_paths):
+    all_node_def_classes = []
+    all_mx_node_classes = []
+
+    for prefix, file_path in prefix_file_paths:
+        module_name = f"gen_{file_path.name[:-len(file_path.suffix)]}"
+        module_file = Path(__file__).parent / f"{module_name}.py"
+        if True: #not module_file.exists():
+            module_code = generate_classes_code(file_path, prefix)
+            module_file.write_text(module_code)
+
+        module = importlib.import_module(f'.{module_name}', 'hdusd.mx_nodes.nodes')
+
+        for name in module.node_def_class_names:
+            all_node_def_classes.append(getattr(module, name))
+
+        for name in module.mx_node_class_names:
+            all_mx_node_classes.append(getattr(module, name))
+
+    return all_node_def_classes, all_mx_node_classes

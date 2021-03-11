@@ -161,7 +161,7 @@ def get_property_code(mx_param):
 
     prop_attr_strings = []
     for name, val in prop_attrs.items():
-        val_str = f"'{val}'" if isinstance(val, str) else str(val)
+        val_str = f'"{val}"' if isinstance(val, str) else str(val)
         prop_attr_strings.append(f"{name}={val_str}")
 
     return f"{prop_type}({', '.join(prop_attr_strings)})"
