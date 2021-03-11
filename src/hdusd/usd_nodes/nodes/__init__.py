@@ -42,7 +42,7 @@ node_categories = [
     ]),
     USDNodeCategory('HdUSD_USD_CONVERTER', 'Converter', items=[
         NodeItem('usd.MergeNode'),
-        # NodeItem('usd.FilterNode'),
+        NodeItem('usd.FilterNode'),
     ]),
 ]
 
