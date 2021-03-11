@@ -14,6 +14,7 @@
 #********************************************************************
 import os
 from collections import defaultdict
+from pathlib import Path
 
 import MaterialX as mx
 
@@ -80,8 +81,8 @@ class MxNodeDef(bpy.types.PropertyGroup):
     def nodedef(self):
         if not self._mx_nodedef:
             doc = mx.createDocument()
-            mx.readFromXmlFile(doc, self.file_path)
-            self._nodedef = doc.getNodeDef(self.nodedef_name)
+            mx.readFromXmlFile(doc, self._file_path)
+            self._nodedef = doc.getNodeDef(self._nodedef_name)
 
         return self._nodedef
 
@@ -103,12 +104,13 @@ class MxNodeDef(bpy.types.PropertyGroup):
 
     @classmethod
     def generate_class_code(cls, nodedef: mx.NodeDef, prefix: str):
-        code_strings = [
-            f"class {cls.get_class_name(nodedef, prefix)}(MxNodeDef):",
-            f"    _file_path = FILE_PATH",
-            f"    _nodedef_name = {nodedef.getName()}",
-            "",
-        ]
+        code_strings = []
+        code_strings.append(
+f"""
+class {cls.get_class_name(nodedef, prefix)}(MxNodeDef):
+    _file_path = FILE_PATH
+    _nodedef_name = {nodedef.getName()}
+""")
         for param in nodedef.getParameters():
             prop_code = mx_utils.get_property_code(param)
             code_strings.append(f"    {cls._param_prop_name(param.getName())}: {prop_code}")
@@ -175,26 +177,30 @@ class MxNode(bpy.types.ShaderNode):
     def generate_class_code(cls, nodedefs, prefix):
         nodedef = nodedefs[0]
 
+        class_name = cls.get_class_name(nodedef, prefix)
+        code_strings = []
+        code_strings.append(
+f"""
+class {class_name}(MxNode):
+    bl_label = '{title_str(nodedef.getNodeString())}'
+    bl_idname = '{MxNode.bl_idname}{class_name}'
+    bl_description = '{mx_utils.get_attr(nodedef, 'doc', title_str(nodedef.getName()))}'
+
+    catergory = '{mx_utils.get_attr(nodedef, 'nodegroup', prefix)}'
+
+    _data_types = {tuple(mx_utils.nodedef_data_type(nd) for nd in nodedefs)}
+""")
+
         ui_folders = []
         for mx_param in [*nodedef.getParameters(), *nodedef.getInputs()]:
             f = mx_param.getAttribute("uifolder")
             if f and f not in ui_folders:
                 ui_folders.append(f)
 
-        class_name = cls.get_class_name(nodedef, prefix)
-        code_strings = [
-            f"class {class_name}(MxNode):",
-            f"    bl_label = {title_str(nodedef.getNodeString())}",
-            f"    bl_idname = {MxNode.bl_idname}{class_name}",
-            f"    bl_description = {mx_utils.get_attr(nodedef, 'doc', title_str(nodedef.getName()))}",
-            f"    bl_width_default = {250 if len(ui_folders) > 2 else 200}",
-            "",
-            f"    catergory = '{mx_utils.get_attr(nodedef, 'nodegroup', prefix)}'",
-            "",
-            f"    _data_types = {tuple(mx_utils.nodedef_data_type(nd) for nd in nodedefs)}",
-            f"    _ua_folders = {tuple(ui_folders)}",
-            "",
-        ]
+        if ui_folders:
+            if len(ui_folders) > 2:
+                code_strings.append("    bl_width_default = 250")
+            code_strings.append(f"    _ua_folders = {tuple(ui_folders)}")
 
         data_type_items = []
         index_default = 0
@@ -420,3 +426,51 @@ def create_node_types(file_paths):
         all_mx_node_classes.extend(mx_node_classes)
 
     return all_node_def_classes, all_mx_node_classes
+
+
+def generate_classes_code(file_path, prefix):
+    IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
+
+    code_strings = []
+    code_strings.append(
+f"""
+# This file was generated from {file_path}
+
+from bpy.props import 
+from .base_node import MxNodeDef, MxNode
+
+
+FILE_PATH = '{file_path}'
+
+""")
+
+    doc = mx.createDocument()
+    mx.readFromXmlFile(doc, str(file_path))
+    nodedefs = doc.getNodeDefs()
+    node_def_class_names = []
+    for nodedef in nodedefs:
+        if mx_utils.nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+            continue
+
+        code_strings.append(MxNodeDef.generate_class_code(nodedef, prefix))
+        code_strings.append("")
+        node_def_class_names.append(MxNodeDef.get_class_name(nodedef, prefix))
+
+    code_strings.append(f"node_def_class_names = {tuple(node_def_class_names)}")
+
+    # grouping node_def_classes by node and nodegroup
+    node_def_classes_by_node = defaultdict(list)
+    for nodedef in nodedefs:
+        node_def_classes_by_node[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
+            append(nodedef)
+
+    # creating MxNode types
+    mx_node_class_names = []
+    for nodedefs_by_node in node_def_classes_by_node.values():
+        code_strings.append(MxNode.generate_class_code(nodedefs_by_node, prefix))
+        code_strings.append("")
+        mx_node_class_names.append(MxNode.get_class_name(nodedefs_by_node[0], prefix))
+
+    code_strings.append(f"mx_node_class_names = {tuple(mx_node_class_names)}")
+
+    return os.linesep.join(code_strings)
