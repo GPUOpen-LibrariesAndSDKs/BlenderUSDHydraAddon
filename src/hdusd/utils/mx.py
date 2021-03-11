@@ -49,6 +49,10 @@ def is_shader_type(mx_type):
                 mx_type.endswith('array'))
 
 
+def get_attr(mx_param, name, else_val=None):
+    return mx_param.getAttribute(name) if mx_param.hasAttribute(name) else else_val
+
+
 def parse_value(mx_val, mx_type):
     if mx_type in ('string', 'float', 'integer', 'boolean', 'filename'):
         return mx_val
@@ -161,3 +165,12 @@ def get_property_code(mx_param):
         prop_attr_strings.append(f"{name}={val_str}")
 
     return f"{prop_type}({', '.join(prop_attr_strings)})"
+
+
+def nodedef_data_type(nodedef):
+    # nodedef name consists: ND_{node_name}_{data_type} therefore:
+    res = nodedef.getName()[(4 + len(nodedef.getNodeString())):]
+    if not res:
+        res = nodedef.getOutputs()[0].getType()
+
+    return res
