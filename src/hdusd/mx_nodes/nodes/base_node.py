@@ -12,23 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import re
 import os
 from collections import defaultdict
 
 import MaterialX as mx
 
 import bpy
-from bpy.props import (
-    StringProperty,
-    IntProperty,
-    FloatProperty,
-    EnumProperty,
-    FloatVectorProperty,
-    IntVectorProperty,
-    BoolProperty,
-    PointerProperty,
-)
 
 from ...utils import title_str, code_str
 from ...utils import mx as mx_utils
@@ -168,7 +157,7 @@ class MxNode(bpy.types.ShaderNode):
     _data_types = ()    # list of available types from nodedefs
     _ui_folders = ()    # list of ui folders mentioned in nodedef
     category = ""
-    data_type: EnumProperty
+    data_type = None
 
     @staticmethod
     def _folder_prop_name(name):
@@ -200,7 +189,7 @@ class MxNode(bpy.types.ShaderNode):
             f"    bl_description = {mx_utils.get_attr(nodedef, 'doc', title_str(nodedef.getName()))}",
             f"    bl_width_default = {250 if len(ui_folders) > 2 else 200}",
             "",
-            f"    catergory = {mx_utils.get_attr(nodedef, 'nodegroup', prefix)}",
+            f"    catergory = '{mx_utils.get_attr(nodedef, 'nodegroup', prefix)}'",
             "",
             f"    _data_types = {tuple(mx_utils.nodedef_data_type(nd) for nd in nodedefs)}",
             f"    _ua_folders = {tuple(ui_folders)}",
@@ -390,87 +379,6 @@ class MxNode(bpy.types.ShaderNode):
             setattr(self, self._folder_prop(f), True)
 
         self.ui_folders_update(None)
-
-    @staticmethod
-    def create_property(mx_param):
-        mx_type = mx_param.getType()
-        prop_name = mx_param.getName()
-        prop_attrs = {}
-
-        while True:     # one way loop just for having break instead using nested 'if else'
-            if mx_type == 'string':
-                if mx_param.hasAttribute('enum'):
-                    prop_type = EnumProperty
-                    items = mx_utils.parse_value_str(mx_param.getAttribute('enum'), mx_type,
-                                                     is_enum=True)
-                    prop_attrs['items'] = tuple((it, title_str(it), title_str(it))
-                                                for it in items)
-                    break
-                prop_type = StringProperty
-                break
-            if mx_type == 'filename':
-                prop_type = StringProperty
-                prop_attrs['subtype'] = 'FILE_PATH'
-                break
-            if mx_type == 'integer':
-                prop_type = IntProperty
-                break
-            if mx_type == 'float':
-                prop_type = FloatProperty
-                break
-            if mx_type == 'boolean':
-                prop_type = BoolProperty
-                break
-            if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
-                           'material', 'BSDF', 'VDF', 'EDF'):
-                prop_type = StringProperty
-                break
-
-            m = re.fullmatch('matrix(\d)(\d)', mx_type)
-            if m:
-                prop_type = FloatVectorProperty
-                prop_attrs['subtype'] = 'MATRIX'
-                prop_attrs['size'] = int(m[1]) * int(m[2])
-                break
-
-            m = re.fullmatch('color(\d)', mx_type)
-            if m:
-                prop_type = FloatVectorProperty
-                prop_attrs['subtype'] = 'COLOR'
-                prop_attrs['size'] = int(m[1])
-                prop_attrs['soft_min'] = 0.0
-                prop_attrs['soft_max'] = 1.0
-                break
-
-            m = re.fullmatch('vector(\d)', mx_type)
-            if m:
-                prop_type = FloatVectorProperty
-                dim = int(m[1])
-                prop_attrs['subtype'] = 'XYZ' if dim == 3 else 'NONE'
-                prop_attrs['size'] = dim
-                break
-
-            m = re.fullmatch('(.+)array', mx_type)
-            if m:
-                prop_type = StringProperty
-                # TODO: Change to CollectionProperty
-                break
-
-            prop_type = StringProperty
-            log.warn("Unsupported mx_type", mx_type, mx_param, mx_param.getParent().getName())
-            break
-
-        prop_attrs['name'] = mx_utils.get_attr(mx_param, 'uiname', title_str(prop_name))
-        prop_attrs['description'] = mx_param.getAttribute('doc')
-
-        for mx_attr, prop_attr in (('uimin', 'min'), ('uimax', 'max'),
-                                   ('uisoftmin', 'soft_min'), ('uisoftmax', 'soft_max'),
-                                   ('value', 'default')):
-            if mx_param.hasAttribute(mx_attr):
-                prop_attrs[prop_attr] = mx_utils.parse_value_str(
-                    mx_param.getAttribute(mx_attr), mx_type, first_only=mx_attr != 'value')
-
-        return prop_name, prop_type, prop_attrs
 
     def create_input(self, mx_input):
         return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
