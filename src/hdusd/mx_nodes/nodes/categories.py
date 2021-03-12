@@ -33,7 +33,7 @@ def get_node_categories():
         d[MxNode_cls.category].append(MxNode_cls)
 
     categories = []
-    for category,  category_classes in d.items():
+    for category, category_classes in d.items():
         categories.append(
             MxNodeCategory('HdUSD_MX_NG_' + category, title_str(category),
                            items=[NodeItem(MxNode_cls.bl_idname)

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import os
 from collections import defaultdict
 from pathlib import Path
 import importlib
@@ -110,23 +109,31 @@ class MxNodeDef(bpy.types.PropertyGroup):
 f"""
 class {cls.get_class_name(nodedef, prefix)}(MxNodeDef):
     _file_path = FILE_PATH
-    _nodedef_name = '{nodedef.getName()}'
-""")
-        for param in nodedef.getParameters():
-            prop_code = mx_utils.get_property_code(param)
+    _nodedef_name = '{nodedef.getName()}'""")
+
+        for i, param in enumerate(nodedef.getParameters()):
+            if i == 0:
+                code_strings.append("")
+
+            prop_code = mx_utils.generate_property_code(param)
             code_strings.append(f"    {cls._param_prop_name(param.getName())}: {prop_code}")
 
-        code_strings.append("")
-        for input in nodedef.getInputs():
-            prop_code = mx_utils.get_property_code(input)
+        for i, input in enumerate(nodedef.getInputs()):
+            if i == 0:
+                code_strings.append("")
+
+            prop_code = mx_utils.generate_property_code(input)
             code_strings.append(f"    {cls._input_prop_name(input.getName())}: {prop_code}")
 
-        code_strings.append("")
-        for output in nodedef.getOutputs():
-            prop_code = mx_utils.get_property_code(output)
+        for i, output in enumerate(nodedef.getOutputs()):
+            if i == 0:
+                code_strings.append("")
+
+            prop_code = mx_utils.generate_property_code(output)
             code_strings.append(f"    {cls._output_prop_name(output.getName())}: {prop_code}")
 
-        return os.linesep.join(code_strings)
+        code_strings.append("")
+        return '\n'.join(code_strings)
 
     def get_input(self, name):
         return getattr(self, self._input_prop_name(name))
@@ -164,7 +171,7 @@ class MxNode(bpy.types.ShaderNode):
 
     @staticmethod
     def _folder_prop_name(name):
-        return 'f_' + code_str(name)
+        return 'f_' + code_str(name.lower())
 
     @staticmethod
     def _nodedef_prop_name(name):
@@ -185,9 +192,9 @@ f"""
 class {class_name}(MxNode):
     bl_label = '{title_str(nodedef.getNodeString())}'
     bl_idname = '{MxNode.bl_idname}{class_name}'
-    bl_description = '{mx_utils.get_attr(nodedef, 'doc', title_str(nodedef.getName()))}'
+    bl_description = "{mx_utils.get_attr(nodedef, 'doc', title_str(nodedef.getName()))}"
 
-    catergory = '{mx_utils.get_attr(nodedef, 'nodegroup', prefix)}'
+    category = '{mx_utils.get_attr(nodedef, 'nodegroup', prefix)}'
 
     _data_types = {tuple(mx_utils.nodedef_data_type(nd) for nd in nodedefs)}
 """)
@@ -217,17 +224,20 @@ class {class_name}(MxNode):
 
         code_strings += [
             "",
-            f"    data_type: EnumProperty(name='Type', description='Input Data Type', "
+            f'    data_type: EnumProperty(name="Type", description="Input Data Type", '
             f"items={data_type_items}, default='{data_type_items[index_default][0]}')",
-            "",
         ]
 
         for i, f in enumerate(ui_folders):
-            code_strings.append(
-                f"    {cls._folder_prop_name(f)}: BoolProperty(name='{f}', "
-                f"description='Enable {f}', default={i == 0}, update=MxNode.ui_folders_update)")
+            if i == 0:
+                code_strings.append("")
 
-        return os.linesep.join(code_strings)
+            code_strings.append(
+                f'    {cls._folder_prop_name(f)}: BoolProperty(name="{f}", '
+                f'description="Enable {f}", default={i == 0}, update=MxNode.ui_folders_update)')
+
+        code_strings.append("")
+        return '\n'.join(code_strings)
 
     def init(self, context):
         """generates inputs and outputs from ones specified in the mx_nodedef"""
@@ -399,8 +409,7 @@ def generate_classes_code(file_path, prefix):
 
     code_strings = []
     code_strings.append(
-f"""
-# This file was generated from {file_path}
+f"""# This file was generated from {file_path}
 
 from bpy.props import (
     EnumProperty,
@@ -414,8 +423,7 @@ from bpy.props import (
 from .base_node import MxNodeDef, MxNode
 
 
-FILE_PATH = '{file_path}'
-
+FILE_PATH = r'{file_path}'
 """)
 
     doc = mx.createDocument()
@@ -427,14 +435,18 @@ FILE_PATH = '{file_path}'
             continue
 
         code_strings.append(MxNodeDef.generate_class_code(nodedef, prefix))
-        code_strings.append("")
         node_def_class_names.append(MxNodeDef.get_class_name(nodedef, prefix))
 
-    code_strings.append(f"node_def_class_names = {tuple(node_def_class_names)}")
+    code_strings.append(f"""
+node_def_class_names = {tuple(node_def_class_names)}
+""")
 
     # grouping node_def_classes by node and nodegroup
     node_def_classes_by_node = defaultdict(list)
     for nodedef in nodedefs:
+        if mx_utils.nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+            continue
+
         node_def_classes_by_node[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
             append(nodedef)
 
@@ -442,12 +454,13 @@ FILE_PATH = '{file_path}'
     mx_node_class_names = []
     for nodedefs_by_node in node_def_classes_by_node.values():
         code_strings.append(MxNode.generate_class_code(nodedefs_by_node, prefix))
-        code_strings.append("")
         mx_node_class_names.append(MxNode.get_class_name(nodedefs_by_node[0], prefix))
 
-    code_strings.append(f"mx_node_class_names = {tuple(mx_node_class_names)}")
+    code_strings.append(f"""
+mx_node_class_names = {tuple(mx_node_class_names)}
+""")
 
-    return os.linesep.join(code_strings)
+    return '\n'.join(code_strings)
 
 
 def create_node_types(prefix_file_paths):
@@ -457,7 +470,8 @@ def create_node_types(prefix_file_paths):
     for prefix, file_path in prefix_file_paths:
         module_name = f"gen_{file_path.name[:-len(file_path.suffix)]}"
         module_file = Path(__file__).parent / f"{module_name}.py"
-        if True: #not module_file.exists():
+        if not module_file.exists():
+            log(f"Generating {module_file} from {file_path}")
             module_code = generate_classes_code(file_path, prefix)
             module_file.write_text(module_code)
 

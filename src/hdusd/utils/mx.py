@@ -83,7 +83,7 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
     return val_str
 
 
-def get_property_code(mx_param):
+def generate_property_code(mx_param):
     mx_type = mx_param.getType()
     prop_attrs = {}
 
