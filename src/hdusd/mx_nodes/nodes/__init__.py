@@ -54,24 +54,14 @@ def unregister():
 
 def get_node_def_cls(node_name, nd_type):
     nd_name = f"ND_{node_name}_{nd_type}"
-    node_def_cls = next((cls for cls in node_def_classes if cls.nodedef().getName() == nd_name),
-                        None)
+    node_def_cls = next((cls for cls in node_def_classes if cls.__name__.endswith(nd_name)), None)
     if node_def_cls:
         return node_def_cls
 
     nd_name = f"ND_{node_name}"
-    return next(cls for cls in node_def_classes if cls.nodedef().getName() == nd_name)
+    return next(cls for cls in node_def_classes if cls.__name__.endswith(nd_name))
 
 
 def get_mx_node_cls(node_name, nd_type):
-    nd_name = f"ND_{node_name}_{nd_type}"
-    for cls in mx_node_classes:
-        if next((nd for nd in cls.mx_nodedefs if nd.getName() == nd_name), None):
-            return cls
-
-    nd_name = f"ND_{node_name}"
-    for cls in mx_node_classes:
-        if next((nd for nd in cls.mx_nodedefs if nd.getName() == nd_name), None):
-            return cls
-
-    raise StopIteration(node_name, nd_type)
+    return next(cls for cls in mx_node_classes if cls.__name__.endswith(node_name) and
+                nd_type in cls._data_types)

@@ -267,7 +267,7 @@ class {class_name}(MxNode):
 
         for mx_param in prop.nodedef().getParameters():
             f = mx_param.getAttribute('uifolder')
-            if f and not getattr(self, self._folder_prop(f)):
+            if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
             layout.prop(prop, MxNodeDef._param_prop_name(mx_param.getName()))
@@ -375,7 +375,7 @@ class {class_name}(MxNode):
             return
 
         for f in self._ui_folders:
-            setattr(self, self._folder_prop(f), False)
+            setattr(self, self._folder_prop_name(f), False)
 
         for in_key, mx_input in enumerate(self.prop.nodedef().getInputs()):
             f = mx_input.getAttribute('uifolder')
@@ -383,7 +383,7 @@ class {class_name}(MxNode):
                 continue
 
             if self.inputs[in_key].links:
-                setattr(self, self._folder_prop(f), True)
+                setattr(self, self._folder_prop_name(f), True)
                 continue
 
             nd_input = self.get_nodedef_input(in_key)
@@ -392,7 +392,7 @@ class {class_name}(MxNode):
             if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_input.getType()):
                 continue
 
-            setattr(self, self._folder_prop(f), True)
+            setattr(self, self._folder_prop_name(f), True)
 
         self.ui_folders_update(None)
 
