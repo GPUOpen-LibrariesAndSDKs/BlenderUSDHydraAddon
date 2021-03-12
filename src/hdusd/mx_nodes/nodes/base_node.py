@@ -35,7 +35,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
                (0.16, 0.78, 0.16, 1.0)
 
     def draw(self, context, layout, node, text):
-        nd = node.prop.mx_nodedef
+        nd = node.prop.nodedef()
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
 
@@ -47,10 +47,10 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             else:
                 layout.label(text=f"{uiname}: {uitype}")
         else:
-            layout.prop(node.prop, MxNode._input_prop(self.name))
+            layout.prop(node.prop, MxNodeDef._input_prop_name(self.name))
 
     def draw_color(self, context, node):
-        return self.get_color(node.prop.mx_nodedef.getInput(self.name).getType())
+        return self.get_color(node.prop.nodedef().getInput(self.name).getType())
 
 
 class MxNodeOutputSocket(bpy.types.NodeSocket):
@@ -58,7 +58,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
     bl_label = "MX Output Socket"
 
     def draw(self, context, layout, node, text):
-        nd = node.prop.mx_nodedef
+        nd = node.prop.nodedef()
         mx_output = nd.getOutput(self.name)
         uiname = mx_utils.get_attr(mx_output, 'uiname', title_str(mx_output.getName()))
         uitype = title_str(mx_output.getType())
@@ -68,23 +68,23 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
             layout.label(text=f"{uiname}: {uitype}")
 
     def draw_color(self, context, node):
-        return MxNodeInputSocket.get_color(node.prop.mx_nodedef.getOutput(self.name).getType())
+        return MxNodeInputSocket.get_color(node.prop.nodedef().getOutput(self.name).getType())
 
 
 class MxNodeDef(bpy.types.PropertyGroup):
     _file_path: str
     _nodedef_name: str
 
-    _nodedef: mx.NodeDef
+    _nodedef: mx.NodeDef = None
 
-    @property
-    def nodedef(self):
-        if not self._mx_nodedef:
+    @classmethod
+    def nodedef(cls):
+        if cls._nodedef is None:
             doc = mx.createDocument()
-            mx.readFromXmlFile(doc, self._file_path)
-            self._nodedef = doc.getNodeDef(self._nodedef_name)
+            mx.readFromXmlFile(doc, cls._file_path)
+            cls._nodedef = doc.getNodeDef(cls._nodedef_name)
 
-        return self._nodedef
+        return cls._nodedef
 
     @staticmethod
     def _param_prop_name(name):
@@ -148,10 +148,10 @@ class {cls.get_class_name(nodedef, prefix)}(MxNodeDef):
         setattr(self, self._param_prop_name(name), value)
 
     def get_nodedef_input(self, name):
-        return self.nodedef.getInput(name)
+        return self.nodedef().getInput(name)
 
     def get_nodedef_output(self, name):
-        return self.nodedef.getOutput(name)
+        return self.nodedef().getOutput(name)
 
 
 class MxNode(bpy.types.ShaderNode):
@@ -208,7 +208,7 @@ class {class_name}(MxNode):
         if ui_folders:
             if len(ui_folders) > 2:
                 code_strings.append("    bl_width_default = 250")
-            code_strings.append(f"    _ua_folders = {tuple(ui_folders)}")
+            code_strings.append(f"    _ui_folders = {tuple(ui_folders)}")
 
         data_type_items = []
         index_default = 0
@@ -240,8 +240,7 @@ class {class_name}(MxNode):
         return '\n'.join(code_strings)
 
     def init(self, context):
-        """generates inputs and outputs from ones specified in the mx_nodedef"""
-        nd = self.prop.mx_nodedef
+        nd = self.prop.nodedef()
 
         for mx_input in nd.getInputs():
             self.create_input(mx_input)
@@ -253,7 +252,7 @@ class {class_name}(MxNode):
             self.ui_folders_update(context)
 
     def draw_buttons(self, context, layout):
-        if len(self.mx_nodedefs) > 1:
+        if len(self._data_types) > 1:
             layout.prop(self, 'data_type')
 
         prop = self.prop
@@ -264,21 +263,21 @@ class {class_name}(MxNode):
             for i, f in enumerate(self._ui_folders):
                 if i % 3 == 0:  # putting 3 buttons per row
                     r = col.row(align=True)
-                r.prop(self, self._folder_prop(f), toggle=True)
+                r.prop(self, self._folder_prop_name(f), toggle=True)
 
-        for mx_param in prop.mx_nodedef.getParameters():
+        for mx_param in prop.nodedef().getParameters():
             f = mx_param.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop(f)):
                 continue
 
-            layout.prop(prop, self._param_prop(mx_param.getName()))
+            layout.prop(prop, MxNodeDef._param_prop_name(mx_param.getName()))
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
         log("compute", self, out_key)
 
         doc = kwargs['doc']
-        nodedef = self.prop.mx_nodedef
+        nodedef = self.prop.nodedef()
         nd_output = self.get_nodedef_output(out_key)
 
         values = []
@@ -359,17 +358,17 @@ class {class_name}(MxNode):
 
     @property
     def prop(self):
-        return getattr(self, self._nodedef_prop(self.data_type))
+        return getattr(self, self._nodedef_prop_name(self.data_type))
 
     @classmethod
     def poll(cls, tree):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
     def ui_folders_update(self, context):
-        for i, mx_input in enumerate(self.prop.mx_nodedef.getInputs()):
+        for i, mx_input in enumerate(self.prop.nodedef().getInputs()):
             f = mx_input.getAttribute('uifolder')
             if f:
-                self.inputs[i].hide = not getattr(self, self._folder_prop(f))
+                self.inputs[i].hide = not getattr(self, self._folder_prop_name(f))
 
     def ui_folders_check(self):
         if not self._ui_folders:
@@ -378,7 +377,7 @@ class {class_name}(MxNode):
         for f in self._ui_folders:
             setattr(self, self._folder_prop(f), False)
 
-        for in_key, mx_input in enumerate(self.prop.mx_nodedef.getInputs()):
+        for in_key, mx_input in enumerate(self.prop.nodedef().getInputs()):
             f = mx_input.getAttribute('uifolder')
             if not f:
                 continue
@@ -405,7 +404,7 @@ class {class_name}(MxNode):
 
 
 def generate_classes_code(file_path, prefix):
-    IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44')
+    IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44', 'matrix33FA', 'matrix44FA')
 
     code_strings = []
     code_strings.append(

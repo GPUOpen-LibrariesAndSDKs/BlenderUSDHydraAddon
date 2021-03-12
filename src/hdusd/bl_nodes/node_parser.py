@@ -38,7 +38,7 @@ class NodeItem:
         self.id = id
         self.doc = doc
         self.data = data
-        self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).mx_nodedef \
+        self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).nodedef() \
             if isinstance(data, mx.Node) else None
 
     def node_item(self, value):

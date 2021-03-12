@@ -54,13 +54,13 @@ def unregister():
 
 def get_node_def_cls(node_name, nd_type):
     nd_name = f"ND_{node_name}_{nd_type}"
-    node_def_cls = next((cls for cls in node_def_classes if cls.mx_nodedef.getName() == nd_name),
+    node_def_cls = next((cls for cls in node_def_classes if cls.nodedef().getName() == nd_name),
                         None)
     if node_def_cls:
         return node_def_cls
 
     nd_name = f"ND_{node_name}"
-    return next(cls for cls in node_def_classes if cls.mx_nodedef.getName() == nd_name)
+    return next(cls for cls in node_def_classes if cls.nodedef().getName() == nd_name)
 
 
 def get_mx_node_cls(node_name, nd_type):
