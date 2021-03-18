@@ -174,3 +174,16 @@ def nodedef_data_type(nodedef):
         res = nodedef.getOutputs()[0].getType()
 
     return res
+
+
+def get_nodedef_inputs(nodedef, uniform=None):
+    for input in nodedef.getInputs():
+        if uniform is None:
+            yield input
+
+        elif input.getAttribute('uniform') == 'true':
+            if uniform:
+                yield input
+        else:
+            if not uniform:
+                yield input

@@ -39,7 +39,6 @@ class MaterialProperties(HdUSDProperties):
             return None
 
         doc = mx.createDocument()
-        doc.setVersionString("1.38")
 
         ShaderNodeOutputMaterial(doc, material, output_node, obj).export()
         return doc

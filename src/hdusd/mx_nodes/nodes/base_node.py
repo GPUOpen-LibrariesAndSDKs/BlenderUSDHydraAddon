@@ -240,12 +240,15 @@ class {class_name}(MxNode):
         return '\n'.join(code_strings)
 
     def init(self, context):
-        nd = self.prop.nodedef()
+        nodedef = self.prop.nodedef()
 
-        for mx_input in nd.getInputs():
+        for mx_input in nodedef.getInputs():
+            if mx_input.getAttribute('uniform') == 'true':
+                continue
+
             self.create_input(mx_input)
 
-        for mx_output in nd.getOutputs():
+        for mx_output in nodedef.getOutputs():
             self.create_output(mx_output)
 
         if self._ui_folders:
@@ -255,7 +258,7 @@ class {class_name}(MxNode):
         if len(self._data_types) > 1:
             layout.prop(self, 'data_type')
 
-        prop = self.prop
+        nodedef = self.prop.nodedef()
 
         if self._ui_folders:
             col = layout.column(align=True)
@@ -265,12 +268,19 @@ class {class_name}(MxNode):
                     r = col.row(align=True)
                 r.prop(self, self._folder_prop_name(f), toggle=True)
 
-        for mx_param in prop.nodedef().getParameters():
+        for mx_input in mx_utils.get_nodedef_inputs(nodedef, True):
+            f = mx_input.getAttribute('uifolder')
+            if f and not getattr(self, self._folder_prop_name(f)):
+                continue
+
+            layout.prop(self.prop, MxNodeDef._input_prop_name(mx_input.getName()))
+
+        for mx_param in nodedef.getParameters():
             f = mx_param.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
-            layout.prop(prop, MxNodeDef._param_prop_name(mx_param.getName()))
+            layout.prop(self.prop, MxNodeDef._param_prop_name(mx_param.getName()))
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
@@ -295,6 +305,15 @@ class {class_name}(MxNode):
                 nd_val = nd_input.getValue()
                 if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
                     continue
+
+            input = node.addInput(nd_input.getName(), nd_type)
+            mx_utils.set_param_value(input, val, nd_type)
+
+        for nd_input in mx_utils.get_nodedef_inputs(nodedef, True):
+            val = self.get_input_param_value(nd_input.getName())
+            nd_type = nd_input.getType()
+            if mx_utils.is_value_equal(nd_input.getValue(), val, nd_type):
+                continue
 
             input = node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(input, val, nd_type)
@@ -343,6 +362,9 @@ class {class_name}(MxNode):
 
     def get_param_value(self, name):
         return self.prop.get_param(name)
+
+    def get_input_param_value(self, name):
+        return self.prop.get_input(name)
 
     def get_nodedef_input(self, in_key: [str, int]):
         return self.prop.get_nodedef_input(self.inputs[in_key].identifier)
