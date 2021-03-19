@@ -41,9 +41,6 @@ def enumerate_addon_data():
                 "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
             continue
 
-        if f.name.startswith("gen_") and f.suffix == ".py":
-            continue
-
         yield f, rel_path
 
     # copy legals and readmes
