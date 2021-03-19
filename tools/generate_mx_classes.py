@@ -19,11 +19,11 @@ from pathlib import Path
 from collections import defaultdict
 
 
-mx_dir = Path(os.environ['HDUSD_LIBS_DIR']) / "materialx"
+libs_dir = Path(os.environ['HDUSD_LIBS_DIR'])
 repo_dir = Path(__file__).parent.parent
 
 
-sys.path.append(str(mx_dir / "python"))
+sys.path.append(str(libs_dir / "materialx/python"))
 import MaterialX as mx
 
 
@@ -280,8 +280,20 @@ def generate_classes_code(file_path, prefix):
 
     code_strings = []
     code_strings.append(
-f"""# This file was generated from {file_path}
-
+f"""#**********************************************************************
+# Copyright 2020 Advanced Micro Devices, Inc
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#********************************************************************
 from bpy.props import (
     EnumProperty,
     FloatProperty,
@@ -294,22 +306,22 @@ from bpy.props import (
 from .base_node import MxNodeDef, MxNode
 
 
-FILE_PATH = r'{file_path}'
+FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)
 
     doc = mx.createDocument()
     mx.readFromXmlFile(doc, str(file_path))
     nodedefs = doc.getNodeDefs()
-    node_def_class_names = []
+    nodedef_class_names = []
     for nodedef in nodedefs:
         if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
             continue
 
         code_strings.append(generate_mx_nodedef_class_code(nodedef, prefix))
-        node_def_class_names.append(get_mx_nodedef_class_name(nodedef, prefix))
+        nodedef_class_names.append(get_mx_nodedef_class_name(nodedef, prefix))
 
     code_strings.append(f"""
-node_def_class_names = {tuple(node_def_class_names)}
+mx_nodedef_classes = [{', '.join(nodedef_class_names)}]
 """)
 
     # grouping node_def_classes by node and nodegroup
@@ -328,22 +340,23 @@ node_def_class_names = {tuple(node_def_class_names)}
         mx_node_class_names.append(get_mx_node_class_name(nodedefs_by_node[0], prefix))
 
     code_strings.append(f"""
-mx_node_class_names = {tuple(mx_node_class_names)}
+mx_node_classes = [{', '.join(mx_node_class_names)}]
 """)
 
     return '\n'.join(code_strings)
 
 
 def main():
-    mx_lib_dir = mx_dir / "libraries"
+    mx_libs_dir = libs_dir / "materialx/libraries"
     mx_node_dir = repo_dir / "src/hdusd/mx_nodes/nodes"
 
     for prefix, file_path in (
-                ('PBR', mx_lib_dir / "bxdf/standard_surface.mtlx"),
-                ('USD', mx_lib_dir / "bxdf/usd_preview_surface.mtlx"),
-                ('STD', mx_lib_dir / "stdlib/stdlib_defs.mtlx"),
-                ('PBR', mx_lib_dir / "pbrlib/pbrlib_defs.mtlx"),
+                ('PBR', mx_libs_dir / "bxdf/standard_surface.mtlx"),
+                ('USD', mx_libs_dir / "bxdf/usd_preview_surface.mtlx"),
+                ('STD', mx_libs_dir / "stdlib/stdlib_defs.mtlx"),
+                ('PBR', mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),
             ):
+
         module_name = f"gen_{file_path.name[:-len(file_path.suffix)]}"
         module_file = mx_node_dir / f"{module_name}.py"
 

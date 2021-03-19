@@ -13,14 +13,13 @@
 # limitations under the License.
 #********************************************************************
 from collections import defaultdict
-from pathlib import Path
 import importlib
 
 import MaterialX as mx
 
 import bpy
 
-from ...utils import title_str, code_str
+from ...utils import title_str, code_str, HDUSD_LIBS_DIR
 from ...utils import mx as mx_utils
 from . import log
 
@@ -81,7 +80,7 @@ class MxNodeDef(bpy.types.PropertyGroup):
     def nodedef(cls):
         if cls._nodedef is None:
             doc = mx.createDocument()
-            mx.readFromXmlFile(doc, cls._file_path)
+            mx.readFromXmlFile(doc, str(HDUSD_LIBS_DIR / cls._file_path))
             cls._nodedef = doc.getNodeDef(cls._nodedef_name)
 
         return cls._nodedef
@@ -482,26 +481,3 @@ mx_node_class_names = {tuple(mx_node_class_names)}
 """)
 
     return '\n'.join(code_strings)
-
-
-def create_node_types(prefix_file_paths):
-    all_node_def_classes = []
-    all_mx_node_classes = []
-
-    for prefix, file_path in prefix_file_paths:
-        module_name = f"gen_{file_path.name[:-len(file_path.suffix)]}"
-        module_file = Path(__file__).parent / f"{module_name}.py"
-        if not module_file.exists():
-            log(f"Generating {module_file} from {file_path}")
-            module_code = generate_classes_code(file_path, prefix)
-            module_file.write_text(module_code)
-
-        module = importlib.import_module(f'.{module_name}', 'hdusd.mx_nodes.nodes')
-
-        for name in module.node_def_class_names:
-            all_node_def_classes.append(getattr(module, name))
-
-        for name in module.mx_node_class_names:
-            all_mx_node_classes.append(getattr(module, name))
-
-    return all_node_def_classes, all_mx_node_classes
