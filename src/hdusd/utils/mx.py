@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import re
-
 import MaterialX as mx
 
 from . import title_str
@@ -81,99 +79,6 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
         return res[0] if first_only else res
 
     return val_str
-
-
-def generate_property_code(mx_param):
-    mx_type = mx_param.getType()
-    prop_attrs = {}
-
-    prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname') \
-                         else title_str(mx_param.getName())
-    prop_attrs['description'] = mx_param.getAttribute('doc')
-
-    while True:     # one way loop just for having break instead using nested 'if else'
-        if mx_type == 'string':
-            if mx_param.hasAttribute('enum'):
-                prop_type = "EnumProperty"
-                items = parse_value_str(mx_param.getAttribute('enum'), mx_type, is_enum=True)
-                prop_attrs['items'] = tuple((it, title_str(it), title_str(it)) for it in items)
-                break
-            prop_type = "StringProperty"
-            break
-        if mx_type == 'filename':
-            prop_type = "StringProperty"
-            prop_attrs['subtype'] = 'FILE_PATH'
-            break
-        if mx_type == 'integer':
-            prop_type = "IntProperty"
-            break
-        if mx_type == 'float':
-            prop_type = "FloatProperty"
-            break
-        if mx_type == 'boolean':
-            prop_type = "BoolProperty"
-            break
-        if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
-                       'material', 'BSDF', 'VDF', 'EDF'):
-            prop_type = "StringProperty"
-            break
-
-        m = re.fullmatch('matrix(\d)(\d)', mx_type)
-        if m:
-            prop_type = "FloatVectorProperty"
-            prop_attrs['subtype'] = 'MATRIX'
-            prop_attrs['size'] = int(m[1]) * int(m[2])
-            break
-
-        m = re.fullmatch('color(\d)', mx_type)
-        if m:
-            prop_type = "FloatVectorProperty"
-            prop_attrs['subtype'] = 'COLOR'
-            prop_attrs['size'] = int(m[1])
-            prop_attrs['soft_min'] = 0.0
-            prop_attrs['soft_max'] = 1.0
-            break
-
-        m = re.fullmatch('vector(\d)', mx_type)
-        if m:
-            prop_type = "FloatVectorProperty"
-            dim = int(m[1])
-            prop_attrs['subtype'] = 'XYZ' if dim == 3 else 'NONE'
-            prop_attrs['size'] = dim
-            break
-
-        m = re.fullmatch('(.+)array', mx_type)
-        if m:
-            prop_type = "StringProperty"
-            # TODO: Change to CollectionProperty
-            break
-
-        prop_type = "StringProperty"
-        log.warn("Unsupported mx_type", mx_type, mx_param, mx_param.getParent().getName())
-        break
-
-    for mx_attr, prop_attr in (('uimin', 'min'), ('uimax', 'max'),
-                               ('uisoftmin', 'soft_min'), ('uisoftmax', 'soft_max'),
-                               ('value', 'default')):
-        if mx_param.hasAttribute(mx_attr):
-            prop_attrs[prop_attr] = parse_value_str(
-                mx_param.getAttribute(mx_attr), mx_type, first_only=mx_attr != 'value')
-
-    prop_attr_strings = []
-    for name, val in prop_attrs.items():
-        val_str = f'"{val}"' if isinstance(val, str) else str(val)
-        prop_attr_strings.append(f"{name}={val_str}")
-
-    return f"{prop_type}({', '.join(prop_attr_strings)})"
-
-
-def nodedef_data_type(nodedef):
-    # nodedef name consists: ND_{node_name}_{data_type} therefore:
-    res = nodedef.getName()[(4 + len(nodedef.getNodeString())):]
-    if not res:
-        res = nodedef.getOutputs()[0].getType()
-
-    return res
 
 
 def get_nodedef_inputs(nodedef, uniform=None):

@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from collections import defaultdict
-import importlib
-
 import MaterialX as mx
 
 import bpy
@@ -93,47 +90,6 @@ class MxNodeDef(bpy.types.PropertyGroup):
     def _input_prop_name(name):
         return 'in_' + name
 
-    @staticmethod
-    def _output_prop_name(name):
-        return 'out_' + name
-
-    @staticmethod
-    def get_class_name(nodedef, prefix):
-        return f"MxNodeDef_{prefix}_{nodedef.getName()}"
-
-    @classmethod
-    def generate_class_code(cls, nodedef: mx.NodeDef, prefix: str):
-        code_strings = []
-        code_strings.append(
-f"""
-class {cls.get_class_name(nodedef, prefix)}(MxNodeDef):
-    _file_path = FILE_PATH
-    _nodedef_name = '{nodedef.getName()}'""")
-
-        for i, param in enumerate(nodedef.getParameters()):
-            if i == 0:
-                code_strings.append("")
-
-            prop_code = mx_utils.generate_property_code(param)
-            code_strings.append(f"    {cls._param_prop_name(param.getName())}: {prop_code}")
-
-        for i, input in enumerate(nodedef.getInputs()):
-            if i == 0:
-                code_strings.append("")
-
-            prop_code = mx_utils.generate_property_code(input)
-            code_strings.append(f"    {cls._input_prop_name(input.getName())}: {prop_code}")
-
-        for i, output in enumerate(nodedef.getOutputs()):
-            if i == 0:
-                code_strings.append("")
-
-            prop_code = mx_utils.generate_property_code(output)
-            code_strings.append(f"    {cls._output_prop_name(output.getName())}: {prop_code}")
-
-        code_strings.append("")
-        return '\n'.join(code_strings)
-
     def get_input(self, name):
         return getattr(self, self._input_prop_name(name))
 
@@ -175,68 +131,6 @@ class MxNode(bpy.types.ShaderNode):
     @staticmethod
     def _nodedef_prop_name(name):
         return 'nd_' + name
-
-    @staticmethod
-    def get_class_name(nodedef, prefix):
-        return f"MxNode_{prefix}_{nodedef.getNodeString()}"
-
-    @classmethod
-    def generate_class_code(cls, nodedefs, prefix):
-        nodedef = nodedefs[0]
-
-        class_name = cls.get_class_name(nodedef, prefix)
-        code_strings = []
-        code_strings.append(
-f"""
-class {class_name}(MxNode):
-    bl_label = '{title_str(nodedef.getNodeString())}'
-    bl_idname = '{MxNode.bl_idname}{class_name}'
-    bl_description = "{mx_utils.get_attr(nodedef, 'doc', title_str(nodedef.getName()))}"
-
-    category = '{mx_utils.get_attr(nodedef, 'nodegroup', prefix)}'
-
-    _data_types = {tuple(mx_utils.nodedef_data_type(nd) for nd in nodedefs)}
-""")
-
-        ui_folders = []
-        for mx_param in [*nodedef.getParameters(), *nodedef.getInputs()]:
-            f = mx_param.getAttribute("uifolder")
-            if f and f not in ui_folders:
-                ui_folders.append(f)
-
-        if ui_folders:
-            if len(ui_folders) > 2:
-                code_strings.append("    bl_width_default = 250")
-            code_strings.append(f"    _ui_folders = {tuple(ui_folders)}")
-
-        data_type_items = []
-        index_default = 0
-        for i, nd in enumerate(nodedefs):
-            nd_type = mx_utils.nodedef_data_type(nd)
-            code_strings.append(
-                f"    {cls._nodedef_prop_name(nd_type)}: PointerProperty("
-                f"type={MxNodeDef.get_class_name(nd, prefix)})")
-
-            data_type_items.append((nd_type, title_str(nd_type), title_str(nd_type)))
-            if nd_type == 'color3':
-                index_default = i
-
-        code_strings += [
-            "",
-            f'    data_type: EnumProperty(name="Type", description="Input Data Type", '
-            f"items={data_type_items}, default='{data_type_items[index_default][0]}')",
-        ]
-
-        for i, f in enumerate(ui_folders):
-            if i == 0:
-                code_strings.append("")
-
-            code_strings.append(
-                f'    {cls._folder_prop_name(f)}: BoolProperty(name="{f}", '
-                f'description="Enable {f}", default={i == 0}, update=MxNode.ui_folders_update)')
-
-        code_strings.append("")
-        return '\n'.join(code_strings)
 
     def init(self, context):
         nodedef = self.prop.nodedef()
@@ -422,62 +316,3 @@ class {class_name}(MxNode):
 
     def create_output(self, mx_output):
         return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
-
-
-def generate_classes_code(file_path, prefix):
-    IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44', 'matrix33FA', 'matrix44FA')
-
-    code_strings = []
-    code_strings.append(
-f"""# This file was generated from {file_path}
-
-from bpy.props import (
-    EnumProperty,
-    FloatProperty,
-    IntProperty,
-    BoolProperty,
-    StringProperty,
-    PointerProperty,
-    FloatVectorProperty,
-) 
-from .base_node import MxNodeDef, MxNode
-
-
-FILE_PATH = r'{file_path}'
-""")
-
-    doc = mx.createDocument()
-    mx.readFromXmlFile(doc, str(file_path))
-    nodedefs = doc.getNodeDefs()
-    node_def_class_names = []
-    for nodedef in nodedefs:
-        if mx_utils.nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
-            continue
-
-        code_strings.append(MxNodeDef.generate_class_code(nodedef, prefix))
-        node_def_class_names.append(MxNodeDef.get_class_name(nodedef, prefix))
-
-    code_strings.append(f"""
-node_def_class_names = {tuple(node_def_class_names)}
-""")
-
-    # grouping node_def_classes by node and nodegroup
-    node_def_classes_by_node = defaultdict(list)
-    for nodedef in nodedefs:
-        if mx_utils.nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
-            continue
-
-        node_def_classes_by_node[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
-            append(nodedef)
-
-    # creating MxNode types
-    mx_node_class_names = []
-    for nodedefs_by_node in node_def_classes_by_node.values():
-        code_strings.append(MxNode.generate_class_code(nodedefs_by_node, prefix))
-        mx_node_class_names.append(MxNode.get_class_name(nodedefs_by_node[0], prefix))
-
-    code_strings.append(f"""
-mx_node_class_names = {tuple(mx_node_class_names)}
-""")
-
-    return '\n'.join(code_strings)
