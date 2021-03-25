@@ -15,24 +15,34 @@
 import bpy
 import nodeitems_utils
 
-from ...utils import HDUSD_LIBS_DIR
 from .. import log
 from . import base_node, categories
+from . import (
+    gen_standard_surface,
+    gen_usd_preview_surface,
+    gen_stdlib_defs,
+    gen_pbrlib_defs
+)
 
 
-node_def_classes, mx_node_classes = base_node.create_node_types([
-    ('PBR', HDUSD_LIBS_DIR / "materialx/libraries/bxdf/standard_surface.mtlx"),
-    ('USD', HDUSD_LIBS_DIR / "materialx/libraries/bxdf/usd_preview_surface.mtlx"),
-    ('STD', HDUSD_LIBS_DIR / "materialx/libraries/stdlib/stdlib_defs.mtlx"),
-    ('PBR', HDUSD_LIBS_DIR / "materialx/libraries/pbrlib/pbrlib_defs.mtlx"),
-])
-
+mx_nodedef_classes = [
+    *gen_standard_surface.mx_nodedef_classes,
+    *gen_usd_preview_surface.mx_nodedef_classes,
+    *gen_stdlib_defs.mx_nodedef_classes,
+    *gen_pbrlib_defs.mx_nodedef_classes,
+]
+mx_node_classes = [
+    *gen_standard_surface.mx_node_classes,
+    *gen_usd_preview_surface.mx_node_classes,
+    *gen_stdlib_defs.mx_node_classes,
+    *gen_pbrlib_defs.mx_node_classes,
+]
 
 register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
     base_node.MxNodeInputSocket,
     base_node.MxNodeOutputSocket,
 ])
-register_nodedefs, unregister_nodedefs = bpy.utils.register_classes_factory(node_def_classes)
+register_nodedefs, unregister_nodedefs = bpy.utils.register_classes_factory(mx_nodedef_classes)
 register_nodes, unregister_nodes = bpy.utils.register_classes_factory(mx_node_classes)
 
 
@@ -54,24 +64,14 @@ def unregister():
 
 def get_node_def_cls(node_name, nd_type):
     nd_name = f"ND_{node_name}_{nd_type}"
-    node_def_cls = next((cls for cls in node_def_classes if cls.mx_nodedef.getName() == nd_name),
-                        None)
+    node_def_cls = next((cls for cls in mx_nodedef_classes if cls.__name__.endswith(nd_name)), None)
     if node_def_cls:
         return node_def_cls
 
     nd_name = f"ND_{node_name}"
-    return next(cls for cls in node_def_classes if cls.mx_nodedef.getName() == nd_name)
+    return next(cls for cls in mx_nodedef_classes if cls.__name__.endswith(nd_name))
 
 
 def get_mx_node_cls(node_name, nd_type):
-    nd_name = f"ND_{node_name}_{nd_type}"
-    for cls in mx_node_classes:
-        if next((nd for nd in cls.mx_nodedefs if nd.getName() == nd_name), None):
-            return cls
-
-    nd_name = f"ND_{node_name}"
-    for cls in mx_node_classes:
-        if next((nd for nd in cls.mx_nodedefs if nd.getName() == nd_name), None):
-            return cls
-
-    raise StopIteration(node_name, nd_type)
+    return next(cls for cls in mx_node_classes if cls.__name__.endswith(node_name) and
+                nd_type in cls._data_types)

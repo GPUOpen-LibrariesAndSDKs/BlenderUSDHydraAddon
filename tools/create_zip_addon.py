@@ -37,7 +37,7 @@ def enumerate_addon_data():
 
         rel_path = f.relative_to(usd_plugin_dir)
         rel_path_parts = rel_path.parts
-        if  rel_path_parts[0] in ("libs", "configdev.py", "hdusd.log") or \
+        if rel_path_parts[0] in ("libs", "configdev.py", "hdusd.log") or \
                 "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
             continue
 

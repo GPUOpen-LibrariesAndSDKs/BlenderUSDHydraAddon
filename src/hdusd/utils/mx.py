@@ -16,6 +16,9 @@ import MaterialX as mx
 
 from . import title_str
 
+from . import logging
+log = logging.Log(tag='utils.mx')
+
 
 def set_param_value(mx_param, val, nd_type):
     if isinstance(val, mx.Node):
@@ -42,6 +45,10 @@ def is_shader_type(mx_type):
                 mx_type.startswith('color') or
                 mx_type.startswith('vector') or
                 mx_type.endswith('array'))
+
+
+def get_attr(mx_param, name, else_val=None):
+    return mx_param.getAttribute(name) if mx_param.hasAttribute(name) else else_val
 
 
 def parse_value(mx_val, mx_type):
@@ -72,3 +79,16 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
         return res[0] if first_only else res
 
     return val_str
+
+
+def get_nodedef_inputs(nodedef, uniform=None):
+    for input in nodedef.getInputs():
+        if uniform is None:
+            yield input
+
+        elif input.getAttribute('uniform') == 'true':
+            if uniform:
+                yield input
+        else:
+            if not uniform:
+                yield input

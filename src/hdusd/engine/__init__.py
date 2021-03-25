@@ -30,6 +30,14 @@ os.environ['RPR'] = str(utils.HDUSD_LIBS_DIR / 'hdrpr')
 sys.path.append(str(utils.HDUSD_LIBS_DIR / 'usd/python'))
 sys.path.append(str(utils.HDUSD_LIBS_DIR / 'materialx/python'))
 
+if utils.IS_WIN:
+    # preload necessary dlls, required for python 3.9+
+    import ctypes
+    for lib_name in ["sdf", "usd", "usdGeom", "usdAppUtils", "glf", "usdImagingGL",
+                     "usdImagingLite", "usdLux", "usdShade", "vt", "gf", "usdUtils"]:
+        ctypes.CDLL(str(utils.HDUSD_LIBS_DIR / 'usd' / f"{lib_name}.dll"))
+
+
 from . import engine, handlers
 
 
