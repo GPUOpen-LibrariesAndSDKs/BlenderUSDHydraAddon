@@ -15,6 +15,8 @@
 import math
 
 from ..node_parser import NodeParser
+from ...utils import logging
+log = logging.Log(tag='export.bl_nodes.nodes')
 
 
 class ShaderNodeBsdfPrincipled(NodeParser):
@@ -161,6 +163,31 @@ class ShaderNodeBsdfDiffuse(NodeParser):
             'color': color,
             'roughness': roughness,
             'normal': normal,
+        })
+
+        return result
+
+
+class ShaderNodeBsdfGlass(NodeParser):
+    def export(self):
+        color = self.get_input_value('Color')
+        roughness = self.get_input_value('Roughness')
+        ior = self.get_input_value('IOR')
+        normal = self.get_input_link('Normal')
+
+        # CREATING STANDARD SURFACE
+        result = self.create_node('standard_surface', 'surfaceshader', {
+            'base': 0.0,
+            'normal': normal,
+            'specular': 1.0,
+            'specular_color': color,
+            'specular_roughness': roughness,
+            'specular_IOR': ior,
+            'specular_anisotropy': 0.0,
+            'specular_rotation': 0.0,
+            'transmission': 1.0,
+            'transmission_color': color,
+            'transmission_extra_roughness': roughness,
         })
 
         return result
