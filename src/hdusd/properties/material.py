@@ -20,6 +20,10 @@ from ..mx_nodes.node_tree import MxNodeTree
 from ..bl_nodes.nodes import ShaderNodeOutputMaterial
 
 
+from ..utils import logging
+log = logging.Log(tag='export.material')
+
+
 class MaterialProperties(HdUSDProperties):
     bl_type = bpy.types.Material
 
