@@ -19,7 +19,8 @@ from pathlib import Path
 from collections import defaultdict
 
 
-libs_dir = Path(os.environ['HDUSD_LIBS_DIR'])
+libs_dir = Path(os.environ['HDUSD_LIBS_DIR']).absolute()
+
 repo_dir = Path(__file__).parent.parent
 
 
