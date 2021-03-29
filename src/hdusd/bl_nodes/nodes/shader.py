@@ -193,6 +193,52 @@ class ShaderNodeBsdfGlass(NodeParser):
         return result
 
 
+class ShaderNodeMixShader(NodeParser):
+
+    def export(self):
+        factor = self.get_input_value(0)
+        shader1 = self.get_input_link(1)
+        shader2 = self.get_input_link(2)
+
+        if shader1 is None and shader2 is None:
+            return None
+
+        if shader1 is None:
+            return shader2
+
+        if shader2 is None:
+            return shader1
+
+        result = self.create_node('mix_shader', 'ND_mix_bsdf', {
+            'in1': shader1,
+            'in2': shader2,
+            'mix': factor
+        })
+        return result
+
+
+class ShaderNodeAddShader(NodeParser):
+
+    def export(self):
+        shader1 = self.get_input_link(0)
+        shader2 = self.get_input_link(1)
+
+        if shader1 is None and shader2 is None:
+            return None
+
+        if shader1 is None:
+            return shader2
+
+        if shader2 is None:
+            return shader1
+
+        result = self.create_node('mix_shader', 'ND_add_bsdf', {
+            'in1': shader1,
+            'in2': shader2
+        })
+        return result
+
+
 class ShaderNodeEmission(NodeParser):
     def export(self):
         color = self.get_input_value('Color')
