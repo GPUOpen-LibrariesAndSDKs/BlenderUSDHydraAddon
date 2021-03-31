@@ -38,8 +38,12 @@ class NodeItem:
         self.id = id
         self.doc = doc
         self.data = data
-        self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).nodedef() \
-            if isinstance(data, mx.Node) else None
+        try:
+            self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).nodedef() \
+                if isinstance(data, mx.Node) else None
+        except:
+            log.error(f"Unable to find node class def(id {id})")
+            raise
 
     def __repr__(self):
         return f"NodeItem(ID [{self.id}], data {self.data}, nodedef {self.nodedef}; doc {self.doc})"
@@ -65,6 +69,9 @@ class NodeItem:
 
         val_data = value.data if isinstance(value, NodeItem) else value
         nd_input = self.nodedef.getInput(name)
+        if nd_input is None:
+            log.error(f"[{self.id}] Unable to find input {name} for nodedef {self.nodedef}")
+            return
         input = self.data.addInput(name, nd_input.getType())
         set_param_value(input, val_data, input.getType())
 
@@ -323,6 +330,7 @@ class NodeParser:
     def get_input_default(self, in_key):
         """ Returns default value of input socket """
 
+        assert in_key in self.node.inputs, f"no input socket '{in_key}' found in {self}"
         socket_in = self.node.inputs[in_key]
         return self.node_item(self._parse_val(socket_in.default_value))
 
