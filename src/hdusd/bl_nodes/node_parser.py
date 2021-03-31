@@ -152,7 +152,7 @@ class NodeItem:
         return self._arithmetic_helper(None, 'floor', lambda a: float(math.floor(a)))
 
     def ceil(self):
-        return self._arithmetic_helper(None, 'ceil', lambda a: float(math.floor(a)))
+        return self._arithmetic_helper(None, 'ceil', lambda a: float(math.ceil(a)))
 
     # right hand methods for doing something like 1.0 - Node
     def __radd__(self, other):
@@ -211,9 +211,9 @@ class NodeItem:
     def max(self, other):
         return self._arithmetic_helper(other, 'max', lambda a, b: max(a, b))
 
-    # def clamp(self, min_val=0.0, max_val=1.0):
-    #     ''' clamp data to min/max '''
-    #     return self.min(max_val).max(min_val)
+    def clamp(self, min_val=0.0, max_val=1.0):
+        """ clamp data to min/max """
+        return self.min(max_val).max(min_val)
 
     def sin(self):
         return self._arithmetic_helper(None, 'sin', lambda a: math.sin(a))
@@ -223,6 +223,18 @@ class NodeItem:
 
     def tan(self):
         return self._arithmetic_helper(None, 'tan', lambda a: math.tan(a))
+
+    def asin(self):
+        return self._arithmetic_helper(None, 'asin', lambda a: math.asin(a))
+
+    def acos(self):
+        return self._arithmetic_helper(None, 'acos', lambda a: math.acos(a))
+
+    def atan(self):
+        return self._arithmetic_helper(None, 'atan', lambda a: math.atan(a))
+
+    def log(self):
+        return self._arithmetic_helper(None, 'ln', lambda a: math.log(a))
 
 
 class NodeParser:
