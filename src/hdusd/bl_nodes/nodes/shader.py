@@ -193,6 +193,56 @@ class ShaderNodeBsdfGlass(NodeParser):
         return result
 
 
+class ShaderNodeMath(NodeParser):
+    """ Map Blender operations to MaterialX definitions, see the stdlib_defs.mtlx in MaterialX """
+
+    def export(self):
+        result = None
+        node_name = ''
+        node_type = ''
+        node_data = {}
+
+        op = self.node.operation
+        in1 = self.get_input_value(0)
+        in2 = None
+        in3 = None
+        in1_type = ''
+        operands_type = ''
+        in2_type = ''
+        in3_type = ''
+        if in1:
+            log.info(f"in1.data: {in1.data}; {type(in1)}")
+            if isinstance(in1.data, float):
+                operands_type = 'float'
+            elif isinstance(in1.data, tuple):
+                if len(in1.data) == 2:
+                    operands_type = 'vector2'
+                elif len(in1.data) == 3:
+                    operands_type = 'vector3'
+                elif len(in1.data) == 4:
+                    operands_type = 'vector4'
+            in2 = self.get_input_value(0)
+        log.info(f"operatands_type = {operands_type}")
+
+        if op == 'ADD':
+            node_name = 'add'
+            node_type = 'surfaceshader'
+            node_data = {
+                'in1': in1,
+                'in2': in2,
+            }
+
+        if node_name and node_type:
+            node_name = f"{node_name}_{operands_type}"
+            node_type = operands_type
+            result = self.create_node(node_name, node_type, node_data)
+
+        log.info(f"node_name {node_name}; node_type {node_type}")
+        log.info(f"result {result}")
+
+        return result
+
+
 class ShaderNodeMixShader(NodeParser):
 
     def export(self):
