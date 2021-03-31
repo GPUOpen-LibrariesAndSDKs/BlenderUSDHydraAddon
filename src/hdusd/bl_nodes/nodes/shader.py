@@ -214,6 +214,22 @@ class ShaderNodeBsdfGlass(NodeParser):
         return result
 
 
+class ShaderNodeEmission(NodeParser):
+    def export(self):
+        color = self.get_input_value('Color')
+        strength = self.get_input_value('Strength')
+
+        result = self.create_node('uniform_edf', 'EDF', {
+            'color': color * strength,
+        })
+
+        return result
+
+
+# COLOR
+
+# CONVERTER
+
 class ShaderNodeMath(NodeParser):
     """ Map Blender operations to MaterialX definitions, see the stdlib_defs.mtlx in MaterialX """
 
@@ -326,16 +342,4 @@ class ShaderNodeAddShader(NodeParser):
             'in1': shader1,
             'in2': shader2
         })
-        return result
-
-
-class ShaderNodeEmission(NodeParser):
-    def export(self):
-        color = self.get_input_value('Color')
-        strength = self.get_input_value('Strength')
-
-        result = self.create_node('uniform_edf', 'EDF', {
-            'color': color * strength,
-        })
-
         return result
