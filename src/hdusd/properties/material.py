@@ -33,7 +33,7 @@ class MaterialProperties(HdUSDProperties):
     def export(self, obj: bpy.types.Object) -> [mx.Document, None]:
         material = self.id_data
         output_node = next((node for node in material.node_tree.nodes if
-                            node.bl_idname == ShaderNodeOutputMaterial.__name__), None)
+                            node.bl_idname == ShaderNodeOutputMaterial.__name__ and node.is_active_output), None)
 
         if not output_node:
             return None
