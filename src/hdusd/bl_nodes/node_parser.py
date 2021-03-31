@@ -236,6 +236,10 @@ class NodeItem:
     def log(self):
         return self._arithmetic_helper(None, 'ln', lambda a: math.log(a))
 
+    def blend(self, value1, value2):
+        """ Line interpolate value between value1(0.0) and value2(1.0) by self.data as factor """
+        return self * value2 + (1.0 - self) * value1
+
 
 class NodeParser:
     """
