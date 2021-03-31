@@ -66,15 +66,19 @@ old_shader_node_category_poll = None
 
 
 def register():
-    # hide Cycles
+    # hide Cycles/Eevee menu
     global old_shader_node_category_poll
     old_shader_node_category_poll = ShaderNodeCategory.poll
     ShaderNodeCategory.poll = hide_cycles_and_eevee_poll(ShaderNodeCategory.poll)
 
+    # use custom menu
     register_node_categories("RPR_NODES", node_categories)
 
 
 def unregister():
+    # restore Cycles/Eevee menu
     if old_shader_node_category_poll and ShaderNodeCategory.poll is not old_shader_node_category_poll:
         ShaderNodeCategory.poll = old_shader_node_category_poll
+
+    # remove custom menu
     unregister_node_categories("RPR_NODES")
