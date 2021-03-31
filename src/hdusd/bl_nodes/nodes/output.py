@@ -23,6 +23,8 @@ class ShaderNodeOutputMaterial(NodeParser):
     def export(self):
         surface = self.get_input_link('Surface')
 
+        log.info(f"[{self.material}] surface: {surface}")
+
         if surface.type == 'BSDF':
             surface = self.create_node('surface', 'surfaceshader', {
                 'bsdf': surface,

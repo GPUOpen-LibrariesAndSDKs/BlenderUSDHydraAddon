@@ -273,6 +273,9 @@ class ShaderNodeAddShader(NodeParser):
         shader1 = self.get_input_link(0)
         shader2 = self.get_input_link(1)
 
+        log.info(f"shader1 {shader1}")
+        log.info(f"shader2 {shader2}")
+
         if shader1 is None and shader2 is None:
             return None
 

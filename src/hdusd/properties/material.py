@@ -38,6 +38,7 @@ class MaterialProperties(HdUSDProperties):
         material = self.id_data
         output_node = next((node for node in material.node_tree.nodes if
                             node.bl_idname == ShaderNodeOutputMaterial.__name__ and node.is_active_output), None)
+        log.info(f"[{material}] output_node: {output_node}")
 
         if not output_node:
             return None

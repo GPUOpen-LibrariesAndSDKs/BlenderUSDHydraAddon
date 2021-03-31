@@ -41,6 +41,9 @@ class NodeItem:
         self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).nodedef() \
             if isinstance(data, mx.Node) else None
 
+    def __repr__(self):
+        return f"NodeItem(ID [{self.id}], data {self.data}, nodedef {self.nodedef}; doc {self.doc})"
+
     def node_item(self, value):
         if isinstance(value, NodeItem):
             return value
@@ -66,8 +69,12 @@ class NodeItem:
         set_param_value(input, val_data, input.getType())
 
     def set_inputs(self, inputs):
-        for name, value in inputs.items():
-            self.set_input(name, value)
+        try:
+            for name, value in inputs.items():
+                self.set_input(name, value)
+        except Exception as e:
+            log.error(f"set_inputs error. Name {name}, value {value}")
+            raise
 
     # MATH OPERATIONS
     def _arithmetic_helper(self, other, op_node, func):
