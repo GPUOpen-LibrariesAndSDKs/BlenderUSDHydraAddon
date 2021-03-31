@@ -12,12 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+from nodeitems_utils import (
+    NodeCategory,
+    NodeItem,
+    register_node_categories,
+    unregister_node_categories,
+)
 from nodeitems_builtins import (
     ShaderNodeCategory,
 )
 
 from ..utils import logging
 log = logging.Log("bl_nodes")
+
+
+class HdUSD_CompatibleShaderNodeCategory(NodeCategory):
+    """ Appear with an active USD plugin in Material shader editor only """
+    @classmethod
+    def poll(cls, context):
+        return context.scene.render.engine == "USD"\
+               and context.space_data.tree_type == 'ShaderNodeTree'
+
+
+# add nodes here once they are supported
+# TODO support Textures
+# TODO support Color->MixRGB and other color-operations
+# TODO support Vector operations and Bumb/Normal
+# TODO support Converter->Math and other values-operations
+# TODO support reroute
+node_categories = [
+    HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_OUTPUT', "Output", items=[
+        NodeItem('ShaderNodeOutputMaterial'),
+    ], ),
+    HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_SHADERS', "Shader", items=[
+        NodeItem('ShaderNodeBsdfPrincipled'),
+        NodeItem('ShaderNodeBsdfDiffuse'),
+        NodeItem('ShaderNodeEmission'),
+    ]),
+]
 
 
 # some nodes are hidden from plugins by Cycles itself(like Material Output), some we could not support.
@@ -39,7 +71,10 @@ def register():
     old_shader_node_category_poll = ShaderNodeCategory.poll
     ShaderNodeCategory.poll = hide_cycles_and_eevee_poll(ShaderNodeCategory.poll)
 
+    register_node_categories("RPR_NODES", node_categories)
+
 
 def unregister():
     if old_shader_node_category_poll and ShaderNodeCategory.poll is not old_shader_node_category_poll:
         ShaderNodeCategory.poll = old_shader_node_category_poll
+    unregister_node_categories("RPR_NODES")
