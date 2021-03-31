@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+from ...utils import logging
+log = logging.Log("bl_nodes.nodes")
+
 from .output import *
 from .shader import *
 from .texture import *

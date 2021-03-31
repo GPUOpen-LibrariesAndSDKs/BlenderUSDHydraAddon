@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 from ..node_parser import NodeParser, Id
+from . import log
 
 
 class ShaderNodeOutputMaterial(NodeParser):
