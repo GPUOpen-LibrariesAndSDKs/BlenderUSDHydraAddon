@@ -34,7 +34,7 @@ def sync(objects_prim, obj: bpy.types.Object, **kwargs):
     log("sync", obj, obj.type)
 
     stage = objects_prim.GetStage()
-    xform = UsdGeom.Xform.Define(stage, f"{objects_prim.GetPath()}/{sdf_name(obj)}")
+    xform = UsdGeom.Xform.Define(stage, objects_prim.GetPath().AppendChild(sdf_name(obj)))
     obj_prim = xform.GetPrim()
 
     # setting transform

@@ -33,7 +33,7 @@ class ReadBlendDataNode(USDNode):
         depsgraph = bpy.context.evaluated_depsgraph_get()
 
         stage = self.cached_stage()
-        objects_prim = stage.GetPrimAtPath(f"/{depsgraph.scene.name}/objects")
+        objects_prim = stage.GetPseudoRoot()
 
         # removing all children from objects_prim
         for obj_prim in objects_prim.GetAllChildren():
@@ -87,10 +87,12 @@ class ReadBlendDataNode(USDNode):
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
-        root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}")
+        root_prim = stage.GetPseudoRoot()
+        # root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}")
         stage.SetDefaultPrim(root_prim)
 
-        objects_prim = stage.DefinePrim(f"{root_prim.GetPath()}/objects")
+        objects_prim = root_prim
+
         self._export_depsgraph(objects_prim, depsgraph)
 
         return stage
@@ -101,7 +103,7 @@ class ReadBlendDataNode(USDNode):
             self.final_compute()
             return
 
-        objects_prim = stage.GetPrimAtPath(f"/{depsgraph.scene.name}/objects")
+        objects_prim = stage.GetPseudoRoot()
         if self._update_depsgraph(objects_prim, depsgraph):
             self.hdusd.usd_list.update_items()
 

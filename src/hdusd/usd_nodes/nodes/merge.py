@@ -68,9 +68,9 @@ class MergeNode(USDNode):
         stage.SetDefaultPrim(merge_prim)
 
         for i, ref_stage in enumerate(ref_stages, 1):
-            ref = stage.DefinePrim(f"/merge/ref{i}", 'Xform')
-            default_prim = ref_stage.GetDefaultPrim()
-            override_prim = stage.OverridePrim(str(ref.GetPath()) + '/' + default_prim.GetName())
+            # ref = stage.DefinePrim(f"/merge/ref{i}", 'Xform')
+            # default_prim = ref_stage.GetDefaultPrim()
+            override_prim = stage.OverridePrim(merge_prim.GetPath().AppendChild(f"ref{i}"))
             override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath)
 
         return stage
