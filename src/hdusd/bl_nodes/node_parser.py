@@ -310,7 +310,14 @@ class NodeParser:
     # Child classes should use them to do their export
     def get_output_default(self):
         """ Returns default value of output socket """
-        socket_out = self.node.outputs[self.out_key]
+        if self.out_key:
+            assert self.out_key in self.node.inputs, f"no output socket '{self.out_key}' found in {self}"
+            socket_out = self.node.outputs[self.out_key]
+        elif len(self.node.outputs) > 0:
+            socket_out = self.node.outputs[0]
+        else:
+            raise IndexError(f"[{self}] no output sockets found")
+
         return self.node_item(self._parse_val(socket_out.default_value))
 
     def get_input_default(self, in_key):
