@@ -259,9 +259,9 @@ class ShaderNodeMixShader(NodeParser):
         if shader2 is None:
             return shader1
 
-        result = self.create_node('mix_shader', 'ND_mix_bsdf', {
-            'in1': shader1,
-            'in2': shader2,
+        result = self.create_node('mix_bsdf', 'surfaceshader', {
+            'fg': shader1,
+            'bg': shader2,
             'mix': factor
         })
         return result
@@ -282,7 +282,7 @@ class ShaderNodeAddShader(NodeParser):
         if shader2 is None:
             return shader1
 
-        result = self.create_node('mix_shader', 'ND_add_bsdf', {
+        result = self.create_node('add_bsdf', 'surfaceshader', {
             'in1': shader1,
             'in2': shader2
         })
