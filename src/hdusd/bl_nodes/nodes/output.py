@@ -22,6 +22,8 @@ class ShaderNodeOutputMaterial(NodeParser):
 
     def export(self):
         surface = self.get_input_link('Surface')
+        if surface is None:
+            return None
 
         log.info(f"[{self.material}] surface: {surface}")
 
