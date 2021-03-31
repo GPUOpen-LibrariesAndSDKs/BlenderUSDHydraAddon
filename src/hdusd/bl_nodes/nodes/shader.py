@@ -19,6 +19,27 @@ from ...utils import logging
 log = logging.Log(tag='export.bl_nodes.nodes')
 
 
+# INPUTS
+
+class ShaderNodeValue(NodeParser):
+    """ simply return val """
+
+    def export(self):
+        return self.get_output_default()
+
+
+class ShaderNodeRGB(NodeParser):
+    """ simply return val """
+
+    def export(self):
+        return self.get_output_default()
+
+
+# TEXTURES
+
+
+# SHADERS
+
 class ShaderNodeBsdfPrincipled(NodeParser):
     def export(self):
         def enabled(val):
