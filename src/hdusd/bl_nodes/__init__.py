@@ -30,7 +30,7 @@ class HdUSD_CompatibleShaderNodeCategory(NodeCategory):
     """ Appear with an active USD plugin in Material shader editor only """
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == "USD"\
+        return context.scene.render.engine == "HdUSD"\
                and context.space_data.tree_type == 'ShaderNodeTree'
 
 
