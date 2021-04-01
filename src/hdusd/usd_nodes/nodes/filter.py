@@ -28,12 +28,6 @@ class FilterNode(USDNode):
     def update_data(self, context):
         pass
 
-    root_prim_name: bpy.props.StringProperty(
-        name="Root",
-        description="Name of Root prim",
-        default="",
-        update=update_data
-    )
     filter_path: bpy.props.StringProperty(
         name="Pattern",
         description="USD Path pattern. Use special characters means:\n"
@@ -44,7 +38,6 @@ class FilterNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'root_prim_name')
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
@@ -74,11 +67,7 @@ class FilterNode(USDNode):
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
-        if self.root_prim_name:
-            root_prim = stage.DefinePrim(f"/{self.root_prim_name}")
-            stage.SetDefaultPrim(root_prim)
-        else:
-            root_prim = stage.GetPseudoRoot()
+        root_prim = stage.GetPseudoRoot()
 
         for i, prim in enumerate(prims, 1):
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))

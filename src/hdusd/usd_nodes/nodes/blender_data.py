@@ -38,12 +38,6 @@ class BlenderDataNode(USDNode):
         self._export_depsgraph(stage, depsgraph)
         self.hdusd.usd_list.update_items()
 
-    root_prim_name: bpy.props.StringProperty(
-        name="Root",
-        description="Name of Root prim",
-        default="",
-        update=update_export_data
-    )
     export_type: bpy.props.EnumProperty(
         name="Data",
         description="Blender Data to read",
@@ -68,8 +62,6 @@ class BlenderDataNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'root_prim_name')
-
         col = layout.column(align=True)
         col.prop(self, 'export_type')
         if self.export_type == 'COLLECTION':
@@ -98,11 +90,7 @@ class BlenderDataNode(USDNode):
             self.hdusd.usd_list.update_items()
 
     def _export_depsgraph(self, stage, depsgraph):
-        if self.root_prim_name:
-            objects_prim = stage.DefinePrim(f"/{self.root_prim_name}")
-            stage.SetDefaultPrim(objects_prim)
-        else:
-            objects_prim = stage.GetPseudoRoot()
+        objects_prim = stage.GetPseudoRoot()
 
         if self.export_type == 'SCENE':
             for obj in depsgraph_objects(depsgraph):
@@ -127,10 +115,7 @@ class BlenderDataNode(USDNode):
     def _update_depsgraph(self, stage, depsgraph):
         ret = False
 
-        if self.root_prim_name:
-            objects_prim = stage.GetDefaultPrim()
-        else:
-            objects_prim = stage.GetPseudoRoot()
+        objects_prim = stage.GetPseudoRoot()
 
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Object):

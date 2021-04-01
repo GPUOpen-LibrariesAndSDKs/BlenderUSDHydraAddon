@@ -26,9 +26,6 @@ class MergeNode(USDNode):
 
     input_names = ()
 
-    def update_data(self, context):
-        pass
-
     def update_inputs_number(self, context):
         if len(self.inputs) < self.inputs_number:
             for i in range(len(self.inputs), self.inputs_number):
@@ -38,12 +35,6 @@ class MergeNode(USDNode):
             for i in range(len(self.inputs), self.inputs_number, -1):
                 self.safe_call(self.inputs.remove, self.inputs[i - 1])
 
-    root_prim_name: bpy.props.StringProperty(
-        name="Root",
-        description="Name of Root prim",
-        default="",
-        update=update_data
-    )
     inputs_number: bpy.props.IntProperty(
         name="Inputs",
         min=2, max=10, default=2,
@@ -55,7 +46,6 @@ class MergeNode(USDNode):
         super().init(context)
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'root_prim_name')
         layout.prop(self, 'inputs_number')
 
     def compute(self, **kwargs):
@@ -75,11 +65,7 @@ class MergeNode(USDNode):
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
-        if self.root_prim_name:
-            root_prim = stage.DefinePrim(f"/{self.root_prim_name}")
-            stage.SetDefaultPrim(root_prim)
-        else:
-            root_prim = stage.GetPseudoRoot()
+        root_prim = stage.GetPseudoRoot()
 
         for ref_stage in ref_stages:
             for prim in ref_stage.GetPseudoRoot().GetAllChildren():
