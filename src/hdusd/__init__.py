@@ -36,7 +36,7 @@ log = logging.Log(tag='init')
 log.info(f"Loading USD Hydra addon version={bl_info['version']}, build={version_build}")
 
 
-from . import engine, properties, ui, usd_nodes, mx_nodes
+from . import engine, properties, ui, usd_nodes, mx_nodes, bl_nodes
 
 
 def register():
@@ -44,6 +44,7 @@ def register():
     log("register")
 
     engine.register()
+    bl_nodes.register()
     mx_nodes.register()
     usd_nodes.register()
     properties.register()
@@ -56,6 +57,7 @@ def unregister():
 
     mx_nodes.unregister()
     usd_nodes.unregister()
+    bl_nodes.unregister()
     ui.unregister()
     properties.unregister()
     engine.unregister()
