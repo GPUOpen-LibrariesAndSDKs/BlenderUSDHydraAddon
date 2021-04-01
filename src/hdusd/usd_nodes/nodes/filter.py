@@ -48,26 +48,25 @@ class FilterNode(USDNode):
                                           .replace('#', '\w*'))
 
         def get_child_prims(prim):
-            if prog.fullmatch(str(prim.GetPath())):
+            if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
                 yield prim
                 return
 
             for child in prim.GetAllChildren():
                 yield from get_child_prims(child)
 
-        prims = tuple(get_child_prims(input_stage.GetDefaultPrim()))
+        prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
         if not prims:
             return None
 
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        filter_prim = stage.DefinePrim(f"/filter")
+        filter_prim = stage.GetPseudoRoot()
         stage.SetDefaultPrim(filter_prim)
 
         for i, prim in enumerate(prims, 1):
-            ref = stage.DefinePrim(f"/filter/ref{i}", 'Xform')
-            override_prim = stage.OverridePrim(str(ref.GetPath()) + '/' + prim.GetName())
+            override_prim = stage.OverridePrim(filter_prim.GetPath().AppendChild(prim.GetName()))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 

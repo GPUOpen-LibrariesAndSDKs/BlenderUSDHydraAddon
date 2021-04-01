@@ -19,10 +19,10 @@ from .base_node import USDNode
 from . import log
 
 
-class ReadUsdFileNode(USDNode):
+class UsdFileNode(USDNode):
     ''' read USD file '''
-    bl_idname = 'usd.ReadUsdFileNode'
-    bl_label = "Read USD File"
+    bl_idname = 'usd.UsdFileNode'
+    bl_label = "USD File"
 
     input_names = ()
 

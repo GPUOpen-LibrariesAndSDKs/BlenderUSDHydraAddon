@@ -64,13 +64,13 @@ class MergeNode(USDNode):
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        merge_prim = stage.DefinePrim(f"/merge")
+        merge_prim = stage.GetPseudoRoot()
         stage.SetDefaultPrim(merge_prim)
 
-        for i, ref_stage in enumerate(ref_stages, 1):
-            # ref = stage.DefinePrim(f"/merge/ref{i}", 'Xform')
-            # default_prim = ref_stage.GetDefaultPrim()
-            override_prim = stage.OverridePrim(merge_prim.GetPath().AppendChild(f"ref{i}"))
-            override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath)
+        for ref_stage in ref_stages:
+            for prim in ref_stage.GetPseudoRoot().GetAllChildren():
+                override_prim = stage.OverridePrim(merge_prim.GetPath().AppendChild(prim.GetName()))
+                override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
+

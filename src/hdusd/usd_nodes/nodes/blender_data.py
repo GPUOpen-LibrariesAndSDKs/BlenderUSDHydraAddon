@@ -22,10 +22,10 @@ from ...utils import depsgraph_objects
 from . import log
 
 
-class ReadBlendDataNode(USDNode):
+class BlenderDataNode(USDNode):
     """Blender data to USD can export whole scene, one collection or object"""
-    bl_idname = 'usd.ReadBlendDataNode'
-    bl_label = "Read Blend Data"
+    bl_idname = 'usd.BlenderDataNode'
+    bl_label = "Blender Data"
 
     input_names = ()
 
