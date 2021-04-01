@@ -54,6 +54,7 @@ node_categories = [
         NodeItem('ShaderNodeBsdfPrincipled'),
     ]),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_COLOR', "Color", items=[
+        NodeItem('ShaderNodeInvert'),
         NodeItem('ShaderNodeMixRGB'),
     ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_CONVERTER', "Converter", items=[

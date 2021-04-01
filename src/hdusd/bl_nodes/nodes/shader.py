@@ -228,6 +228,14 @@ class ShaderNodeEmission(NodeParser):
 
 # COLOR
 
+class ShaderNodeInvert(NodeParser):
+    def export(self):
+        fac = self.get_input_value('Fac')
+        color = self.get_input_value('Color')
+
+        return fac.blend(color, 1.0 - color)
+
+
 class ShaderNodeMixRGB(NodeParser):
 
     def export(self):
