@@ -45,9 +45,6 @@ class NodeItem:
             log.error(f"Unable to find node class def(id {id})")
             raise
 
-    def __repr__(self):
-        return f"NodeItem(ID [{self.id}], data {self.data}, nodedef {self.nodedef}; doc {self.doc})"
-
     def node_item(self, value):
         if isinstance(value, NodeItem):
             return value

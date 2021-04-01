@@ -25,8 +25,6 @@ class ShaderNodeOutputMaterial(NodeParser):
         if surface is None:
             return None
 
-        log.info(f"[{self.material}] surface: {surface}")
-
         if surface.type == 'BSDF':
             surface = self.create_node('surface', 'surfaceshader', {
                 'bsdf': surface,
