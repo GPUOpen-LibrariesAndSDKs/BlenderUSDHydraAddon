@@ -15,6 +15,8 @@
 import os
 
 import bpy
+from pxr import Usd
+
 from .base_node import USDNode
 from . import log
 
@@ -32,8 +34,6 @@ class UsdFileNode(USDNode):
         layout.prop(self, 'filename')
 
     def compute(self, **kwargs):
-        from pxr import Usd
-
         if not self.filename:
             log.warn("USD file name not set, skipping node", self)
             return None

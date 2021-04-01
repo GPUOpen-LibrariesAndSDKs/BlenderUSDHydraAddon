@@ -88,7 +88,7 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            if node.bl_idname == 'usd.BlenderDataNode':
+            if hasattr(node, 'depsgraph_update'):
                 node.depsgraph_update(depsgraph)
 
     def add_basic_nodes(self, source='SCENE'):

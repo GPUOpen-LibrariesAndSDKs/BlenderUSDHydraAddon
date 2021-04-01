@@ -17,9 +17,8 @@ import bpy
 from pxr import UsdGeom
 
 from .base_node import USDNode
-from ...export import object, sdf_path
+from ...export import object
 from ...utils import depsgraph_objects
-from . import log
 
 
 class BlenderDataNode(USDNode):
@@ -33,18 +32,21 @@ class BlenderDataNode(USDNode):
         depsgraph = bpy.context.evaluated_depsgraph_get()
 
         stage = self.cached_stage()
-        objects_prim = stage.GetPseudoRoot()
-
-        # removing all children from objects_prim
-        for obj_prim in objects_prim.GetAllChildren():
+        for obj_prim in stage.GetPseudoRoot().GetAllChildren():
             stage.RemovePrim(obj_prim.GetPath())
 
-        self._export_depsgraph(objects_prim, depsgraph)
+        self._export_depsgraph(stage, depsgraph)
         self.hdusd.usd_list.update_items()
 
+    root_prim_name: bpy.props.StringProperty(
+        name="Root",
+        description="Name of Root prim",
+        default="",
+        update=update_export_data
+    )
     export_type: bpy.props.EnumProperty(
-        name="Data to Read",
-        description="",
+        name="Data",
+        description="Blender Data to read",
         items=(('SCENE', "Scene", "Read entire scene"),
             ('COLLECTION', "Collection", "Read collection"),
             ('OBJECT', 'Object', "Read single object"),
@@ -52,14 +54,12 @@ class BlenderDataNode(USDNode):
         default='SCENE',
         update=update_export_data
     )
-
     collection_to_export: bpy.props.PointerProperty(
         type=bpy.types.Collection,
         name="Collection",
         description="",
         update=update_export_data
     )
-    
     object_to_export: bpy.props.PointerProperty(
         type=bpy.types.Object,
         name="Object",
@@ -68,17 +68,14 @@ class BlenderDataNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
-        col = layout.column(align=True)
-        col.use_property_split = False
-        col.use_property_decorate = False
+        layout.prop(self, 'root_prim_name')
 
-        flow = layout.grid_flow(row_major=True, even_columns=True, align=True)
-        flow.prop(self, 'export_type')
-        
+        col = layout.column(align=True)
+        col.prop(self, 'export_type')
         if self.export_type == 'COLLECTION':
-            flow.prop(self, 'collection_to_export')
+            col.prop(self, 'collection_to_export')
         elif self.export_type == 'OBJECT':
-            flow.prop(self, 'object_to_export')
+            col.prop(self, 'object_to_export')
 
     def compute(self, **kwargs):
         depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -87,13 +84,7 @@ class BlenderDataNode(USDNode):
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
-        root_prim = stage.GetPseudoRoot()
-        # root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}")
-        stage.SetDefaultPrim(root_prim)
-
-        objects_prim = root_prim
-
-        self._export_depsgraph(objects_prim, depsgraph)
+        self._export_depsgraph(stage, depsgraph)
 
         return stage
 
@@ -103,11 +94,16 @@ class BlenderDataNode(USDNode):
             self.final_compute()
             return
 
-        objects_prim = stage.GetPseudoRoot()
-        if self._update_depsgraph(objects_prim, depsgraph):
+        if self._update_depsgraph(stage, depsgraph):
             self.hdusd.usd_list.update_items()
 
-    def _export_depsgraph(self, objects_prim, depsgraph):
+    def _export_depsgraph(self, stage, depsgraph):
+        if self.root_prim_name:
+            objects_prim = stage.DefinePrim(f"/{self.root_prim_name}")
+            stage.SetDefaultPrim(objects_prim)
+        else:
+            objects_prim = stage.GetPseudoRoot()
+
         if self.export_type == 'SCENE':
             for obj in depsgraph_objects(depsgraph):
                 object.sync(objects_prim, obj)
@@ -128,8 +124,13 @@ class BlenderDataNode(USDNode):
 
             object.sync(objects_prim, self.object_to_export.evaluated_get(depsgraph))
 
-    def _update_depsgraph(self, objects_prim, depsgraph):
+    def _update_depsgraph(self, stage, depsgraph):
         ret = False
+
+        if self.root_prim_name:
+            objects_prim = stage.GetDefaultPrim()
+        else:
+            objects_prim = stage.GetPseudoRoot()
 
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Object):

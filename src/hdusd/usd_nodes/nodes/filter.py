@@ -15,8 +15,9 @@
 import re
 
 import bpy
+from pxr import Usd, UsdGeom
+
 from .base_node import USDNode
-from . import log
 
 
 class FilterNode(USDNode):
@@ -24,18 +25,29 @@ class FilterNode(USDNode):
     bl_idname = 'usd.FilterNode'
     bl_label = "Filter USD"
 
+    def update_data(self, context):
+        pass
+
+    root_prim_name: bpy.props.StringProperty(
+        name="Root",
+        description="Name of Root prim",
+        default="",
+        update=update_data
+    )
     filter_path: bpy.props.StringProperty(
         name="Pattern",
         description="USD Path pattern. Use special characters means:\n"
                     "  * - any word or subword\n"
                     "  ** - several words separated by '/' or subword",
-        default='**')
+        default='/*',
+        update=update_data
+    )
 
     def draw_buttons(self, context, layout):
+        layout.prop(self, 'root_prim_name')
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
-        from pxr import Usd, UsdGeom
 
         input_stage = self.get_input_link('Input', **kwargs)
         if not input_stage:
