@@ -53,6 +53,9 @@ node_categories = [
         NodeItem('ShaderNodeEmission'),
         NodeItem('ShaderNodeBsdfPrincipled'),
     ]),
+    HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_TEXTURE', "Texture", items=[
+        NodeItem('ShaderNodeTexImage'),
+    ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_COLOR', "Color", items=[
         NodeItem('ShaderNodeInvert'),
         NodeItem('ShaderNodeMixRGB'),

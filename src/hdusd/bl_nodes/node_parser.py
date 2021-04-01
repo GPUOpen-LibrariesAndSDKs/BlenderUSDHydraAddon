@@ -65,6 +65,13 @@ class NodeItem:
         input = self.data.addInput(name, nd_input.getType())
         set_param_value(input, val_data, input.getType())
 
+    def set_parameter(self, name, value):
+        nd_param = self.nodedef.getParameter(name)
+        log.info(f"nd_param: {nd_param}")
+        param = self.data.addParameter(name, nd_param.getType())
+#        nd_param = value
+        param.setValueString(value)
+
     def set_inputs(self, inputs):
         for name, value in inputs.items():
             self.set_input(name, value)
