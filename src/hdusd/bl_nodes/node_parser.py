@@ -344,8 +344,9 @@ class NodeParser:
         link = socket_in.links[0]
 
         # # check if linked is correct
-        # if not self.is_link_allowed(link):
-        #     raise MaterialError("Invalid link found", link, socket_in, self.node, self.material)
+        if not link.is_valid:
+            log.warn("Invalid link ignored", link, socket_in, self.node, self.material)
+            return None
 
         return self._export_node(link.from_node, link.from_socket.identifier)
 
