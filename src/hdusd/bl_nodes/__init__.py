@@ -36,19 +36,29 @@ class HdUSD_CompatibleShaderNodeCategory(NodeCategory):
 
 # add nodes here once they are supported
 # TODO support Textures
-# TODO support Color->MixRGB and other color-operations
 # TODO support Vector operations and Bumb/Normal
 # TODO support Converter->Math and other values-operations
 # TODO support reroute
 node_categories = [
+    HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_INPUT', "Input", items=[
+        NodeItem('ShaderNodeRGB'),
+        NodeItem('ShaderNodeValue'),
+    ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_OUTPUT', "Output", items=[
         NodeItem('ShaderNodeOutputMaterial'),
     ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_SHADERS', "Shader", items=[
-        NodeItem('ShaderNodeBsdfPrincipled'),
         NodeItem('ShaderNodeBsdfDiffuse'),
+        NodeItem('ShaderNodeBsdfGlass'),
         NodeItem('ShaderNodeEmission'),
+        NodeItem('ShaderNodeBsdfPrincipled'),
     ]),
+    HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_COLOR', "Color", items=[
+        NodeItem('ShaderNodeMixRGB'),
+    ], ),
+    HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_CONVERTER', "Converter", items=[
+        NodeItem('ShaderNodeMixRGB'),
+    ], ),
 ]
 
 
