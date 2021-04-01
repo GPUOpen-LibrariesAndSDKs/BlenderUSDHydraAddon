@@ -74,12 +74,16 @@ class MergeNode(USDNode):
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        merge_prim = stage.GetPseudoRoot()
-        stage.SetDefaultPrim(merge_prim)
+
+        if self.root_prim_name:
+            root_prim = stage.DefinePrim(f"/{self.root_prim_name}")
+            stage.SetDefaultPrim(root_prim)
+        else:
+            root_prim = stage.GetPseudoRoot()
 
         for ref_stage in ref_stages:
             for prim in ref_stage.GetPseudoRoot().GetAllChildren():
-                override_prim = stage.OverridePrim(merge_prim.GetPath().AppendChild(prim.GetName()))
+                override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
                 override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage

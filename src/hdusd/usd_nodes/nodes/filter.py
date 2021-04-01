@@ -48,7 +48,6 @@ class FilterNode(USDNode):
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
-
         input_stage = self.get_input_link('Input', **kwargs)
         if not input_stage:
             return None
@@ -74,11 +73,15 @@ class FilterNode(USDNode):
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        filter_prim = stage.GetPseudoRoot()
-        stage.SetDefaultPrim(filter_prim)
+
+        if self.root_prim_name:
+            root_prim = stage.DefinePrim(f"/{self.root_prim_name}")
+            stage.SetDefaultPrim(root_prim)
+        else:
+            root_prim = stage.GetPseudoRoot()
 
         for i, prim in enumerate(prims, 1):
-            override_prim = stage.OverridePrim(filter_prim.GetPath().AppendChild(prim.GetName()))
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 

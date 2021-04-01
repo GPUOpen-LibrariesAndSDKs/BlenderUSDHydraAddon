@@ -26,9 +26,14 @@ class UsdFileNode(USDNode):
     bl_idname = 'usd.UsdFileNode'
     bl_label = "USD File"
 
-    input_names = ()
+    def update_data(self, context):
+        pass
 
-    filename: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
+    filename: bpy.props.StringProperty(
+        name="USD File",
+        subtype='FILE_PATH',
+        update=update_data,
+    )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filename')
