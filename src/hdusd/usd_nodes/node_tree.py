@@ -54,41 +54,26 @@ class USDTree(bpy.types.ShaderNodeTree):
 
         return secondary_output_node
 
-    def update_nodes(self, nodes):
+    def _reset_nodes(self, nodes):
         self._is_updating = True
 
         for node in nodes:
-            node.cached_stage.clear()
+            node.free()
 
         for node in nodes:
             node.final_compute()
 
         self._is_updating = False
 
-    def update_nodes_recursive(self, nodes):
-        updating_nodes = set()
-
-        def get_nodes(node):
-            updating_nodes.add(node)
-
-            for output in node.outputs:
-                for link in output.links:
-                    get_nodes(link.to_node)
-
-        for node in nodes:
-            get_nodes(node)
-
-        self.update_nodes(updating_nodes)
-
     # this is called from Blender
     def update(self):
         if self._is_node_safe_call:
             return
 
-        self.update_nodes(self.nodes)
+        self._reset_nodes(self.nodes)
 
     def reset(self):
-        self.update_nodes(self.nodes)
+        self._reset_nodes(self.nodes)
 
     def depsgraph_update(self, depsgraph):
         if self._is_updating:

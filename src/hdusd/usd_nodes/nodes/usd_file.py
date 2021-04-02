@@ -26,8 +26,10 @@ class UsdFileNode(USDNode):
     bl_idname = 'usd.UsdFileNode'
     bl_label = "USD File"
 
+    input_names = ()
+
     def update_data(self, context):
-        pass
+        self.reset()
 
     filename: bpy.props.StringProperty(
         name="USD File",

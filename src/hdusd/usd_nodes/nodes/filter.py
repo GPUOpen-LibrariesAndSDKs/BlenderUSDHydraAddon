@@ -26,7 +26,7 @@ class FilterNode(USDNode):
     bl_label = "Filter USD"
 
     def update_data(self, context):
-        pass
+        self.reset()
 
     filter_path: bpy.props.StringProperty(
         name="Pattern",

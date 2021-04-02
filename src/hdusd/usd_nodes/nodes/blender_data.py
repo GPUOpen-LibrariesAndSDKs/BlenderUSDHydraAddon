@@ -28,15 +28,8 @@ class BlenderDataNode(USDNode):
 
     input_names = ()
 
-    def update_export_data(self, context):
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-
-        stage = self.cached_stage()
-        for obj_prim in stage.GetPseudoRoot().GetAllChildren():
-            stage.RemovePrim(obj_prim.GetPath())
-
-        self._export_depsgraph(stage, depsgraph)
-        self.hdusd.usd_list.update_items()
+    def update_data(self, context):
+        self.reset()
 
     export_type: bpy.props.EnumProperty(
         name="Data",
@@ -46,19 +39,19 @@ class BlenderDataNode(USDNode):
             ('OBJECT', 'Object', "Read single object"),
         ),
         default='SCENE',
-        update=update_export_data
+        update=update_data
     )
     collection_to_export: bpy.props.PointerProperty(
         type=bpy.types.Collection,
         name="Collection",
         description="",
-        update=update_export_data
+        update=update_data
     )
     object_to_export: bpy.props.PointerProperty(
         type=bpy.types.Object,
         name="Object",
         description="",
-        update=update_export_data
+        update=update_data
     )
 
     def draw_buttons(self, context, layout):
@@ -88,6 +81,7 @@ class BlenderDataNode(USDNode):
 
         if self._update_depsgraph(stage, depsgraph):
             self.hdusd.usd_list.update_items()
+            self.reset_next()
 
     def _export_depsgraph(self, stage, depsgraph):
         objects_prim = stage.GetPseudoRoot()

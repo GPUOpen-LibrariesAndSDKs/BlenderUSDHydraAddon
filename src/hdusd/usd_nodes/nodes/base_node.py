@@ -109,3 +109,17 @@ class USDNode(bpy.types.Node):
 
     def free(self):
         self.cached_stage.clear()
+
+    def reset(self):
+        log("reset", self)
+
+        self.free()
+        self.final_compute()
+        self.hdusd.usd_list.update_items()
+
+        self.reset_next()
+
+    def reset_next(self):
+        for output in self.outputs:
+            for link in output.links:
+                link.to_node.reset()
