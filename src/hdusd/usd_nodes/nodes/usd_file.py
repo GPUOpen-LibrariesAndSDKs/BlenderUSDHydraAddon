@@ -40,7 +40,6 @@ class UsdFileNode(USDNode):
 
     def compute(self, **kwargs):
         if not self.filename:
-            log.warn("USD file name not set, skipping node", self)
             return None
 
         file_path = bpy.path.abspath(self.filename)

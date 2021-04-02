@@ -22,6 +22,7 @@ class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
     bl_compatibility = {'HdUSD'}
+    bl_width_default = 200
 
     input_names = ("Input",)
     output_name = "Output"
@@ -31,19 +32,14 @@ class USDNode(bpy.types.Node):
         return tree.bl_idname == 'hdusd.USDTree'
 
     def init(self, context):
-        for name in self.input_names:
-            self.safe_call(self.inputs.new, name=name, type="NodeSocketShader")
+        def init_():
+            for name in self.input_names:
+                self.inputs.new(name=name, type="NodeSocketShader")
 
-        if self.output_name:
-            self.safe_call(self.outputs.new, name=self.output_name, type="NodeSocketShader")
+            if self.output_name:
+                self.outputs.new(name=self.output_name, type="NodeSocketShader")
 
-    def safe_call(self, op, *args, **kwargs):
-        """This function prevents call of nodetree.update() during calling our function"""
-        self.id_data.is_node_safe_call = True
-        try:
-            op(*args, **kwargs)
-        finally:
-            self.id_data.is_node_safe_call = False
+        self.id_data.safe_call(init_)
 
     # COMPUTE FUNCTION
     def compute(self, **kwargs) -> [Usd.Stage, None]:
@@ -58,10 +54,9 @@ class USDNode(bpy.types.Node):
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        log("compute", self, group_nodes)
-
         stage = self.cached_stage()
         if not stage:
+            log("compute", self, group_nodes)
             stage = self.compute(group_nodes=group_nodes, **kwargs)
             self.cached_stage.assign(stage)
             self.hdusd.usd_list.update_items()
@@ -102,7 +97,7 @@ class USDNode(bpy.types.Node):
 
         link = socket_in.links[0]
         if not link.is_valid:
-            log.error("Invalid link found", link, socket_in, self)
+            log.warn("Invalid link found", link, socket_in, self)
 
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)

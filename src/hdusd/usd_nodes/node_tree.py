@@ -33,8 +33,8 @@ class USDTree(bpy.types.ShaderNodeTree):
     bl_idname = 'hdusd.USDTree'
     COMPAT_ENGINES = {'HdUSD'}
 
-    is_updating = False
-    is_node_safe_call = False
+    _is_updating = False
+    _is_node_safe_call = False
 
     @classmethod
     def poll(cls, context):
@@ -54,58 +54,81 @@ class USDTree(bpy.types.ShaderNodeTree):
 
         return secondary_output_node
 
+    def update_nodes(self, nodes):
+        self._is_updating = True
+
+        for node in nodes:
+            node.cached_stage.clear()
+
+        for node in nodes:
+            node.final_compute()
+
+        self._is_updating = False
+
+    def update_nodes_recursive(self, nodes):
+        updating_nodes = set()
+
+        def get_nodes(node):
+            updating_nodes.add(node)
+
+            for output in node.outputs:
+                for link in output.links:
+                    get_nodes(link.to_node)
+
+        for node in nodes:
+            get_nodes(node)
+
+        self.update_nodes(updating_nodes)
+
+    # this is called from Blender
     def update(self):
-        if self.is_node_safe_call:
+        if self._is_node_safe_call:
             return
 
-        self.is_updating = True
-
-        for node in self.nodes:
-            node.cached_stage.clear()
-            #if node.inputs:
-            #    node.cached_stage.clear()
-
-        for node in self.nodes:
-            node.final_compute()
-            
-        self.is_updating = False
+        self.update_nodes(self.nodes)
 
     def reset(self):
-        if self.is_node_safe_call:
-            return
-
-        self.is_updating = True
-
-        for node in self.nodes:
-            node.cached_stage.clear()
-
-        for node in self.nodes:
-            node.final_compute()
-
-        self.is_updating = False
+        self.update_nodes(self.nodes)
 
     def depsgraph_update(self, depsgraph):
-        if self.is_updating:
+        if self._is_updating:
             return
 
         for node in self.nodes:
             if hasattr(node, 'depsgraph_update'):
                 node.depsgraph_update(depsgraph)
 
+    def safe_call(self, op, *args, **kwargs):
+        """This function prevents call of self.update() during calling our function"""
+        if self._is_node_safe_call:
+            op(*args, **kwargs)
+            return
+
+        self._is_node_safe_call = True
+        try:
+            op(*args, **kwargs)
+        finally:
+            self._is_node_safe_call = False
+
     def add_basic_nodes(self, source='SCENE'):
         """ Reset basic node tree structure using scene or USD file as an input """
-        self.nodes.clear()
 
-        if source == 'USD_FILE':
-            input_node = self.nodes.new("usd.UsdFileNode")
-        else:  # default 'SCENE'
-            input_node = self.nodes.new("usd.BlenderDataNode")
-        input_node.location = (input_node.location[0] - 125, input_node.location[1])
+        def create_nodes():
+            self.nodes.clear()
 
-        hydra_output = self.nodes.new("usd.HydraRenderNode")
-        hydra_output.location = (hydra_output.location[0] + 125, hydra_output.location[1])
+            if source == 'USD_FILE':
+                input_node = self.nodes.new("usd.UsdFileNode")
+            else:  # default 'SCENE'
+                input_node = self.nodes.new("usd.BlenderDataNode")
+            input_node.location = (input_node.location[0] - 150, input_node.location[1])
 
-        self.links.new(input_node.outputs[0], hydra_output.inputs[0])
+            hydra_output = self.nodes.new("usd.HydraRenderNode")
+            hydra_output.location = (hydra_output.location[0] + 150, hydra_output.location[1])
+
+            self.links.new(input_node.outputs[0], hydra_output.inputs[0])
+
+        self.safe_call(create_nodes)
+        self.reset()
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
