@@ -28,6 +28,7 @@ os.environ['PXR_PLUGINPATH_NAME'] = str(utils.HDUSD_LIBS_DIR / 'plugins')
 os.environ['RPR'] = str(utils.HDUSD_LIBS_DIR / 'hdrpr')
 
 sys.path.append(str(utils.HDUSD_LIBS_DIR / 'usd/python'))
+sys.path.append(str(utils.HDUSD_LIBS_DIR / 'hdrpr/lib/python'))
 sys.path.append(str(utils.HDUSD_LIBS_DIR / 'materialx/python'))
 
 if utils.IS_WIN:
