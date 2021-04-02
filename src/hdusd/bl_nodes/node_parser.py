@@ -38,12 +38,8 @@ class NodeItem:
         self.id = id
         self.doc = doc
         self.data = data
-        try:
-            self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).nodedef() \
-                if isinstance(data, mx.Node) else None
-        except:
-            log.error(f"Unable to find node class def(id {id})")
-            raise
+        self.nodedef = get_node_def_cls(data.getCategory(), data.getType()).nodedef() \
+            if isinstance(data, mx.Node) else None
 
     def node_item(self, value):
         if isinstance(value, NodeItem):

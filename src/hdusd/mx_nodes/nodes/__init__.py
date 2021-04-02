@@ -69,9 +69,19 @@ def get_node_def_cls(node_name, nd_type):
         return node_def_cls
 
     nd_name = f"ND_{node_name}"
-    return next(cls for cls in mx_nodedef_classes if cls.__name__.endswith(nd_name))
+    node_def_cls = next((cls for cls in mx_nodedef_classes if cls.__name__.endswith(nd_name)), None)
+
+    if node_def_cls:
+        return node_def_cls
+
+    raise KeyError("Unable to find MaterialX nodedef class", node_name, nd_type)
 
 
 def get_mx_node_cls(node_name, nd_type):
-    return next(cls for cls in mx_node_classes if cls.__name__.endswith(node_name) and
-                nd_type in cls._data_types)
+    node_cls = next((cls for cls in mx_node_classes if cls.__name__.endswith(node_name) and
+                nd_type in cls._data_types),
+                None)
+    if node_cls:
+        return node_cls
+
+    raise KeyError("Unable to find MaterialX node class", node_name, nd_type)
