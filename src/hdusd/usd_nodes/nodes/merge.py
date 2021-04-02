@@ -14,6 +14,8 @@
 # ********************************************************************
 import bpy
 
+from pxr import Usd, UsdGeom
+
 from .base_node import USDNode
 
 
@@ -47,8 +49,6 @@ class MergeNode(USDNode):
         layout.prop(self, 'inputs_number')
 
     def compute(self, **kwargs):
-        from pxr import Usd, UsdGeom
-
         ref_stages = []
         for i in range(self.inputs_number):
             stage = self.get_input_link(i, **kwargs)
@@ -64,13 +64,13 @@ class MergeNode(USDNode):
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        merge_prim = stage.DefinePrim(f"/merge")
-        stage.SetDefaultPrim(merge_prim)
 
-        for i, ref_stage in enumerate(ref_stages, 1):
-            ref = stage.DefinePrim(f"/merge/ref{i}", 'Xform')
-            default_prim = ref_stage.GetDefaultPrim()
-            override_prim = stage.OverridePrim(str(ref.GetPath()) + '/' + default_prim.GetName())
-            override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath)
+        root_prim = stage.GetPseudoRoot()
+
+        for ref_stage in ref_stages:
+            for prim in ref_stage.GetPseudoRoot().GetAllChildren():
+                override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+                override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
+

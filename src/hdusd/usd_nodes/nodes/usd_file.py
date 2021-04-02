@@ -15,25 +15,30 @@
 import os
 
 import bpy
+from pxr import Usd
+
 from .base_node import USDNode
 from . import log
 
 
-class ReadUsdFileNode(USDNode):
+class UsdFileNode(USDNode):
     ''' read USD file '''
-    bl_idname = 'usd.ReadUsdFileNode'
-    bl_label = "Read USD File"
+    bl_idname = 'usd.UsdFileNode'
+    bl_label = "USD File"
 
-    input_names = ()
+    def update_data(self, context):
+        pass
 
-    filename: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
+    filename: bpy.props.StringProperty(
+        name="USD File",
+        subtype='FILE_PATH',
+        update=update_data,
+    )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filename')
 
     def compute(self, **kwargs):
-        from pxr import Usd
-
         if not self.filename:
             log.warn("USD file name not set, skipping node", self)
             return None

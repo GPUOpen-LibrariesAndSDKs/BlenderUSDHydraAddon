@@ -15,8 +15,9 @@
 import re
 
 import bpy
+from pxr import Usd, UsdGeom
+
 from .base_node import USDNode
-from . import log
 
 
 class FilterNode(USDNode):
@@ -24,19 +25,22 @@ class FilterNode(USDNode):
     bl_idname = 'usd.FilterNode'
     bl_label = "Filter USD"
 
+    def update_data(self, context):
+        pass
+
     filter_path: bpy.props.StringProperty(
         name="Pattern",
         description="USD Path pattern. Use special characters means:\n"
                     "  * - any word or subword\n"
                     "  ** - several words separated by '/' or subword",
-        default='**')
+        default='/*',
+        update=update_data
+    )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filter_path')
 
     def compute(self, **kwargs):
-        from pxr import Usd, UsdGeom
-
         input_stage = self.get_input_link('Input', **kwargs)
         if not input_stage:
             return None
@@ -48,26 +52,25 @@ class FilterNode(USDNode):
                                           .replace('#', '\w*'))
 
         def get_child_prims(prim):
-            if prog.fullmatch(str(prim.GetPath())):
+            if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
                 yield prim
                 return
 
             for child in prim.GetAllChildren():
                 yield from get_child_prims(child)
 
-        prims = tuple(get_child_prims(input_stage.GetDefaultPrim()))
+        prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
         if not prims:
             return None
 
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-        filter_prim = stage.DefinePrim(f"/filter")
-        stage.SetDefaultPrim(filter_prim)
+
+        root_prim = stage.GetPseudoRoot()
 
         for i, prim in enumerate(prims, 1):
-            ref = stage.DefinePrim(f"/filter/ref{i}", 'Xform')
-            override_prim = stage.OverridePrim(str(ref.GetPath()) + '/' + prim.GetName())
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 

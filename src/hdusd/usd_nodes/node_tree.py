@@ -88,7 +88,7 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            if node.bl_idname == 'usd.ReadBlendDataNode':
+            if hasattr(node, 'depsgraph_update'):
                 node.depsgraph_update(depsgraph)
 
     def add_basic_nodes(self, source='SCENE'):
@@ -96,9 +96,9 @@ class USDTree(bpy.types.ShaderNodeTree):
         self.nodes.clear()
 
         if source == 'USD_FILE':
-            input_node = self.nodes.new("usd.ReadUsdFileNode")
+            input_node = self.nodes.new("usd.UsdFileNode")
         else:  # default 'SCENE'
-            input_node = self.nodes.new("usd.ReadBlendDataNode")
+            input_node = self.nodes.new("usd.BlenderDataNode")
         input_node.location = (input_node.location[0] - 125, input_node.location[1])
 
         hydra_output = self.nodes.new("usd.HydraRenderNode")

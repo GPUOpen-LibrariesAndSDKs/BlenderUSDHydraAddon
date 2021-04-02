@@ -131,11 +131,10 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
         return
 
     # create Dome light
-    xform = UsdGeom.Xform.Define(stage, f"{root_prim.GetPath()}/_world")
+    xform = UsdGeom.Xform.Define(stage, root_prim.GetPath().AppendChild("_world"))
     obj_prim = xform.GetPrim()
 
-    usd_light = UsdLux.DomeLight.Define(
-        stage, f"{obj_prim.GetPath()}/_world/{sdf_path(world.name)}")
+    usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild(sdf_path(world.name)))
     usd_light.ClearXformOpOrder()
     usd_light.OrientToStageUpAxis()
 
