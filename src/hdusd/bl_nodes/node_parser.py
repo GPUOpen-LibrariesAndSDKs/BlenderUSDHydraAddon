@@ -66,19 +66,21 @@ class NodeItem:
 
         val_data = value.data if isinstance(value, NodeItem) else value
         nd_input = self.nodedef.getInput(name)
-        if nd_input is None:
-            log.error(f"[{self.id}] Unable to find input {name} for nodedef {self.nodedef}")
-            return
         input = self.data.addInput(name, nd_input.getType())
         set_param_value(input, val_data, input.getType())
 
     def set_inputs(self, inputs):
-        try:
-            for name, value in inputs.items():
-                self.set_input(name, value)
-        except Exception as e:
-            log.error(f"set_inputs error. Name {name}, value {value}")
-            raise
+        for name, value in inputs.items():
+            self.set_input(name, value)
+
+    def set_parameter(self, name, value):
+        if value is None:
+            return
+
+        val_data = value.data if isinstance(value, NodeItem) else value
+        nd_param = self.nodedef.getParameter(name)
+        param = self.data.addParameter(name, nd_param.getType())
+        set_param_value(param, val_data, param.getType())
 
     # MATH OPERATIONS
     def _arithmetic_helper(self, other, op_node, func):
@@ -118,12 +120,14 @@ class NodeItem:
                     result_data = tuple(map(func, data, other_data))
 
             else:
-                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
-                                               self.data.getType())
-                input1 = result_data.addInput('in1', self.data.getType())
-                set_param_value(input1, self.data, self.data.getType())
-                input2 = result_data.addInput('in2', self.data.getType())
-                set_param_value(input2, other_data, self.data.getType())
+                nd_type = self.data.getType() if isinstance(self.data, mx.Node) else \
+                          other_data.getType()
+
+                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}", nd_type)
+                input1 = result_data.addInput('in1', nd_type)
+                set_param_value(input1, self.data, nd_type)
+                input2 = result_data.addInput('in2', nd_type)
+                set_param_value(input2, other_data, nd_type)
 
         return self.node_item(result_data)
 
