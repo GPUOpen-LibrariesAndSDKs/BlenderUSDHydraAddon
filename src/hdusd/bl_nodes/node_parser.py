@@ -321,7 +321,6 @@ class NodeParser:
     def get_input_default(self, in_key):
         """ Returns default value of input socket """
 
-        assert in_key in self.node.inputs, f"no input socket '{in_key}' found in {self}"
         socket_in = self.node.inputs[in_key]
         return self.node_item(self._parse_val(socket_in.default_value))
 
