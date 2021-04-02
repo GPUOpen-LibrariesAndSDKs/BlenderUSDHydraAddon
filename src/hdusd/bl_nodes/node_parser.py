@@ -69,6 +69,15 @@ class NodeItem:
         for name, value in inputs.items():
             self.set_input(name, value)
 
+    def set_parameter(self, name, value):
+        if value is None:
+            return
+
+        val_data = value.data if isinstance(value, NodeItem) else value
+        nd_param = self.nodedef.getParameter(name)
+        param = self.data.addParameter(name, nd_param.getType())
+        set_param_value(param, val_data, param.getType())
+
     # MATH OPERATIONS
     def _arithmetic_helper(self, other, op_node, func):
         ''' helper function for overridden math functions.
@@ -107,12 +116,14 @@ class NodeItem:
                     result_data = tuple(map(func, data, other_data))
 
             else:
-                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
-                                               self.data.getType())
-                input1 = result_data.addInput('in1', self.data.getType())
-                set_param_value(input1, self.data, self.data.getType())
-                input2 = result_data.addInput('in2', self.data.getType())
-                set_param_value(input2, other_data, self.data.getType())
+                nd_type = self.data.getType() if isinstance(self.data, mx.Node) else \
+                          other_data.getType()
+
+                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}", nd_type)
+                input1 = result_data.addInput('in1', nd_type)
+                set_param_value(input1, self.data, nd_type)
+                input2 = result_data.addInput('in2', nd_type)
+                set_param_value(input2, other_data, nd_type)
 
         return self.node_item(result_data)
 
@@ -145,7 +156,7 @@ class NodeItem:
         return self._arithmetic_helper(None, 'floor', lambda a: float(math.floor(a)))
 
     def ceil(self):
-        return self._arithmetic_helper(None, 'ceil', lambda a: float(math.floor(a)))
+        return self._arithmetic_helper(None, 'ceil', lambda a: float(math.ceil(a)))
 
     # right hand methods for doing something like 1.0 - Node
     def __radd__(self, other):
@@ -204,9 +215,9 @@ class NodeItem:
     def max(self, other):
         return self._arithmetic_helper(other, 'max', lambda a, b: max(a, b))
 
-    # def clamp(self, min_val=0.0, max_val=1.0):
-    #     ''' clamp data to min/max '''
-    #     return self.min(max_val).max(min_val)
+    def clamp(self, min_val=0.0, max_val=1.0):
+        """ clamp data to min/max """
+        return self.min(max_val).max(min_val)
 
     def sin(self):
         return self._arithmetic_helper(None, 'sin', lambda a: math.sin(a))
@@ -216,6 +227,22 @@ class NodeItem:
 
     def tan(self):
         return self._arithmetic_helper(None, 'tan', lambda a: math.tan(a))
+
+    def asin(self):
+        return self._arithmetic_helper(None, 'asin', lambda a: math.asin(a))
+
+    def acos(self):
+        return self._arithmetic_helper(None, 'acos', lambda a: math.acos(a))
+
+    def atan(self):
+        return self._arithmetic_helper(None, 'atan', lambda a: math.atan(a))
+
+    def log(self):
+        return self._arithmetic_helper(None, 'ln', lambda a: math.log(a))
+
+    def blend(self, value1, value2):
+        """ Line interpolate value between value1(0.0) and value2(1.0) by self.data as factor """
+        return self * value2 + (1.0 - self) * value1
 
 
 class NodeParser:
@@ -256,7 +283,7 @@ class NodeParser:
         # getting corresponded NodeParser class
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
         if NodeParser_cls:
-            node_parser = NodeParser_cls(self.id, self.doc, self.material, node, out_key,
+            node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object, out_key,
                                          group_nodes, **self.kwargs)
             return node_parser.export()
 
@@ -288,6 +315,7 @@ class NodeParser:
     def get_output_default(self):
         """ Returns default value of output socket """
         socket_out = self.node.outputs[self.out_key]
+
         return self.node_item(self._parse_val(socket_out.default_value))
 
     def get_input_default(self, in_key):
@@ -306,8 +334,9 @@ class NodeParser:
         link = socket_in.links[0]
 
         # # check if linked is correct
-        # if not self.is_link_allowed(link):
-        #     raise MaterialError("Invalid link found", link, socket_in, self.node, self.material)
+        if not link.is_valid:
+            log.warn("Invalid link ignored", link, socket_in, self.node, self.material)
+            return None
 
         return self._export_node(link.from_node, link.from_socket.identifier)
 

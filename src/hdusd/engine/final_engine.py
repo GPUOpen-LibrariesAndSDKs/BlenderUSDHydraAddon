@@ -96,7 +96,7 @@ class FinalEngine(Engine):
 
         draw_target.Unbind()
 
-        # its important to clear data explicitly
+        # it's important to clear data explicitly
         draw_target = None
         renderer = None
 

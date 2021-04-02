@@ -63,7 +63,7 @@ class Engine:
             try:
                 object.sync(objects_prim, obj, **kwargs)
             except Exception as e:
-                log.error(e)
+                log.error(e, 'EXCEPTION:', traceback.format_exc())
 
         world.sync(root_prim, depsgraph.scene.world, **kwargs)
 

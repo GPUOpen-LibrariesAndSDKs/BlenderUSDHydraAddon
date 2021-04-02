@@ -208,8 +208,11 @@ def sync_as_mx(materials_prim, mat, obj):
 
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
-    surfacematerial = next(node for node in doc.getNodes()
-                           if node.getCategory() == 'surfacematerial')
+    surfacematerial = next((node for node in doc.getNodes()
+                           if node.getCategory() == 'surfacematerial'), None)
+    if surfacematerial is None:
+        log.warn(f"No valid Surface shader found for material {mat.name}")
+        return None
 
     stage = materials_prim.GetStage()
     mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"

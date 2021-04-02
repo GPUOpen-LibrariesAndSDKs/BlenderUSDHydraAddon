@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from ...utils import logging
-log = logging.Log("bl_nodes.nodes")
+import os
 
-from .input import *
-from .output import *
-from .shader import *
-from .texture import *
-from .color import *
-from .converter import *
+from ..node_parser import NodeParser
+from . import log
+
+
+class ShaderNodeValue(NodeParser):
+    """ Returns float value """
+
+    def export(self):
+        return self.get_output_default()
+
+
+class ShaderNodeRGB(NodeParser):
+    """ Returns color value """
+
+    def export(self):
+        return self.get_output_default()

@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 from ..node_parser import NodeParser, Id
+from . import log
 
 
 class ShaderNodeOutputMaterial(NodeParser):
@@ -21,6 +22,8 @@ class ShaderNodeOutputMaterial(NodeParser):
 
     def export(self):
         surface = self.get_input_link('Surface')
+        if surface is None:
+            return None
 
         if surface.type == 'BSDF':
             surface = self.create_node('surface', 'surfaceshader', {
