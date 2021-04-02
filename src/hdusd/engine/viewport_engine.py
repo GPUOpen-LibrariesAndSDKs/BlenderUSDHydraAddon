@@ -231,8 +231,7 @@ class ViewportEngine(Engine):
     def _sync_update_blend(self, context, depsgraph):
         scene = depsgraph.scene
 
-        root_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}")
-        objects_prim = root_prim.GetChild("objects")
+        root_prim = self.stage.GetPseudoRoot()
 
         # get supported updates and sort by priorities
         updates = []
@@ -268,7 +267,7 @@ class ViewportEngine(Engine):
                 if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
                     continue
 
-                object.sync_update(objects_prim, obj,
+                object.sync_update(root_prim, obj,
                                    update.is_updated_geometry,
                                    update.is_updated_transform,
                                    is_gl_delegate=self.is_gl_delegate)

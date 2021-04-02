@@ -47,10 +47,7 @@ class Engine:
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
-        root_prim = stage.DefinePrim(f"/{sdf_path(depsgraph.scene.name)}")
-        stage.SetDefaultPrim(root_prim)
-
-        objects_prim = stage.DefinePrim(f"{root_prim.GetPath()}/objects")
+        root_prim = stage.GetPseudoRoot()
 
         objects_len = len(depsgraph.objects)
         for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights)):
@@ -61,7 +58,7 @@ class Engine:
                 sync_callback(f"Syncing object {i}/{objects_len}: {obj.name}")
 
             try:
-                object.sync(objects_prim, obj, **kwargs)
+                object.sync(root_prim, obj, **kwargs)
             except Exception as e:
                 log.error(e)
 
