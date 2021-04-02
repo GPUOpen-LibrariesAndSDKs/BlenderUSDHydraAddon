@@ -61,8 +61,9 @@ class USDTree(bpy.types.ShaderNodeTree):
         self.is_updating = True
 
         for node in self.nodes:
-            if node.inputs:
-                node.cached_stage.clear()
+            node.cached_stage.clear()
+            #if node.inputs:
+            #    node.cached_stage.clear()
 
         for node in self.nodes:
             node.final_compute()
