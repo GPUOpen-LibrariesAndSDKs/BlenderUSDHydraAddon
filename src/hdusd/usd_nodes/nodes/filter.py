@@ -23,7 +23,7 @@ from .base_node import USDNode
 class FilterNode(USDNode):
     """Takes in USD and filters out matching path or names"""
     bl_idname = 'usd.FilterNode'
-    bl_label = "Filter USD"
+    bl_label = "Filter"
 
     def update_data(self, context):
         self.reset()

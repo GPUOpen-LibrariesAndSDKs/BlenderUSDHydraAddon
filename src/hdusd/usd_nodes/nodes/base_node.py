@@ -26,6 +26,7 @@ class USDNode(bpy.types.Node):
 
     input_names = ("Input",)
     output_name = "Output"
+    use_hard_reset = True
 
     @classmethod
     def poll(cls, tree):
@@ -110,16 +111,20 @@ class USDNode(bpy.types.Node):
     def free(self):
         self.cached_stage.clear()
 
-    def reset(self):
-        log("reset", self)
+    def reset(self, is_hard=False):
+        if is_hard or self.use_hard_reset:
+            log("reset", self)
 
-        self.free()
-        self.final_compute()
-        self.hdusd.usd_list.update_items()
+            self.free()
+            self.final_compute()
+            self.hdusd.usd_list.update_items()
 
-        self.reset_next()
+        self._reset_next(is_hard)
 
-    def reset_next(self):
+    def _reset_next(self, is_hard):
         for output in self.outputs:
             for link in output.links:
-                link.to_node.reset()
+                link.to_node.reset(is_hard)
+
+    def depsgraph_update(self, depsgraph):
+        pass

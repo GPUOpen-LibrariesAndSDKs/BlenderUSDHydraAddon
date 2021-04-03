@@ -25,7 +25,7 @@ MAX_INPUTS_NUMBER = 10
 class MergeNode(USDNode):
     """Merges two USD streams"""
     bl_idname = 'usd.MergeNode'
-    bl_label = "Merge USD"
+    bl_label = "Merge"
 
     input_names = tuple(f"Input {i + 1}" for i in range(MAX_INPUTS_NUMBER))
 

@@ -54,8 +54,10 @@ class USDTree(bpy.types.ShaderNodeTree):
 
         return secondary_output_node
 
-    def _reset_nodes(self, nodes):
+    def _reset_nodes(self, nodes, is_hard):
         self._is_updating = True
+
+        nodes = tuple(node for node in nodes if is_hard or node.use_hard_reset)
 
         for node in nodes:
             node.free()
@@ -70,18 +72,17 @@ class USDTree(bpy.types.ShaderNodeTree):
         if self._is_node_safe_call:
             return
 
-        self._reset_nodes(self.nodes)
+        self._reset_nodes(self.nodes, False)
 
     def reset(self):
-        self._reset_nodes(self.nodes)
+        self._reset_nodes(self.nodes, True)
 
     def depsgraph_update(self, depsgraph):
         if self._is_updating:
             return
 
         for node in self.nodes:
-            if hasattr(node, 'depsgraph_update'):
-                node.depsgraph_update(depsgraph)
+            node.depsgraph_update(depsgraph)
 
     def safe_call(self, op, *args, **kwargs):
         """This function prevents call of self.update() during calling our function"""
