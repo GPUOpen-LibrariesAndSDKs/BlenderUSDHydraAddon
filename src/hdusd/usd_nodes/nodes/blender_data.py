@@ -160,7 +160,7 @@ class BlenderDataNode(USDNode):
 
                 if keys_to_remove:
                     for key in keys_to_remove:
-                        root_prim.GetStage().RemovePrim(f"{root_prim.GetPath()}/{key}")
+                        root_prim.GetStage().RemovePrim(root_prim.GetPath().AppendChild(key))
 
                     is_updated = True
 
