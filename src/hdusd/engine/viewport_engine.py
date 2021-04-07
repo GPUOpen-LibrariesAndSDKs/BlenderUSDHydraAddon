@@ -387,28 +387,26 @@ class ViewportEngine(Engine):
 
         for obj in scene.objects:
             if obj.type == 'LIGHT':
-                root_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}")
-                objects_prim = root_prim.GetChild("objects")
+                objects_prim = self.stage.GetPseudoRoot()
                 object.sync_update(objects_prim, obj, True, False,
                                    is_gl_delegate=self.is_gl_delegate)
 
     def sync_objects_collection(self, depsgraph):
-        scene = depsgraph.scene
-        objects_prim = self.stage.GetPrimAtPath(f"/{sdf_path(scene.name)}/objects")
+        root_prim = self.stage.GetPseudoRoot()
 
         def dg_objects():
             yield from depsgraph_objects(depsgraph, self.space_data,
                                          self.shading_data.use_scene_lights)
 
         depsgraph_keys = set(object.sdf_name(obj) for obj in dg_objects())
-        usd_object_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
+        usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
         keys_to_remove = usd_object_keys - depsgraph_keys
         keys_to_add = depsgraph_keys - usd_object_keys
 
         if keys_to_remove:
             log("Object keys to remove", keys_to_remove)
             for key in keys_to_remove:
-                self.stage.RemovePrim(f"{objects_prim.GetPath()}/{key}")
+                self.stage.RemovePrim(f"{root_prim.GetPath()}/{key}")
 
         if keys_to_add:
             log("Object keys to add", keys_to_add)
@@ -417,4 +415,4 @@ class ViewportEngine(Engine):
                 if obj_key not in keys_to_add:
                     continue
 
-                object.sync(objects_prim, obj)
+                object.sync(root_prim, obj)
