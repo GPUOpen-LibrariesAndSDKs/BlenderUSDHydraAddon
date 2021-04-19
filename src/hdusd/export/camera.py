@@ -290,8 +290,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     log("sync", camera)
 
     stage = obj_prim.GetStage()
-    camera_key = f"{obj_prim.GetPath()}/{sdf_path(camera.name)}"
-    usd_camera = UsdGeom.Camera.Define(stage, camera_key)
+    usd_camera = UsdGeom.Camera.Define(stage, obj_prim.GetPath().AppendChild(sdf_path(camera.name)))
 
     settings = CameraData.init_from_camera(camera, obj.matrix_world, screen_ratio)
     settings.export(usd_camera)

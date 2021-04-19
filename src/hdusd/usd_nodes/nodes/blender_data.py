@@ -27,16 +27,10 @@ class BlenderDataNode(USDNode):
     bl_label = "Blender Data"
 
     input_names = ()
+    use_hard_reset = False
 
-    def update_export_data(self, context):
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-
-        stage = self.cached_stage()
-        for obj_prim in stage.GetPseudoRoot().GetAllChildren():
-            stage.RemovePrim(obj_prim.GetPath())
-
-        self._export_depsgraph(stage, depsgraph)
-        self.hdusd.usd_list.update_items()
+    def update_data(self, context):
+        self.reset(True)
 
     export_type: bpy.props.EnumProperty(
         name="Data",
@@ -46,19 +40,19 @@ class BlenderDataNode(USDNode):
             ('OBJECT', 'Object', "Read single object"),
         ),
         default='SCENE',
-        update=update_export_data
+        update=update_data
     )
     collection_to_export: bpy.props.PointerProperty(
         type=bpy.types.Collection,
         name="Collection",
         description="",
-        update=update_export_data
+        update=update_data
     )
     object_to_export: bpy.props.PointerProperty(
         type=bpy.types.Object,
         name="Object",
         description="",
-        update=update_export_data
+        update=update_data
     )
 
     def draw_buttons(self, context, layout):
@@ -76,25 +70,11 @@ class BlenderDataNode(USDNode):
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
-        self._export_depsgraph(stage, depsgraph)
-
-        return stage
-
-    def depsgraph_update(self, depsgraph):
-        stage = self.cached_stage()
-        if not stage:
-            self.final_compute()
-            return
-
-        if self._update_depsgraph(stage, depsgraph):
-            self.hdusd.usd_list.update_items()
-
-    def _export_depsgraph(self, stage, depsgraph):
-        objects_prim = stage.GetPseudoRoot()
+        root_prim = stage.GetPseudoRoot()
 
         if self.export_type == 'SCENE':
             for obj in depsgraph_objects(depsgraph):
-                object.sync(objects_prim, obj)
+                object.sync(root_prim, obj)
 
         elif self.export_type == 'COLLECTION':
             if not self.collection_to_export:
@@ -104,18 +84,25 @@ class BlenderDataNode(USDNode):
                 if obj_col.hdusd.is_usd:
                     continue
 
-                object.sync(objects_prim, obj_col.evaluated_get(depsgraph))
+                object.sync(root_prim, obj_col.evaluated_get(depsgraph))
 
         elif self.export_type == 'OBJECT':
             if not self.object_to_export or self.object_to_export.hdusd.is_usd:
                 return
 
-            object.sync(objects_prim, self.object_to_export.evaluated_get(depsgraph))
+            object.sync(root_prim, self.object_to_export.evaluated_get(depsgraph))
 
-    def _update_depsgraph(self, stage, depsgraph):
-        ret = False
+        return stage
 
-        objects_prim = stage.GetPseudoRoot()
+    def depsgraph_update(self, depsgraph):
+        stage = self.cached_stage()
+        if not stage:
+            self.final_compute()
+            return
+
+        is_updated = False
+
+        root_prim = stage.GetPseudoRoot()
 
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Object):
@@ -124,10 +111,7 @@ class BlenderDataNode(USDNode):
                     continue
 
                 # checking if object has to be updated
-                if self.export_type == 'SCENE':
-                    pass
-
-                elif self.export_type == 'COLLECTION':
+                if self.export_type == 'COLLECTION':
                     if not self.collection_to_export or \
                             obj.name not in self.collection_to_export.objects:
                         continue
@@ -138,15 +122,15 @@ class BlenderDataNode(USDNode):
                         continue
 
                 # updating object
-                object.sync_update(objects_prim, obj,
+                object.sync_update(root_prim, obj,
                                    update.is_updated_geometry, update.is_updated_transform)
 
-                ret = True
+                is_updated = True
 
             elif isinstance(update.id, bpy.types.Collection):
                 coll = update.id
 
-                current_keys = set(prim.GetName() for prim in objects_prim.GetAllChildren())
+                current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
                 depsgraph_keys = set(object.sdf_name(obj)
                                      for obj in depsgraph_objects(depsgraph))
@@ -176,9 +160,9 @@ class BlenderDataNode(USDNode):
 
                 if keys_to_remove:
                     for key in keys_to_remove:
-                        objects_prim.GetStage().RemovePrim(f"{objects_prim.GetPath()}/{key}")
+                        root_prim.GetStage().RemovePrim(root_prim.GetPath().AppendChild(key))
 
-                    ret = True
+                    is_updated = True
 
                 if keys_to_add:
                     for obj in depsgraph_objects(depsgraph):
@@ -186,8 +170,10 @@ class BlenderDataNode(USDNode):
                         if obj_key not in keys_to_add:
                             continue
 
-                        object.sync(objects_prim, obj)
+                        object.sync(root_prim, obj)
 
-                    ret = True
+                    is_updated = True
 
-        return ret
+        if is_updated:
+            self.hdusd.usd_list.update_items()
+            self._reset_next(True)

@@ -26,8 +26,11 @@ class UsdFileNode(USDNode):
     bl_idname = 'usd.UsdFileNode'
     bl_label = "USD File"
 
+    input_names = ()
+    use_hard_reset = False
+
     def update_data(self, context):
-        pass
+        self.reset(True)
 
     filename: bpy.props.StringProperty(
         name="USD File",
@@ -40,7 +43,6 @@ class UsdFileNode(USDNode):
 
     def compute(self, **kwargs):
         if not self.filename:
-            log.warn("USD file name not set, skipping node", self)
             return None
 
         file_path = bpy.path.abspath(self.filename)

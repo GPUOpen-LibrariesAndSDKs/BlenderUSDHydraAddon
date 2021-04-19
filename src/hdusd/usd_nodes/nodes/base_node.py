@@ -22,28 +22,25 @@ class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
 
     bl_compatibility = {'HdUSD'}
+    bl_width_default = 200
 
     input_names = ("Input",)
     output_name = "Output"
+    use_hard_reset = True
 
     @classmethod
     def poll(cls, tree):
         return tree.bl_idname == 'hdusd.USDTree'
 
     def init(self, context):
-        for name in self.input_names:
-            self.safe_call(self.inputs.new, name=name, type="NodeSocketShader")
+        def init_():
+            for name in self.input_names:
+                self.inputs.new(name=name, type="NodeSocketShader")
 
-        if self.output_name:
-            self.safe_call(self.outputs.new, name=self.output_name, type="NodeSocketShader")
+            if self.output_name:
+                self.outputs.new(name=self.output_name, type="NodeSocketShader")
 
-    def safe_call(self, op, *args, **kwargs):
-        """This function prevents call of nodetree.update() during calling our function"""
-        self.id_data.is_node_safe_call = True
-        try:
-            op(*args, **kwargs)
-        finally:
-            self.id_data.is_node_safe_call = False
+        self.id_data.safe_call(init_)
 
     # COMPUTE FUNCTION
     def compute(self, **kwargs) -> [Usd.Stage, None]:
@@ -58,10 +55,9 @@ class USDNode(bpy.types.Node):
         This is the entry point of node parser system.
         This function does some useful preparation before and after calling compute() function.
         """
-        log("compute", self, group_nodes)
-
         stage = self.cached_stage()
         if not stage:
+            log("compute", self, group_nodes)
             stage = self.compute(group_nodes=group_nodes, **kwargs)
             self.cached_stage.assign(stage)
             self.hdusd.usd_list.update_items()
@@ -102,7 +98,7 @@ class USDNode(bpy.types.Node):
 
         link = socket_in.links[0]
         if not link.is_valid:
-            log.error("Invalid link found", link, socket_in, self)
+            log.warn("Invalid link found", link, socket_in, self)
 
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)
@@ -114,3 +110,21 @@ class USDNode(bpy.types.Node):
 
     def free(self):
         self.cached_stage.clear()
+
+    def reset(self, is_hard=False):
+        if is_hard or self.use_hard_reset:
+            log("reset", self)
+
+            self.free()
+            self.final_compute()
+            self.hdusd.usd_list.update_items()
+
+        self._reset_next(is_hard)
+
+    def _reset_next(self, is_hard):
+        for output in self.outputs:
+            for link in output.links:
+                link.to_node.reset(is_hard)
+
+    def depsgraph_update(self, depsgraph):
+        pass

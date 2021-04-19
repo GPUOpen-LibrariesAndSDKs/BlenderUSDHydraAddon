@@ -202,7 +202,7 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         return
 
     stage = obj_prim.GetStage()
-    usd_mesh = UsdGeom.Mesh.Define(stage, f"{obj_prim.GetPath()}/{sdf_path(mesh.name)}")
+    usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(sdf_path(mesh.name)))
 
     usd_mesh.CreateDoubleSidedAttr(True)
     usd_mesh.CreatePointsAttr(data.vertices)

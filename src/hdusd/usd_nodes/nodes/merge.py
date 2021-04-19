@@ -19,38 +19,36 @@ from pxr import Usd, UsdGeom
 from .base_node import USDNode
 
 
+MAX_INPUTS_NUMBER = 10
+
+
 class MergeNode(USDNode):
     """Merges two USD streams"""
     bl_idname = 'usd.MergeNode'
-    bl_label = "Merge USD"
+    bl_label = "Merge"
 
-    input_names = ()
+    input_names = tuple(f"Input {i + 1}" for i in range(MAX_INPUTS_NUMBER))
 
     def update_inputs_number(self, context):
-        if len(self.inputs) < self.inputs_number:
-            for i in range(len(self.inputs), self.inputs_number):
-                self.safe_call(self.inputs.new, name=f"Input {i + 1}", type="NodeSocketShader")
-
-        elif len(self.inputs) > self.inputs_number:
-            for i in range(len(self.inputs), self.inputs_number, -1):
-                self.safe_call(self.inputs.remove, self.inputs[i - 1])
+        for i in range(MAX_INPUTS_NUMBER):
+            self.inputs[i].hide = i >= self.inputs_number
 
     inputs_number: bpy.props.IntProperty(
         name="Inputs",
-        min=2, max=10, default=2,
+        min=2, max=MAX_INPUTS_NUMBER, default=2,
         update=update_inputs_number
     )
 
     def init(self, context):
-        self.update_inputs_number(context)
         super().init(context)
+        self.update_inputs_number(context)
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'inputs_number')
 
     def compute(self, **kwargs):
         ref_stages = []
-        for i in range(self.inputs_number):
+        for i in range(len(self.inputs)):
             stage = self.get_input_link(i, **kwargs)
             if stage:
                 ref_stages.append(stage)
