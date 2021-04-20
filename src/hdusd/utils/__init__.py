@@ -38,7 +38,7 @@ PLUGIN_ROOT_DIR = Path(hdusd.__file__).parent
 BLENDER_DATA_DIR = Path(bpy.utils.resource_path('LOCAL'))
 
 HDUSD_DEBUG_MODE = bool(int(os.environ.get('HDUSD_BLENDER_DEBUG', 0)))
-HDUSD_LIBS_DIR = Path(os.environ['HDUSD_LIBS_DIR']).absolute() if HDUSD_DEBUG_MODE else \
+HDUSD_LIBS_DIR = PLUGIN_ROOT_DIR.parent.parent / 'libs' if HDUSD_DEBUG_MODE else \
                  PLUGIN_ROOT_DIR / 'libs'
 
 
