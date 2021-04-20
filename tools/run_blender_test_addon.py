@@ -19,10 +19,6 @@ from pathlib import Path
 
 
 def main(*blender_args):
-    if 'HDUSD_LIBS_DIR' not in os.environ:
-        print("Please set HDUSD_LIBS_DIR environment variable")
-        exit(1)
-
     blender_exe = os.environ['BLENDER_EXE']
     os.environ['HDUSD_BLENDER_DEBUG'] = "1"
 

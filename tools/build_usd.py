@@ -46,11 +46,14 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
                  '--src', str(bin_usd_dir / "deps"),
                  str(bin_usd_dir / "install"),
                  *args)
-    print("Running:", call_args)
-    subprocess.run(call_args)
 
-    print("Reverting:", usd_imaging_cmake)
-    usd_imaging_cmake.write_text(cmake_txt)
+    try:
+        print("Running:", call_args)
+        subprocess.check_call(call_args)
+
+    finally:
+        print("Reverting:", usd_imaging_cmake)
+        usd_imaging_cmake.write_text(cmake_txt)
 
 
 if __name__ == "__main__":

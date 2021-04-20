@@ -45,4 +45,10 @@ cmake --build build --config Release --target install
 popd
 
 :: Copying libs
-python create_hdusd_libs.py -usd ..\deps\USD\build -hdrpr ..\deps\HdRPR\install -mx d:\pixar\MaterialX\build\installed -libs libs %*
+python tools\create_libs.py
+
+:: MaterialX classes
+python tools\generate_mx_classes.py
+
+:: Zip addon
+python tools\create_zip_addon.py

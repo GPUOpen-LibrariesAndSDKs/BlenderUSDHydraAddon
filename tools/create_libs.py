@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import os
 import platform
 import shutil
 import subprocess
 from pathlib import Path
-import argparse
 
 
 OS = platform.system()
@@ -83,33 +81,17 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-
-    # Add the arguments to the parser
-    ap.add_argument("-usd", required=True, metavar="",
-                    help="Directory where USD was built")
-    ap.add_argument("-hdrpr", required=True, metavar="",
-                    help="Directory where HdRPR was installed")
-    ap.add_argument("-mx", required=True, metavar="",
-                    help="Directory where MaterialX was built")
-    ap.add_argument("-libs", required=False, metavar="",
-                    help="Target libs directory")
-    ap.add_argument("-v", required=False, action="store_true",
-                    help="Visualize copying info")
-    args = ap.parse_args()
-
-    if not args.libs:
-        args.libs = os.environ['HDUSD_LIBS_DIR']
-
-    libs_dir = Path(args.libs)
+    repo_dir = Path(__file__).parent.parent
+    libs_dir = repo_dir / "libs"
     if libs_dir.is_dir():
         shutil.rmtree(str(libs_dir))
 
     print(f"Copying libs to: {libs_dir}")
 
-    for f, relative in iterate_copied_files(Path(args.usd), Path(args.hdrpr), Path(args.mx)):
-        if args.v:
-            print(f, '->', relative)
+    for f, relative in iterate_copied_files(repo_dir / "bin/USD/install",
+                                            repo_dir / "bin/HdRPR/install",
+                                            repo_dir / "bin/MaterialX/install"):
+        print(f, '->', relative)
 
         f_copy = libs_dir / relative
         if not f_copy.parent.is_dir():
@@ -121,8 +103,7 @@ def main():
         print("Configuring rpath")
         patchelf_args = ['patchelf', '--set-rpath', "$ORIGIN/../../usd:$ORIGIN/../../hdrpr/lib",
                          str(libs_dir / 'plugins/usd/hdRpr.so')]
-        if args.v:
-            print(patchelf_args)
+        print(patchelf_args)
 
         subprocess.check_call(patchelf_args)
 
