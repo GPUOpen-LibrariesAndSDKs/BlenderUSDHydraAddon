@@ -103,12 +103,12 @@ def create_zip_addon(build_dir):
 
 
 def main():
-    build_dir = repo_dir / "build"
-    if build_dir.is_dir():
-        shutil.rmtree(build_dir)
-    build_dir.mkdir()
+    install_dir = repo_dir / "install"
+    if install_dir.is_dir():
+        shutil.rmtree(install_dir)
+    install_dir.mkdir()
 
-    zip_addon = create_zip_addon(build_dir)
+    zip_addon = create_zip_addon(install_dir)
     print(f"Addon was compressed to: {zip_addon}")
 
 
