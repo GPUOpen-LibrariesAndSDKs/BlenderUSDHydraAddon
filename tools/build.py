@@ -16,6 +16,7 @@ from pathlib import Path
 import subprocess
 import os
 import argparse
+import sys
 
 
 repo_dir = Path(__file__).parent.parent
@@ -60,6 +61,8 @@ def materialx(compiler):
         'cmake', '-B', 'build',
         f'-DCMAKE_INSTALL_PREFIX={repo_dir / "bin/MaterialX/install"}',
         '-DMATERIALX_BUILD_PYTHON=ON',
+        f'-DMATERIALX_PYTHON_EXECUTABLE={sys.executable}',
+        '-DMATERIALX_INSTALL_PYTHON=OFF',
         '-DMATERIALX_BUILD_VIEWER=ON'
     ]
     if compiler:
