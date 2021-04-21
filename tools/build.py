@@ -17,7 +17,10 @@ import subprocess
 import os
 import argparse
 import sys
+import platform
 
+
+OS = platform.system()
 
 repo_dir = Path(__file__).parent.parent
 
@@ -115,9 +118,14 @@ def main():
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
     ap.add_argument("-G", required=False, type=str, default="",
-                    help="Compiler for HdRPR and MaterialX in cmake")
+                    help="Compiler for HdRPR and MaterialX in cmake. "
+                         'For example: -G "Visual Studio 15 2017 Win64"')
 
     args = ap.parse_args()
+
+    if OS == 'Windows' and (args.all or args.hdrpr or args.mx) and not args.G:
+        print('Please select compiler. For example: -G "Visual Studio 15 2017 Win64"')
+        return
 
     if args.all or args.usd:
         usd()
