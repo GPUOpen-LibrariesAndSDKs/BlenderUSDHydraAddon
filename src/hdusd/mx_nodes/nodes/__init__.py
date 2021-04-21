@@ -12,31 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+import importlib
+from pathlib import Path
+
 import bpy
 import nodeitems_utils
 
 from .. import log
 from . import base_node, categories
-from . import (
-    gen_standard_surface,
-    gen_usd_preview_surface,
-    gen_stdlib_defs,
-    gen_pbrlib_defs
-)
 
+gen_modules = [importlib.import_module(f"hdusd.mx_nodes.nodes.{f.name[:-len(f.suffix)]}")
+               for f in Path(__file__).parent.glob("gen_*.py")]
 
-mx_nodedef_classes = [
-    *gen_standard_surface.mx_nodedef_classes,
-    *gen_usd_preview_surface.mx_nodedef_classes,
-    *gen_stdlib_defs.mx_nodedef_classes,
-    *gen_pbrlib_defs.mx_nodedef_classes,
-]
-mx_node_classes = [
-    *gen_standard_surface.mx_node_classes,
-    *gen_usd_preview_surface.mx_node_classes,
-    *gen_stdlib_defs.mx_node_classes,
-    *gen_pbrlib_defs.mx_node_classes,
-]
+mx_nodedef_classes = []
+mx_node_classes = []
+for m in gen_modules:
+    mx_nodedef_classes.extend(m.mx_nodedef_classes)
+    mx_node_classes.extend(m.mx_node_classes)
 
 register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
     base_node.MxNodeInputSocket,

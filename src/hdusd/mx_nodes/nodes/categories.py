@@ -16,7 +16,7 @@ from collections import defaultdict
 
 from nodeitems_utils import NodeCategory, NodeItem
 
-from ...utils import title_str
+from ...utils import title_str, code_str
 
 
 class MxNodeCategory(NodeCategory):
@@ -35,7 +35,7 @@ def get_node_categories():
     categories = []
     for category, category_classes in d.items():
         categories.append(
-            MxNodeCategory('HdUSD_MX_NG_' + category, title_str(category),
+            MxNodeCategory('HdUSD_MX_NG_' + code_str(category), title_str(category),
                            items=[NodeItem(MxNode_cls.bl_idname)
                                   for MxNode_cls in category_classes]))
 
