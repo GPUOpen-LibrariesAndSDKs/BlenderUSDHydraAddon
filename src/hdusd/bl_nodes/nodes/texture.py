@@ -20,41 +20,34 @@ from . import log
 
 class ShaderNodeTexImage(NodeParser):
     def export(self):
-        try:
-            log.info(f"ShaderNodeTexImage()")
-            image_error_result = self.node_item((1.0, 0.0, 1.0, 1.0))
-            image = self.node.image
-            if not image:
-                log.warn(f"No image provided")
-                return image_error_result
-            # TODO support SEQUENCE image type
-            if image.source != 'FILE':
-                log.warn(f"Image {image} is not a file")
-                return image_error_result
+        image_error_result = self.node_item((1.0, 0.0, 1.0, 1.0))
+        image = self.node.image
+        if not image:
+            log.warn(f"No image provided")
+            return image_error_result
+        # TODO support SEQUENCE image type
+        if image.source != 'FILE':
+            log.warn(f"Image {image} is not a file")
+            return image_error_result
 
-            file_path = image.filepath_from_user()
-            # TODO export images from pixels, including is_dirty images
-            if not os.path.isfile(file_path):
-                log.warn(f"Image {image} file doesn't exist at {file_path}")
-                return image_error_result
-            if image.size[0] * image.size[1] * image.channels == 0:
-                log.warn(f"Image {image} has no data")
-                return image_error_result
+        file_path = image.filepath_from_user()
+        # TODO export images from pixels, including is_dirty images
+        if not os.path.isfile(file_path):
+            log.warn(f"Image {image} file doesn't exist at {file_path}")
+            return image_error_result
+        if image.size[0] * image.size[1] * image.channels == 0:
+            log.warn(f"Image {image} has no data")
+            return image_error_result
 
-            # TODO use Vector input for UV
-            uv = self.create_node('texcoord', 'vector2', {
-                'type': 'vector2',
-            })
+        # TODO use Vector input for UV
+        uv = self.create_node('texcoord', 'vector2', {
+            'type': 'vector2',
+        })
 
-            result = self.create_node('image', 'color4', {
-#                'file': file_path,
-                'texcoord': uv,
-            })
-            result.set_parameter('file', file_path)
-            log.info(f"ShaderNodeTexImage: {result}")
-        except Exception as e:
-            log.warn(f"error {e}")
-            raise
+        result = self.create_node('image', 'color4', {
+            'texcoord': uv,
+        })
+        result.set_parameter('file', file_path)
 
         return result
 
