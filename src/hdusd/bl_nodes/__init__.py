@@ -55,6 +55,7 @@ node_categories = [
     ]),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_TEXTURE', "Texture", items=[
         NodeItem('ShaderNodeTexImage'),
+        NodeItem('ShaderNodeTexNoise'),
     ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_COLOR', "Color", items=[
         NodeItem('ShaderNodeInvert'),
