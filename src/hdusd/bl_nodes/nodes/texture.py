@@ -40,9 +40,7 @@ class ShaderNodeTexImage(NodeParser):
             return image_error_result
 
         # TODO use Vector input for UV
-        uv = self.create_node('texcoord', 'vector2', {
-            'type': 'vector2',
-        })
+        uv = self.create_node('texcoord', 'vector2', {})
 
         result = self.create_node('image', 'color4', {
             'texcoord': uv,
