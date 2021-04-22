@@ -65,3 +65,41 @@ class ShaderNodeTexImage(NodeParser):
         result.set_parameter('file', img_path)
 
         return result
+
+class ShaderNodeTexNoise(NodeParser):
+    def export(self):
+        # wanted to use, did nothing
+        #  <nodedef name="ND_noise2d_float" node="noise2d" nodegroup="procedural2d">
+        #    <parameter name="amplitude" type="float" value="1.0"/>
+        #    <parameter name="pivot" type="float" value="0.0"/>
+        #    <input name="texcoord" type="vector2" defaultgeomprop="UV0"/>
+        #    <output name="out" type="float" default="0.0"/>
+        #  </nodedef>
+
+        # used instead
+        #  <nodedef name="ND_noise3d_float" node="noise3d" nodegroup="procedural3d">
+        #    <parameter name="amplitude" type="float" value="1.0"/>
+        #    <parameter name="pivot" type="float" value="0.0"/>
+        #    <input name="position" type="vector3" defaultgeomprop="Pobject"/>
+        #    <output name="out" type="float" default="0.0"/>
+        #  </nodedef>
+
+
+        scale = self.get_input_value('Scale')
+        # scale *= 0.6  # RPR Noise texture visually is about 60% of Blender Noise
+
+        # apply scale via UV
+        uv = self.create_node('texcoord', 'vector2', {})
+
+        # uv /= scale
+
+        #result = self.create_node('noise2d', 'float', {
+        #result = self.create_node('noise2d', 'color3', {
+        result = self.create_node('noise3d', 'float', {})
+#        result.set_parameter('position', uv)
+
+        # amplitude - leave at 1.0
+        # pivot - leave at 0.0
+
+        return result
+
