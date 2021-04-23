@@ -45,7 +45,7 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
 
     if mx_type == 'integer':
         return int(val_str)
-    if mx_type == 'float':
+    if mx_type in ('float', 'angle'):
         return float(val_str)
     if mx_type == 'boolean':
         return val_str == "true"
@@ -89,6 +89,11 @@ def generate_property_code(mx_param):
         if mx_type == 'boolean':
             prop_type = "BoolProperty"
             break
+        if mx_type == 'angle':
+            prop_type = "FloatProperty"
+            prop_attrs['subtype'] = 'ANGLE'
+            break
+
         if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
                        'material', 'BSDF', 'VDF', 'EDF'):
             prop_type = "StringProperty"
