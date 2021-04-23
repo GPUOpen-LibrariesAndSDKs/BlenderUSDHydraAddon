@@ -15,10 +15,10 @@
 import math
 
 from ..node_parser import NodeParser
-from . import log
 
 
-# SHADERS
+SSS_MIN_RADIUS = 0.0001
+
 
 class ShaderNodeBsdfPrincipled(NodeParser):
     def export(self):
@@ -216,7 +216,7 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         emission_strength = self.get_input_value('Emission Strength')
 
         alpha = self.get_input_value('Alpha')
-        # transparency = 1.0 - alpha
+        transparency = 1.0 - alpha
 
         normal = self.get_input_link('Normal')
         clearcoat_normal = self.get_input_link('Clearcoat Normal')
@@ -225,65 +225,96 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         # CREATING STANDARD SURFACE
         result = self.create_node('rpr_uberv2', 'surfaceshader')
 
-        # result = self.create_node('rpr_uberv2', 'surfaceshader', {
-        #     'base': 1.0,
-        #     'base_color': base_color,
-        #     'diffuse_roughness': roughness,
-        #     'normal': normal,
-        #     'tangent': tangent,
-        # })
-        #
-        # if enabled(metallic):
-        #     result.set_input('metalness', metallic)
-        #
-        # if enabled(specular):
-        #     result.set_inputs({
-        #         'specular': specular,
-        #         'specular_color': base_color,
-        #         'specular_roughness': roughness,
-        #         'specular_IOR': ior,
-        #         'specular_anisotropy': anisotropic,
-        #         'specular_rotation': anisotropic_rotation,
-        #     })
-        #
-        # if enabled(transmission):
-        #     result.set_inputs({
-        #         'transmission': transmission,
-        #         'transmission_color': base_color,
-        #         'transmission_extra_roughness': transmission_roughness,
-        #     })
-        #
-        # if enabled(subsurface):
-        #     result.set_inputs({
-        #         'subsurface': subsurface,
-        #         'subsurface_color': subsurface_color,
-        #         'subsurface_radius': subsurface_radius,
-        #         'subsurface_anisotropy': anisotropic,
-        #     })
-        #
-        # if enabled(sheen):
-        #     result.set_inputs({
-        #         'sheen': sheen,
-        #         'sheen_color': base_color,
-        #         'sheen_roughness': roughness,
-        #     })
-        #
-        # if enabled(clearcoat):
-        #     result.set_inputs({
-        #         'coat': clearcoat,
-        #         'coat_color': base_color,
-        #         'coat_roughness': clearcoat_roughness,
-        #         'coat_IOR': ior,
-        #         'coat_anisotropy': anisotropic,
-        #         'coat_rotation': anisotropic_rotation,
-        #         'coat_normal': clearcoat_normal,
-        #     })
-        #
-        # if enabled(emission):
-        #     result.set_inputs({
-        #         'emission': emission_strength,
-        #         'emission_color': emission,
-        #     })
+        # looks like diffuse should be always enabled, regarding cycles
+        result.set_inputs({
+            'uber_diffuse_color': base_color,
+            'uber_diffuse_weight': 1.0,
+            'uber_diffuse_roughness': roughness,
+            'uber_diffuse_normal': normal,
+            'uber_backscatter_weight': 0.0,
+        })
+
+        # setting reflection weight as max of specular and metallic weights
+        result.set_inputs({
+            'uber_reflection_weight': specular.max(metallic),
+            'uber_reflection_roughness': roughness,
+            'uber_reflection_mode': 'Metalness',
+            'uber_reflection_metalness': metallic,
+            'uber_reflection_color': base_color,
+            'uber_diffuse_normal': normal,
+        })
+
+        if enabled(anisotropic):
+            result.set_inputs({
+                'uber_reflection_anisotropy': anisotropic,
+                'uber_reflection_anisotropy_rotation': anisotropic_rotation,
+            })
+
+        # Clearcloat
+        if enabled(clearcoat):
+            result.set_inputs({
+                'uber_coating_color': (1.0, 1.0, 1.0),
+                'uber_coating_weight': clearcoat,
+                'uber_coating_roughness': clearcoat_roughness,
+                'uber_coating_thickness': 0.0,
+                'uber_coating_transmission_color': (0.0, 0.0, 0.0),
+                'uber_coating_mode': 'PBR',
+                'uber_coating_ior': ior,
+            })
+            if enabled(clearcoat_normal):
+                result.set_input('uber_coating_normal', clearcoat_normal)
+            elif enabled(normal):
+                result.set_input('uber_coating_normal', normal)
+
+        # Sheen
+        if enabled(sheen):
+            result.set_inputs({
+                'uber_sheen_weight': sheen,
+                'uber_sheen': base_color,
+                'uber_sheen_tint': sheen_tint,
+            })
+
+        # Subsurface
+        if enabled(subsurface):
+            # check for 0 channel value(for Cycles it means "light shall not pass"
+            # unlike "pass it all" of RPR) that's why we check it with small value like 0.0001
+            subsurface_radius = subsurface_radius.max(SSS_MIN_RADIUS)
+
+            result.set_inputs({
+                'uber_sss_weight': subsurface,
+                'uber_sss_scatter_color': subsurface_color,
+                'uber_sss_scatter_distance': subsurface_radius,
+                'uber_sss_multiscatter': False,
+                'uber_backscatter_weight': subsurface,
+                'uber_backscatter_color': subsurface_color,
+            })
+
+        # Emission -> Emission
+        if enabled(emission):
+            # more related formula for emission weight:
+            emission_weight = emission.average_xyz().min(1.0) * 0.5 + 0.5
+
+            result.set_inputs({
+                'uber_emission_weight': emission_weight,
+                'uber_emission_color': emission,
+                'uber_emission_mode': 'Doublesided',
+            })
+
+        # Alpha -> Transparency
+        if enabled(transparency):
+            result.set_input('uber_transparency', transparency)
+
+        # Transmission -> Refraction
+        if enabled(transmission):
+            result.set_inputs({
+                'uber_refraction_weight': transmission,
+                'uber_refraction_color': base_color,
+                'uber_refraction_roughness': transmission_roughness,
+                'uber_refraction_ior': ior,
+                'uber_refraction_thin_surface': False,
+                'uber_refraction_caustics': True,
+                'uber_refraction_normal': normal,
+            })
 
         return result
 
@@ -341,7 +372,6 @@ class ShaderNodeEmission(NodeParser):
 
 
 class ShaderNodeMixShader(NodeParser):
-
     def export(self):
         factor = self.get_input_value(0)
         shader1 = self.get_input_link(1)
@@ -365,7 +395,6 @@ class ShaderNodeMixShader(NodeParser):
 
 
 class ShaderNodeAddShader(NodeParser):
-
     def export(self):
         shader1 = self.get_input_link(0)
         shader2 = self.get_input_link(1)
