@@ -21,8 +21,7 @@ import platform
 
 
 OS = platform.system()
-
-repo_dir = Path(__file__).parent.parent
+repo_dir = Path(__file__).parent.parent.absolute()
 
 
 def usd():
