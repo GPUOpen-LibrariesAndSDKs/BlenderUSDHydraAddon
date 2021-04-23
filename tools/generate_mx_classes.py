@@ -195,7 +195,8 @@ def generate_mx_nodedef_class_code(nodedef: mx.NodeDef, prefix: str):
 f"""
 class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
     _file_path = FILE_PATH
-    _nodedef_name = '{nodedef.getName()}'""")
+    _nodedef_name = '{nodedef.getName()}'
+    _node_name = '{nodedef.getNodeString()}'""")
 
     for i, param in enumerate(nodedef.getParameters()):
         if i == 0:

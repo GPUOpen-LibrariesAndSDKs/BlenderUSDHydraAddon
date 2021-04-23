@@ -18,7 +18,6 @@ import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
-from ..export.material import get_material_output_node
 from ..mx_nodes.node_tree import MxNodeTree
 
 
@@ -142,9 +141,6 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         col.template_ID(mat_hdusd, "mx_node_tree",
                         new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
 
-        if not mat_hdusd.mx_node_tree:
-            layout.prop(mat_hdusd, "export_as_mx")
-
     def draw_header(self, context):
         layout = self.layout
         layout.label(text=f"Material: {context.material.name}")
@@ -163,7 +159,7 @@ class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
 
         node_tree = context.material.node_tree
 
-        output_node = get_material_output_node(context.material)
+        output_node = context.material.hdusd.output_node
         if not output_node:
             layout.label(text="No output node")
             return

@@ -223,65 +223,67 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         tangent = self.get_input_link('Tangent')
 
         # CREATING STANDARD SURFACE
-        result = self.create_node('standard_surface', 'surfaceshader', {
-            'base': 1.0,
-            'base_color': base_color,
-            'diffuse_roughness': roughness,
-            'normal': normal,
-            'tangent': tangent,
-        })
+        result = self.create_node('rpr_uberv2', 'surfaceshader')
 
-        if enabled(metallic):
-            result.set_input('metalness', metallic)
-
-        if enabled(specular):
-            result.set_inputs({
-                'specular': specular,
-                'specular_color': base_color,
-                'specular_roughness': roughness,
-                'specular_IOR': ior,
-                'specular_anisotropy': anisotropic,
-                'specular_rotation': anisotropic_rotation,
-            })
-
-        if enabled(transmission):
-            result.set_inputs({
-                'transmission': transmission,
-                'transmission_color': base_color,
-                'transmission_extra_roughness': transmission_roughness,
-            })
-
-        if enabled(subsurface):
-            result.set_inputs({
-                'subsurface': subsurface,
-                'subsurface_color': subsurface_color,
-                'subsurface_radius': subsurface_radius,
-                'subsurface_anisotropy': anisotropic,
-            })
-
-        if enabled(sheen):
-            result.set_inputs({
-                'sheen': sheen,
-                'sheen_color': base_color,
-                'sheen_roughness': roughness,
-            })
-
-        if enabled(clearcoat):
-            result.set_inputs({
-                'coat': clearcoat,
-                'coat_color': base_color,
-                'coat_roughness': clearcoat_roughness,
-                'coat_IOR': ior,
-                'coat_anisotropy': anisotropic,
-                'coat_rotation': anisotropic_rotation,
-                'coat_normal': clearcoat_normal,
-            })
-
-        if enabled(emission):
-            result.set_inputs({
-                'emission': emission_strength,
-                'emission_color': emission,
-            })
+        # result = self.create_node('rpr_uberv2', 'surfaceshader', {
+        #     'base': 1.0,
+        #     'base_color': base_color,
+        #     'diffuse_roughness': roughness,
+        #     'normal': normal,
+        #     'tangent': tangent,
+        # })
+        #
+        # if enabled(metallic):
+        #     result.set_input('metalness', metallic)
+        #
+        # if enabled(specular):
+        #     result.set_inputs({
+        #         'specular': specular,
+        #         'specular_color': base_color,
+        #         'specular_roughness': roughness,
+        #         'specular_IOR': ior,
+        #         'specular_anisotropy': anisotropic,
+        #         'specular_rotation': anisotropic_rotation,
+        #     })
+        #
+        # if enabled(transmission):
+        #     result.set_inputs({
+        #         'transmission': transmission,
+        #         'transmission_color': base_color,
+        #         'transmission_extra_roughness': transmission_roughness,
+        #     })
+        #
+        # if enabled(subsurface):
+        #     result.set_inputs({
+        #         'subsurface': subsurface,
+        #         'subsurface_color': subsurface_color,
+        #         'subsurface_radius': subsurface_radius,
+        #         'subsurface_anisotropy': anisotropic,
+        #     })
+        #
+        # if enabled(sheen):
+        #     result.set_inputs({
+        #         'sheen': sheen,
+        #         'sheen_color': base_color,
+        #         'sheen_roughness': roughness,
+        #     })
+        #
+        # if enabled(clearcoat):
+        #     result.set_inputs({
+        #         'coat': clearcoat,
+        #         'coat_color': base_color,
+        #         'coat_roughness': clearcoat_roughness,
+        #         'coat_IOR': ior,
+        #         'coat_anisotropy': anisotropic,
+        #         'coat_rotation': anisotropic_rotation,
+        #         'coat_normal': clearcoat_normal,
+        #     })
+        #
+        # if enabled(emission):
+        #     result.set_inputs({
+        #         'emission': emission_strength,
+        #         'emission_color': emission,
+        #     })
 
         return result
 

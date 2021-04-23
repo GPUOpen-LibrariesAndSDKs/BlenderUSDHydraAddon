@@ -60,8 +60,7 @@ def get_node_def_cls(node_name, nd_type):
     if node_def_cls:
         return node_def_cls
 
-    nd_name = f"ND_{node_name}"
-    node_def_cls = next((cls for cls in mx_nodedef_classes if cls.__name__.endswith(nd_name)), None)
+    node_def_cls = next((cls for cls in mx_nodedef_classes if cls._node_name == node_name), None)
 
     if node_def_cls:
         return node_def_cls
