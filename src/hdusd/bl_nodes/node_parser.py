@@ -282,13 +282,17 @@ class NodeParser:
 
         # getting corresponded NodeParser class
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
-        if NodeParser_cls:
-            node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object, out_key,
-                                         group_nodes, **self.kwargs)
-            return node_parser.export()
+        if not NodeParser_cls:
+            log.warn("Ignoring unsupported node", node, self.material)
+            return None
 
-        log.warn("Ignoring unsupported node", node, self.material)
-        return None
+        node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object, out_key,
+                                     group_nodes, **self.kwargs)
+
+        if self.kwargs.get('rpr', False):
+            return node_parser.export_rpr()
+        else:
+            return node_parser.export()
 
     def _parse_val(self, val):
         """Turn blender socket value into python's value"""
@@ -362,3 +366,7 @@ class NodeParser:
     def export(self) -> [NodeItem, None]:
         """Main export function which should be overridable in child classes"""
         return None
+
+    def export_rpr(self) -> [NodeItem, None]:
+        """Main export with RPR nodes function which could be overridable in child classes"""
+        return self.export()

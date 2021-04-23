@@ -124,18 +124,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         self.nodes.clear()
 
         mat_node = self.nodes.new('hdusd.MxNode_STD_surfacematerial')
-        if node_name == 'PBR_standard_surface':
-            node = self.nodes.new(f'hdusd.MxNode_{node_name}')
-            node.location = (mat_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                             mat_node.location[1])
-            self.links.new(node.outputs[0], mat_node.inputs[0])
-        else:
-            surface_node = self.nodes.new('hdusd.MxNode_PBR_surface')
-            surface_node.location = (mat_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                                     mat_node.location[1])
-            self.links.new(surface_node.outputs[0], mat_node.inputs[0])
-
-            node = self.nodes.new(f'hdusd.MxNode_{node_name}')
-            node.location = (surface_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                             surface_node.location[1])
-            self.links.new(node.outputs[0], surface_node.inputs[0])
+        node = self.nodes.new(f'hdusd.MxNode_{node_name}')
+        node.location = (mat_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                         mat_node.location[1])
+        self.links.new(node.outputs[0], mat_node.inputs[0])

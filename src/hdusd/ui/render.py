@@ -117,3 +117,4 @@ class HDUSD_RENDER_PT_debug(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
         layout.prop(context.scene.hdusd, "rpr_viewport_cpu_device")
+        layout.prop(context.scene.hdusd, "use_rpr_mx_nodes")
