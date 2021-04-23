@@ -70,6 +70,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
 class MxNodeDef(bpy.types.PropertyGroup):
     _file_path: str
     _nodedef_name: str
+    _node_name: str
 
     _nodedef: mx.NodeDef = None
 
