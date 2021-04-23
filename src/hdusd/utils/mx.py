@@ -34,14 +34,14 @@ def set_param_value(mx_param, val, nd_type):
 
 
 def is_value_equal(mx_val, val, nd_type):
-    if nd_type in ('string', 'float', 'integer', 'boolean', 'filename'):
+    if nd_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
         return mx_val == val
 
     return tuple(mx_val) == tuple(val)
 
 
 def is_shader_type(mx_type):
-    return not (mx_type in ('string', 'float', 'integer', 'boolean', 'filename') or
+    return not (mx_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle') or
                 mx_type.startswith('color') or
                 mx_type.startswith('vector') or
                 mx_type.endswith('array'))
@@ -52,7 +52,7 @@ def get_attr(mx_param, name, else_val=None):
 
 
 def parse_value(mx_val, mx_type):
-    if mx_type in ('string', 'float', 'integer', 'boolean', 'filename'):
+    if mx_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
         return mx_val
 
     return tuple(mx_val)
@@ -67,7 +67,7 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
 
     if mx_type == 'integer':
         return int(val_str)
-    if mx_type == 'float':
+    if mx_type in ('float', 'angle'):
         return float(val_str)
     if mx_type == 'boolean':
         return val_str == "true"
