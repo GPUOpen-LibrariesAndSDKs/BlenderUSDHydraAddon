@@ -18,11 +18,14 @@ from ..node_parser import NodeParser
 from . import log
 
 
+TEXTURE_ERROR_COLOR = (1.0, 0.0, 1.0)  # following Cycles color for wrong Texture nodes
+
+
 class ShaderNodeTexImage(NodeParser):
     def export(self):
-        image_error_result = self.node_item((1.0, 0.0, 1.0, 1.0))
         image = self.node.image
         if not image:
+        image_error_result = self.node_item(TEXTURE_ERROR_COLOR)
             log.warn(f"No image provided")
             return image_error_result
         # TODO support SEQUENCE image type
