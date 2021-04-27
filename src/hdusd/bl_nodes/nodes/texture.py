@@ -51,8 +51,3 @@ class ShaderNodeTexImage(NodeParser):
         result.set_parameter('file', file_path)
 
         return result
-
-
-class ShaderNodeTexChecker(NodeParser):
-    def export(self):
-        return None
