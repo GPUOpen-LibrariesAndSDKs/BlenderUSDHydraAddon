@@ -80,7 +80,7 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
         yield f, Path("materialx") / f.relative_to(mx_dir)
 
 
-def main():
+def main(bin_dir):
     repo_dir = Path(__file__).parent.parent
     libs_dir = repo_dir / "libs"
     if libs_dir.is_dir():
@@ -88,9 +88,9 @@ def main():
 
     print(f"Copying libs to: {libs_dir}")
 
-    for f, relative in iterate_copied_files(repo_dir / "bin/USD/install",
-                                            repo_dir / "bin/HdRPR/install",
-                                            repo_dir / "bin/MaterialX/install"):
+    for f, relative in iterate_copied_files(bin_dir / "USD/install",
+                                            bin_dir / "HdRPR/install",
+                                            bin_dir / "MaterialX/install"):
         print(f, '->', relative)
 
         f_copy = libs_dir / relative
@@ -111,4 +111,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(Path(__file__).parent.parent / "bin")

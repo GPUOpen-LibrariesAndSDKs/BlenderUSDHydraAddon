@@ -17,12 +17,12 @@ import subprocess
 from pathlib import Path
 
 
-def main(*args):
+def main(bin_dir, *args):
     if len(args) == 1 and args[0] in ("--help", "-h"):
         print("""
 Usage
 
-  build_usd.py [<args-for-USD/build_scripts/build_usd.py>...]
+  build_usd.py <bin-dir> [<args-for-USD/build_scripts/build_usd.py>...]
   
 Specify arguments for build_scripts/build_usd.py script
 in USD repository.
@@ -40,7 +40,7 @@ in USD repository.
 add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
 """)
 
-    bin_usd_dir = repo_dir / "bin/USD"
+    bin_usd_dir = bin_dir / "USD"
     call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
                  '--build', str(bin_usd_dir / "build"),
                  '--src', str(bin_usd_dir / "deps"),

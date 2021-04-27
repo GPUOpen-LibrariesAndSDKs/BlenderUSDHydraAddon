@@ -24,13 +24,13 @@ OS = platform.system()
 repo_dir = Path(__file__).parent.parent.absolute()
 
 
-def usd(jobs):
+def usd(bin_dir, jobs):
     import build_usd
     args = ["--no-usdview"]
     if jobs > 0:
         args += ['-j', str(jobs)]
 
-    build_usd.main(*args)
+    build_usd.main(bin_dir, *args)
 
 
 def _cmake(ch_dir, compiler, jobs, args):
@@ -57,17 +57,17 @@ def _cmake(ch_dir, compiler, jobs, args):
         os.chdir(cur_dir)
 
 
-def hdrpr(compiler, jobs):
+def hdrpr(bin_dir, compiler, jobs):
     _cmake(repo_dir / "deps/HdRPR", compiler, jobs, [
-        f'-Dpxr_DIR={repo_dir / "bin/USD/install"}',
-        f'-DCMAKE_INSTALL_PREFIX={repo_dir / "bin/HdRPR/install"}',
+        f'-Dpxr_DIR={bin_dir / "USD/install"}',
+        f'-DCMAKE_INSTALL_PREFIX={bin_dir / "HdRPR/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE'
     ])
 
 
-def materialx(compiler, jobs):
+def materialx(bin_dir, compiler, jobs):
     _cmake(repo_dir / "deps/HdRPR", compiler, jobs, [
-        f'-DCMAKE_INSTALL_PREFIX={repo_dir / "bin/MaterialX/install"}',
+        f'-DCMAKE_INSTALL_PREFIX={bin_dir / "MaterialX/install"}',
         '-DMATERIALX_BUILD_PYTHON=ON',
         f'-DMATERIALX_PYTHON_EXECUTABLE={sys.executable}',
         '-DMATERIALX_INSTALL_PYTHON=OFF',
@@ -75,9 +75,9 @@ def materialx(compiler, jobs):
     ])
 
 
-def libs():
+def libs(bin_dir):
     import create_libs
-    create_libs.main()
+    create_libs.main(bin_dir)
 
 
 def mx_classes():
@@ -102,6 +102,8 @@ def main():
                     help="Build HdRPR")
     ap.add_argument("-mx", required=False, action="store_true",
                     help="Build MaterialX")
+    ap.add_argument("-bin-dir", required=False, type=str, default="",
+                    help="Path to binary directory")
     ap.add_argument("-libs", required=False, action="store_true",
                     help="Create libs dir")
     ap.add_argument("-mx-classes", required=False, action="store_true",
@@ -120,17 +122,19 @@ def main():
         print('Please select compiler. For example: -G "Visual Studio 15 2017 Win64"')
         return
 
+    bin_dir = Path(args.bin_dir).absolute() if args.bin_dir else (repo_dir / "bin")
+
     if args.all or args.usd:
-        usd(args.j)
+        usd(bin_dir, args.j)
 
     if args.all or args.hdrpr:
-        hdrpr(args.G, args.j)
+        hdrpr(bin_dir, args.G, args.j)
 
     if args.all or args.mx:
-        materialx(args.G, args.j)
+        materialx(bin_dir, args.G, args.j)
 
     if args.all or args.libs:
-        libs()
+        libs(bin_dir)
 
     if args.all or args.mx_classes:
         mx_classes()
