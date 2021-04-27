@@ -21,6 +21,17 @@ from . import log
 
 TEXTURE_ERROR_COLOR = (1.0, 0.0, 1.0)  # following Cycles color for wrong Texture nodes
 
+# image format conversion for packed pixel/generated images
+IMAGE_FORMATS = {
+    'OPEN_EXR_MULTILAYER': ('OPEN_EXR', 'exr'),
+    'OPEN_EXR': ('OPEN_EXR', 'exr'),
+    'HDR': ('HDR', 'hdr'),
+    'TARGA': ('TARGA', 'tga'),
+    'TARGA_RAW': ('TARGA', 'tga'),
+    # TIFF and everything else will be stored as PNG
+}
+DEFAULT_FORMAT = ('PNG', 'png')
+
 
 class ShaderNodeTexImage(NodeParser):
     def export(self):
@@ -37,9 +48,10 @@ class ShaderNodeTexImage(NodeParser):
 
         file_path = image.filepath_from_user()
         if image.source != 'FILE' or image.is_dirty or not os.path.isfile(file_path):  # generated, edited and packed
-            temp_path = utils.get_temp_file(f"{hash(image.name)}.texture")
+            target_format, target_extension = IMAGE_FORMATS.get(image.file_format, DEFAULT_FORMAT)
+            temp_path = utils.get_temp_file(f"{hash(image.name)}.texture.{target_extension}")
             if not os.path.isfile(temp_path):
-                image.save_render(temp_path)
+                image.save_render(str(temp_path))
             img_path = str(temp_path)
         else:
             img_path = file_path
