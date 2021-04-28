@@ -49,12 +49,12 @@ def enumerate_addon_data():
             yield f, f.name
 
     # copy HDUSD libraries
-    hdusd_libs_dir = Path(os.environ['HDUSD_LIBS_DIR'])
-    for f in hdusd_libs_dir.glob("**/*"):
+    libs_dir = repo_dir / "libs"
+    for f in libs_dir.glob("**/*"):
         if f.is_dir():
             continue
 
-        rel_path = f.relative_to(hdusd_libs_dir.parent)
+        rel_path = f.relative_to(libs_dir.parent)
         if any(p in rel_path.parts for p in ("__pycache__", "cache")):
             continue
 
@@ -103,12 +103,12 @@ def create_zip_addon(build_dir):
 
 
 def main():
-    build_dir = repo_dir / "build"
-    if build_dir.is_dir():
-        shutil.rmtree(build_dir)
-    build_dir.mkdir()
+    install_dir = repo_dir / "install"
+    if install_dir.is_dir():
+        shutil.rmtree(install_dir)
+    install_dir.mkdir()
 
-    zip_addon = create_zip_addon(build_dir)
+    zip_addon = create_zip_addon(install_dir)
     print(f"Addon was compressed to: {zip_addon}")
 
 

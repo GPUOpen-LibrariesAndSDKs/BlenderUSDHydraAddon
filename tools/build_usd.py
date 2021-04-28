@@ -17,34 +17,43 @@ import subprocess
 from pathlib import Path
 
 
-def main(*args):
-    if not args:
+def main(bin_dir, *args):
+    if len(args) == 1 and args[0] in ("--help", "-h"):
         print("""
 Usage
 
-  build_usd.py <path-to-USD-repo> [<args-for-USD/build_scripts/build_usd.py>...]
+  build_usd.py <bin-dir> [<args-for-USD/build_scripts/build_usd.py>...]
   
-Specify path to USD repository and arguments for build_scripts/build_usd.py script
+Specify arguments for build_scripts/build_usd.py script
 in USD repository.
 """)
         return
 
-    usd_path = Path(args[0])
+    repo_dir = Path(__file__).parent.parent
+    usd_dir = repo_dir / "deps/USD"
     usd_imaging_lite_path = Path(__file__).parent.parent / "src/extras/usdImagingLite"
 
-    usd_imaging_cmake = usd_path / "pxr/usdImaging/CMakeLists.txt"
+    usd_imaging_cmake = usd_dir / "pxr/usdImaging/CMakeLists.txt"
     print("Modifying:", usd_imaging_cmake)
     cmake_txt = usd_imaging_cmake.read_text()
     usd_imaging_cmake.write_text(cmake_txt + f"""
 add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
 """)
 
-    call_args = (sys.executable, str(usd_path / "build_scripts/build_usd.py"), *args[1:])
-    print("Running:", call_args)
-    subprocess.run(call_args)
+    bin_usd_dir = bin_dir / "USD"
+    call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
+                 '--build', str(bin_usd_dir / "build"),
+                 '--src', str(bin_usd_dir / "deps"),
+                 str(bin_usd_dir / "install"),
+                 *args)
 
-    print("Reverting:", usd_imaging_cmake)
-    usd_imaging_cmake.write_text(cmake_txt)
+    try:
+        print("Running:", call_args)
+        subprocess.check_call(call_args)
+
+    finally:
+        print("Reverting:", usd_imaging_cmake)
+        usd_imaging_cmake.write_text(cmake_txt)
 
 
 if __name__ == "__main__":

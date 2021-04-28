@@ -19,9 +19,8 @@ from pathlib import Path
 from collections import defaultdict
 
 
-libs_dir = Path(os.environ['HDUSD_LIBS_DIR']).absolute()
-
 repo_dir = Path(__file__).parent.parent
+libs_dir = repo_dir / "libs"
 
 
 sys.path.append(str(libs_dir / "materialx/python"))
