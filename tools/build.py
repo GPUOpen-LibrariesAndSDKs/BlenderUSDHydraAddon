@@ -21,7 +21,7 @@ import platform
 
 
 OS = platform.system()
-repo_dir = Path(__file__).parent.parent.absolute()
+repo_dir = Path(__file__).parent.parent.resolve()
 
 
 def usd(bin_dir, jobs):
@@ -66,7 +66,7 @@ def hdrpr(bin_dir, compiler, jobs):
 
 
 def materialx(bin_dir, compiler, jobs):
-    _cmake(repo_dir / "deps/HdRPR", compiler, jobs, [
+    _cmake(repo_dir / "deps/HdRPR/deps/MaterialX", compiler, jobs, [
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "MaterialX/install"}',
         '-DMATERIALX_BUILD_PYTHON=ON',
         f'-DMATERIALX_PYTHON_EXECUTABLE={sys.executable}',
@@ -122,7 +122,7 @@ def main():
         print('Please select compiler. For example: -G "Visual Studio 15 2017 Win64"')
         return
 
-    bin_dir = Path(args.bin_dir).absolute() if args.bin_dir else (repo_dir / "bin")
+    bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
 
     if args.all or args.usd:
         usd(bin_dir, args.j)
