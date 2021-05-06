@@ -31,7 +31,7 @@ in USD repository.
 
     repo_dir = Path(__file__).parent.parent
     usd_dir = repo_dir / "deps/USD"
-    usd_imaging_lite_path = Path(__file__).parent.parent / "src/extras/usdImagingLite"
+    usd_imaging_lite_path = repo_dir / "deps/UsdImagingLite/pxr/usdImaging/usdImagingLite"
 
     usd_imaging_cmake = usd_dir / "pxr/usdImaging/CMakeLists.txt"
     print("Modifying:", usd_imaging_cmake)
