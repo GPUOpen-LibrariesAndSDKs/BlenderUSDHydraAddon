@@ -254,10 +254,8 @@ class ViewportEngine(Engine):
                 continue
 
             if isinstance(obj, bpy.types.Material):
-                mesh_obj = context.object if context.object and \
-                                             context.object.type == 'MESH' else None
-                materials_prim = self.stage.DefinePrim(f"{root_prim.GetPath()}/materials")
-                material.sync_update(materials_prim, obj, mesh_obj)
+                log.info("sync_update Material", obj)
+                self.update_material_on_scene_objects(root_prim, obj, depsgraph)
                 continue
 
             if isinstance(obj, bpy.types.Object):
@@ -299,6 +297,16 @@ class ViewportEngine(Engine):
             if isinstance(obj, bpy.types.Scene):
                 self.update_render(obj)
                 continue
+
+    def update_material_on_scene_objects(self, root_prim, mat, depsgraph):
+        objects = tuple(obj for obj in depsgraph_objects(depsgraph)
+                        if mat.name in obj.material_slots.keys())
+
+        for obj in objects:
+            object.sync_update(root_prim, obj,
+                               is_updated_geometry=True,
+                               is_updated_transform=False,
+                               is_gl_delegate=self.is_gl_delegate)
 
     def sync_update(self, context, depsgraph):
         """ sync just the updated things """
