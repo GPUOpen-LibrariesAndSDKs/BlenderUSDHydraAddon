@@ -191,8 +191,9 @@ def sync_mx(materials_prim, mx_node_tree, obj):
     shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
     shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(surfacematerial.getName())
 
-    out = usd_mat.CreateSurfaceOutput("rpr")
-    out.ConnectToSource(shader, "surface")
+    out_mat = usd_mat.CreateSurfaceOutput("rpr")
+    out_shader = shader.CreateOutput('surface', Sdf.ValueTypeNames.Token)
+    out_mat.ConnectToSource(out_shader)
     # shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
 
     return usd_mat
@@ -215,16 +216,17 @@ def sync_as_mx(materials_prim, mat, obj):
         return None
 
     stage = materials_prim.GetStage()
-    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
+    mat_path = materials_prim.GetPath().AppendChild(sdf_name(mat))
     usd_mat = UsdShade.Material.Define(stage, mat_path)
-    shader = UsdShade.Shader.Define(stage, f"{usd_mat.GetPath()}/rpr_materialx_node")
+    shader = UsdShade.Shader.Define(stage, usd_mat.GetPath().AppendChild("rpr_materialx_node"))
     shader.CreateIdAttr("rpr_materialx_node")
 
     shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
     shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(surfacematerial.getName())
 
-    out = usd_mat.CreateSurfaceOutput("rpr")
-    out.ConnectToSource(shader, "surface")
+    out_mat = usd_mat.CreateSurfaceOutput("rpr")
+    out_shader = shader.CreateOutput('surface', Sdf.ValueTypeNames.Token)
+    out_mat.ConnectToSource(out_shader)
     # shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
 
     return usd_mat
