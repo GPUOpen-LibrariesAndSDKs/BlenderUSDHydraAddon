@@ -28,21 +28,25 @@ class MaterialProperties(HdUSDProperties):
     bl_type = bpy.types.Material
 
     mx_node_tree: bpy.props.PointerProperty(type=MxNodeTree)
-    export_as_mx: bpy.props.BoolProperty(
-        name="Export as MaterialX",
-        description="Export material as MaterialX",
-        default=True
-    )
+
+    @property
+    def output_node(self):
+        material = self.id_data
+        return next((node for node in material.node_tree.nodes if
+                     node.bl_idname == ShaderNodeOutputMaterial.__name__ and
+                     node.is_active_output), None)
 
     def export(self, obj: bpy.types.Object) -> [mx.Document, None]:
         material = self.id_data
-        output_node = next((node for node in material.node_tree.nodes if
-                            node.bl_idname == ShaderNodeOutputMaterial.__name__ and node.is_active_output), None)
+        output_node = self.output_node
 
         if not output_node:
             return None
 
         doc = mx.createDocument()
 
-        ShaderNodeOutputMaterial(doc, material, output_node, obj).export()
+        node_parser = ShaderNodeOutputMaterial(doc, material, output_node, obj,
+                                               rpr=bpy.context.scene.hdusd.use_rpr_mx_nodes)
+        node_parser.export()
+
         return doc

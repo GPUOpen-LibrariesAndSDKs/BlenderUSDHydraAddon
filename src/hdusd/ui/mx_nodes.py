@@ -107,7 +107,8 @@ class HDUSD_MX_OP_create_basic_nodes(HdUSD_Operator):
 
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree
-        mx_node_tree.create_basic_nodes()
+        mx_node_tree.create_basic_nodes(
+            'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
         return {"FINISHED"}
 
 

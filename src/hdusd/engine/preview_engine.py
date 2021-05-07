@@ -28,7 +28,7 @@ class PreviewEngine(FinalEngine):
     SAMPLES_NUMBER = 50
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path('Camera.002'))
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path(scene.camera.data.name))
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
