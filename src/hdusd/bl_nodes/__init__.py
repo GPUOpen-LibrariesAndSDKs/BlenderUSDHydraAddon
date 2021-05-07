@@ -86,7 +86,7 @@ def register():
     ShaderNodeCategory.poll = hide_cycles_and_eevee_poll(ShaderNodeCategory.poll)
 
     # use custom menu
-    register_node_categories("RPR_NODES", node_categories)
+    register_node_categories("HDUSD_NODES", node_categories)
 
 
 def unregister():
@@ -95,4 +95,4 @@ def unregister():
         ShaderNodeCategory.poll = old_shader_node_category_poll
 
     # remove custom menu
-    unregister_node_categories("RPR_NODES")
+    unregister_node_categories("HDUSD_NODES")
