@@ -45,7 +45,7 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
 
     if mx_type == 'integer':
         return int(val_str)
-    if mx_type == 'float':
+    if mx_type in ('float', 'angle'):
         return float(val_str)
     if mx_type == 'boolean':
         return val_str == "true"
@@ -89,6 +89,11 @@ def generate_property_code(mx_param):
         if mx_type == 'boolean':
             prop_type = "BoolProperty"
             break
+        if mx_type == 'angle':
+            prop_type = "FloatProperty"
+            prop_attrs['subtype'] = 'ANGLE'
+            break
+
         if mx_type in ('surfaceshader', 'displacementshader', 'volumeshader', 'lightshader',
                        'material', 'BSDF', 'VDF', 'EDF'):
             prop_type = "StringProperty"
@@ -149,11 +154,11 @@ def get_attr(mx_param, name, else_val=""):
 
 def nodedef_data_type(nodedef):
     # nodedef name consists: ND_{node_name}_{data_type} therefore:
-    res = nodedef.getName()[(4 + len(nodedef.getNodeString())):]
-    if not res:
-        res = nodedef.getOutputs()[0].getType()
+    outputs = nodedef.getOutputs()
+    if len(outputs) == 1:
+        return nodedef.getOutputs()[0].getType()
 
-    return res
+    return "multitypes"
 
 
 def param_prop_name(name):
@@ -190,7 +195,8 @@ def generate_mx_nodedef_class_code(nodedef: mx.NodeDef, prefix: str):
 f"""
 class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
     _file_path = FILE_PATH
-    _nodedef_name = '{nodedef.getName()}'""")
+    _nodedef_name = '{nodedef.getName()}'
+    _node_name = '{nodedef.getNodeString()}'""")
 
     for i, param in enumerate(nodedef.getParameters()):
         if i == 0:
@@ -217,19 +223,21 @@ class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
     return '\n'.join(code_strings)
 
 
-def generate_mx_node_class_code(nodedefs, prefix):
+def generate_mx_node_class_code(nodedefs, prefix, category):
     nodedef = nodedefs[0]
+    if not category:
+        category = get_attr(nodedef, 'nodegroup', prefix)
 
     class_name = get_mx_node_class_name(nodedef, prefix)
     code_strings = []
     code_strings.append(
 f"""
 class {class_name}(MxNode):
-    bl_label = '{title_str(nodedef.getNodeString())}'
+    bl_label = '{get_attr(nodedef, 'uiname', title_str(nodedef.getNodeString()))}'
     bl_idname = 'hdusd.{class_name}'
     bl_description = "{get_attr(nodedef, 'doc')}"
     
-    category = '{get_attr(nodedef, 'nodegroup', prefix)}'
+    category = '{category}'
     
     _data_types = {tuple(nodedef_data_type(nd) for nd in nodedefs)}
 """)
@@ -275,7 +283,7 @@ class {class_name}(MxNode):
     return '\n'.join(code_strings)
 
 
-def generate_classes_code(file_path, prefix):
+def generate_classes_code(file_path, prefix, category):
     IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44', 'matrix33FA', 'matrix44FA')
 
     code_strings = []
@@ -336,7 +344,7 @@ mx_nodedef_classes = [{', '.join(nodedef_class_names)}]
     # creating MxNode types
     mx_node_class_names = []
     for nodedefs_by_node in node_def_classes_by_node.values():
-        code_strings.append(generate_mx_node_class_code(nodedefs_by_node, prefix))
+        code_strings.append(generate_mx_node_class_code(nodedefs_by_node, prefix, category))
         mx_node_class_names.append(get_mx_node_class_name(nodedefs_by_node[0], prefix))
 
     code_strings.append(f"""
@@ -348,20 +356,35 @@ mx_node_classes = [{', '.join(mx_node_class_names)}]
 
 def main():
     mx_libs_dir = libs_dir / "materialx/libraries"
-    mx_node_dir = repo_dir / "src/hdusd/mx_nodes/nodes"
+    gen_code_dir = repo_dir / "src/hdusd/mx_nodes/nodes"
+    hdrpr_mat_dir = libs_dir / "hdrpr/materials"
 
-    for prefix, file_path in (
-                ('PBR', mx_libs_dir / "bxdf/standard_surface.mtlx"),
-                ('USD', mx_libs_dir / "bxdf/usd_preview_surface.mtlx"),
-                ('STD', mx_libs_dir / "stdlib/stdlib_defs.mtlx"),
-                ('PBR', mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),
-            ):
+    for f in gen_code_dir.glob("gen_*.py"):
+        f.unlink()
+
+    files = [
+        ('PBR', "PBR", mx_libs_dir / "bxdf/standard_surface.mtlx"),
+        ('USD', "USD", mx_libs_dir / "bxdf/usd_preview_surface.mtlx"),
+        ('STD', None, mx_libs_dir / "stdlib/stdlib_defs.mtlx"),
+        ('PBR', "PBR", mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),
+    ]
+
+    for f in (hdrpr_mat_dir / "Shaders").glob("rpr_*.mtlx"):
+        files.append(('RPR', "RPR Shaders", f))
+
+    for f in (hdrpr_mat_dir / "Utilities").glob("rpr_*.mtlx"):
+        files.append(('RPR', "RPR Utilities", f))
+
+    for f in (hdrpr_mat_dir / "Patterns").glob("rpr_*.mtlx"):
+        files.append(('RPR', "RPR Patterns", f))
+
+    for prefix, category, file_path in files:
 
         module_name = f"gen_{file_path.name[:-len(file_path.suffix)]}"
-        module_file = mx_node_dir / f"{module_name}.py"
+        module_file = gen_code_dir / f"{module_name}.py"
 
         print(f"Generating {module_file} from {file_path}")
-        module_code = generate_classes_code(file_path, prefix)
+        module_code = generate_classes_code(file_path, prefix, category)
         module_file.write_text(module_code)
 
 
