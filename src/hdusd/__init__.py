@@ -17,7 +17,7 @@ bl_info = {
     "name": "USD Hydra",
     "author": "AMD",
     "version": (1, 0, 0),
-    "blender": (2, 90, 1),
+    "blender": (2, 93, 0),
     "location": "Info header, render engine menu",
     "description": "USD Hydra rendering plugin for Blender",
     "warning": "",
