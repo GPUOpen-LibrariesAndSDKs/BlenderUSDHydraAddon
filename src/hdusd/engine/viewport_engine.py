@@ -235,7 +235,6 @@ class ViewportEngine(Engine):
         root_prim = self.stage.GetPseudoRoot()
 
         # get supported updates and sort by priorities
-        log.info("sync_update", [update.id for update in depsgraph.updates])
         updates = []
         for obj_type in (
                 bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection,
@@ -248,7 +247,7 @@ class ViewportEngine(Engine):
 
         for update in updates:
             obj = update.id
-            log.info("sync_update", obj)
+            log("sync_update", obj)
             if isinstance(obj, bpy.types.Scene):
                 self.update_render(obj)
 
