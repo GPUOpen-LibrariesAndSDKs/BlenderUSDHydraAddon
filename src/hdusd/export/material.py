@@ -39,7 +39,7 @@ def sync(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
 
     log("sync", mat, obj)
 
-    if mat.hdusd.mx_node_tree:
+    if mat.hdusd.mx_node_tree and mat.hdusd.mx_node_tree.bl_idname == "hdusd.MxNodeTree":
         return sync_mx(materials_prim, mat.hdusd.mx_node_tree, obj)
 
     return sync_as_mx(materials_prim, mat, obj)
