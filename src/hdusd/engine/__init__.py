@@ -21,18 +21,18 @@ from .. import utils
 
 
 if utils.IS_WIN:
-    os.environ['PATH'] = f"{utils.HDUSD_LIBS_DIR / 'usd'};{utils.HDUSD_LIBS_DIR / 'plugins/usd'};" \
-                         f"{utils.HDUSD_LIBS_DIR / 'hdrpr/lib'};{os.environ['PATH']}"
-    os.add_dll_directory(str(utils.HDUSD_LIBS_DIR / 'usd'))
-    os.add_dll_directory(str(utils.HDUSD_LIBS_DIR / 'plugins/usd'))
-    os.add_dll_directory(str(utils.HDUSD_LIBS_DIR / 'hdrpr/lib'))
+    os.environ['PATH'] = f"{utils.LIBS_DIR / 'usd'};{utils.LIBS_DIR / 'plugins/usd'};" \
+                         f"{utils.LIBS_DIR / 'hdrpr/lib'};{os.environ['PATH']}"
+    os.add_dll_directory(str(utils.LIBS_DIR / 'usd'))
+    os.add_dll_directory(str(utils.LIBS_DIR / 'plugins/usd'))
+    os.add_dll_directory(str(utils.LIBS_DIR / 'hdrpr/lib'))
 
-os.environ['PXR_PLUGINPATH_NAME'] = str(utils.HDUSD_LIBS_DIR / 'plugins')
-os.environ['RPR'] = str(utils.HDUSD_LIBS_DIR / 'hdrpr')
+os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugins')
+os.environ['RPR'] = str(utils.LIBS_DIR / 'hdrpr')
 
-sys.path.append(str(utils.HDUSD_LIBS_DIR / 'usd/python'))
-sys.path.append(str(utils.HDUSD_LIBS_DIR / 'hdrpr/lib/python'))
-sys.path.append(str(utils.HDUSD_LIBS_DIR / 'materialx/python'))
+sys.path.append(str(utils.LIBS_DIR / 'usd/python'))
+sys.path.append(str(utils.LIBS_DIR / 'hdrpr/lib/python'))
+sys.path.append(str(utils.LIBS_DIR / 'materialx/python'))
 
 
 from . import engine, handlers

@@ -26,7 +26,7 @@ repo_dir = Path(__file__).parent.parent.resolve()
 
 def usd(bin_dir, jobs):
     import build_usd
-    args = ["--no-usdview"]
+    args = []
     if jobs > 0:
         args += ['-j', str(jobs)]
 

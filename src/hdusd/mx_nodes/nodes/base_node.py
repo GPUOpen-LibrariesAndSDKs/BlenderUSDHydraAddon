@@ -16,7 +16,7 @@ import MaterialX as mx
 
 import bpy
 
-from ...utils import title_str, code_str, HDUSD_LIBS_DIR
+from ...utils import title_str, code_str, LIBS_DIR
 from ...utils import mx as mx_utils
 from . import log
 
@@ -78,7 +78,7 @@ class MxNodeDef(bpy.types.PropertyGroup):
     def nodedef(cls):
         if cls._nodedef is None:
             doc = mx.createDocument()
-            mx.readFromXmlFile(doc, str(HDUSD_LIBS_DIR / cls._file_path))
+            mx.readFromXmlFile(doc, str(LIBS_DIR / cls._file_path))
             cls._nodedef = doc.getNodeDef(cls._nodedef_name)
 
         return cls._nodedef
