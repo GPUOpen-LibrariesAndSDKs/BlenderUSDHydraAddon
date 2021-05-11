@@ -97,3 +97,7 @@ def sync_update(root_prim, obj: bpy.types.Object, is_updated_geometry, is_update
 
         else:
             log.warn("Not supported object to sync_update", obj, obj.type)
+
+
+def sync_update_material(root_prim, obj: bpy.types.Object, **kwargs):
+    sync_update(root_prim, obj, is_updated_geometry=True, is_updated_transform=False, **kwargs)

@@ -303,10 +303,7 @@ class ViewportEngine(Engine):
                         if mat.name in obj.material_slots.keys())
 
         for obj in objects:
-            object.sync_update(root_prim, obj,
-                               is_updated_geometry=True,
-                               is_updated_transform=False,
-                               is_gl_delegate=self.is_gl_delegate)
+            object.sync_update_material(root_prim, obj, is_gl_delegate=self.is_gl_delegate)
 
     def sync_update(self, context, depsgraph):
         """ sync just the updated things """
