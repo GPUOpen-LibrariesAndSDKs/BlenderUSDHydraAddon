@@ -24,6 +24,7 @@ from pxr import UsdImagingGL
 
 from .engine import Engine, depsgraph_objects
 from ..export import nodegraph, camera, material, object, sdf_path
+from ..mx_nodes.node_tree import MxNodeTree
 from .. import utils
 
 from ..utils import logging
@@ -234,8 +235,12 @@ class ViewportEngine(Engine):
         root_prim = self.stage.GetPseudoRoot()
 
         # get supported updates and sort by priorities
+        log.info("sync_update", [update.id for update in depsgraph.updates])
         updates = []
-        for obj_type in (bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection):
+        for obj_type in (
+                bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection,
+                MxNodeTree,
+        ):
             updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
 
         sync_collection = False
@@ -243,7 +248,7 @@ class ViewportEngine(Engine):
 
         for update in updates:
             obj = update.id
-            log("sync_update", obj)
+            log.info("sync_update", obj)
             if isinstance(obj, bpy.types.Scene):
                 self.update_render(obj)
 
@@ -254,8 +259,11 @@ class ViewportEngine(Engine):
                 continue
 
             if isinstance(obj, bpy.types.Material):
-                log.info("sync_update Material", obj)
-                self.update_material_on_scene_objects(root_prim, obj, depsgraph)
+                self.update_material_on_scene_objects(root_prim, obj.name, depsgraph)
+                continue
+
+            if isinstance(obj, MxNodeTree):
+                self.update_mx_on_scene_objects(root_prim, obj.name, depsgraph)
                 continue
 
             if isinstance(obj, bpy.types.Object):
@@ -298,9 +306,22 @@ class ViewportEngine(Engine):
                 self.update_render(obj)
                 continue
 
-    def update_material_on_scene_objects(self, root_prim, mat, depsgraph):
+    def update_material_on_scene_objects(self, root_prim, name, depsgraph):
+        """ Update material on all depsgraph objects with it """
         objects = tuple(obj for obj in depsgraph_objects(depsgraph)
-                        if mat.name in obj.material_slots.keys())
+                        if name in obj.material_slots.keys())
+
+        for obj in objects:
+            object.sync_update_material(root_prim, obj, is_gl_delegate=self.is_gl_delegate)
+
+    def update_mx_on_scene_objects(self, root_prim, name, depsgraph):
+        """
+        Update material on all depsgraph objects if they are using material that uses the matx MaterialX node tree
+        """
+        objects = tuple(obj for obj in depsgraph_objects(depsgraph)
+                        if any((slot.material.hdusd.mx_node_tree is not None
+                                and slot.material.hdusd.mx_node_tree.name == name)
+                                for slot in obj.material_slots.values()))
 
         for obj in objects:
             object.sync_update_material(root_prim, obj, is_gl_delegate=self.is_gl_delegate)
