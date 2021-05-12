@@ -90,6 +90,11 @@ def zip_addon():
     create_zip_addon.main()
 
 
+def usd_debug_libs(bin_dir):
+    import create_libs
+    create_libs.copy_usd_debug_files(bin_dir)
+
+
 def main():
     ap = argparse.ArgumentParser()
 
@@ -115,6 +120,8 @@ def main():
                          'For example: -G "Visual Studio 15 2017 Win64"')
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
+    ap.add_argument("-usd-debug-libs", required=False, action="store_true",
+                    help="Copy RelWithDebInfo USD libs")
 
     args = ap.parse_args()
 
@@ -141,6 +148,9 @@ def main():
 
     if args.all or args.addon:
         zip_addon()
+
+    if args.usd_debug_libs:
+        usd_debug_libs(bin_dir)
 
 
 if __name__ == "__main__":
