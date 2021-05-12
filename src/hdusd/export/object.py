@@ -96,8 +96,19 @@ def sync_update(root_prim, obj: bpy.types.Object, is_updated_geometry, is_update
             pass
 
         else:
-            log.warn("Not supported object to sync_update", obj, obj.type)
+            log.warn("Unsupported object to sync_update", obj, obj.type)
 
 
 def sync_update_material(root_prim, obj: bpy.types.Object, **kwargs):
-    sync_update(root_prim, obj, is_updated_geometry=True, is_updated_transform=False, **kwargs)
+    log("sync_update_material", obj)
+
+    obj_prim = root_prim.GetChild(sdf_name(obj))
+    if not obj_prim.IsValid():
+        sync(root_prim, obj, **kwargs)
+        return
+
+    if obj.type in ('MESH', 'CURVE', 'FONT', 'SURFACE', 'META'):
+        mesh.sync_update_material(obj_prim, obj, **kwargs)
+
+    else:
+        log.warn("Unsupported object to sync_update_material", obj, obj.type)

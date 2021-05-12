@@ -246,3 +246,18 @@ def sync_update(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **
         stage.RemovePrim(child_prim.GetPath())
 
     sync(obj_prim, obj, **kwargs)
+
+
+def sync_update_material(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs):
+    """ Update materials on existing mesh """
+    if not mesh:
+        mesh = obj.data
+
+    log("sync_update_material", obj_prim, mesh, obj)
+
+    # get existing mesh
+    usd_mesh = obj_prim
+
+    if usd_mesh.IsValid():
+        UsdShade.MaterialBindingAPI(usd_mesh).UnbindAllBindings()
+        _assign_materials(obj_prim, obj, usd_mesh)
