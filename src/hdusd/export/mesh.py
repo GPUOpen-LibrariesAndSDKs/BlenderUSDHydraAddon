@@ -248,7 +248,7 @@ def sync_update(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **
     sync(obj_prim, obj, **kwargs)
 
 
-def sync_update_material(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs):
+def sync_update_material(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None):
     """ Update materials on existing mesh """
     if not mesh:
         mesh = obj.data

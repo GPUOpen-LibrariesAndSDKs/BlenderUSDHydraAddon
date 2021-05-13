@@ -205,8 +205,6 @@ class ViewportEngine(Engine):
 
         self.renderer.SetRendererSetting('renderDevice',
                                          'CPU' if scene.hdusd.rpr_viewport_cpu_device else 'GPU')
-        # self.renderer.SetRendererSetting('renderMode', 'Global Illumination')
-        # self.renderer.SetRendererSetting('renderQuality', 'Northstar')
 
         if self.data_source:
             nodetree = bpy.data.node_groups[self.data_source]

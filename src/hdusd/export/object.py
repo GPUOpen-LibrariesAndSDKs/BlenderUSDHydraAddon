@@ -108,7 +108,7 @@ def sync_update_material(root_prim, obj: bpy.types.Object, **kwargs):
         return
 
     if obj.type in ('MESH', 'CURVE', 'FONT', 'SURFACE', 'META'):
-        mesh.sync_update_material(obj_prim, obj, **kwargs)
+        mesh.sync_update_material(obj_prim, obj)
 
     else:
         log.warn("Unsupported object to sync_update_material", obj, obj.type)
