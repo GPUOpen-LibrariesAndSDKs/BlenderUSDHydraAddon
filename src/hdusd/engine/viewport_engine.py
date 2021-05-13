@@ -31,6 +31,11 @@ from ..utils import logging
 log = logging.Log(tag='viewport_engine')
 
 
+ACCEPTED_BLEND_UPDATE_TYPES = (
+    bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection, MxNodeTree,
+)
+
+
 @dataclass(init=False, eq=True)
 class ViewSettings:
     """
@@ -233,12 +238,8 @@ class ViewportEngine(Engine):
         root_prim = self.stage.GetPseudoRoot()
 
         # get supported updates and sort by priorities
-        updates = []
-        for obj_type in (
-                bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection,
-                MxNodeTree,
-        ):
-            updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
+        updates = tuple(update for update in depsgraph.updates if
+                        isinstance(update.id, ACCEPTED_BLEND_UPDATE_TYPES))
 
         sync_collection = False
         sync_world = False
