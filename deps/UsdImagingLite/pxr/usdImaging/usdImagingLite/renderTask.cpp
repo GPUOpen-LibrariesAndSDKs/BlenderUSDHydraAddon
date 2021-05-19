@@ -130,9 +130,7 @@ void HdRenderTask::Prepare(HdTaskContext* ctx,
 void HdRenderTask::Execute(HdTaskContext* ctx) {
     // Bind the render state and render geometry with the rendertags (if any)
     if (m_pass) {
-        m_passState->Bind();
         m_pass->Execute(m_passState, GetRenderTags());
-        m_passState->Unbind();
     }
 }
 

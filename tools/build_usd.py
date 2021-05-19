@@ -31,7 +31,7 @@ in USD repository.
 
     repo_dir = Path(__file__).parent.parent
     usd_dir = repo_dir / "deps/USD"
-    usd_imaging_lite_path = Path(__file__).parent.parent / "src/extras/usdImagingLite"
+    usd_imaging_lite_path = repo_dir / "deps/UsdImagingLite/pxr/usdImaging/usdImagingLite"
 
     usd_imaging_cmake = usd_dir / "pxr/usdImaging/CMakeLists.txt"
     print("Modifying:", usd_imaging_cmake)
@@ -39,6 +39,18 @@ in USD repository.
     usd_imaging_cmake.write_text(cmake_txt + f"""
 add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
 """)
+
+    build_usd_py = usd_dir / "build_scripts/build_usd.py"
+    print("Modifying:", build_usd_py)
+    build_usd_txt = build_usd_py.read_text()
+    build_usd_py.write_text(build_usd_txt.replace(
+"""if Windows() and isPython38:
+    PrintError("Python 3.8+ is not supported on Windows")
+    sys.exit(1)""",
+"""# if Windows() and isPython38:
+#     PrintError("Python 3.8+ is not supported on Windows")
+#     sys.exit(1)"""
+    ))
 
     bin_usd_dir = bin_dir / "USD"
     call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
@@ -52,6 +64,9 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
         subprocess.check_call(call_args)
 
     finally:
+        print("Reverting:", build_usd_py)
+        build_usd_py.write_text(build_usd_txt)
+
         print("Reverting:", usd_imaging_cmake)
         usd_imaging_cmake.write_text(cmake_txt)
 

@@ -21,22 +21,20 @@ from .. import utils
 
 
 if utils.IS_WIN:
-    os.environ['PATH'] = f"{utils.HDUSD_LIBS_DIR / 'usd'};{utils.HDUSD_LIBS_DIR / 'plugins/usd'};" \
-                         f"{utils.HDUSD_LIBS_DIR / 'hdrpr/lib'};{os.environ['PATH']}"
+    os.environ['PATH'] = f"{utils.LIBS_DIR / 'usd'};{utils.LIBS_DIR / 'plugins/usd'};" \
+                         f"{utils.LIBS_DIR / 'hdrpr/lib'};{os.environ['PATH']}"
 
-os.environ['PXR_PLUGINPATH_NAME'] = str(utils.HDUSD_LIBS_DIR / 'plugins')
-os.environ['RPR'] = str(utils.HDUSD_LIBS_DIR / 'hdrpr')
+    if hasattr(os, 'add_dll_directory'):
+        os.add_dll_directory(str(utils.LIBS_DIR / 'usd'))
+        os.add_dll_directory(str(utils.LIBS_DIR / 'plugins/usd'))
+        os.add_dll_directory(str(utils.LIBS_DIR / 'hdrpr/lib'))
 
-sys.path.append(str(utils.HDUSD_LIBS_DIR / 'usd/python'))
-sys.path.append(str(utils.HDUSD_LIBS_DIR / 'hdrpr/lib/python'))
-sys.path.append(str(utils.HDUSD_LIBS_DIR / 'materialx/python'))
+os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugins')
+os.environ['RPR'] = str(utils.LIBS_DIR / 'hdrpr')
 
-if utils.IS_WIN:
-    # preload necessary dlls, required for python 3.9+
-    import ctypes
-    for lib_name in ["sdf", "usd", "usdGeom", "usdAppUtils", "glf", "usdImagingGL",
-                     "usdImagingLite", "usdLux", "usdShade", "vt", "gf", "usdUtils"]:
-        ctypes.CDLL(str(utils.HDUSD_LIBS_DIR / 'usd' / f"{lib_name}.dll"))
+sys.path.append(str(utils.LIBS_DIR / 'usd/python'))
+sys.path.append(str(utils.LIBS_DIR / 'hdrpr/lib/python'))
+sys.path.append(str(utils.LIBS_DIR / 'materialx/python'))
 
 
 from . import engine, handlers
