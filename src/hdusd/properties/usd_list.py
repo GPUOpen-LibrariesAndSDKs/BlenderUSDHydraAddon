@@ -27,7 +27,7 @@ from . import CachedStageProp
 from . import log
 
 
-BLENDER_COLLECTION_NAME = "HDUSD"
+COLLECTION_NAME = "HDUSD"
 
 
 class PrimPropertyItem(PropertyGroup):
@@ -110,10 +110,10 @@ class UsdList(PropertyGroup):
 
 
 def get_blender_prim_object(context):
-    collection = bpy.data.collections.get(BLENDER_COLLECTION_NAME)
+    collection = bpy.data.collections.get(COLLECTION_NAME)
     if not collection:
-        collection = bpy.data.collections.new(BLENDER_COLLECTION_NAME)
-        context.scene.collection.children.link(collection)
+        collection = bpy.data.collections.new(COLLECTION_NAME)
+        # context.scene.collection.children.link(collection)
         log("Collection created", collection)
 
         obj = bpy.data.objects.new("/", None)

@@ -18,7 +18,7 @@ from ..utils import logging
 log = logging.Log(tag='usd_collection')
 
 
-BLENDER_COLLECTION_NAME = "USD NodeTree"
+COLLECTION_NAME = "USD NodeTree"
 
 
 def update(context, usd_tree_name):
@@ -42,28 +42,37 @@ def update(context, usd_tree_name):
 
 
 def clear(context):
-    collection = bpy.data.collections.get(BLENDER_COLLECTION_NAME)
+    collection = bpy.data.collections.get(COLLECTION_NAME)
     if not collection:
         return
 
     for obj in collection.objects:
-        if not obj.hdusd.is_usd:
+        if obj.hdusd.is_usd:
             bpy.data.objects.remove(obj)
 
     bpy.data.collections.remove(collection)
 
 
 def create(context, stage):
-    collection = bpy.data.collections.get(BLENDER_COLLECTION_NAME)
+    collection = bpy.data.collections.get(COLLECTION_NAME)
     if not collection:
-        collection = bpy.data.collections.new(BLENDER_COLLECTION_NAME)
+        collection = bpy.data.collections.new(COLLECTION_NAME)
         context.scene.collection.children.link(collection)
         log("Collection created", collection)
 
-    prim = stage.GetPseudoRoot()
+    def create_objects(root_prim):
+        root_obj = None if root_prim.IsPseudoRoot() else \
+            bpy.data.objects.get(str(root_prim.GetPath()))
+        for prim in root_prim.GetAllChildren():
+            if prim.GetTypeName() not in ('Xform', 'SkelRoot'):
+                continue
 
-    for child in prim.GetAllChildren():
-        obj = bpy.data.objects.new(str(child.GetPath()), None)
-        obj.hdusd.is_usd = True
-        collection.objects.link(obj)
-        log("Object created", obj)
+            obj = bpy.data.objects.new(str(prim.GetPath()), None)
+            obj.hdusd.is_usd = True
+            collection.objects.link(obj)
+            obj.parent = root_obj
+            log("Object created", obj)
+
+            create_objects(prim)
+
+    create_objects(stage.GetPseudoRoot())
