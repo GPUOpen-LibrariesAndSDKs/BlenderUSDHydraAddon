@@ -16,6 +16,7 @@ import bpy
 from pxr import UsdImagingGL
 
 from ..usd_nodes.node_tree import get_usd_nodetree
+from ..viewport import usd_collection
 from . import HdUSDProperties, log
 
 
@@ -25,13 +26,20 @@ log("Render Delegates", _render_delegates)
 
 
 class RenderSettings(bpy.types.PropertyGroup):
+    def data_source_update(self, context):
+        usd_collection.update(self.data_source)
+
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=((name, display_name, f"Hydra render delegate: {display_name}")
                for name, display_name in _render_delegates.items()),
         default='HdRprPlugin',
     )
-    data_source: bpy.props.StringProperty(name="Data Source", default="")
+    data_source: bpy.props.StringProperty(
+        name="Data Source",
+        default="",
+        update=data_source_update
+    )
 
     @property
     def is_gl_delegate(self):

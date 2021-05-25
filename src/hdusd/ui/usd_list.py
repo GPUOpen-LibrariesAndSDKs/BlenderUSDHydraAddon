@@ -217,8 +217,9 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
             print(f"Unable to print USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
             return {'CANCELLED'}
 
+        flatten_stage = stage.Flatten()
         print(f"Node \"{tree.name}\":\"{node.name}\" USD stage is:")
-        print(stage.ExportToString())
+        print(flatten_stage.ExportToString())
 
         return {'FINISHED'}
 
