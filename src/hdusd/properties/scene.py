@@ -27,7 +27,7 @@ log("Render Delegates", _render_delegates)
 
 class RenderSettings(bpy.types.PropertyGroup):
     def data_source_update(self, context):
-        usd_collection.update(self.data_source)
+        usd_collection.update(context, self.data_source)
 
     delegate: bpy.props.EnumProperty(
         name="Renderer",

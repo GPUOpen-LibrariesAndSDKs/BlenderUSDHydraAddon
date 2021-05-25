@@ -14,9 +14,15 @@
 #********************************************************************
 import bpy
 
+from ..utils import logging
+log = logging.Log(tag='usd_collection')
 
-def update(usd_tree_name):
-    clear()
+
+BLENDER_COLLECTION_NAME = "USD NodeTree"
+
+
+def update(context, usd_tree_name):
+    clear(context)
 
     if not usd_tree_name:
         return
@@ -32,14 +38,32 @@ def update(usd_tree_name):
     if not stage:
         return
 
-    create(stage)
+    create(context, stage)
 
 
-def clear():
-    print("clear")
-    pass
+def clear(context):
+    collection = bpy.data.collections.get(BLENDER_COLLECTION_NAME)
+    if not collection:
+        return
+
+    for obj in collection.objects:
+        if not obj.hdusd.is_usd:
+            bpy.data.objects.remove(obj)
+
+    bpy.data.collections.remove(collection)
 
 
-def create(stage):
-    print(stage)
-    pass
+def create(context, stage):
+    collection = bpy.data.collections.get(BLENDER_COLLECTION_NAME)
+    if not collection:
+        collection = bpy.data.collections.new(BLENDER_COLLECTION_NAME)
+        context.scene.collection.children.link(collection)
+        log("Collection created", collection)
+
+    prim = stage.GetPseudoRoot()
+
+    for child in prim.GetAllChildren():
+        obj = bpy.data.objects.new(str(child.GetPath()), None)
+        obj.hdusd.is_usd = True
+        collection.objects.link(obj)
+        log("Object created", obj)
