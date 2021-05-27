@@ -113,7 +113,7 @@ def get_blender_prim_object(context):
     collection = bpy.data.collections.get(COLLECTION_NAME)
     if not collection:
         collection = bpy.data.collections.new(COLLECTION_NAME)
-        # context.scene.collection.children.link(collection)
+        context.scene.collection.children.link(collection)
         log("Collection created", collection)
 
         obj = bpy.data.objects.new("/", None)

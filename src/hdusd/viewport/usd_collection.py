@@ -60,19 +60,17 @@ def create(context, stage):
         context.scene.collection.children.link(collection)
         log("Collection created", collection)
 
-    def create_objects(root_prim):
-        root_obj = None if root_prim.IsPseudoRoot() else \
-            bpy.data.objects.get(str(root_prim.GetPath()))
+    def create_objects(root_obj, root_prim):
         for prim in root_prim.GetAllChildren():
             if prim.GetTypeName() not in ('Xform', 'SkelRoot'):
+                create_objects(root_obj, prim)
                 continue
 
-            obj = bpy.data.objects.new(str(prim.GetPath()), None)
-            obj.hdusd.is_usd = True
+            obj = bpy.data.objects.new('/', None)
+            obj.hdusd.sync_from_prim_collection(root_obj, prim)
             collection.objects.link(obj)
-            obj.parent = root_obj
             log("Object created", obj)
 
-            create_objects(prim)
+            create_objects(obj, prim)
 
-    create_objects(stage.GetPseudoRoot())
+    create_objects(None, stage.GetPseudoRoot())
