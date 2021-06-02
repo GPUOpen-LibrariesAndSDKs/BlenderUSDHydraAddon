@@ -26,9 +26,6 @@ log("Render Delegates", _render_delegates)
 
 
 class RenderSettings(bpy.types.PropertyGroup):
-    def data_source_update(self, context):
-        usd_collection.update(context, self.data_source)
-
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=((name, display_name, f"Hydra render delegate: {display_name}")
@@ -37,8 +34,7 @@ class RenderSettings(bpy.types.PropertyGroup):
     )
     data_source: bpy.props.StringProperty(
         name="Data Source",
-        default="",
-        update=data_source_update
+        default=""
     )
 
     @property
@@ -50,11 +46,22 @@ class RenderSettings(bpy.types.PropertyGroup):
         return self.use_usd_nodegraph and get_usd_nodetree() is not None
 
 
+class ViewportRenderSettings(bpy.types.PropertyGroup):
+    def data_source_update(self, context):
+        usd_collection.update(context, self.data_source)
+
+    data_source: bpy.props.StringProperty(
+        name="Data Source",
+        default="",
+        update=data_source_update
+    )
+
+
 class SceneProperties(HdUSDProperties):
     bl_type = bpy.types.Scene
 
     final: bpy.props.PointerProperty(type=RenderSettings)
-    viewport: bpy.props.PointerProperty(type=RenderSettings)
+    viewport: bpy.props.PointerProperty(type=ViewportRenderSettings)
 
     rpr_viewport_cpu_device: bpy.props.BoolProperty(
         name="CPU Viewport Render Device",

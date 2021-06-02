@@ -55,6 +55,7 @@ register, unregister = bpy.utils.register_classes_factory((
     node.NodeProperties,
 
     scene.RenderSettings,
+    scene.ViewportRenderSettings,
     scene.SceneProperties,
 
     object.ObjectProperties,

@@ -61,6 +61,7 @@ class USDNode(bpy.types.Node):
             stage = self.compute(group_nodes=group_nodes, **kwargs)
             self.cached_stage.assign(stage)
             self.hdusd.usd_list.update_items()
+            self.node_computed()
 
         return stage
 
@@ -85,6 +86,10 @@ class USDNode(bpy.types.Node):
 
         # getting corresponded NodeParser class
         return node.final_compute(group_nodes, **kwargs)
+
+    def node_computed(self):
+        """Notifier that stage for this node has been already computed"""
+        pass
 
     # HELPER FUNCTIONS
     # Child classes should use them to do their compute

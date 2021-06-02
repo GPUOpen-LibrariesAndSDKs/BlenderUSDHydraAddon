@@ -18,8 +18,4 @@ import mathutils
 
 def get_xform_transform(xform):
     transform = mathutils.Matrix(xform.GetLocalTransformation())
-    #ops = xform.GetOrderedXformOps()
-    #for op in ops:
-    #    transform = mathutils.Matrix(op.GetOpTransform(0)) @ transform
-
     return transform.transposed()
