@@ -26,10 +26,18 @@ log("Render Delegates", _render_delegates)
 
 
 class RenderSettings(bpy.types.PropertyGroup):
+    delegate_items = tuple((name, display_name, f"Hydra render delegate: {display_name}")
+                           for name, display_name in _render_delegates.items())
+
+    @property
+    def is_gl_delegate(self):
+        return self.delegate == 'HdStormRendererPlugin'
+
+
+class FinalRenderSettings(RenderSettings):
     delegate: bpy.props.EnumProperty(
         name="Renderer",
-        items=((name, display_name, f"Hydra render delegate: {display_name}")
-               for name, display_name in _render_delegates.items()),
+        items=RenderSettings.delegate_items,
         default='HdRprPlugin',
     )
     data_source: bpy.props.StringProperty(
@@ -37,18 +45,16 @@ class RenderSettings(bpy.types.PropertyGroup):
         default=""
     )
 
-    @property
-    def is_gl_delegate(self):
-        return self.delegate == 'HdStormRendererPlugin'
 
-    @property
-    def is_usd_nodegraph(self):
-        return self.use_usd_nodegraph and get_usd_nodetree() is not None
+class ViewportRenderSettings(RenderSettings):
+    delegate: bpy.props.EnumProperty(
+        name="Renderer",
+        items=RenderSettings.delegate_items,
+        default='HdRprPlugin',
+    )
 
-
-class ViewportRenderSettings(bpy.types.PropertyGroup):
     def data_source_update(self, context):
-        usd_collection.update(context, self.data_source)
+        usd_collection.update(context)
 
     data_source: bpy.props.StringProperty(
         name="Data Source",
@@ -60,7 +66,7 @@ class ViewportRenderSettings(bpy.types.PropertyGroup):
 class SceneProperties(HdUSDProperties):
     bl_type = bpy.types.Scene
 
-    final: bpy.props.PointerProperty(type=RenderSettings)
+    final: bpy.props.PointerProperty(type=FinalRenderSettings)
     viewport: bpy.props.PointerProperty(type=ViewportRenderSettings)
 
     rpr_viewport_cpu_device: bpy.props.BoolProperty(

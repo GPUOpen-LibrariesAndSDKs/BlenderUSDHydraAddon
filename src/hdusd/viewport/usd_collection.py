@@ -21,9 +21,10 @@ log = logging.Log(tag='usd_collection')
 COLLECTION_NAME = "USD NodeTree"
 
 
-def update(context, usd_tree_name):
+def update(context):
     clear(context)
 
+    usd_tree_name = context.scene.hdusd.viewport.data_source
     if not usd_tree_name:
         return
 
@@ -74,3 +75,13 @@ def create(context, stage):
             create_objects(obj, prim)
 
     create_objects(None, stage.GetPseudoRoot())
+
+
+def scene_save_pre():
+    context = bpy.context
+    clear(context)
+
+
+def scene_save_post():
+    context = bpy.context
+    update(context)

@@ -43,3 +43,17 @@ def on_depsgraph_update_post(scene, depsgraph):
 
     usd_list.depsgraph_update(depsgraph)
     node_tree.depsgraph_update(depsgraph)
+
+
+@bpy.app.handlers.persistent
+def on_save_pre(*args):
+    log("on_save_pre", args)
+    from ..viewport import usd_collection
+    usd_collection.scene_save_pre()
+
+
+@bpy.app.handlers.persistent
+def on_save_post(*args):
+    log("on_save_post", args)
+    from ..viewport import usd_collection
+    usd_collection.scene_save_post()
