@@ -71,7 +71,8 @@ class ObjectProperties(HdUSDProperties):
         prim_obj = self.id_data
 
         sdf_path = str(prim.GetPath())
-        obj_name = f"{'.' * sdf_path.count('/')}{prim.GetName()}"
+        # obj_name = f"{'.' * sdf_path.count('/')}{prim.GetName()}"
+        obj_name = f"{prim.GetName()}"
 
         self.is_usd = True
         self.sdf_path = sdf_path
@@ -79,3 +80,4 @@ class ObjectProperties(HdUSDProperties):
         prim_obj.name = obj_name
         prim_obj.parent = root_obj
         prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
+        prim_obj.hide_viewport = True
