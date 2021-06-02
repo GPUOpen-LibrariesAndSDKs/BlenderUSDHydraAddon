@@ -48,6 +48,7 @@ from . import (
     world,
     usd_list,
     mx_nodes,
+    object,
 )
 
 
@@ -88,6 +89,8 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     mx_nodes.HDUSD_MX_OP_export_console,
     mx_nodes.HDUSD_MX_OP_create_basic_nodes,
     mx_nodes.HDUSD_MX_MATERIAL_PT_import_export,
+
+    object.HDUSD_OBJECT_PT_usd_settings,
 ])
 
 
