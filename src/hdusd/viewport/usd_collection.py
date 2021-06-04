@@ -64,7 +64,7 @@ def create(context, stage):
     def create_objects(root_obj, root_prim):
         for prim in root_prim.GetAllChildren():
             obj = bpy.data.objects.new('/', None)
-            obj.hdusd.sync_from_prim_collection(root_obj, prim)
+            obj.hdusd.sync_from_prim(root_obj, prim)
             collection.objects.link(obj)
 
             create_objects(obj, prim)
