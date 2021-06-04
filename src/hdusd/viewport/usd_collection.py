@@ -34,9 +34,6 @@ def update(context):
 
     stage = output_node.cached_stage()
     if not stage:
-        stage = output_node.final_compute('Input')
-
-    if not stage:
         return
 
     create(context, stage)
