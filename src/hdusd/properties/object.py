@@ -13,13 +13,15 @@
 # limitations under the License.
 #********************************************************************
 import bpy
-import mathutils
 
 from pxr import UsdGeom, Gf
 
 from . import HdUSDProperties, CachedStageProp
 from ..export.object import get_transform_local
 from ..utils import usd as usd_utils
+
+
+GEOM_TYPES = ('Xform', 'SkelRoot')
 
 
 class ObjectProperties(HdUSDProperties):
@@ -46,6 +48,7 @@ class ObjectProperties(HdUSDProperties):
         prim_obj.name = prim.GetName()
         prim_obj.parent = root_obj
         prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
+        prim_obj.hide_viewport = prim.GetTypeName() not in GEOM_TYPES
 
     def sync_to_prim(self):
         prim = self.get_prim()
