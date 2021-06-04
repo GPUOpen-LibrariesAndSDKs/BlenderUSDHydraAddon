@@ -122,15 +122,3 @@ def get_blender_prim_object(context):
         log("Object created", obj)
 
     return collection.objects[0]
-
-
-def depsgraph_update(depsgraph):
-    if not depsgraph.updates:
-        return
-
-    upd = depsgraph.updates[0]
-    obj = upd.id
-    if not isinstance(obj, bpy.types.Object) or not obj.hdusd.is_usd:
-        return
-
-    obj.hdusd.sync_to_prim()
