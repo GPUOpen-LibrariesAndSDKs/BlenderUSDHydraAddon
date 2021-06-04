@@ -18,7 +18,7 @@ import mathutils
 from pxr import UsdGeom, Gf
 
 from . import HdUSDProperties, CachedStageProp
-from ..export.object import get_transform
+from ..export.object import get_transform_local
 from ..utils import usd as usd_utils
 
 
@@ -28,6 +28,13 @@ class ObjectProperties(HdUSDProperties):
     is_usd: bpy.props.BoolProperty(default=False)
     sdf_path: bpy.props.StringProperty(default="/")
     cached_stage: bpy.props.PointerProperty(type=CachedStageProp)
+
+    def get_prim(self):
+        stage = self.cached_stage()
+        if not stage:
+            return None
+
+        return stage.GetPrimAtPath(self.sdf_path)
 
     def sync_from_prim(self, prim, context):
         prim_obj = self.id_data
@@ -57,27 +64,21 @@ class ObjectProperties(HdUSDProperties):
             prim_obj.select_set(True)
 
     def sync_to_prim(self):
-        stage = self.cached_stage()
-        if not stage:
+        prim = self.get_prim()
+        if not prim:
             return
 
         obj = self.id_data
-        prim = stage.GetPrimAtPath(self.sdf_path)
-
         xform = UsdGeom.Xform(prim)
-        xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform(obj)))
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform_local(obj)))
 
     def sync_from_prim_collection(self, root_obj, prim):
         prim_obj = self.id_data
 
-        sdf_path = str(prim.GetPath())
-        # obj_name = f"{'.' * sdf_path.count('/')}{prim.GetName()}"
-        obj_name = f"{prim.GetName()}"
-
         self.is_usd = True
-        self.sdf_path = sdf_path
+        self.sdf_path = str(prim.GetPath())
         self.cached_stage.assign(prim.GetStage())
-        prim_obj.name = obj_name
+
+        prim_obj.name = prim.GetName()
         prim_obj.parent = root_obj
         prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
-        prim_obj.hide_viewport = True

@@ -63,14 +63,9 @@ def create(context, stage):
 
     def create_objects(root_obj, root_prim):
         for prim in root_prim.GetAllChildren():
-            if prim.GetTypeName() not in ('Xform', 'SkelRoot'):
-                create_objects(root_obj, prim)
-                continue
-
             obj = bpy.data.objects.new('/', None)
             obj.hdusd.sync_from_prim_collection(root_obj, prim)
             collection.objects.link(obj)
-            log("Object created", obj)
 
             create_objects(obj, prim)
 
