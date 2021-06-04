@@ -82,3 +82,15 @@ class ObjectProperties(HdUSDProperties):
         prim_obj.name = prim.GetName()
         prim_obj.parent = root_obj
         prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
+
+
+def depsgraph_update(depsgraph):
+    if not depsgraph.updates:
+        return
+
+    upd = depsgraph.updates[0]
+    obj = upd.id
+    if not isinstance(obj, bpy.types.Object) or not obj.hdusd.is_usd:
+        return
+
+    obj.hdusd.sync_to_prim()
