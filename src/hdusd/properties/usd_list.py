@@ -125,7 +125,7 @@ def get_blender_prim_object(context):
 
 
 def depsgraph_update(depsgraph):
-    if len(depsgraph.updates) != 1:
+    if not depsgraph.updates:
         return
 
     upd = depsgraph.updates[0]
