@@ -91,6 +91,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     mx_nodes.HDUSD_MX_MATERIAL_PT_import_export,
 
     object.HDUSD_OBJECT_PT_usd_settings,
+    object.HDUSD_OP_usd_object_show_hide,
 ])
 
 
