@@ -19,7 +19,7 @@ from pxr import UsdGeom, Gf
 
 from . import HdUSDProperties, CachedStageProp
 from ..export.object import get_transform
-from ..mx_nodes.node_tree import MxNodeTree
+from ..utils import usd as usd_utils
 
 
 class ObjectProperties(HdUSDProperties):
@@ -46,12 +46,7 @@ class ObjectProperties(HdUSDProperties):
 
         self.cached_stage.assign(prim.GetStage())
         prim_obj.name = self.sdf_path = str(prim.GetPath())
-        xform = UsdGeom.Xform(prim)
-        ops = xform.GetOrderedXformOps()
-        if ops:
-            prim_obj.matrix_world = mathutils.Matrix(ops[0].Get()).transposed()
-        else:
-            prim_obj.matrix_world = mathutils.Matrix.Identity(4)
+        prim_obj.matrix_world = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
 
         # showing, activating and selecting prim object
         prim_obj.hide_viewport = False
@@ -71,3 +66,18 @@ class ObjectProperties(HdUSDProperties):
 
         xform = UsdGeom.Xform(prim)
         xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform(obj)))
+
+    def sync_from_prim_collection(self, root_obj, prim):
+        prim_obj = self.id_data
+
+        sdf_path = str(prim.GetPath())
+        # obj_name = f"{'.' * sdf_path.count('/')}{prim.GetName()}"
+        obj_name = f"{prim.GetName()}"
+
+        self.is_usd = True
+        self.sdf_path = sdf_path
+        self.cached_stage.assign(prim.GetStage())
+        prim_obj.name = obj_name
+        prim_obj.parent = root_obj
+        prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
+        prim_obj.hide_viewport = True

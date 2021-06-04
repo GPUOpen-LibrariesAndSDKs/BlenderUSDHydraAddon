@@ -27,6 +27,9 @@ from . import CachedStageProp
 from . import log
 
 
+COLLECTION_NAME = "HDUSD"
+
+
 class PrimPropertyItem(PropertyGroup):
     def value_float_update(self, context):
         if not self.name:
@@ -107,9 +110,9 @@ class UsdList(PropertyGroup):
 
 
 def get_blender_prim_object(context):
-    collection = bpy.data.collections.get("HDUSD")
+    collection = bpy.data.collections.get(COLLECTION_NAME)
     if not collection:
-        collection = bpy.data.collections.new("HDUSD")
+        collection = bpy.data.collections.new(COLLECTION_NAME)
         context.scene.collection.children.link(collection)
         log("Collection created", collection)
 

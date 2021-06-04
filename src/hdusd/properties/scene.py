@@ -16,6 +16,7 @@ import bpy
 from pxr import UsdImagingGL
 
 from ..usd_nodes.node_tree import get_usd_nodetree
+from ..viewport import usd_collection
 from . import HdUSDProperties, log
 
 
@@ -25,28 +26,48 @@ log("Render Delegates", _render_delegates)
 
 
 class RenderSettings(bpy.types.PropertyGroup):
-    delegate: bpy.props.EnumProperty(
-        name="Renderer",
-        items=((name, display_name, f"Hydra render delegate: {display_name}")
-               for name, display_name in _render_delegates.items()),
-        default='HdRprPlugin',
-    )
-    data_source: bpy.props.StringProperty(name="Data Source", default="")
+    delegate_items = tuple((name, display_name, f"Hydra render delegate: {display_name}")
+                           for name, display_name in _render_delegates.items())
 
     @property
     def is_gl_delegate(self):
         return self.delegate == 'HdStormRendererPlugin'
 
-    @property
-    def is_usd_nodegraph(self):
-        return self.use_usd_nodegraph and get_usd_nodetree() is not None
+
+class FinalRenderSettings(RenderSettings):
+    delegate: bpy.props.EnumProperty(
+        name="Renderer",
+        items=RenderSettings.delegate_items,
+        default='HdRprPlugin',
+    )
+    data_source: bpy.props.StringProperty(
+        name="Data Source",
+        default=""
+    )
+
+
+class ViewportRenderSettings(RenderSettings):
+    delegate: bpy.props.EnumProperty(
+        name="Renderer",
+        items=RenderSettings.delegate_items,
+        default='HdRprPlugin',
+    )
+
+    def data_source_update(self, context):
+        usd_collection.update(context)
+
+    data_source: bpy.props.StringProperty(
+        name="Data Source",
+        default="",
+        update=data_source_update
+    )
 
 
 class SceneProperties(HdUSDProperties):
     bl_type = bpy.types.Scene
 
-    final: bpy.props.PointerProperty(type=RenderSettings)
-    viewport: bpy.props.PointerProperty(type=RenderSettings)
+    final: bpy.props.PointerProperty(type=FinalRenderSettings)
+    viewport: bpy.props.PointerProperty(type=ViewportRenderSettings)
 
     rpr_viewport_cpu_device: bpy.props.BoolProperty(
         name="CPU Viewport Render Device",

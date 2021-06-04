@@ -46,6 +46,8 @@ def register():
     bpy.app.handlers.load_pre.append(handlers.on_load_pre)
     bpy.app.handlers.load_post.append(handlers.on_load_post)
     bpy.app.handlers.depsgraph_update_post.append(handlers.on_depsgraph_update_post)
+    bpy.app.handlers.save_pre.append(handlers.on_save_pre)
+    bpy.app.handlers.save_post.append(handlers.on_save_post)
 
 
 def unregister():
@@ -54,3 +56,5 @@ def unregister():
     bpy.app.handlers.load_pre.remove(handlers.on_load_pre)
     bpy.app.handlers.load_post.remove(handlers.on_load_post)
     bpy.app.handlers.depsgraph_update_post.remove(handlers.on_depsgraph_update_post)
+    bpy.app.handlers.save_pre.remove(handlers.on_save_pre)
+    bpy.app.handlers.save_post.remove(handlers.on_save_post)
