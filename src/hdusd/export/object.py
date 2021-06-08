@@ -29,6 +29,10 @@ def get_transform(obj: bpy.types.Object):
     return obj.matrix_world.transposed()
 
 
+def get_transform_local(obj: bpy.types.Object):
+    return obj.matrix_local.transposed()
+
+
 def sync(objects_prim, obj: bpy.types.Object, **kwargs):
     """ sync the object and any data attached """
     log("sync", obj, obj.type)

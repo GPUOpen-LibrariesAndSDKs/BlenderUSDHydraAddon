@@ -21,7 +21,7 @@ from pxr import UsdGeom
 
 from ..utils.stage_cache import CachedStage
 from ..utils import depsgraph_objects
-from ..export import sdf_path, object, world
+from ..export import object, world
 
 from ..utils import logging
 log = logging.Log(tag='engine')

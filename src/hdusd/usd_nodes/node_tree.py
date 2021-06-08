@@ -35,7 +35,7 @@ class USDTree(bpy.types.ShaderNodeTree):
     COMPAT_ENGINES = {'HdUSD'}
 
     _is_updating = False
-    _is_node_safe_call = False
+    _is_safe_call = False
 
     @classmethod
     def poll(cls, context):
@@ -70,7 +70,7 @@ class USDTree(bpy.types.ShaderNodeTree):
 
     # this is called from Blender
     def update(self):
-        if self._is_node_safe_call:
+        if self._is_safe_call:
             return
 
         self._reset_nodes(self.nodes, False)
@@ -87,15 +87,14 @@ class USDTree(bpy.types.ShaderNodeTree):
 
     def safe_call(self, op, *args, **kwargs):
         """This function prevents call of self.update() during calling our function"""
-        if self._is_node_safe_call:
-            op(*args, **kwargs)
-            return
+        if self._is_safe_call:
+            return op(*args, **kwargs)
 
-        self._is_node_safe_call = True
+        self._is_safe_call = True
         try:
-            op(*args, **kwargs)
+            return op(*args, **kwargs)
         finally:
-            self._is_node_safe_call = False
+            self._is_safe_call = False
 
     def add_basic_nodes(self, source='SCENE'):
         """ Reset basic node tree structure using scene or USD file as an input """

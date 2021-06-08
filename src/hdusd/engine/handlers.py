@@ -32,16 +32,13 @@ def on_load_post(*args):
     from ..usd_nodes import node_tree
     node_tree.reset()
 
-    from ..properties.usd_list import get_blender_prim_object
-    get_blender_prim_object(bpy.context)
-
 
 @bpy.app.handlers.persistent
 def on_depsgraph_update_post(scene, depsgraph):
-    from ..properties import usd_list
+    from ..properties import object
     from ..usd_nodes import node_tree
 
-    usd_list.depsgraph_update(depsgraph)
+    object.depsgraph_update(depsgraph)
     node_tree.depsgraph_update(depsgraph)
 
 

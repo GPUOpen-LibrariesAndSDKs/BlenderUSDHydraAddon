@@ -27,9 +27,6 @@ from . import CachedStageProp
 from . import log
 
 
-COLLECTION_NAME = "HDUSD"
-
-
 class PrimPropertyItem(PropertyGroup):
     def value_float_update(self, context):
         if not self.name:
@@ -69,16 +66,12 @@ class UsdListItem(PropertyGroup):
 
 class UsdList(PropertyGroup):
     def item_index_update(self, context):
-        prim_obj = get_blender_prim_object(context)
-        
         self.prim_properties.clear()
         if self.item_index == -1:
-            prim_obj.hdusd.sync_from_prim(None, context)
             return
 
         item = self.items[self.item_index]
         prim = self.get_prim(item)
-        prim_obj.hdusd.sync_from_prim(prim, context)
 
         def add_prop(name, value):
             prop = self.prim_properties.add()
@@ -107,30 +100,3 @@ class UsdList(PropertyGroup):
     def get_prim(self, item):
         stage = self.cached_stage()
         return stage.GetPrimAtPath(item.sdf_path) if stage else None
-
-
-def get_blender_prim_object(context):
-    collection = bpy.data.collections.get(COLLECTION_NAME)
-    if not collection:
-        collection = bpy.data.collections.new(COLLECTION_NAME)
-        context.scene.collection.children.link(collection)
-        log("Collection created", collection)
-
-        obj = bpy.data.objects.new("/", None)
-        obj.hdusd.is_usd = True
-        collection.objects.link(obj)
-        log("Object created", obj)
-
-    return collection.objects[0]
-
-
-def depsgraph_update(depsgraph):
-    if len(depsgraph.updates) != 1:
-        return
-
-    upd = depsgraph.updates[0]
-    obj = upd.id
-    if not isinstance(obj, bpy.types.Object) or not obj.hdusd.is_usd:
-        return
-
-    obj.hdusd.sync_to_prim()
