@@ -18,8 +18,9 @@ import textwrap
 import bpy
 import bgl
 from bpy_extras import view3d_utils
+import weakref
 
-from pxr import Usd
+from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
 
 from .engine import Engine, depsgraph_objects
@@ -153,9 +154,20 @@ class ViewportEngine(Engine):
     """ Viewport render engine """
 
     TYPE = 'VIEWPORT'
+    _engine_refs = set()
+
+    @classmethod
+    def output_node_computed(cls, nodetree):
+        for engine_ref in cls._engine_refs:
+            engine = engine_ref()
+            output_node = nodetree.get_output_node()
+            engine.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
 
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
+
+        # adding current engine to engine refs
+        self._engine_refs.add(weakref.ref(self))
 
         self.view_settings = None
         self.renderer = None
@@ -172,6 +184,25 @@ class ViewportEngine(Engine):
     def __del__(self):
         # explicit renderer deletion
         self.renderer = None
+
+        # removing current engine from engine refs
+        self._engine_refs.remove(weakref.ref(self))
+
+    def nodetree_stage_changed(self, stage):
+        if not stage:
+            return stage
+
+        engine_stage = self.stage
+        root_prim = engine_stage.GetPseudoRoot()
+
+        for prim in engine_stage.GetPseudoRoot().GetAllChildren():
+            engine_stage.RemovePrim(prim.GetPath())
+
+        for prim in stage.GetPseudoRoot().GetAllChildren():
+            override_prim = engine_stage.OverridePrim(
+                root_prim.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
+                                                       prim.GetPath())
 
     def notify_status(self, info, status, redraw=True):
         """ Display export progress status """
@@ -208,14 +239,15 @@ class ViewportEngine(Engine):
         # self.renderer.SetRendererSetting('renderQuality', 'Northstar')
 
         if self.data_source:
+            stage = self.cached_stage.create()
+            UsdGeom.SetStageMetersPerUnit(stage, 1)
+            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
             nodetree = bpy.data.node_groups[self.data_source]
-            stage = nodegraph.sync(
-                nodetree,
-                space_data = self.space_data,
-                use_scene_lights = self.shading_data.use_scene_lights,
-                is_gl_delegate=self.is_gl_delegate,
-            )
-            self.cached_stage.assign(stage)
+
+            output_node = nodetree.get_output_node()
+            self.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
+
         else:
             stage = self.cached_stage.create()
             self._export_depsgraph(

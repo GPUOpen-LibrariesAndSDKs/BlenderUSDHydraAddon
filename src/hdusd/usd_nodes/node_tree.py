@@ -18,6 +18,7 @@ from .nodes.hydra_render import HydraRenderNode
 from .nodes.print_file import PrintFileNode
 from .nodes.write_file import WriteFileNode
 from ..viewport import usd_collection
+from ..engine.viewport_engine import ViewportEngine
 
 
 class USDTree(bpy.types.ShaderNodeTree):
@@ -120,6 +121,8 @@ class USDTree(bpy.types.ShaderNodeTree):
         context = bpy.context
         if context.scene.hdusd.viewport.data_source == self.name:
             usd_collection.update(context)
+
+            ViewportEngine.output_node_computed(self)
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
