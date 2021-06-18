@@ -396,12 +396,17 @@ class ViewportEngine(Engine):
 
 
 class ViewportEngineNodetree(ViewportEngine):
+    # Set of references of created ViewportEngineNodetree engines.
+    # Will be used for notifications from USD node tree
     _engine_refs = set()
 
     @classmethod
-    def output_node_computed(cls, nodetree):
+    def nodetree_output_node_computed(cls, nodetree):
         for engine_ref in cls._engine_refs:
             engine = engine_ref()
+            if engine.data_source != nodetree.name:
+                continue
+
             output_node = nodetree.get_output_node()
             engine.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
 
@@ -414,7 +419,7 @@ class ViewportEngineNodetree(ViewportEngine):
     def __del__(self):
         super().__del__()
 
-        # removing current engine from engine refs
+        # removing current engine from _engine_refs
         self._engine_refs.remove(weakref.ref(self))
 
     def _sync(self, context, depsgraph):
@@ -446,12 +451,14 @@ class ViewportEngineNodetree(ViewportEngine):
         engine_stage = self.stage
         root_prim = engine_stage.GetPseudoRoot()
 
+        # removing all prims in engine_stage
         for prim in engine_stage.GetPseudoRoot().GetAllChildren():
             engine_stage.RemovePrim(prim.GetPath())
 
         if not stage:
             return
 
+        # creating overrides from nodetree stage
         for prim in stage.GetPseudoRoot().GetAllChildren():
             override_prim = engine_stage.OverridePrim(
                 root_prim.GetPath().AppendChild(prim.GetName()))
