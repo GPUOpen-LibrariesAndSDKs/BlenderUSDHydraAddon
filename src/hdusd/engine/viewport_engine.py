@@ -154,20 +154,9 @@ class ViewportEngine(Engine):
     """ Viewport render engine """
 
     TYPE = 'VIEWPORT'
-    _engine_refs = set()
-
-    @classmethod
-    def output_node_computed(cls, nodetree):
-        for engine_ref in cls._engine_refs:
-            engine = engine_ref()
-            output_node = nodetree.get_output_node()
-            engine.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
 
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
-
-        # adding current engine to engine refs
-        self._engine_refs.add(weakref.ref(self))
 
         self.view_settings = None
         self.renderer = None
@@ -179,30 +168,12 @@ class ViewportEngine(Engine):
         self.shading_data = None
 
         self.is_gl_delegate = False
-        self.data_source = False
+
+        self.data_source = ""
 
     def __del__(self):
         # explicit renderer deletion
         self.renderer = None
-
-        # removing current engine from engine refs
-        self._engine_refs.remove(weakref.ref(self))
-
-    def nodetree_stage_changed(self, stage):
-        if not stage:
-            return stage
-
-        engine_stage = self.stage
-        root_prim = engine_stage.GetPseudoRoot()
-
-        for prim in engine_stage.GetPseudoRoot().GetAllChildren():
-            engine_stage.RemovePrim(prim.GetPath())
-
-        for prim in stage.GetPseudoRoot().GetAllChildren():
-            override_prim = engine_stage.OverridePrim(
-                root_prim.GetPath().AppendChild(prim.GetName()))
-            override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
-                                                       prim.GetPath())
 
     def notify_status(self, info, status, redraw=True):
         """ Display export progress status """
@@ -220,7 +191,6 @@ class ViewportEngine(Engine):
         settings = scene.hdusd.viewport
 
         self.is_gl_delegate = settings.is_gl_delegate
-        self.data_source = settings.data_source
 
         self.space_data = context.space_data
         self.shading_data = ShadingData(context)
@@ -238,29 +208,21 @@ class ViewportEngine(Engine):
         # self.renderer.SetRendererSetting('renderMode', 'Global Illumination')
         # self.renderer.SetRendererSetting('renderQuality', 'Northstar')
 
-        if self.data_source:
-            stage = self.cached_stage.create()
-            UsdGeom.SetStageMetersPerUnit(stage, 1)
-            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-
-            nodetree = bpy.data.node_groups[self.data_source]
-
-            output_node = nodetree.get_output_node()
-            self.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
-
-        else:
-            stage = self.cached_stage.create()
-            self._export_depsgraph(
-                stage, depsgraph,
-                space_data=self.space_data,
-                use_scene_lights=self.shading_data.use_scene_lights,
-                is_gl_delegate=self.is_gl_delegate,
-            )
+        self._sync(context, depsgraph)
 
         self.is_synced = True
         log('Finish sync')
 
-    def _sync_update_blend(self, context, depsgraph):
+    def _sync(self, context, depsgraph):
+        stage = self.cached_stage.create()
+        self._export_depsgraph(
+            stage, depsgraph,
+            space_data=self.space_data,
+            use_scene_lights=self.shading_data.use_scene_lights,
+            is_gl_delegate=self.is_gl_delegate,
+        )
+
+    def _sync_update(self, context, depsgraph):
         scene = depsgraph.scene
 
         root_prim = self.stage.GetPseudoRoot()
@@ -318,20 +280,6 @@ class ViewportEngine(Engine):
         if sync_collection:
             self.sync_objects_collection(depsgraph)
 
-    def _sync_update_nodegraph(self, context, depsgraph):
-        # get supported updates and sort by priorities
-        updates = []
-        for obj_type in (bpy.types.Scene,):
-            updates.extend(update for update in depsgraph.updates
-                           if isinstance(update.id, obj_type))
-
-        for update in updates:
-            obj = update.id
-            log("sync_update", obj)
-            if isinstance(obj, bpy.types.Scene):
-                self.update_render(obj)
-                continue
-
     def sync_update(self, context, depsgraph):
         """ sync just the updated things """
 
@@ -341,10 +289,7 @@ class ViewportEngine(Engine):
         if self.renderer.IsPauseRendererSupported():
             self.renderer.PauseRenderer()
 
-        if self.data_source:
-            self._sync_update_nodegraph(context, depsgraph)
-        else:
-            self._sync_update_blend(context, depsgraph)
+        self._sync_update(context, depsgraph)
 
         if self.renderer.IsPauseRendererSupported():
             self.renderer.ResumeRenderer()
@@ -414,7 +359,7 @@ class ViewportEngine(Engine):
         self.renderer.SetRendererPlugin(prop.delegate)
 
     def resync_scene_lights(self, scene):
-        if self.data_source or not self.shading_data.use_scene_lights:
+        if self.shading_data.use_scene_lights:
             return
 
         for obj in scene.objects:
@@ -448,3 +393,67 @@ class ViewportEngine(Engine):
                     continue
 
                 object.sync(root_prim, obj)
+
+
+class ViewportEngineNodetree(ViewportEngine):
+    _engine_refs = set()
+
+    @classmethod
+    def output_node_computed(cls, nodetree):
+        for engine_ref in cls._engine_refs:
+            engine = engine_ref()
+            output_node = nodetree.get_output_node()
+            engine.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
+
+    def __init__(self, rpr_engine):
+        super().__init__(rpr_engine)
+
+        # adding current engine to engine refs
+        self._engine_refs.add(weakref.ref(self))
+
+    def __del__(self):
+        super().__del__()
+
+        # removing current engine from engine refs
+        self._engine_refs.remove(weakref.ref(self))
+
+    def _sync(self, context, depsgraph):
+        self.data_source = depsgraph.scene.hdusd.viewport.data_source
+
+        stage = self.cached_stage.create()
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        nodetree = bpy.data.node_groups[self.data_source]
+        output_node = nodetree.get_output_node()
+        self.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
+
+    def _sync_update(self, context, depsgraph):
+        # get supported updates and sort by priorities
+        updates = []
+        for obj_type in (bpy.types.Scene,):
+            updates.extend(update for update in depsgraph.updates
+                           if isinstance(update.id, obj_type))
+
+        for update in updates:
+            obj = update.id
+            log("sync_update", obj)
+            if isinstance(obj, bpy.types.Scene):
+                self.update_render(obj)
+                continue
+
+    def nodetree_stage_changed(self, stage):
+        engine_stage = self.stage
+        root_prim = engine_stage.GetPseudoRoot()
+
+        for prim in engine_stage.GetPseudoRoot().GetAllChildren():
+            engine_stage.RemovePrim(prim.GetPath())
+
+        if not stage:
+            return
+
+        for prim in stage.GetPseudoRoot().GetAllChildren():
+            override_prim = engine_stage.OverridePrim(
+                root_prim.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
+                                                       prim.GetPath())
