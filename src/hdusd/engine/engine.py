@@ -119,11 +119,16 @@ class HdUSDEngine(bpy.types.RenderEngine):
         log('view_update', self.as_pointer())
 
         try:
-            if self.engine:
+            data_source = depsgraph.scene.hdusd.viewport.data_source
+            if self.engine and self.engine.data_source == data_source:
                 self.engine.sync_update(context, depsgraph)
                 return
 
-            self.engine = viewport_engine.ViewportEngine(self)
+            if data_source:
+                self.engine = viewport_engine.ViewportEngineNodetree(self)
+            else:
+                self.engine = viewport_engine.ViewportEngine(self)
+
             self.engine.sync(context, depsgraph)
 
         except Exception as e:
