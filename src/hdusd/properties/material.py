@@ -27,7 +27,10 @@ log = logging.Log(tag='export.material')
 class MaterialProperties(HdUSDProperties):
     bl_type = bpy.types.Material
 
-    mx_node_tree: bpy.props.PointerProperty(type=MxNodeTree)
+    def update_mx_node_tree(self, context):
+        self.reset()
+
+    mx_node_tree: bpy.props.PointerProperty(type=MxNodeTree, update=update_mx_node_tree)
 
     @property
     def output_node(self):
@@ -50,3 +53,15 @@ class MaterialProperties(HdUSDProperties):
         node_parser.export()
 
         return doc
+
+    def reset(self):
+        print("reset", self)
+
+
+def depsgraph_update(depsgraph):
+    if not depsgraph.updates:
+        return
+
+    update_id = depsgraph.updates[0].id
+    if isinstance(update_id, bpy.types.Material):
+        update_id.hdusd.reset()

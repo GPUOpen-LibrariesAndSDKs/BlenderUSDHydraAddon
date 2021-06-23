@@ -293,6 +293,9 @@ class MxNode(bpy.types.ShaderNode):
             if f:
                 self.inputs[i].hide = not getattr(self, self._folder_prop_name(f))
 
+        nodetree = self.id_data
+        nodetree.reset()
+
     def ui_folders_check(self):
         if not self._ui_folders:
             return

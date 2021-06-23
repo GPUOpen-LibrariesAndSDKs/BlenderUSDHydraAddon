@@ -139,16 +139,17 @@ class RenderTaskTree(bpy.types.ShaderNodeTree):
 
 def get_usd_nodetree():
     ''' return first USD nodetree found '''
-    return next((ng for ng in bpy.data.node_groups if isinstance(ng, USDTree)), None)
+    return next((nodetree for nodetree in bpy.data.node_groups if isinstance(nodetree, USDTree)),
+                None)
 
 
 def reset():
-    for group in bpy.data.node_groups:
-        if isinstance(group, USDTree):
-            group.reset()
+    for nodetree in bpy.data.node_groups:
+        if isinstance(nodetree, USDTree):
+            nodetree.reset()
 
 
 def depsgraph_update(depsgraph):
-    for group in bpy.data.node_groups:
-        if isinstance(group, USDTree):
-            group.depsgraph_update(depsgraph)
+    for nodetree in bpy.data.node_groups:
+        if isinstance(nodetree, USDTree):
+            nodetree.depsgraph_update(depsgraph)
