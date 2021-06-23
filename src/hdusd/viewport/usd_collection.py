@@ -58,10 +58,12 @@ def update(context):
     paths_to_remove = obj_paths - prim_paths
     paths_to_add = prim_paths - obj_paths
 
+    log(f"Removing {len(paths_to_remove)} objects")
     for path in paths_to_remove:
         obj = objects.pop(path)
         bpy.data.objects.remove(obj)
 
+    log(f"Adding {len(paths_to_add)} objects")
     for path in sorted(paths_to_add):
         parent_path = str(Sdf.Path(path).GetParentPath())
         parent_obj = None if parent_path == '/' else objects[parent_path]
@@ -79,6 +81,7 @@ def clear(context):
     if not collection:
         return
 
+    log("Removing collection", collection)
     for obj in collection.objects:
         if obj.hdusd.is_usd:
             bpy.data.objects.remove(obj)
