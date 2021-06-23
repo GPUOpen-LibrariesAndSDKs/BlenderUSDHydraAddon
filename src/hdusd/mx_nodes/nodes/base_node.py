@@ -91,6 +91,10 @@ class MxNodeDef(bpy.types.PropertyGroup):
     def _input_prop_name(name):
         return 'in_' + name
 
+    def update_prop(self, context):
+        nodetree = self.id_data
+        nodetree.reset()
+
     def get_input(self, name):
         return getattr(self, self._input_prop_name(name))
 
@@ -134,19 +138,22 @@ class MxNode(bpy.types.ShaderNode):
         return 'nd_' + name
 
     def init(self, context):
-        nodedef = self.prop.nodedef()
+        def init_():
+            nodedef = self.prop.nodedef()
 
-        for mx_input in nodedef.getInputs():
-            if mx_input.getAttribute('uniform') == 'true':
-                continue
+            for mx_input in nodedef.getInputs():
+                if mx_input.getAttribute('uniform') == 'true':
+                    continue
 
-            self.create_input(mx_input)
+                self.create_input(mx_input)
 
-        for mx_output in nodedef.getOutputs():
-            self.create_output(mx_output)
+            for mx_output in nodedef.getOutputs():
+                self.create_output(mx_output)
 
-        if self._ui_folders:
-            self.ui_folders_update(context)
+            if self._ui_folders:
+                self.ui_folders_update(context)
+
+        self.id_data.safe_call(init_)
 
     def draw_buttons(self, context, layout):
         if len(self._data_types) > 1:
