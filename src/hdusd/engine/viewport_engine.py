@@ -155,6 +155,8 @@ class ViewportEngine(Engine):
 
     TYPE = 'VIEWPORT'
 
+    _engine_refs = set()
+
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
 
@@ -171,9 +173,15 @@ class ViewportEngine(Engine):
 
         self.data_source = ""
 
+        # adding current engine to engine refs
+        self._engine_refs.add(weakref.ref(self))
+
     def __del__(self):
         # explicit renderer deletion
         self.renderer = None
+
+        # removing current engine from _engine_refs
+        self._engine_refs.remove(weakref.ref(self))
 
     def notify_status(self, info, status, redraw=True):
         """ Display export progress status """
@@ -398,29 +406,19 @@ class ViewportEngine(Engine):
 class ViewportEngineNodetree(ViewportEngine):
     # Set of references of created ViewportEngineNodetree engines.
     # Will be used for notifications from USD node tree
-    _engine_refs = set()
 
     @classmethod
     def nodetree_output_node_computed(cls, nodetree):
         for engine_ref in cls._engine_refs:
             engine = engine_ref()
+            if not isinstance(engine, ViewportEngineNodetree):
+                continue
+
             if engine.data_source != nodetree.name:
                 continue
 
             output_node = nodetree.get_output_node()
             engine.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
-
-    def __init__(self, rpr_engine):
-        super().__init__(rpr_engine)
-
-        # adding current engine to engine refs
-        self._engine_refs.add(weakref.ref(self))
-
-    def __del__(self):
-        super().__del__()
-
-        # removing current engine from _engine_refs
-        self._engine_refs.remove(weakref.ref(self))
 
     def _sync(self, context, depsgraph):
         self.data_source = depsgraph.scene.hdusd.viewport.data_source

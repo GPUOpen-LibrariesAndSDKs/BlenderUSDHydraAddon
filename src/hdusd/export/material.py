@@ -39,71 +39,15 @@ def sync(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
 
     log("sync", mat, obj)
 
-    if mat.hdusd.mx_node_tree:
-        return sync_mx(materials_prim, mat.hdusd.mx_node_tree, obj)
-
-    return sync_as_mx(materials_prim, mat, obj)
-
-
-def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
-    """ Recreates existing material """
-
-    log("sync_update", mat)
-
-    stage = materials_prim.GetStage()
-    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
-    usd_mat = stage.GetPrimAtPath(mat_path)
-    if usd_mat.IsValid():
-        stage.RemovePrim(mat_path)
-
-    sync(materials_prim, mat, obj)
-
-
-def sync_mx(materials_prim, mx_node_tree, obj):
-    log("sync_mx", mx_node_tree, obj)
-
-    doc = mx_node_tree.export()
+    doc = mat.hdusd.export(obj)
     if not doc:
-        log.warn("MX export failed", mx_node_tree)
+        log.warn("MX export failed", mat)
         return None
 
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
     surfacematerial = next(node for node in doc.getNodes()
                            if node.getCategory() == 'surfacematerial')
-
-    stage = materials_prim.GetStage()
-    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mx_node_tree)}"
-    usd_mat = UsdShade.Material.Define(stage, mat_path)
-    shader = UsdShade.Shader.Define(stage, f"{usd_mat.GetPath()}/rpr_materialx_node")
-    shader.CreateIdAttr("rpr_materialx_node")
-
-    shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
-    shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(surfacematerial.getName())
-
-    out_mat = usd_mat.CreateSurfaceOutput("rpr")
-    out_shader = shader.CreateOutput('surface', Sdf.ValueTypeNames.Token)
-    out_mat.ConnectToSource(out_shader)
-    # shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
-
-    return usd_mat
-
-
-def sync_as_mx(materials_prim, mat, obj):
-    log("sync_as_mx", mat, obj)
-
-    doc = mat.hdusd.export(obj)
-    if not doc:
-        log.warn("Material export as MX failed", mat)
-        return None
-
-    mx_file = utils.get_temp_file(".mtlx")
-    mx.writeToXmlFile(doc, str(mx_file))
-    surfacematerial = next((node for node in doc.getNodes()
-                           if node.getCategory() == 'surfacematerial'), None)
-    if surfacematerial is None:
-        log.warn(f"No valid Surface shader found for material {mat.name}")
-        return None
 
     stage = materials_prim.GetStage()
     mat_path = materials_prim.GetPath().AppendChild(sdf_name(mat))
@@ -120,3 +64,17 @@ def sync_as_mx(materials_prim, mat, obj):
     # shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
 
     return usd_mat
+
+
+def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
+    """ Recreates existing material """
+
+    log("sync_update", mat)
+
+    stage = materials_prim.GetStage()
+    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
+    usd_mat = stage.GetPrimAtPath(mat_path)
+    if usd_mat.IsValid():
+        stage.RemovePrim(mat_path)
+
+    sync(materials_prim, mat, obj)

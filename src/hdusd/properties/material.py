@@ -40,6 +40,9 @@ class MaterialProperties(HdUSDProperties):
                      node.is_active_output), None)
 
     def export(self, obj: bpy.types.Object) -> [mx.Document, None]:
+        if self.mx_node_tree:
+            return self.mx_node_tree.export()
+
         material = self.id_data
         output_node = self.output_node
 
