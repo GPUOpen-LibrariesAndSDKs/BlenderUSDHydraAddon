@@ -264,13 +264,6 @@ class ViewportEngine(Engine):
 
                 continue
 
-            if isinstance(obj, bpy.types.Material):
-                mesh_obj = context.object if context.object and \
-                                             context.object.type == 'MESH' else None
-                materials_prim = self.stage.DefinePrim(f"{root_prim.GetPath()}/materials")
-                material.sync_update(materials_prim, obj, mesh_obj)
-                continue
-
             if isinstance(obj, bpy.types.Object):
                 if obj.type == 'CAMERA':
                     continue
