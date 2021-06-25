@@ -93,7 +93,7 @@ class MxNodeDef(bpy.types.PropertyGroup):
 
     def update_prop(self, context):
         nodetree = self.id_data
-        nodetree.reset()
+        nodetree.update_()
 
     def get_input(self, name):
         return getattr(self, self._input_prop_name(name))
@@ -294,7 +294,7 @@ class MxNode(bpy.types.ShaderNode):
                 self.inputs[i].hide = not getattr(self, self._folder_prop_name(f))
 
         nodetree = self.id_data
-        nodetree.reset()
+        nodetree.update_()
 
     def ui_folders_check(self):
         if not self._ui_folders:

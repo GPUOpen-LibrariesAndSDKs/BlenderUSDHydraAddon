@@ -144,16 +144,16 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
             self.links.new(node.outputs[0], mat_node.inputs[0])
 
         self.safe_call(create_nodes)
-        self.reset()
+        self.update_()
 
     # this is called from Blender
     def update(self):
         if self._is_safe_call:
             return
 
-        self.reset()
+        self.update_()
 
-    def reset(self):
+    def update_(self):
         for material in bpy.data.materials:
             if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
                 material.hdusd.update()
