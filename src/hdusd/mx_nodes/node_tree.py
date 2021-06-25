@@ -154,6 +154,6 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         self.reset()
 
     def reset(self):
-        for mat in bpy.data.materials:
-            if mat.hdusd.mx_node_tree and mat.hdusd.mx_node_tree.name == self.name:
-                mat.hdusd.reset()
+        for material in bpy.data.materials:
+            if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
+                material.hdusd.update()

@@ -157,6 +157,15 @@ class ViewportEngine(Engine):
 
     _engine_refs = set()
 
+    @classmethod
+    def material_update(cls, material):
+        for engine_ref in cls._engine_refs:
+            engine = engine_ref()
+            if isinstance(engine, ViewportEngineNodetree):
+                continue
+
+            engine.update_material(material)
+
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
 
@@ -401,6 +410,9 @@ class ViewportEngine(Engine):
                     continue
 
                 object.sync(root_prim, obj)
+
+    def update_material(self, material):
+        print(self, material)
 
 
 class ViewportEngineNodetree(ViewportEngine):

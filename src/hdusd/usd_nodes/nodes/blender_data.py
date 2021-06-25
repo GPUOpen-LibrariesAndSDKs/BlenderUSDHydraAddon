@@ -177,3 +177,6 @@ class BlenderDataNode(USDNode):
         if is_updated:
             self.hdusd.usd_list.update_items()
             self._reset_next(True)
+
+    def material_update(self, material):
+        print(self, material)

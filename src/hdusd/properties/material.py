@@ -18,7 +18,8 @@ import MaterialX as mx
 from . import HdUSDProperties
 from ..mx_nodes.node_tree import MxNodeTree
 from ..bl_nodes.nodes import ShaderNodeOutputMaterial
-
+from ..usd_nodes import node_tree as usd_node_tree
+from ..engine.viewport_engine import ViewportEngine
 
 from ..utils import logging
 log = logging.Log(tag='export.material')
@@ -28,7 +29,7 @@ class MaterialProperties(HdUSDProperties):
     bl_type = bpy.types.Material
 
     def update_mx_node_tree(self, context):
-        self.reset()
+        self.update()
 
     mx_node_tree: bpy.props.PointerProperty(type=MxNodeTree, update=update_mx_node_tree)
 
@@ -57,8 +58,17 @@ class MaterialProperties(HdUSDProperties):
 
         return doc
 
-    def reset(self):
-        print("reset", self)
+    def update(self, is_depsgraph=False):
+        """
+        Main update callback function, which notifies that material was updated from both:
+        depsgraph or MaterialX node tree
+        """
+        if is_depsgraph and self.mx_node_tree:
+            return
+
+        material = self.id_data
+        usd_node_tree.material_update(material)
+        ViewportEngine.material_update(material)
 
 
 def depsgraph_update(depsgraph):
@@ -67,4 +77,5 @@ def depsgraph_update(depsgraph):
 
     update_id = depsgraph.updates[0].id
     if isinstance(update_id, bpy.types.Material):
-        update_id.hdusd.reset()
+        material = update_id
+        material.hdusd.update(True)
