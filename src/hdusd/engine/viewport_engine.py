@@ -24,7 +24,7 @@ from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
 
 from .engine import Engine, depsgraph_objects
-from ..export import nodegraph, camera, material, object, sdf_path
+from ..export import camera, material, object
 from .. import utils
 
 from ..utils import logging
@@ -411,8 +411,9 @@ class ViewportEngine(Engine):
 
                 object.sync(root_prim, obj)
 
-    def update_material(self, material):
-        print(self, material)
+    def update_material(self, mat):
+        stage = self.cached_stage()
+        material.sync_update_all(stage.GetPseudoRoot(), mat)
 
 
 class ViewportEngineNodetree(ViewportEngine):

@@ -17,7 +17,7 @@ import bpy
 from pxr import UsdGeom
 
 from .base_node import USDNode
-from ...export import object
+from ...export import object, material
 from ...utils import depsgraph_objects
 
 
@@ -178,5 +178,6 @@ class BlenderDataNode(USDNode):
             self.hdusd.usd_list.update_items()
             self._reset_next(True)
 
-    def material_update(self, material):
-        print(self, material)
+    def material_update(self, mat):
+        stage = self.cached_stage()
+        material.sync_update_all(stage.GetPseudoRoot(), mat)

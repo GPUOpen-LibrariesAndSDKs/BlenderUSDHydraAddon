@@ -78,3 +78,7 @@ def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
         stage.RemovePrim(mat_path)
 
     sync(materials_prim, mat, obj)
+
+
+def sync_update_all(root_prim, mat: bpy.types.Material):
+    print(root_prim, mat)
