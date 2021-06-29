@@ -19,7 +19,7 @@ from . import HdUSDProperties
 from ..mx_nodes.node_tree import MxNodeTree
 from ..bl_nodes.nodes import ShaderNodeOutputMaterial
 from ..usd_nodes import node_tree as usd_node_tree
-from ..engine.viewport_engine import ViewportEngine
+from ..engine.viewport_engine import ViewportEngineScene
 
 from ..utils import logging
 log = logging.Log(tag='export.material')
@@ -68,7 +68,7 @@ class MaterialProperties(HdUSDProperties):
 
         material = self.id_data
         usd_node_tree.material_update(material)
-        ViewportEngine.material_update(material)
+        ViewportEngineScene.material_update(material)
 
 
 def depsgraph_update(depsgraph):

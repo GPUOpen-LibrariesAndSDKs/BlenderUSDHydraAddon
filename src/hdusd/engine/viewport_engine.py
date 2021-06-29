@@ -155,16 +155,16 @@ class ViewportEngine(Engine):
 
     TYPE = 'VIEWPORT'
 
+    # Set of references of created ViewportEngine engines.
+    # Will be used for notifications from other parts
     _engine_refs = set()
 
     @classmethod
-    def material_update(cls, material):
+    def get_engines(cls):
         for engine_ref in cls._engine_refs:
             engine = engine_ref()
-            if isinstance(engine, ViewportEngineNodetree):
-                continue
-
-            engine.update_material(material)
+            if isinstance(engine, cls):
+                yield engine
 
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
@@ -231,64 +231,10 @@ class ViewportEngine(Engine):
         log('Finish sync')
 
     def _sync(self, context, depsgraph):
-        stage = self.cached_stage.create()
-        self._export_depsgraph(
-            stage, depsgraph,
-            space_data=self.space_data,
-            use_scene_lights=self.shading_data.use_scene_lights,
-            is_gl_delegate=self.is_gl_delegate,
-        )
+        pass
 
     def _sync_update(self, context, depsgraph):
-        scene = depsgraph.scene
-
-        root_prim = self.stage.GetPseudoRoot()
-
-        # get supported updates and sort by priorities
-        updates = []
-        for obj_type in (bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection):
-            updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
-
-        sync_collection = False
-        sync_world = False
-
-        for update in updates:
-            obj = update.id
-            log("sync_update", obj)
-            if isinstance(obj, bpy.types.Scene):
-                self.update_render(obj)
-
-                # Outliner object visibility change will provide us only bpy.types.Scene update
-                # That's why we need to sync objects collection in the end
-                sync_collection = True
-
-                continue
-
-            if isinstance(obj, bpy.types.Object):
-                if obj.type == 'CAMERA':
-                    continue
-
-                if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
-                    continue
-
-                object.sync_update(root_prim, obj,
-                                   update.is_updated_geometry,
-                                   update.is_updated_transform,
-                                   is_gl_delegate=self.is_gl_delegate)
-                continue
-
-            if isinstance(obj, bpy.types.World):
-                sync_world = True
-
-            if isinstance(obj, bpy.types.Collection):
-                sync_collection = True
-                continue
-
-        if sync_world:
-            pass
-
-        if sync_collection:
-            self.sync_objects_collection(depsgraph)
+        pass
 
     def sync_update(self, context, depsgraph):
         """ sync just the updated things """
@@ -358,15 +304,83 @@ class ViewportEngine(Engine):
         else:
             self.notify_status("Rendering Done", "", False)
 
-    def update_render(self, scene):
-        prop = scene.hdusd.viewport
-        if self.is_gl_delegate != prop.is_gl_delegate:
-            self.is_gl_delegate = prop.is_gl_delegate
 
-            # update all scene lights since on renderer change
-            self.resync_scene_lights(scene)
+class ViewportEngineScene(ViewportEngine):
+    @classmethod
+    def material_update(cls, material):
+        for engine in cls.get_engines():
+            engine.update_material(material)
 
-        self.renderer.SetRendererPlugin(prop.delegate)
+    def update_material(self, mat):
+        stage = self.cached_stage()
+        material.sync_update_all(stage.GetPseudoRoot(), mat)
+
+    def _sync(self, context, depsgraph):
+        stage = self.cached_stage.create()
+        self._export_depsgraph(
+            stage, depsgraph,
+            space_data=self.space_data,
+            use_scene_lights=self.shading_data.use_scene_lights,
+            is_gl_delegate=self.is_gl_delegate,
+        )
+
+    def _sync_update(self, context, depsgraph):
+        scene = depsgraph.scene
+
+        root_prim = self.stage.GetPseudoRoot()
+
+        # get supported updates and sort by priorities
+        updates = []
+        for obj_type in (bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection):
+            updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
+
+        sync_collection = False
+        sync_world = False
+
+        for update in updates:
+            obj = update.id
+            log("sync_update", obj)
+            if isinstance(obj, bpy.types.Scene):
+                prop = scene.hdusd.viewport
+                if self.is_gl_delegate != prop.is_gl_delegate:
+                    self.is_gl_delegate = prop.is_gl_delegate
+
+                    # update all scene lights since on renderer change
+                    self.resync_scene_lights(scene)
+
+                self.renderer.SetRendererPlugin(prop.delegate)
+
+                # Outliner object visibility change will provide us only bpy.types.Scene update
+                # That's why we need to sync objects collection in the end
+                sync_collection = True
+
+                continue
+
+            if isinstance(obj, bpy.types.Object):
+                if obj.type == 'CAMERA':
+                    continue
+
+                if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
+                    continue
+
+                object.sync_update(root_prim, obj,
+                                   update.is_updated_geometry,
+                                   update.is_updated_transform,
+                                   is_gl_delegate=self.is_gl_delegate)
+                continue
+
+            if isinstance(obj, bpy.types.World):
+                sync_world = True
+
+            if isinstance(obj, bpy.types.Collection):
+                sync_collection = True
+                continue
+
+        if sync_world:
+            pass
+
+        if sync_collection:
+            self.sync_objects_collection(depsgraph)
 
     def resync_scene_lights(self, scene):
         if self.shading_data.use_scene_lights:
@@ -404,22 +418,11 @@ class ViewportEngine(Engine):
 
                 object.sync(root_prim, obj)
 
-    def update_material(self, mat):
-        stage = self.cached_stage()
-        material.sync_update_all(stage.GetPseudoRoot(), mat)
-
 
 class ViewportEngineNodetree(ViewportEngine):
-    # Set of references of created ViewportEngineNodetree engines.
-    # Will be used for notifications from USD node tree
-
     @classmethod
     def nodetree_output_node_computed(cls, nodetree):
-        for engine_ref in cls._engine_refs:
-            engine = engine_ref()
-            if not isinstance(engine, ViewportEngineNodetree):
-                continue
-
+        for engine in cls.get_engines():
             if engine.data_source != nodetree.name:
                 continue
 
@@ -448,7 +451,8 @@ class ViewportEngineNodetree(ViewportEngine):
             obj = update.id
             log("sync_update", obj)
             if isinstance(obj, bpy.types.Scene):
-                self.update_render(obj)
+                scene = obj
+                self.renderer.SetRendererPlugin(scene.hdusd.viewport.delegate)
                 continue
 
     def nodetree_stage_changed(self, stage):
