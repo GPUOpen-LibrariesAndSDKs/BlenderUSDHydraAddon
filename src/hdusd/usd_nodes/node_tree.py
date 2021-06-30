@@ -35,8 +35,8 @@ class USDTree(bpy.types.ShaderNodeTree):
     bl_idname = 'hdusd.USDTree'
     COMPAT_ENGINES = {'HdUSD'}
 
-    _is_updating = False
-    _is_safe_call = False
+    _is_resetting = False
+    _do_update = True
 
     @classmethod
     def poll(cls, context):
@@ -57,21 +57,23 @@ class USDTree(bpy.types.ShaderNodeTree):
         return secondary_output_node
 
     def _reset_nodes(self, nodes, is_hard):
-        self._is_updating = True
+        self._is_resetting = True
 
-        nodes = tuple(node for node in nodes if is_hard or node.use_hard_reset)
+        try:
+            nodes = tuple(node for node in nodes if is_hard or node.use_hard_reset)
 
-        for node in nodes:
-            node.free()
+            for node in nodes:
+                node.free()
 
-        for node in nodes:
-            node.final_compute()
+            for node in nodes:
+                node.final_compute()
 
-        self._is_updating = False
+        finally:
+            self._is_resetting = False
 
     # this is called from Blender
     def update(self):
-        if self._is_safe_call:
+        if not self._do_update:
             return
 
         self._reset_nodes(self.nodes, False)
@@ -80,22 +82,29 @@ class USDTree(bpy.types.ShaderNodeTree):
         self._reset_nodes(self.nodes, True)
 
     def depsgraph_update(self, depsgraph):
-        if self._is_updating:
+        if self._is_resetting:
             return
 
         for node in self.nodes:
             node.depsgraph_update(depsgraph)
 
-    def safe_call(self, op, *args, **kwargs):
+    def material_update(self, depsgraph):
+        if self._is_resetting:
+            return
+
+        for node in self.nodes:
+            node.material_update(depsgraph)
+
+    def no_update_call(self, op, *args, **kwargs):
         """This function prevents call of self.update() during calling our function"""
-        if self._is_safe_call:
+        if not self._do_update:
             return op(*args, **kwargs)
 
-        self._is_safe_call = True
+        self._do_update = False
         try:
             return op(*args, **kwargs)
         finally:
-            self._is_safe_call = False
+            self._do_update = True
 
     def add_basic_nodes(self, source='SCENE'):
         """ Reset basic node tree structure using scene or USD file as an input """
@@ -114,7 +123,7 @@ class USDTree(bpy.types.ShaderNodeTree):
 
             self.links.new(input_node.outputs[0], hydra_output.inputs[0])
 
-        self.safe_call(create_nodes)
+        self.no_update_call(create_nodes)
         self.reset()
 
     def output_node_computed(self):
@@ -139,16 +148,23 @@ class RenderTaskTree(bpy.types.ShaderNodeTree):
 
 def get_usd_nodetree():
     ''' return first USD nodetree found '''
-    return next((ng for ng in bpy.data.node_groups if isinstance(ng, USDTree)), None)
+    return next((nodetree for nodetree in bpy.data.node_groups if isinstance(nodetree, USDTree)),
+                None)
 
 
 def reset():
-    for group in bpy.data.node_groups:
-        if isinstance(group, USDTree):
-            group.reset()
+    for nodetree in bpy.data.node_groups:
+        if isinstance(nodetree, USDTree):
+            nodetree.reset()
 
 
 def depsgraph_update(depsgraph):
-    for group in bpy.data.node_groups:
-        if isinstance(group, USDTree):
-            group.depsgraph_update(depsgraph)
+    for nodetree in bpy.data.node_groups:
+        if isinstance(nodetree, USDTree):
+            nodetree.depsgraph_update(depsgraph)
+
+
+def material_update(material):
+    for nodetree in bpy.data.node_groups:
+        if isinstance(nodetree, USDTree):
+            nodetree.material_update(material)

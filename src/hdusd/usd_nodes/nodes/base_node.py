@@ -40,7 +40,8 @@ class USDNode(bpy.types.Node):
             if self.output_name:
                 self.outputs.new(name=self.output_name, type="NodeSocketShader")
 
-        self.id_data.safe_call(init_)
+        nodetree = self.id_data
+        nodetree.no_update_call(init_)
 
     # COMPUTE FUNCTION
     def compute(self, **kwargs) -> [Usd.Stage, None]:
@@ -132,4 +133,7 @@ class USDNode(bpy.types.Node):
                 link.to_node.reset(is_hard)
 
     def depsgraph_update(self, depsgraph):
+        pass
+
+    def material_update(self, material):
         pass

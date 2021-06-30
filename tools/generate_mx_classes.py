@@ -145,6 +145,8 @@ def generate_property_code(mx_param):
         val_str = f'"{val}"' if isinstance(val, str) else str(val)
         prop_attr_strings.append(f"{name}={val_str}")
 
+    prop_attr_strings.append("update=MxNodeDef.update_prop")
+
     return f"{prop_type}({', '.join(prop_attr_strings)})"
 
 

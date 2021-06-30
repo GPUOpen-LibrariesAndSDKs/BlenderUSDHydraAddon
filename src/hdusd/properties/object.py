@@ -27,9 +27,12 @@ GEOM_TYPES = ('Xform', 'SkelRoot')
 class ObjectProperties(HdUSDProperties):
     bl_type = bpy.types.Object
 
-    is_usd: bpy.props.BoolProperty(default=False)
-    sdf_path: bpy.props.StringProperty(default="/")
+    sdf_path: bpy.props.StringProperty(default="")
     cached_stage: bpy.props.PointerProperty(type=CachedStageProp)
+
+    @property
+    def is_usd(self):
+        return bool(self.sdf_path)
 
     def get_prim(self):
         stage = self.cached_stage()
@@ -41,7 +44,6 @@ class ObjectProperties(HdUSDProperties):
     def sync_from_prim(self, root_obj, prim):
         prim_obj = self.id_data
 
-        self.is_usd = True
         self.sdf_path = str(prim.GetPath())
         self.cached_stage.assign(prim.GetStage())
 

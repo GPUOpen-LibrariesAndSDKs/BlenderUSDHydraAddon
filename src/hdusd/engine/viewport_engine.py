@@ -24,7 +24,7 @@ from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
 
 from .engine import Engine, depsgraph_objects
-from ..export import nodegraph, camera, material, object, sdf_path
+from ..export import camera, material, object
 from .. import utils
 
 from ..utils import logging
@@ -151,9 +151,20 @@ class ShadingData:
 
 
 class ViewportEngine(Engine):
-    """ Viewport render engine """
+    """ Basic Viewport render engine """
 
     TYPE = 'VIEWPORT'
+
+    # Set of references of created ViewportEngine engines.
+    # Will be used for notifications from other parts
+    _engine_refs = set()
+
+    @classmethod
+    def get_engines(cls):
+        for engine_ref in cls._engine_refs:
+            engine = engine_ref()
+            if isinstance(engine, cls):
+                yield engine
 
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
@@ -171,9 +182,15 @@ class ViewportEngine(Engine):
 
         self.data_source = ""
 
+        # adding current engine to engine refs
+        self._engine_refs.add(weakref.ref(self))
+
     def __del__(self):
         # explicit renderer deletion
         self.renderer = None
+
+        # removing current engine from _engine_refs
+        self._engine_refs.remove(weakref.ref(self))
 
     def notify_status(self, info, status, redraw=True):
         """ Display export progress status """
@@ -214,71 +231,10 @@ class ViewportEngine(Engine):
         log('Finish sync')
 
     def _sync(self, context, depsgraph):
-        stage = self.cached_stage.create()
-        self._export_depsgraph(
-            stage, depsgraph,
-            space_data=self.space_data,
-            use_scene_lights=self.shading_data.use_scene_lights,
-            is_gl_delegate=self.is_gl_delegate,
-        )
+        pass
 
     def _sync_update(self, context, depsgraph):
-        scene = depsgraph.scene
-
-        root_prim = self.stage.GetPseudoRoot()
-
-        # get supported updates and sort by priorities
-        updates = []
-        for obj_type in (bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection):
-            updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
-
-        sync_collection = False
-        sync_world = False
-
-        for update in updates:
-            obj = update.id
-            log("sync_update", obj)
-            if isinstance(obj, bpy.types.Scene):
-                self.update_render(obj)
-
-                # Outliner object visibility change will provide us only bpy.types.Scene update
-                # That's why we need to sync objects collection in the end
-                sync_collection = True
-
-                continue
-
-            if isinstance(obj, bpy.types.Material):
-                mesh_obj = context.object if context.object and \
-                                             context.object.type == 'MESH' else None
-                materials_prim = self.stage.DefinePrim(f"{root_prim.GetPath()}/materials")
-                material.sync_update(materials_prim, obj, mesh_obj)
-                continue
-
-            if isinstance(obj, bpy.types.Object):
-                if obj.type == 'CAMERA':
-                    continue
-
-                if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
-                    continue
-
-                object.sync_update(root_prim, obj,
-                                   update.is_updated_geometry,
-                                   update.is_updated_transform,
-                                   is_gl_delegate=self.is_gl_delegate)
-                continue
-
-            if isinstance(obj, bpy.types.World):
-                sync_world = True
-
-            if isinstance(obj, bpy.types.Collection):
-                sync_collection = True
-                continue
-
-        if sync_world:
-            pass
-
-        if sync_collection:
-            self.sync_objects_collection(depsgraph)
+        pass
 
     def sync_update(self, context, depsgraph):
         """ sync just the updated things """
@@ -348,15 +304,86 @@ class ViewportEngine(Engine):
         else:
             self.notify_status("Rendering Done", "", False)
 
-    def update_render(self, scene):
-        prop = scene.hdusd.viewport
-        if self.is_gl_delegate != prop.is_gl_delegate:
-            self.is_gl_delegate = prop.is_gl_delegate
 
-            # update all scene lights since on renderer change
-            self.resync_scene_lights(scene)
+class ViewportEngineScene(ViewportEngine):
+    """Viewport engine for rendering Blender current scene"""
 
-        self.renderer.SetRendererPlugin(prop.delegate)
+    @classmethod
+    def material_update(cls, material):
+        for engine in cls.get_engines():
+            engine.update_material(material)
+
+    def update_material(self, mat):
+        stage = self.cached_stage()
+        material.sync_update_all(stage.GetPseudoRoot(), mat)
+        self.render_engine.tag_redraw()
+
+    def _sync(self, context, depsgraph):
+        stage = self.cached_stage.create()
+        self._export_depsgraph(
+            stage, depsgraph,
+            space_data=self.space_data,
+            use_scene_lights=self.shading_data.use_scene_lights,
+            is_gl_delegate=self.is_gl_delegate,
+        )
+
+    def _sync_update(self, context, depsgraph):
+        scene = depsgraph.scene
+
+        root_prim = self.stage.GetPseudoRoot()
+
+        # get supported updates and sort by priorities
+        updates = []
+        for obj_type in (bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection):
+            updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
+
+        sync_collection = False
+        sync_world = False
+
+        for update in updates:
+            obj = update.id
+            log("sync_update", obj)
+            if isinstance(obj, bpy.types.Scene):
+                prop = scene.hdusd.viewport
+                if self.is_gl_delegate != prop.is_gl_delegate:
+                    self.is_gl_delegate = prop.is_gl_delegate
+
+                    # update all scene lights since on renderer change
+                    self.resync_scene_lights(scene)
+
+                self.renderer.SetRendererPlugin(prop.delegate)
+
+                # Outliner object visibility change will provide us only bpy.types.Scene update
+                # That's why we need to sync objects collection in the end
+                sync_collection = True
+
+                continue
+
+            if isinstance(obj, bpy.types.Object):
+                if obj.type == 'CAMERA':
+                    continue
+
+                if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
+                    continue
+
+                object.sync_update(root_prim, obj,
+                                   update.is_updated_geometry,
+                                   update.is_updated_transform,
+                                   is_gl_delegate=self.is_gl_delegate)
+                continue
+
+            if isinstance(obj, bpy.types.World):
+                sync_world = True
+
+            if isinstance(obj, bpy.types.Collection):
+                sync_collection = True
+                continue
+
+        if sync_world:
+            pass
+
+        if sync_collection:
+            self.sync_objects_collection(depsgraph)
 
     def resync_scene_lights(self, scene):
         if self.shading_data.use_scene_lights:
@@ -396,31 +423,16 @@ class ViewportEngine(Engine):
 
 
 class ViewportEngineNodetree(ViewportEngine):
-    # Set of references of created ViewportEngineNodetree engines.
-    # Will be used for notifications from USD node tree
-    _engine_refs = set()
+    """Viewport engine for rendering USD Node Tree"""
 
     @classmethod
     def nodetree_output_node_computed(cls, nodetree):
-        for engine_ref in cls._engine_refs:
-            engine = engine_ref()
+        for engine in cls.get_engines():
             if engine.data_source != nodetree.name:
                 continue
 
             output_node = nodetree.get_output_node()
             engine.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
-
-    def __init__(self, rpr_engine):
-        super().__init__(rpr_engine)
-
-        # adding current engine to engine refs
-        self._engine_refs.add(weakref.ref(self))
-
-    def __del__(self):
-        super().__del__()
-
-        # removing current engine from _engine_refs
-        self._engine_refs.remove(weakref.ref(self))
 
     def _sync(self, context, depsgraph):
         self.data_source = depsgraph.scene.hdusd.viewport.data_source
@@ -444,7 +456,8 @@ class ViewportEngineNodetree(ViewportEngine):
             obj = update.id
             log("sync_update", obj)
             if isinstance(obj, bpy.types.Scene):
-                self.update_render(obj)
+                scene = obj
+                self.renderer.SetRendererPlugin(scene.hdusd.viewport.delegate)
                 continue
 
     def nodetree_stage_changed(self, stage):
@@ -455,12 +468,12 @@ class ViewportEngineNodetree(ViewportEngine):
         for prim in engine_stage.GetPseudoRoot().GetAllChildren():
             engine_stage.RemovePrim(prim.GetPath())
 
-        if not stage:
-            return
+        if stage:
+            # creating overrides from nodetree stage
+            for prim in stage.GetPseudoRoot().GetAllChildren():
+                override_prim = engine_stage.OverridePrim(
+                    root_prim.GetPath().AppendChild(prim.GetName()))
+                override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
+                                                           prim.GetPath())
 
-        # creating overrides from nodetree stage
-        for prim in stage.GetPseudoRoot().GetAllChildren():
-            override_prim = engine_stage.OverridePrim(
-                root_prim.GetPath().AppendChild(prim.GetName()))
-            override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
-                                                       prim.GetPath())
+        self.render_engine.tag_redraw()

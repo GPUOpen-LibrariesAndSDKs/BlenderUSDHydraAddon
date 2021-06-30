@@ -127,7 +127,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
             if data_source:
                 self.engine = viewport_engine.ViewportEngineNodetree(self)
             else:
-                self.engine = viewport_engine.ViewportEngine(self)
+                self.engine = viewport_engine.ViewportEngineScene(self)
 
             self.engine.sync(context, depsgraph)
 

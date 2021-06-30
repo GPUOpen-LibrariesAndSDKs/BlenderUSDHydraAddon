@@ -36,6 +36,8 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     bl_idname = "hdusd.MxNodeTree"
     COMPAT_ENGINES = {'HdUSD'}
 
+    _do_update = True
+
     @classmethod
     def poll(cls, context):
         return context.engine in cls.COMPAT_ENGINES
@@ -49,6 +51,17 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     def output_node_volume(self):
         return next((node for node in self.nodes
                      if node.bl_idname == 'hdusd.MxNode_STD_volumematerial'), None)
+
+    def no_update_call(self, op, *args, **kwargs):
+        """This function prevents call of self.update() during calling our function"""
+        if not self._do_update:
+            return op(*args, **kwargs)
+
+        self._do_update = False
+        try:
+            return op(*args, **kwargs)
+        finally:
+            self._do_update = True
 
     def export(self) -> mx.Document:
         output_node = self.output_node
@@ -121,10 +134,26 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
     def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """
-        self.nodes.clear()
+        def create_nodes():
+            self.nodes.clear()
 
-        mat_node = self.nodes.new('hdusd.MxNode_STD_surfacematerial')
-        node = self.nodes.new(f'hdusd.MxNode_{node_name}')
-        node.location = (mat_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                         mat_node.location[1])
-        self.links.new(node.outputs[0], mat_node.inputs[0])
+            mat_node = self.nodes.new('hdusd.MxNode_STD_surfacematerial')
+            node = self.nodes.new(f'hdusd.MxNode_{node_name}')
+            node.location = (mat_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                             mat_node.location[1])
+            self.links.new(node.outputs[0], mat_node.inputs[0])
+
+        self.no_update_call(create_nodes)
+        self.update_()
+
+    # this is called from Blender
+    def update(self):
+        if not self._do_update:
+            return
+
+        self.update_()
+
+    def update_(self):
+        for material in bpy.data.materials:
+            if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
+                material.hdusd.update()
