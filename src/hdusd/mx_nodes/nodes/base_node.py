@@ -153,7 +153,8 @@ class MxNode(bpy.types.ShaderNode):
             if self._ui_folders:
                 self.ui_folders_update(context)
 
-        self.id_data.safe_call(init_)
+        nodetree = self.id_data
+        nodetree.no_update_call(init_)
 
     def draw_buttons(self, context, layout):
         if len(self._data_types) > 1:

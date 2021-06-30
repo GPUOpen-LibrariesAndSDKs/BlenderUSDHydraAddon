@@ -36,7 +36,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
     bl_idname = "hdusd.MxNodeTree"
     COMPAT_ENGINES = {'HdUSD'}
 
-    _is_safe_call = False
+    _do_update = True
 
     @classmethod
     def poll(cls, context):
@@ -52,16 +52,16 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         return next((node for node in self.nodes
                      if node.bl_idname == 'hdusd.MxNode_STD_volumematerial'), None)
 
-    def safe_call(self, op, *args, **kwargs):
+    def no_update_call(self, op, *args, **kwargs):
         """This function prevents call of self.update() during calling our function"""
-        if self._is_safe_call:
+        if not self._do_update:
             return op(*args, **kwargs)
 
-        self._is_safe_call = True
+        self._do_update = False
         try:
             return op(*args, **kwargs)
         finally:
-            self._is_safe_call = False
+            self._do_update = True
 
     def export(self) -> mx.Document:
         output_node = self.output_node
@@ -143,12 +143,12 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                              mat_node.location[1])
             self.links.new(node.outputs[0], mat_node.inputs[0])
 
-        self.safe_call(create_nodes)
+        self.no_update_call(create_nodes)
         self.update_()
 
     # this is called from Blender
     def update(self):
-        if self._is_safe_call:
+        if not self._do_update:
             return
 
         self.update_()

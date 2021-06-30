@@ -151,7 +151,7 @@ class ShadingData:
 
 
 class ViewportEngine(Engine):
-    """ Viewport render engine """
+    """ Basic Viewport render engine """
 
     TYPE = 'VIEWPORT'
 
@@ -306,6 +306,8 @@ class ViewportEngine(Engine):
 
 
 class ViewportEngineScene(ViewportEngine):
+    """Viewport engine for rendering Blender current scene"""
+
     @classmethod
     def material_update(cls, material):
         for engine in cls.get_engines():
@@ -314,6 +316,7 @@ class ViewportEngineScene(ViewportEngine):
     def update_material(self, mat):
         stage = self.cached_stage()
         material.sync_update_all(stage.GetPseudoRoot(), mat)
+        self.render_engine.tag_redraw()
 
     def _sync(self, context, depsgraph):
         stage = self.cached_stage.create()
@@ -420,6 +423,8 @@ class ViewportEngineScene(ViewportEngine):
 
 
 class ViewportEngineNodetree(ViewportEngine):
+    """Viewport engine for rendering USD Node Tree"""
+
     @classmethod
     def nodetree_output_node_computed(cls, nodetree):
         for engine in cls.get_engines():
@@ -463,12 +468,12 @@ class ViewportEngineNodetree(ViewportEngine):
         for prim in engine_stage.GetPseudoRoot().GetAllChildren():
             engine_stage.RemovePrim(prim.GetPath())
 
-        if not stage:
-            return
+        if stage:
+            # creating overrides from nodetree stage
+            for prim in stage.GetPseudoRoot().GetAllChildren():
+                override_prim = engine_stage.OverridePrim(
+                    root_prim.GetPath().AppendChild(prim.GetName()))
+                override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
+                                                           prim.GetPath())
 
-        # creating overrides from nodetree stage
-        for prim in stage.GetPseudoRoot().GetAllChildren():
-            override_prim = engine_stage.OverridePrim(
-                root_prim.GetPath().AppendChild(prim.GetName()))
-            override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
-                                                       prim.GetPath())
+        self.render_engine.tag_redraw()
