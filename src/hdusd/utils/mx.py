@@ -14,7 +14,7 @@
 #********************************************************************
 import MaterialX as mx
 
-from . import title_str
+from . import title_str, code_str
 
 from . import logging
 log = logging.Log(tag='utils.mx')
@@ -97,11 +97,11 @@ def get_nodedef_inputs(nodedef, uniform=None):
                 yield input
 
 
-def get_node_name(mx_node):
+def get_full_node_name(mx_node):
     name = mx_node.getName()
     n = mx_node.getParent()
     while not isinstance(n, mx.Document):
-        name = f"{n.getName()}:{name}"
+        name = f"{n.getName()}/{name}"
         n = n.getParent()
 
     return name
@@ -117,3 +117,23 @@ def get_file_prefix(mx_node, file_path):
             break
 
     return file_prefix.resolve()
+
+
+def get_nodegraph_by_full_node_name(doc, full_node_name, do_create=False):
+    nodegraph_names = code_str(full_node_name).split('/')[:-1]
+    mx_nodegraph = doc
+    for nodegraph_name in nodegraph_names:
+        next_mx_nodegraph = mx_nodegraph.getNodeGraph(nodegraph_name)
+        if not next_mx_nodegraph:
+            if do_create:
+                next_mx_nodegraph = mx_nodegraph.addNodeGraph(nodegraph_name)
+            else:
+                return None
+
+        mx_nodegraph = next_mx_nodegraph
+
+    return mx_nodegraph
+
+
+def get_node_name(full_node_name):
+    return code_str(full_node_name.split('/')[-1])

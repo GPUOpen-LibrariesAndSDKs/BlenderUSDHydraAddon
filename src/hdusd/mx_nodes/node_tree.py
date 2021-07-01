@@ -82,7 +82,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
         def import_node(mx_node, layer):
             mx_nodegraph = mx_node.getParent()
-            node_name = mx_utils.get_node_name(mx_node)
+            node_name = mx_utils.get_full_node_name(mx_node)
             file_prefix = mx_utils.get_file_prefix(mx_node, file_path)
 
             if node_name in self.nodes:
