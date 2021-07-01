@@ -80,8 +80,19 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         self.nodes.clear()
         layers = {}
 
-        def import_node(mx_node, layer):
+        def import_node(mx_nodegraph: [mx.Document, mx.NodeGraph], mx_node, layer):
+            mx_nodegraph = mx_node.getParent()
+
+            # getting node name including parent nodegraphs
             name = mx_node.getName()
+            n = mx_node
+            while True:
+                n = n.getParent()
+                if isinstance(n, mx.Document):
+                    break
+
+                name = f"{n.getName()}:{name}"
+
             if name in self.nodes:
                 layers[name] = max(layers[name], layer)
                 return self.nodes[name]
@@ -106,15 +117,27 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                 node_name = mx_input.getNodeName()
                 if node_name:
-                    new_mx_node = doc.getNode(node_name)
-                    new_node = import_node(new_mx_node, layer + 1)
+                    new_mx_node = mx_nodegraph.getNode(node_name)
+                    new_node = import_node(mx_nodegraph, new_mx_node, layer + 1)
                     self.links.new(new_node.outputs[0], node.inputs[input_name])
+                    continue
+
+                new_nodegraph_name = mx_input.getAttribute('nodegraph')
+                if new_nodegraph_name:
+                    output_name = mx_input.getAttribute('output')
+                    new_mx_nodegraph = mx_nodegraph.getNodeGraph(new_nodegraph_name)
+                    mx_output = new_mx_nodegraph.getOutput(output_name)
+                    node_name = mx_output.getNodeName()
+                    new_mx_node = new_mx_nodegraph.getNode(node_name)
+                    new_node = import_node(new_mx_nodegraph, new_mx_node, layer + 1)
+                    self.links.new(new_node.outputs[0], node.inputs[input_name])
+                    continue
 
             node.ui_folders_check()
             return node
 
         mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
-        import_node(mx_node, 0)
+        import_node(doc, mx_node, 0)
 
         # placing nodes by layers
         node_layers = [[] for _ in range(max(layers.values()) + 1)]

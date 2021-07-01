@@ -35,15 +35,20 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
 
+        uiname = mx_utils.get_attr(nd_input, 'uiname', title_str(nd_input.getName()))
+        if nd.getName() == "ND_rpr_uber_surfaceshader":
+            # special case for ND_rpr_uber_surfaceshader
+            uifolder = mx_utils.get_attr(nd_input, 'uifolder')
+            uiname = f"{uifolder} {uiname}"
+
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
-            uiname = mx_utils.get_attr(nd_input, 'uiname', title_str(nd_input.getName()))
             uitype = title_str(nd_type)
             if uiname.lower() == uitype.lower():
                 layout.label(text=uitype)
             else:
                 layout.label(text=f"{uiname}: {uitype}")
         else:
-            layout.prop(node.prop, MxNodeDef._input_prop_name(self.name))
+            layout.prop(node.prop, MxNodeDef._input_prop_name(self.name), text=uiname)
 
     def draw_color(self, context, node):
         return self.get_color(node.prop.nodedef().getInput(self.name).getType())
