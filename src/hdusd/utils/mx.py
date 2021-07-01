@@ -22,8 +22,20 @@ log = logging.Log(tag='utils.mx')
 
 def set_param_value(mx_param, val, nd_type):
     if isinstance(val, mx.Node):
+        param_nodegraph = mx_param.getParent().getParent()
+        val_nodegraph = val.getParent()
+        node_name = val.getName()
+        if val_nodegraph == param_nodegraph:
+            mx_param.setNodeName(node_name)
+        else:
+            mx_output = val_nodegraph.getOutput(f"out_{node_name}")
+            if not mx_output:
+                mx_output = val_nodegraph.addOutput(f"out_{node_name}", val.getType())
+                mx_output.setNodeName(node_name)
 
-        mx_param.setNodeName(val.getName())
+            mx_param.setAttribute('nodegraph', val_nodegraph.getName())
+            mx_param.setAttribute('output', mx_output.getName())
+
     elif nd_type == 'filename':
         mx_param.setValueString(val)
     else:
