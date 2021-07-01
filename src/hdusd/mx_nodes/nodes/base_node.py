@@ -201,8 +201,8 @@ class MxNode(bpy.types.ShaderNode):
         for in_key in range(len(self.inputs)):
             values.append(self.get_input_value(in_key, **kwargs))
 
-        mx_nodegraph = mx_utils.get_nodegraph_by_full_node_name(doc, self.name, True)
-        node_name = mx_utils.get_node_name(self.name)
+        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, self.name, True)
+        node_name = mx_utils.get_node_name_by_node_path(self.name)
         mx_node = mx_nodegraph.addNode(nodedef.getNodeString(), node_name, nd_output.getType())
         for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
@@ -240,9 +240,9 @@ class MxNode(bpy.types.ShaderNode):
 
     def _compute_node(self, node, out_key, **kwargs):
         doc = kwargs['doc']
-        mx_nodegraph = mx_utils.get_nodegraph_by_full_node_name(doc, node.name)
+        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node.name)
         if mx_nodegraph:
-            node_name = mx_utils.get_node_name(node.name)
+            node_name = mx_utils.get_node_name_by_node_path(node.name)
             mx_node = mx_nodegraph.getNode(node_name)
             if mx_node:
                 return mx_node

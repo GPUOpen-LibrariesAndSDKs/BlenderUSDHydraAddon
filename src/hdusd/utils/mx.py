@@ -22,6 +22,7 @@ log = logging.Log(tag='utils.mx')
 
 def set_param_value(mx_param, val, nd_type):
     if isinstance(val, mx.Node):
+
         mx_param.setNodeName(val.getName())
     elif nd_type == 'filename':
         mx_param.setValueString(val)
@@ -97,16 +98,6 @@ def get_nodedef_inputs(nodedef, uniform=None):
                 yield input
 
 
-def get_full_node_name(mx_node):
-    name = mx_node.getName()
-    n = mx_node.getParent()
-    while not isinstance(n, mx.Document):
-        name = f"{n.getName()}/{name}"
-        n = n.getParent()
-
-    return name
-
-
 def get_file_prefix(mx_node, file_path):
     file_prefix = file_path.parent
     n = mx_node
@@ -119,8 +110,8 @@ def get_file_prefix(mx_node, file_path):
     return file_prefix.resolve()
 
 
-def get_nodegraph_by_full_node_name(doc, full_node_name, do_create=False):
-    nodegraph_names = code_str(full_node_name).split('/')[:-1]
+def get_nodegraph_by_node_path(doc, node_path, do_create=False):
+    nodegraph_names = code_str(node_path).split('/')[:-1]
     mx_nodegraph = doc
     for nodegraph_name in nodegraph_names:
         next_mx_nodegraph = mx_nodegraph.getNodeGraph(nodegraph_name)
@@ -135,5 +126,5 @@ def get_nodegraph_by_full_node_name(doc, full_node_name, do_create=False):
     return mx_nodegraph
 
 
-def get_node_name(full_node_name):
-    return code_str(full_node_name.split('/')[-1])
+def get_node_name_by_node_path(node_path):
+    return code_str(node_path.split('/')[-1])
