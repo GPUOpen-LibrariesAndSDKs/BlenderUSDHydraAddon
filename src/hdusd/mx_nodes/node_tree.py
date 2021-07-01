@@ -82,18 +82,8 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
         def import_node(mx_node, layer):
             mx_nodegraph = mx_node.getParent()
-
-            # getting node_name and file_prefix including parent nodegraphs
-            node_name = mx_node.getName()
-            file_prefix = file_path.parent
-            n = mx_node
-            while True:
-                n = n.getParent()
-                file_prefix /= n.getFilePrefix()
-                if isinstance(n, mx.Document):
-                    break
-
-                node_name = f"{n.getName()}:{node_name}"
+            node_name = mx_utils.get_node_name(mx_node)
+            file_prefix = mx_utils.get_file_prefix(mx_node, file_path)
 
             if node_name in self.nodes:
                 layers[node_name] = max(layers[node_name], layer)

@@ -95,3 +95,25 @@ def get_nodedef_inputs(nodedef, uniform=None):
         else:
             if not uniform:
                 yield input
+
+
+def get_node_name(mx_node):
+    name = mx_node.getName()
+    n = mx_node.getParent()
+    while not isinstance(n, mx.Document):
+        name = f"{n.getName()}:{name}"
+        n = n.getParent()
+
+    return name
+
+
+def get_file_prefix(mx_node, file_path):
+    file_prefix = file_path.parent
+    n = mx_node
+    while True:
+        n = n.getParent()
+        file_prefix /= n.getFilePrefix()
+        if isinstance(n, mx.Document):
+            break
+
+    return file_prefix.resolve()
