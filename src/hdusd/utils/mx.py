@@ -51,8 +51,11 @@ def get_attr(mx_param, name, else_val=None):
     return mx_param.getAttribute(name) if mx_param.hasAttribute(name) else else_val
 
 
-def parse_value(mx_val, mx_type):
+def parse_value(mx_val, mx_type, file_prefix=None):
     if mx_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
+        if file_prefix and mx_type == 'filename':
+            mx_val = str((file_prefix / mx_val).resolve())
+
         return mx_val
 
     return tuple(mx_val)

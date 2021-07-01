@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+from pathlib import Path
 import MaterialX as mx
 
 import bpy
@@ -47,7 +48,7 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
             return {'CANCELLED'}
 
         mx_node_tree = context.space_data.edit_tree
-        mx_node_tree.import_(doc)
+        mx_node_tree.import_(doc, Path(self.filepath))
 
         return {'FINISHED'}
 
