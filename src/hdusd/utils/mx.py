@@ -28,6 +28,15 @@ def set_param_value(mx_param, val, nd_type):
         if val_nodegraph == param_nodegraph:
             mx_param.setNodeName(node_name)
         else:
+            # checking nodegraph paths
+            val_ng_path = val_nodegraph.getNamePath()
+            param_ng_path = param_nodegraph.getNamePath()
+            ind = val_ng_path.rfind('/')
+            ind = ind if ind >= 0 else 0
+            if param_ng_path != val_ng_path[:ind]:
+                raise ValueError(f"Inconsistent nodegraphs. Cannot connect input "
+                                 f"{mx_param.getNamePath()} to {val.getNamePath()}")
+
             mx_output = val_nodegraph.getOutput(f"out_{node_name}")
             if not mx_output:
                 mx_output = val_nodegraph.addOutput(f"out_{node_name}", val.getType())
@@ -38,6 +47,7 @@ def set_param_value(mx_param, val, nd_type):
 
     elif nd_type == 'filename':
         mx_param.setValueString(val)
+
     else:
         mx_type = getattr(mx, title_str(nd_type), None)
         if mx_type:
