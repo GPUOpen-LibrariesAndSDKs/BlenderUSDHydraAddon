@@ -14,7 +14,7 @@
 #********************************************************************
 import MaterialX as mx
 
-from . import title_str
+from . import title_str, code_str
 
 from . import logging
 log = logging.Log(tag='utils.mx')
@@ -22,9 +22,32 @@ log = logging.Log(tag='utils.mx')
 
 def set_param_value(mx_param, val, nd_type):
     if isinstance(val, mx.Node):
-        mx_param.setNodeName(val.getName())
+        param_nodegraph = mx_param.getParent().getParent()
+        val_nodegraph = val.getParent()
+        node_name = val.getName()
+        if val_nodegraph == param_nodegraph:
+            mx_param.setNodeName(node_name)
+        else:
+            # checking nodegraph paths
+            val_ng_path = val_nodegraph.getNamePath()
+            param_ng_path = param_nodegraph.getNamePath()
+            ind = val_ng_path.rfind('/')
+            ind = ind if ind >= 0 else 0
+            if param_ng_path != val_ng_path[:ind]:
+                raise ValueError(f"Inconsistent nodegraphs. Cannot connect input "
+                                 f"{mx_param.getNamePath()} to {val.getNamePath()}")
+
+            mx_output = val_nodegraph.getOutput(f"out_{node_name}")
+            if not mx_output:
+                mx_output = val_nodegraph.addOutput(f"out_{node_name}", val.getType())
+                mx_output.setNodeName(node_name)
+
+            mx_param.setAttribute('nodegraph', val_nodegraph.getName())
+            mx_param.setAttribute('output', mx_output.getName())
+
     elif nd_type == 'filename':
         mx_param.setValueString(val)
+
     else:
         mx_type = getattr(mx, title_str(nd_type), None)
         if mx_type:
@@ -51,8 +74,11 @@ def get_attr(mx_param, name, else_val=None):
     return mx_param.getAttribute(name) if mx_param.hasAttribute(name) else else_val
 
 
-def parse_value(mx_val, mx_type):
+def parse_value(mx_val, mx_type, file_prefix=None):
     if mx_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
+        if file_prefix and mx_type == 'filename':
+            mx_val = str((file_prefix / mx_val).resolve())
+
         return mx_val
 
     return tuple(mx_val)
@@ -92,3 +118,35 @@ def get_nodedef_inputs(nodedef, uniform=None):
         else:
             if not uniform:
                 yield input
+
+
+def get_file_prefix(mx_node, file_path):
+    file_prefix = file_path.parent
+    n = mx_node
+    while True:
+        n = n.getParent()
+        file_prefix /= n.getFilePrefix()
+        if isinstance(n, mx.Document):
+            break
+
+    return file_prefix.resolve()
+
+
+def get_nodegraph_by_node_path(doc, node_path, do_create=False):
+    nodegraph_names = code_str(node_path).split('/')[:-1]
+    mx_nodegraph = doc
+    for nodegraph_name in nodegraph_names:
+        next_mx_nodegraph = mx_nodegraph.getNodeGraph(nodegraph_name)
+        if not next_mx_nodegraph:
+            if do_create:
+                next_mx_nodegraph = mx_nodegraph.addNodeGraph(nodegraph_name)
+            else:
+                return None
+
+        mx_nodegraph = next_mx_nodegraph
+
+    return mx_nodegraph
+
+
+def get_node_name_by_node_path(node_path):
+    return code_str(node_path.split('/')[-1])

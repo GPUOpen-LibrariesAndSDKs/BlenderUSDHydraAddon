@@ -76,61 +76,82 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
         return doc
 
-    def import_(self, doc: mx.Document):
-        self.nodes.clear()
-        layers = {}
+    def import_(self, doc: mx.Document, file_path):
+        def do_import():
+            self.nodes.clear()
+            layers = {}
 
-        def import_node(mx_node, layer):
-            name = mx_node.getName()
-            if name in self.nodes:
-                layers[name] = max(layers[name], layer)
-                return self.nodes[name]
+            def import_node(mx_node, layer):
+                mx_nodegraph = mx_node.getParent()
+                node_path = mx_node.getNamePath()
+                file_prefix = mx_utils.get_file_prefix(mx_node, file_path)
 
-            MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
-            node = self.nodes.new(MxNode_cls.bl_idname)
-            node.name = name
-            layers[name] = layer
+                if node_path in self.nodes:
+                    layers[node_path] = max(layers[node_path], layer)
+                    return self.nodes[node_path]
 
-            node.data_type = mx_node.getType()
-            for mx_param in mx_node.getParameters():
-                node.set_param_value(mx_param.getName(),
-                                     mx_utils.parse_value(mx_param.getValue(), mx_param.getType()))
+                MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+                node = self.nodes.new(MxNode_cls.bl_idname)
+                node.name = node_path
+                layers[node_path] = layer
 
-            for mx_input in mx_node.getInputs():
-                input_name = mx_input.getName()
-                val = mx_input.getValue()
-                if val is not None:
-                    node.set_input_default(input_name,
-                                           mx_utils.parse_value(val, mx_input.getType()))
-                    continue
+                node.data_type = mx_node.getType()
+                for mx_param in mx_node.getParameters():
+                    node.set_param_value(
+                        mx_param.getName(),
+                        mx_utils.parse_value(mx_param.getValue(), mx_param.getType(), file_prefix))
 
-                node_name = mx_input.getNodeName()
-                if node_name:
-                    new_mx_node = doc.getNode(node_name)
-                    new_node = import_node(new_mx_node, layer + 1)
-                    self.links.new(new_node.outputs[0], node.inputs[input_name])
+                for mx_input in mx_node.getInputs():
+                    input_name = mx_input.getName()
+                    val = mx_input.getValue()
+                    if val is not None:
+                        node.set_input_default(
+                            input_name,
+                            mx_utils.parse_value(val, mx_input.getType(), file_prefix))
+                        continue
 
-            node.ui_folders_check()
-            return node
+                    node_name = mx_input.getNodeName()
+                    if node_name:
+                        new_mx_node = mx_nodegraph.getNode(node_name)
+                        new_node = import_node(new_mx_node, layer + 1)
+                        self.links.new(new_node.outputs[0], node.inputs[input_name])
+                        continue
 
-        mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
-        import_node(mx_node, 0)
+                    new_nodegraph_name = mx_input.getAttribute('nodegraph')
+                    if new_nodegraph_name:
+                        output_name = mx_input.getAttribute('output')
+                        new_mx_nodegraph = mx_nodegraph.getNodeGraph(new_nodegraph_name)
+                        mx_output = new_mx_nodegraph.getOutput(output_name)
+                        node_name = mx_output.getNodeName()
+                        new_mx_node = new_mx_nodegraph.getNode(node_name)
+                        new_node = import_node(new_mx_node, layer + 1)
+                        self.links.new(new_node.outputs[0], node.inputs[input_name])
+                        continue
 
-        # placing nodes by layers
-        node_layers = [[] for _ in range(max(layers.values()) + 1)]
-        for node in self.nodes:
-            node_layers[layers[node.name]].append(node.name)
+                node.ui_folders_check()
+                return node
 
-        loc_x = 0
-        for i, node_names in enumerate(node_layers):
-            loc_y = 0
-            for name in node_names:
-                node = self.nodes[name]
-                node.location = (loc_x, loc_y)
-                loc_y -= NODE_LAYER_SHIFT_Y
-                loc_x -= NODE_LAYER_SHIFT_X
+            mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
+            import_node(mx_node, 0)
 
-            loc_x -= NODE_LAYER_SEPARATION_WIDTH
+            # placing nodes by layers
+            node_layers = [[] for _ in range(max(layers.values()) + 1)]
+            for node in self.nodes:
+                node_layers[layers[node.name]].append(node.name)
+
+            loc_x = 0
+            for i, node_names in enumerate(node_layers):
+                loc_y = 0
+                for name in node_names:
+                    node = self.nodes[name]
+                    node.location = (loc_x, loc_y)
+                    loc_y -= NODE_LAYER_SHIFT_Y
+                    loc_x -= NODE_LAYER_SHIFT_X
+
+                loc_x -= NODE_LAYER_SEPARATION_WIDTH
+
+        self.no_update_call(do_import)
+        self.update_()
 
     def create_basic_nodes(self, node_name='PBR_standard_surface'):
         """ Reset basic node tree structure using scene or USD file as an input """

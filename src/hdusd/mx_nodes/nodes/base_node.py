@@ -35,15 +35,20 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
 
+        uiname = mx_utils.get_attr(nd_input, 'uiname', title_str(nd_input.getName()))
+        if nd.getName() == "ND_rpr_uber_surfaceshader":
+            # special case for ND_rpr_uber_surfaceshader
+            uifolder = mx_utils.get_attr(nd_input, 'uifolder')
+            uiname = f"{uifolder} {uiname}"
+
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
-            uiname = mx_utils.get_attr(nd_input, 'uiname', title_str(nd_input.getName()))
             uitype = title_str(nd_type)
             if uiname.lower() == uitype.lower():
                 layout.label(text=uitype)
             else:
                 layout.label(text=f"{uiname}: {uitype}")
         else:
-            layout.prop(node.prop, MxNodeDef._input_prop_name(self.name))
+            layout.prop(node.prop, MxNodeDef._input_prop_name(self.name), text=uiname)
 
     def draw_color(self, context, node):
         return self.get_color(node.prop.nodedef().getInput(self.name).getType())
@@ -196,7 +201,9 @@ class MxNode(bpy.types.ShaderNode):
         for in_key in range(len(self.inputs)):
             values.append(self.get_input_value(in_key, **kwargs))
 
-        node = doc.addNode(nodedef.getNodeString(), code_str(self.name), nd_output.getType())
+        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, self.name, True)
+        node_name = mx_utils.get_node_name_by_node_path(self.name)
+        mx_node = mx_nodegraph.addNode(nodedef.getNodeString(), node_name, nd_output.getType())
         for in_key, val in enumerate(values):
             nd_input = self.get_nodedef_input(in_key)
             nd_type = nd_input.getType()
@@ -208,8 +215,8 @@ class MxNode(bpy.types.ShaderNode):
                 if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
                     continue
 
-            input = node.addInput(nd_input.getName(), nd_type)
-            mx_utils.set_param_value(input, val, nd_type)
+            mx_input = mx_node.addInput(nd_input.getName(), nd_type)
+            mx_utils.set_param_value(mx_input, val, nd_type)
 
         for nd_input in mx_utils.get_nodedef_inputs(nodedef, True):
             val = self.get_input_param_value(nd_input.getName())
@@ -217,8 +224,8 @@ class MxNode(bpy.types.ShaderNode):
             if mx_utils.is_value_equal(nd_input.getValue(), val, nd_type):
                 continue
 
-            input = node.addInput(nd_input.getName(), nd_type)
-            mx_utils.set_param_value(input, val, nd_type)
+            mx_input = mx_node.addInput(nd_input.getName(), nd_type)
+            mx_utils.set_param_value(mx_input, val, nd_type)
 
         for nd_param in nodedef.getParameters():
             val = self.get_param_value(nd_param.getName())
@@ -226,16 +233,19 @@ class MxNode(bpy.types.ShaderNode):
             if mx_utils.is_value_equal(nd_param.getValue(), val, nd_type):
                 continue
 
-            param = node.addParameter(nd_param.getName(), nd_type)
-            mx_utils.set_param_value(param, val, nd_type)
+            mx_param = mx_node.addParameter(nd_param.getName(), nd_type)
+            mx_utils.set_param_value(mx_param, val, nd_type)
 
-        return node
+        return mx_node
 
     def _compute_node(self, node, out_key, **kwargs):
         doc = kwargs['doc']
-        mx_node = doc.getNode(code_str(node.name))
-        if mx_node:
-            return mx_node
+        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node.name)
+        if mx_nodegraph:
+            node_name = mx_utils.get_node_name_by_node_path(node.name)
+            mx_node = mx_nodegraph.getNode(node_name)
+            if mx_node:
+                return mx_node
 
         return node.compute(out_key, **kwargs)
 
