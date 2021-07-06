@@ -15,9 +15,8 @@
 import bpy
 from pxr import UsdImagingGL
 
-from ..usd_nodes.node_tree import get_usd_nodetree
 from ..viewport import usd_collection
-from . import HdUSDProperties, log
+from . import HdUSDProperties, hdrpr_render, log
 
 
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
@@ -32,6 +31,8 @@ class RenderSettings(bpy.types.PropertyGroup):
     @property
     def is_gl_delegate(self):
         return self.delegate == 'HdStormRendererPlugin'
+
+    hdrpr: bpy.props.PointerProperty(type=hdrpr_render.RenderSettings)
 
 
 class FinalRenderSettings(RenderSettings):
