@@ -48,7 +48,10 @@ from . import scene, object, node, usd_list, material, hdrpr_render
 register, unregister = bpy.utils.register_classes_factory((
     CachedStageProp,
 
+    hdrpr_render.QualitySettings,
+    hdrpr_render.InteractiveQualitySettings,
     hdrpr_render.ContourSettings,
+    hdrpr_render.DenoiseSettings,
     hdrpr_render.RenderSettings,
 
     usd_list.PrimPropertyItem,

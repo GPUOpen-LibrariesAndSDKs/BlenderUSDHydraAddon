@@ -15,12 +15,99 @@
 import math
 
 import bpy
-from bpy.types import (
+from bpy.props import (
     PointerProperty,
     EnumProperty,
     FloatProperty,
     BoolProperty,
+    IntProperty,
 )
+
+
+class QualitySettings(bpy.types.PropertyGroup):
+    max_ray_depth: IntProperty(
+        name="Max Ray Depth",
+        description="The number of times that a ray bounces off various surfaces "
+                    "before being terminated",
+        min=1, max=50,
+        default=8,
+    )
+    max_ray_depth_diffuse: IntProperty(
+        name="Diffuse Ray Depth",
+        description="The maximum number of times that a light ray can be bounced off diffuse surfaces",
+        min=0, max=50,
+        default=3,
+    )
+    max_ray_depth_glossy: IntProperty(
+        name="Glossy Ray Depth",
+        description="The maximum number of ray bounces from specular surfaces",
+        min=0, max=50,
+        default=3,
+    )
+    max_ray_depth_refraction: IntProperty(
+        name="Refraction Ray Depth",
+        description="The maximum number of times that a light ray can be refracted, and is\n"
+                    "designated for clear transparent materials, such as glass",
+        min=0, max=50,
+        default=3,
+    )
+    max_ray_depth_glossy_refraction: IntProperty(
+        name="Glossy Refraction Ray Depth",
+        description="The Glossy Refraction Ray Depth parameter is similar to the Refraction Ray Depth.\n"
+                    "The difference is that it is aimed to work with matte refractive materials,\n"
+                    "such as semi-frosted glass",
+        min=0, max=50,
+        default=3,
+    )
+    max_ray_depth_shadow: IntProperty(
+        name="Shadow Ray Depth",
+        description="Controls the accuracy of shadows cast by transparent objects.\n"
+                    "It defines the maximum number of surfaces that a light ray can encounter on\n"
+                    "its way causing these surfaces to cast shadows",
+        min=0, max=50,
+        default=2,
+    )
+    raycast_epsilon: FloatProperty(
+        name="Ray Cast Epsilon",
+        description="Determines an offset used to move light rays away from the geometry for\n"
+                    "ray-surface intersection calculations",
+        min=1e-6, max=1.0,
+        default=2e-3,
+    )
+    enable_radiance_clamping: BoolProperty(
+        name="Clamp Fireflies",
+        description="Clamp Fireflies",
+        default=False,
+    )
+    radiance_clamping: FloatProperty(
+        name="Max Radiance",
+        description="Limits the intensity, or the maximum brightness, of samples in the scene.\n"
+                    "Greater clamp radiance values produce more brightness",
+        min=0.0, max=1e6,
+        default=0.0,
+    )
+
+
+class InteractiveQualitySettings(bpy.types.PropertyGroup):
+    max_ray_depth: IntProperty(
+        name="Max Ray Depth",
+        description="Controls value of 'Max Ray Depth' in interactive mode",
+        min=1, max=50,
+        default=2,
+    )
+    enable_downscale: BoolProperty(
+        name="Downscale Resolution",
+        description="Controls whether in interactive mode resolution should be downscaled or no",
+        default=True,
+    )
+    resolution_downscale: IntProperty(
+        name="Resolution Downscale",
+        description="Controls how much rendering resolution is downscaled in interactive mode.\n"
+                    "Formula: resolution / (2 ^ downscale). E.g. downscale==2 will give you 4 times\n"
+                    "smaller rendering resolution",
+        min=0, max=10,
+        default=3,
+    )
 
 
 class ContourSettings(bpy.types.PropertyGroup):
@@ -85,10 +172,38 @@ Colors legend:
     )
 
 
+class DenoiseSettings(bpy.types.PropertyGroup):
+    enable: BoolProperty(
+        name="Enable AI Denoising",
+        description="Enable AI Denoising",
+        default=False,
+    )
+    min_iter: IntProperty(
+        name="Denoise Min Iteration",
+        description="The first iteration on which denoising should be applied",
+        min=1, max=2 ** 16,
+        default=4,
+    )
+    iter_step: IntProperty(
+        name="Denoise Iteration Step",
+        description="Denoise use frequency. To denoise on each iteration, set to 1",
+        min=1, max=2 ** 16,
+        default=32,
+    )
+
+
+
 class RenderSettings(bpy.types.PropertyGroup):
+    device: EnumProperty(
+        name="Render Device",
+        description="Render Device",
+        items=(('GPU', "GPU", "GPU render device"),
+               ('CPU', "CPU", "Legacy render device")),
+        default='GPU',
+    )
     render_quality: EnumProperty(
-        name="Renderer Quality",
-        description="",
+        name="Render Quality",
+        description="Render Quality",
         items=(('Northstar', "Full", "Full render quality"),
                ('Full', "Legacy", "Legacy render quality"),
                ('High', "High", "High render quality"),
@@ -119,4 +234,40 @@ class RenderSettings(bpy.types.PropertyGroup):
         min=0.0, max=100.0,
         default=1.0,
     )
+    max_samples: IntProperty(
+        name="Max Samples",
+        description="Maximum number of samples to render for each pixel",
+        min=1, max=2 ** 16,
+        default=256,
+    )
+    min_adaptive_samples: IntProperty(
+        name="Min Samples",
+        description="Minimum number of samples to render for each pixel. After this, adaptive sampling\n"
+                    "will stop sampling pixels where noise is less than 'Variance Threshold'",
+        min=1, max=2 ** 16,
+        default=64,
+    )
+    variance_threshold: FloatProperty(
+        name="Noise Threshold",
+        description="Cutoff for adaptive sampling. Once pixels are below this amount of noise,\n"
+                    "no more samples are added. Set to 0 for no cutoff",
+        min=0.0, max=1.0,
+        default=0.0,
+    )
+    enable_alpha: BoolProperty(
+        name="Enable Color Alpha",
+        description="Enable Color Alpha",
+        default=True,
+    )
+    enable_motion_blur: BoolProperty(
+        name="Enable Beauty Motion Blur",
+        description="If disabled, only velocity AOV will store information about movement on the scene.\n"
+                    "Required for motion blur that is generated in post-processing",
+        default=True,
+    )
+
+    quality: PointerProperty(type=QualitySettings)
+    interactive_quality: PointerProperty(type=InteractiveQualitySettings)
+
     contour: PointerProperty(type=ContourSettings)
+    denoise: PointerProperty(type=DenoiseSettings)
