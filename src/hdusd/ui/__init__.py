@@ -63,6 +63,8 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
 
     hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_final,
     hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_viewport,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_samples_viewport,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_quality_viewport,
 
     light.HDUSD_LIGHT_PT_light,
 

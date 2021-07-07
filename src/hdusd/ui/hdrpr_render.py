@@ -51,7 +51,42 @@ class HDUSD_RENDER_PT_hdrpr_settings_viewport(HdUSD_Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        col = layout.column()
-        col.prop(hdrpr, "device")
-        col.prop(hdrpr, "render_quality")
-        col.prop(hdrpr, "render_mode")
+        layout = layout.column()
+        layout.prop(hdrpr, "device")
+        layout.prop(hdrpr, "render_mode")
+
+
+class HDUSD_RENDER_PT_hdrpr_settings_samples_viewport(HdUSD_Panel):
+    bl_label = "Samples"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_viewport'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        hdrpr = context.scene.hdusd.final.hdrpr
+
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.prop(hdrpr, "min_adaptive_samples")
+        layout.prop(hdrpr, "max_samples")
+        layout.prop(hdrpr, "variance_threshold")
+
+
+class HDUSD_RENDER_PT_hdrpr_settings_quality_viewport(HdUSD_Panel):
+    bl_label = "Quality"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_viewport'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        hdrpr = context.scene.hdusd.final.hdrpr
+        quality = hdrpr.interactive_quality
+
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.prop(hdrpr, "render_quality")
+        layout.prop(quality, "max_ray_depth")
+        layout.prop(quality, "enable_downscale")
+        layout.prop(quality, "resolution_downscale")

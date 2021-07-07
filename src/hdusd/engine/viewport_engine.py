@@ -309,9 +309,18 @@ class ViewportEngine(Engine):
         self.renderer.SetRendererPlugin(settings.delegate)
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
+
+            self.renderer.SetRendererSetting('renderMode', 'interactive')
+            self.renderer.SetRendererSetting('progressive', True)
+
             self.renderer.SetRendererSetting('renderDevice', hdrpr.device)
             self.renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
-            self.renderer.SetRendererSetting('renderMode', hdrpr.render_mode)
+            self.renderer.SetRendererSetting('coreRenderMode', hdrpr.render_mode)
+
+            self.renderer.SetRendererSetting('aoRadius', hdrpr.ao_radius)
+
+
+
 
 
 class ViewportEngineScene(ViewportEngine):
