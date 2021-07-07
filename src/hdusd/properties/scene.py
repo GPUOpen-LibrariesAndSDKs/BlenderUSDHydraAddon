@@ -70,12 +70,6 @@ class SceneProperties(HdUSDProperties):
     final: bpy.props.PointerProperty(type=FinalRenderSettings)
     viewport: bpy.props.PointerProperty(type=ViewportRenderSettings)
 
-    rpr_viewport_cpu_device: bpy.props.BoolProperty(
-        name="CPU Viewport Render Device",
-        description="Use CPU device for viewport render in RPR.\n"
-                    "Required for MaterialX testing when GPU isn't supported",
-        default=False,
-    )
     use_rpr_mx_nodes: bpy.props.BoolProperty(
         name="RPR MaterialX Nodes",
         description="Use RPR MaterialX Nodes as default nodes",

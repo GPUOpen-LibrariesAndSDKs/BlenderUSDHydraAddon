@@ -62,7 +62,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_samples_viewport(HdUSD_Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
-        hdrpr = context.scene.hdusd.final.hdrpr
+        hdrpr = context.scene.hdusd.viewport.hdrpr
 
         layout = self.layout
         layout.use_property_split = True
@@ -76,10 +76,11 @@ class HDUSD_RENDER_PT_hdrpr_settings_samples_viewport(HdUSD_Panel):
 class HDUSD_RENDER_PT_hdrpr_settings_quality_viewport(HdUSD_Panel):
     bl_label = "Quality"
     bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_viewport'
+    bl_space_type = 'PROPERTIES'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
-        hdrpr = context.scene.hdusd.final.hdrpr
+        hdrpr = context.scene.hdusd.viewport.hdrpr
         quality = hdrpr.interactive_quality
 
         layout = self.layout
@@ -90,3 +91,23 @@ class HDUSD_RENDER_PT_hdrpr_settings_quality_viewport(HdUSD_Panel):
         layout.prop(quality, "max_ray_depth")
         layout.prop(quality, "enable_downscale")
         layout.prop(quality, "resolution_downscale")
+
+
+class HDUSD_RENDER_PT_hdrpr_settings_denoise_viewport(HdUSD_Panel):
+    bl_label = ""
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_viewport'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw_header(self, context):
+        denoise = context.scene.hdusd.viewport.hdrpr.denoise
+        self.layout.prop(denoise, 'enable')
+
+    def draw(self, context):
+        denoise = context.scene.hdusd.viewport.hdrpr.denoise
+
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.prop(denoise, 'min_iter')
+        layout.prop(denoise, 'iter_step')

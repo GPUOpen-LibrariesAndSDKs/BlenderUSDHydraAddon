@@ -174,7 +174,7 @@ Colors legend:
 
 class DenoiseSettings(bpy.types.PropertyGroup):
     enable: BoolProperty(
-        name="Enable AI Denoising",
+        name="AI Denoising",
         description="Enable AI Denoising",
         default=False,
     )

@@ -309,6 +309,8 @@ class ViewportEngine(Engine):
         self.renderer.SetRendererPlugin(settings.delegate)
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
+            quality = hdrpr.interactive_quality
+            denoise = hdrpr.denoise
 
             self.renderer.SetRendererSetting('renderMode', 'interactive')
             self.renderer.SetRendererSetting('progressive', True)
@@ -319,7 +321,17 @@ class ViewportEngine(Engine):
 
             self.renderer.SetRendererSetting('aoRadius', hdrpr.ao_radius)
 
+            self.renderer.SetRendererSetting('maxSamples', hdrpr.max_samples)
+            self.renderer.SetRendererSetting('minAdaptiveSamples', hdrpr.min_adaptive_samples)
+            self.renderer.SetRendererSetting('varianceThreshold', hdrpr.variance_threshold)
 
+            self.renderer.SetRendererSetting('interactiveMaxRayDepth', quality.max_ray_depth)
+            self.renderer.SetRendererSetting('interactiveEnableDownscale', quality.enable_downscale)
+            self.renderer.SetRendererSetting('interactiveResolutionDownscale', quality.resolution_downscale)
+
+            self.renderer.SetRendererSetting('enableDenoising', denoise.enable)
+            self.renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
+            self.renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
 
 
 
