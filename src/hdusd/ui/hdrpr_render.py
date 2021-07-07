@@ -16,7 +16,7 @@ from . import HdUSD_Panel
 
 
 class HDUSD_RENDER_PT_hdrpr_settings_final(HdUSD_Panel):
-    bl_label = "RPR Render Settings"
+    bl_label = "RPR Settings"
     bl_parent_id = 'HDUSD_RENDER_PT_render_settings_final'
 
     @classmethod
@@ -37,7 +37,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_final(HdUSD_Panel):
 
 
 class HDUSD_RENDER_PT_hdrpr_settings_viewport(HdUSD_Panel):
-    bl_label = "RPR Render Settings"
+    bl_label = "RPR Settings"
     bl_parent_id = 'HDUSD_RENDER_PT_render_settings_viewport'
 
     @classmethod
