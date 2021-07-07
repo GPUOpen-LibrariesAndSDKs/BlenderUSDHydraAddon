@@ -192,7 +192,6 @@ class DenoiseSettings(bpy.types.PropertyGroup):
     )
 
 
-
 class RenderSettings(bpy.types.PropertyGroup):
     device: EnumProperty(
         name="Render Device",
