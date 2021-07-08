@@ -15,6 +15,9 @@
 from . import HdUSD_Panel
 
 
+#
+# FINAL RENDER SETTINGS
+#
 class HDUSD_RENDER_PT_hdrpr_settings_final(HdUSD_Panel):
     bl_label = "RPR Settings"
     bl_parent_id = 'HDUSD_RENDER_PT_render_settings_final'
@@ -36,6 +39,83 @@ class HDUSD_RENDER_PT_hdrpr_settings_final(HdUSD_Panel):
         col.prop(hdrpr, "render_mode")
 
 
+class HDUSD_RENDER_PT_hdrpr_settings_samples_final(HdUSD_Panel):
+    bl_label = "Samples"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_final'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        hdrpr = context.scene.hdusd.final.hdrpr
+
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.prop(hdrpr, "max_samples")
+
+        col = layout.column(align=True)
+        col.prop(hdrpr, "variance_threshold")
+        row = col.row()
+        row.enabled = hdrpr.variance_threshold > 0.0
+        row.prop(hdrpr, "min_adaptive_samples")
+
+
+class HDUSD_RENDER_PT_hdrpr_settings_quality_final(HdUSD_Panel):
+    bl_label = "Quality"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_final'
+    bl_space_type = 'PROPERTIES'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        hdrpr = context.scene.hdusd.final.hdrpr
+        quality = hdrpr.quality
+
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.prop(hdrpr, "render_quality")
+
+        col = layout.column(align=True)
+        col.prop(quality, "max_ray_depth")
+        col.prop(quality, "max_ray_depth_diffuse")
+        col.prop(quality, "max_ray_depth_glossy")
+        col.prop(quality, "max_ray_depth_refraction")
+        col.prop(quality, "max_ray_depth_glossy_refraction")
+
+        layout.prop(quality, "raycast_epsilon")
+
+        col = layout.column(align=True)
+        col.prop(quality, "enable_radiance_clamping")
+        row = col.row()
+        row.enabled = quality.enable_radiance_clamping
+        row.prop(quality, "radiance_clamping")
+
+
+class HDUSD_RENDER_PT_hdrpr_settings_denoise_final(HdUSD_Panel):
+    bl_label = ""
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_final'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw_header(self, context):
+        denoise = context.scene.hdusd.final.hdrpr.denoise
+        self.layout.prop(denoise, "enable")
+
+    def draw(self, context):
+        denoise = context.scene.hdusd.viewport.hdrpr.denoise
+
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        layout.enabled = denoise.enable
+        layout.prop(denoise, "min_iter")
+        layout.prop(denoise, "iter_step")
+
+
+#
+# VIEWPORT RENDER SETTINGS
+#
 class HDUSD_RENDER_PT_hdrpr_settings_viewport(HdUSD_Panel):
     bl_label = "RPR Settings"
     bl_parent_id = 'HDUSD_RENDER_PT_render_settings_viewport'
@@ -68,9 +148,13 @@ class HDUSD_RENDER_PT_hdrpr_settings_samples_viewport(HdUSD_Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        layout.prop(hdrpr, "min_adaptive_samples")
         layout.prop(hdrpr, "max_samples")
-        layout.prop(hdrpr, "variance_threshold")
+
+        col = layout.column(align=True)
+        col.prop(hdrpr, "variance_threshold")
+        row = col.row()
+        row.enabled = hdrpr.variance_threshold > 0.0
+        row.prop(hdrpr, "min_adaptive_samples")
 
 
 class HDUSD_RENDER_PT_hdrpr_settings_quality_viewport(HdUSD_Panel):
@@ -100,7 +184,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_denoise_viewport(HdUSD_Panel):
 
     def draw_header(self, context):
         denoise = context.scene.hdusd.viewport.hdrpr.denoise
-        self.layout.prop(denoise, 'enable')
+        self.layout.prop(denoise, "enable")
 
     def draw(self, context):
         denoise = context.scene.hdusd.viewport.hdrpr.denoise
@@ -109,5 +193,6 @@ class HDUSD_RENDER_PT_hdrpr_settings_denoise_viewport(HdUSD_Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        layout.prop(denoise, 'min_iter')
-        layout.prop(denoise, 'iter_step')
+        layout.enabled = denoise.enable
+        layout.prop(denoise, "min_iter")
+        layout.prop(denoise, "iter_step")

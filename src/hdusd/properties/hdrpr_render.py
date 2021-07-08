@@ -179,13 +179,13 @@ class DenoiseSettings(bpy.types.PropertyGroup):
         default=False,
     )
     min_iter: IntProperty(
-        name="Denoise Min Iteration",
+        name="Min Iteration",
         description="The first iteration on which denoising should be applied",
         min=1, max=2 ** 16,
         default=4,
     )
     iter_step: IntProperty(
-        name="Denoise Iteration Step",
+        name="Iteration Step",
         description="Denoise use frequency. To denoise on each iteration, set to 1",
         min=1, max=2 ** 16,
         default=32,
