@@ -314,6 +314,7 @@ class ViewportEngine(Engine):
 
             self.renderer.SetRendererSetting('renderMode', 'interactive')
             self.renderer.SetRendererSetting('progressive', True)
+            self.renderer.SetRendererSetting('enableAlpha', True)
 
             self.renderer.SetRendererSetting('renderDevice', hdrpr.device)
             self.renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
@@ -332,7 +333,6 @@ class ViewportEngine(Engine):
             self.renderer.SetRendererSetting('enableDenoising', denoise.enable)
             self.renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
             self.renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
-
 
 
 class ViewportEngineScene(ViewportEngine):

@@ -31,6 +31,7 @@
 #include "pxr/imaging/hd/rendererPlugin.h"
 #include "pxr/imaging/hdx/taskController.h"
 #include "pxr/usdImaging/usdImaging/delegate.h"
+#include "pxr/usdImaging/usdImagingGL/rendererSettings.h"
 
 #include "api.h"
 #include "renderParams.h"
@@ -38,10 +39,6 @@
 #include "renderTask.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
-
-USDIMAGINGLITE_API
-int render(UsdPrim root, const UsdImagingLiteRenderParams &params);
-
 
 /// \class UsdImagingLiteEngine
 ///
@@ -75,7 +72,7 @@ public:
 
     /// Entry point for kicking off a render
     USDIMAGINGLITE_API
-    void Render(UsdPrim root, const UsdImagingLiteRenderParams &params);
+    void Render(UsdPrim root);
 
     USDIMAGINGLITE_API
     void InvalidateBuffers();
@@ -91,6 +88,18 @@ public:
     USDIMAGINGLITE_API
     bool GetRendererAov(TfToken const &id, void *buf);
     /// @}
+
+    /// Returns the list of renderer settings.
+    USDIMAGINGLITE_API
+    UsdImagingGLRendererSettingsList GetRendererSettingsList() const;
+
+    /// Gets a renderer setting's current value.
+    USDIMAGINGLITE_API
+    VtValue GetRendererSetting(TfToken const& id) const;
+
+    /// Sets a renderer setting's value.
+    USDIMAGINGLITE_API
+    void SetRendererSetting(TfToken const& id, VtValue const& value);
 
     // ---------------------------------------------------------------------
     /// \name Camera State
