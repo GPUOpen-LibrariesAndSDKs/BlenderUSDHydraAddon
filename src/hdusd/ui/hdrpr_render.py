@@ -173,8 +173,8 @@ class HDUSD_RENDER_PT_hdrpr_settings_quality_viewport(HdUSD_Panel):
 
         layout.prop(hdrpr, "render_quality")
         layout.prop(quality, "max_ray_depth")
-        layout.prop(quality, "enable_downscale")
-        layout.prop(quality, "resolution_downscale")
+        # layout.prop(quality, "enable_downscale")
+        # layout.prop(quality, "resolution_downscale")
 
 
 class HDUSD_RENDER_PT_hdrpr_settings_denoise_viewport(HdUSD_Panel):
