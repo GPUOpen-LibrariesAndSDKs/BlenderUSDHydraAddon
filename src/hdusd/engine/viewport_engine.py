@@ -313,8 +313,8 @@ class ViewportEngine(Engine):
             denoise = hdrpr.denoise
 
             self.renderer.SetRendererSetting('renderMode', 'interactive')
-            self.renderer.SetRendererSetting('progressive', True)
-            self.renderer.SetRendererSetting('enableAlpha', True)
+            # self.renderer.SetRendererSetting('rpr:interactive', True)
+            self.renderer.SetRendererSetting('enableAlpha', False)
 
             self.renderer.SetRendererSetting('renderDevice', hdrpr.device)
             self.renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
