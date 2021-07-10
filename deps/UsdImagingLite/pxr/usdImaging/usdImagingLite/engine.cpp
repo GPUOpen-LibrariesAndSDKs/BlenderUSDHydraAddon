@@ -225,7 +225,7 @@ void UsdImagingLiteEngine::SetRendererSetting(TfToken const& id, VtValue const& 
     _renderIndex->GetRenderDelegate()->SetRenderSetting(id, value);
 }
 
-void UsdImagingLiteEngine::Render(UsdPrim root)
+void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams &params)
 {
     _delegate->Populate(root);
 

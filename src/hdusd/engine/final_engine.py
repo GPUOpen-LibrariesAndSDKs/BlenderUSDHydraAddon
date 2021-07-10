@@ -109,11 +109,12 @@ class FinalEngine(Engine):
         # setting camera
         self._set_scene_camera(renderer, scene)
 
+        params = UsdImagingLite.RenderParams()
         render_images = {
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }
 
-        renderer.Render(self.stage.GetPseudoRoot())
+        renderer.Render(self.stage.GetPseudoRoot(), params)
 
         time_begin = time.perf_counter()
         while True:

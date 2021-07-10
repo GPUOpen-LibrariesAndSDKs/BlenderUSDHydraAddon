@@ -72,7 +72,7 @@ public:
 
     /// Entry point for kicking off a render
     USDIMAGINGLITE_API
-    void Render(UsdPrim root);
+    void Render(UsdPrim root, const UsdImagingLiteRenderParams &params);
 
     USDIMAGINGLITE_API
     void InvalidateBuffers();
