@@ -213,28 +213,15 @@ class ViewportEngine(Engine):
         self.shading_data = ShadingData(context)
 
         self.render_params = UsdImagingGL.RenderParams()
-        self.render_params.samples = 200
         self.render_params.frame = Usd.TimeCode.Default()
         self.render_params.clearColor = (0, 0, 0, 0)
 
         self.renderer = UsdImagingGL.Engine()
-        self.renderer.SetRendererPlugin(settings.delegate)
-
-        self.renderer.SetRendererSetting('renderDevice',
-                                         'CPU' if scene.hdusd.rpr_viewport_cpu_device else 'GPU')
-        # self.renderer.SetRendererSetting('renderMode', 'Global Illumination')
-        # self.renderer.SetRendererSetting('renderQuality', 'Northstar')
 
         self._sync(context, depsgraph)
 
         self.is_synced = True
         log('Finish sync')
-
-    def _sync(self, context, depsgraph):
-        pass
-
-    def _sync_update(self, context, depsgraph):
-        pass
 
     def sync_update(self, context, depsgraph):
         """ sync just the updated things """
@@ -251,6 +238,17 @@ class ViewportEngine(Engine):
             self.renderer.ResumeRenderer()
 
         self.render_engine.tag_redraw()
+
+    def _sync(self, context, depsgraph):
+        self._sync_render_settings(depsgraph.scene)
+
+    def _sync_update(self, context, depsgraph):
+        scene = next((update.id for update in depsgraph.updates
+                      if isinstance(update.id, bpy.types.Scene)), None)
+        if not scene:
+            return
+
+        self._sync_render_settings(scene)
 
     def draw(self, context):
         log("Draw")
@@ -304,6 +302,38 @@ class ViewportEngine(Engine):
         else:
             self.notify_status("Rendering Done", "", False)
 
+    def _sync_render_settings(self, scene):
+        settings = scene.hdusd.viewport
+
+        self.is_gl_delegate = settings.is_gl_delegate
+        self.renderer.SetRendererPlugin(settings.delegate)
+        if settings.delegate == 'HdRprPlugin':
+            hdrpr = settings.hdrpr
+            quality = hdrpr.interactive_quality
+            denoise = hdrpr.denoise
+
+            self.renderer.SetRendererSetting('renderMode', 'interactive')
+            # self.renderer.SetRendererSetting('rpr:interactive', True)
+            self.renderer.SetRendererSetting('enableAlpha', False)
+
+            self.renderer.SetRendererSetting('renderDevice', hdrpr.device)
+            self.renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
+            self.renderer.SetRendererSetting('coreRenderMode', hdrpr.render_mode)
+
+            self.renderer.SetRendererSetting('aoRadius', hdrpr.ao_radius)
+
+            self.renderer.SetRendererSetting('maxSamples', hdrpr.max_samples)
+            self.renderer.SetRendererSetting('minAdaptiveSamples', hdrpr.min_adaptive_samples)
+            self.renderer.SetRendererSetting('varianceThreshold', hdrpr.variance_threshold)
+
+            self.renderer.SetRendererSetting('interactiveMaxRayDepth', quality.max_ray_depth)
+            self.renderer.SetRendererSetting('interactiveEnableDownscale', quality.enable_downscale)
+            self.renderer.SetRendererSetting('interactiveResolutionDownscale', quality.resolution_downscale)
+
+            self.renderer.SetRendererSetting('enableDenoising', denoise.enable)
+            self.renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
+            self.renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
+
 
 class ViewportEngineScene(ViewportEngine):
     """Viewport engine for rendering Blender current scene"""
@@ -319,6 +349,8 @@ class ViewportEngineScene(ViewportEngine):
         self.render_engine.tag_redraw()
 
     def _sync(self, context, depsgraph):
+        super()._sync(context, depsgraph)
+
         stage = self.cached_stage.create()
         self._export_depsgraph(
             stage, depsgraph,
@@ -328,38 +360,28 @@ class ViewportEngineScene(ViewportEngine):
         )
 
     def _sync_update(self, context, depsgraph):
-        scene = depsgraph.scene
-
-        root_prim = self.stage.GetPseudoRoot()
+        super()._sync_update(context, depsgraph)
 
         # get supported updates and sort by priorities
         updates = []
-        for obj_type in (bpy.types.Scene, bpy.types.World, bpy.types.Material, bpy.types.Object, bpy.types.Collection):
+        for obj_type in (bpy.types.Scene, bpy.types.Object, bpy.types.Collection):
             updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
 
-        sync_collection = False
-        sync_world = False
+        if not updates:
+            return
+
+        root_prim = self.stage.GetPseudoRoot()
 
         for update in updates:
             obj = update.id
             log("sync_update", obj)
-            if isinstance(obj, bpy.types.Scene):
-                prop = scene.hdusd.viewport
-                if self.is_gl_delegate != prop.is_gl_delegate:
-                    self.is_gl_delegate = prop.is_gl_delegate
 
-                    # update all scene lights since on renderer change
-                    self.resync_scene_lights(scene)
-
-                self.renderer.SetRendererPlugin(prop.delegate)
-
-                # Outliner object visibility change will provide us only bpy.types.Scene update
-                # That's why we need to sync objects collection in the end
-                sync_collection = True
-
+            if isinstance(obj, (bpy.types.Collection, bpy.types.Scene)):
+                self._sync_objects_collection(depsgraph)
                 continue
 
             if isinstance(obj, bpy.types.Object):
+
                 if obj.type == 'CAMERA':
                     continue
 
@@ -372,30 +394,18 @@ class ViewportEngineScene(ViewportEngine):
                                    is_gl_delegate=self.is_gl_delegate)
                 continue
 
-            if isinstance(obj, bpy.types.World):
-                sync_world = True
+    def _sync_render_settings(self, scene):
+        resync_lights = self.is_gl_delegate != scene.hdusd.viewport.is_gl_delegate
+        super()._sync_render_settings(scene)
 
-            if isinstance(obj, bpy.types.Collection):
-                sync_collection = True
-                continue
+        if resync_lights and self.shading_data.use_scene_lights:
+            for obj in scene.objects:
+                if obj.type == 'LIGHT':
+                    objects_prim = self.stage.GetPseudoRoot()
+                    object.sync_update(objects_prim, obj, True, False,
+                                       is_gl_delegate=self.is_gl_delegate)
 
-        if sync_world:
-            pass
-
-        if sync_collection:
-            self.sync_objects_collection(depsgraph)
-
-    def resync_scene_lights(self, scene):
-        if self.shading_data.use_scene_lights:
-            return
-
-        for obj in scene.objects:
-            if obj.type == 'LIGHT':
-                objects_prim = self.stage.GetPseudoRoot()
-                object.sync_update(objects_prim, obj, True, False,
-                                   is_gl_delegate=self.is_gl_delegate)
-
-    def sync_objects_collection(self, depsgraph):
+    def _sync_objects_collection(self, depsgraph):
         root_prim = self.stage.GetPseudoRoot()
 
         def dg_objects():
@@ -435,6 +445,8 @@ class ViewportEngineNodetree(ViewportEngine):
             engine.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
 
     def _sync(self, context, depsgraph):
+        super()._sync(context, depsgraph)
+
         self.data_source = depsgraph.scene.hdusd.viewport.data_source
 
         stage = self.cached_stage.create()
@@ -444,21 +456,6 @@ class ViewportEngineNodetree(ViewportEngine):
         nodetree = bpy.data.node_groups[self.data_source]
         output_node = nodetree.get_output_node()
         self.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
-
-    def _sync_update(self, context, depsgraph):
-        # get supported updates and sort by priorities
-        updates = []
-        for obj_type in (bpy.types.Scene,):
-            updates.extend(update for update in depsgraph.updates
-                           if isinstance(update.id, obj_type))
-
-        for update in updates:
-            obj = update.id
-            log("sync_update", obj)
-            if isinstance(obj, bpy.types.Scene):
-                scene = obj
-                self.renderer.SetRendererPlugin(scene.hdusd.viewport.delegate)
-                continue
 
     def nodetree_stage_changed(self, stage):
         engine_stage = self.stage

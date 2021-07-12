@@ -43,6 +43,7 @@ class HdUSD_ChildPanel(bpy.types.Panel):
 from . import (
     panels,
     render,
+    hdrpr_render,
     light,
     material,
     world,
@@ -59,6 +60,15 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     render.HDUSD_RENDER_PT_render_settings_final,
     render.HDUSD_RENDER_PT_render_settings_viewport,
     render.HDUSD_RENDER_PT_debug,
+
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_final,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_samples_final,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_quality_final,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_denoise_final,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_viewport,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_samples_viewport,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_quality_viewport,
+    hdrpr_render.HDUSD_RENDER_PT_hdrpr_settings_denoise_viewport,
 
     light.HDUSD_LIGHT_PT_light,
 

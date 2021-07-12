@@ -33,7 +33,6 @@ class FinalEngine(Engine):
     """ Final render engine """
 
     TYPE = 'FINAL'
-    SAMPLES_NUMBER = 200
 
     def __init__(self, render_engine):
         super().__init__(render_engine)
@@ -64,8 +63,7 @@ class FinalEngine(Engine):
 
         # creating renderer
         renderer = UsdImagingGL.Engine()
-        log("Hydra render:", scene.hdusd.final.delegate)
-        renderer.SetRendererPlugin(scene.hdusd.final.delegate)
+        self._sync_render_settings(renderer, scene)
 
         # setting camera
         self._set_scene_camera(renderer, scene)
@@ -103,7 +101,8 @@ class FinalEngine(Engine):
     def _render(self, scene):
         # creating renderer
         renderer = UsdImagingLite.Engine()
-        renderer.SetRendererPlugin(scene.hdusd.final.delegate)
+        self._sync_render_settings(renderer, scene)
+
         renderer.SetRenderViewport((0, 0, self.width, self.height))
         renderer.SetRendererAov('color')
 
@@ -111,7 +110,6 @@ class FinalEngine(Engine):
         self._set_scene_camera(renderer, scene)
 
         params = UsdImagingLite.RenderParams()
-        params.samples = self.SAMPLES_NUMBER
         render_images = {
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }
@@ -237,3 +235,41 @@ class FinalEngine(Engine):
         # efficient way to copy all AOV images
         render_passes.foreach_set('rect', np.concatenate(images))
         self.render_engine.end_result(result)
+
+    def _sync_render_settings(self, renderer, scene):
+        settings = scene.hdusd.final
+
+        renderer.SetRendererPlugin(settings.delegate)
+        if settings.delegate == 'HdRprPlugin':
+            hdrpr = settings.hdrpr
+            quality = hdrpr.quality
+            denoise = hdrpr.denoise
+
+            renderer.SetRendererSetting('renderMode', 'batch')
+            renderer.SetRendererSetting('progressive', True)
+            renderer.SetRendererSetting('enableAlpha', False)
+
+            renderer.SetRendererSetting('renderDevice', hdrpr.device)
+            renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
+            renderer.SetRendererSetting('coreRenderMode', hdrpr.render_mode)
+
+            renderer.SetRendererSetting('aoRadius', hdrpr.ao_radius)
+
+            renderer.SetRendererSetting('maxSamples', hdrpr.max_samples)
+            renderer.SetRendererSetting('minAdaptiveSamples', hdrpr.min_adaptive_samples)
+            renderer.SetRendererSetting('varianceThreshold', hdrpr.variance_threshold)
+
+            renderer.SetRendererSetting('maxRayDepth', quality.max_ray_depth)
+            renderer.SetRendererSetting('maxRayDepthDiffuse', quality.max_ray_depth_diffuse)
+            renderer.SetRendererSetting('maxRayDepthGlossy', quality.max_ray_depth_glossy)
+            renderer.SetRendererSetting('maxRayDepthRefraction', quality.max_ray_depth_refraction)
+            renderer.SetRendererSetting('maxRayDepthGlossyRefraction',
+                                        quality.max_ray_depth_glossy_refraction)
+            renderer.SetRendererSetting('maxRayDepthShadow', quality.max_ray_depth_shadow)
+            renderer.SetRendererSetting('raycastEpsilon', quality.raycast_epsilon)
+            renderer.SetRendererSetting('enableRadianceClamping', quality.enable_radiance_clamping)
+            renderer.SetRendererSetting('radianceClamping', quality.radiance_clamping)
+
+            renderer.SetRendererSetting('enableDenoising', denoise.enable)
+            renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
+            renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
