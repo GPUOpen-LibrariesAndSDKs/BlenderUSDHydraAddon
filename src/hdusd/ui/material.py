@@ -124,6 +124,36 @@ class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MATERIAL_OP_mx_node_tree(bpy.types.Operator):
+    """Select render source"""
+    bl_idname = "hdusd.material_mx_node_tree"
+    bl_label = ""
+
+    mx_node_tree: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        print(self.mx_node_tree)
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_MT_mx_node_tree(bpy.types.Menu):
+    bl_idname = "HDUSD_MATERIAL_MT_mx_node_tree"
+    bl_label = "MX Nodetree"
+
+    def draw(self, context):
+        layout = self.layout
+        node_groups = bpy.data.node_groups
+
+        for ng in node_groups:
+            if ng.bl_idname != 'hdusd.MxNodeTree':
+                continue
+
+            row = layout.row()
+            row.enabled = bool(ng.output_node)
+            op = row.operator("hdusd.material_mx_node_tree", text=ng.name)
+            op.mx_node_tree = ng.name
+
+
 class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
@@ -137,6 +167,9 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         layout = self.layout
 
         col = layout.column(align=True)
+        col.menu(HDUSD_MATERIAL_MT_mx_node_tree.bl_idname,
+                 text=mat_hdusd.mx_node_tree.name if mat_hdusd.mx_node_tree else "",
+                 icon='MATERIAL')
         col.label(text="MaterialX Node Tree:")
         col.template_ID(mat_hdusd, "mx_node_tree",
                         new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
