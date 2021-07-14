@@ -98,41 +98,40 @@ class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
         self.layout.template_preview(context.material)
 
 
-class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
+class HDUSD_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
     """Link new MaterialX node tree for selected material"""
-    bl_idname = "hdusd.new_mx_node_tree"
-    bl_label = "Link New MaterialX"
+    bl_idname = "hdusd.material_link_mx_node_tree"
+    bl_label = ""
+
+    node_tree_name: bpy.props.StringProperty(default="")
+    action: bpy.props.StringProperty(default="")    # NEW, LINK, UNLINK
 
     def execute(self, context):
         mat = context.material
-        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
-        mx_node_tree.create_basic_nodes(
-            'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
-        mat.hdusd.mx_node_tree = mx_node_tree
 
-        # trying to show MaterialX area with created node tree
-        screen = context.screen
-        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
-        if not area:
-            area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
+        if self.action == 'NEW':
+            mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+            mx_node_tree.create_basic_nodes(
+                'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
+            mat.hdusd.mx_node_tree = mx_node_tree
 
-        if area:
-            area.ui_type = 'hdusd.MxNodeTree'
-            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-            space.node_tree = mx_node_tree
+            # trying to show MaterialX area with created node tree
+            screen = context.screen
+            area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
+            if not area:
+                area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
 
-        return {"FINISHED"}
+            if area:
+                area.ui_type = 'hdusd.MxNodeTree'
+                space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+                space.node_tree = mx_node_tree
 
+        elif self.action == 'LINK':
+            mat.hdusd.mx_node_tree = bpy.data.node_groups[self.node_tree_name]
 
-class HDUSD_MATERIAL_OP_mx_node_tree(bpy.types.Operator):
-    """Select render source"""
-    bl_idname = "hdusd.material_mx_node_tree"
-    bl_label = ""
+        elif self.action == 'UNLINK':
+            mat.hdusd.mx_node_tree = None
 
-    mx_node_tree: bpy.props.StringProperty(default="")
-
-    def execute(self, context):
-        print(self.mx_node_tree)
         return {"FINISHED"}
 
 
@@ -143,6 +142,12 @@ class HDUSD_MATERIAL_MT_mx_node_tree(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         node_groups = bpy.data.node_groups
+        mat_hdusd = context.material.hdusd
+
+        op = layout.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname,
+                             text="Unlink" if mat_hdusd.mx_node_tree else "New",
+                             icon='REMOVE' if mat_hdusd.mx_node_tree else 'ADD')
+        op.action = 'UNLINK' if mat_hdusd.mx_node_tree else 'NEW'
 
         for ng in node_groups:
             if ng.bl_idname != 'hdusd.MxNodeTree':
@@ -150,8 +155,10 @@ class HDUSD_MATERIAL_MT_mx_node_tree(bpy.types.Menu):
 
             row = layout.row()
             row.enabled = bool(ng.output_node)
-            op = row.operator("hdusd.material_mx_node_tree", text=ng.name)
-            op.mx_node_tree = ng.name
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname,
+                              text=ng.name, icon='MATERIAL')
+            op.action = 'LINK'
+            op.node_tree_name = ng.name
 
 
 class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
@@ -166,13 +173,14 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         mat_hdusd = context.material.hdusd
         layout = self.layout
 
-        col = layout.column(align=True)
+        split = layout.row(align=True).split(factor=0.4)
+        col = split.column()
+        col.alignment = 'RIGHT'
+        col.label(text="MaterialX")
+        col = split.column()
         col.menu(HDUSD_MATERIAL_MT_mx_node_tree.bl_idname,
                  text=mat_hdusd.mx_node_tree.name if mat_hdusd.mx_node_tree else "",
                  icon='MATERIAL')
-        col.label(text="MaterialX Node Tree:")
-        col.template_ID(mat_hdusd, "mx_node_tree",
-                        new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
 
     def draw_header(self, context):
         layout = self.layout
