@@ -98,40 +98,51 @@ class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
         self.layout.template_preview(context.material)
 
 
-class HDUSD_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
-    """Create / Link / Unlink MaterialX node tree to selected material"""
-    bl_idname = "hdusd.material_link_mx_node_tree"
-    bl_label = ""
-
-    node_tree_name: bpy.props.StringProperty(default="")
-    action: bpy.props.StringProperty(default="")    # NEW, LINK, UNLINK
+class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
+    """Create new MaterialX node tree for selected material"""
+    bl_idname = "hdusd.material_new_mx_node_tree"
+    bl_label = "New"
 
     def execute(self, context):
         mat = context.material
+        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+        mx_node_tree.create_basic_nodes(
+            'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
+        mat.hdusd.mx_node_tree = mx_node_tree
 
-        if self.action == 'NEW':
-            mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
-            mx_node_tree.create_basic_nodes(
-                'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
-            mat.hdusd.mx_node_tree = mx_node_tree
+        # trying to show MaterialX area with created node tree
+        screen = context.screen
+        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
+        if not area:
+            area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
 
-            # trying to show MaterialX area with created node tree
-            screen = context.screen
-            area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
-            if not area:
-                area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
+        if area:
+            area.ui_type = 'hdusd.MxNodeTree'
+            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+            space.node_tree = mx_node_tree
 
-            if area:
-                area.ui_type = 'hdusd.MxNodeTree'
-                space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-                space.node_tree = mx_node_tree
+        return {"FINISHED"}
 
-        elif self.action == 'LINK':
-            mat.hdusd.mx_node_tree = bpy.data.node_groups[self.node_tree_name]
 
-        elif self.action == 'UNLINK':
-            mat.hdusd.mx_node_tree = None
+class HDUSD_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
+    """Link MaterialX node tree to selected material"""
+    bl_idname = "hdusd.material_link_mx_node_tree"
+    bl_label = ""
 
+    mx_node_tree_name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        context.material.hdusd.mx_node_tree = bpy.data.node_groups[self.mx_node_tree_name]
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_OP_unlink_mx_node_tree(bpy.types.Operator):
+    """Unlink MaterialX node tree from selected material"""
+    bl_idname = "hdusd.material_unlink_mx_node_tree"
+    bl_label = ""
+
+    def execute(self, context):
+        context.material.hdusd.mx_node_tree = None
         return {"FINISHED"}
 
 
@@ -151,8 +162,7 @@ class HDUSD_MATERIAL_MT_mx_node_tree(bpy.types.Menu):
             row.enabled = bool(ng.output_node)
             op = row.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname,
                               text=ng.name, icon='MATERIAL')
-            op.action = 'LINK'
-            op.node_tree_name = ng.name
+            op.mx_node_tree_name = ng.name
 
 
 class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
@@ -179,12 +189,10 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
 
         if mat_hdusd.mx_node_tree:
             row.prop(mat_hdusd.mx_node_tree, 'name', text="")
-            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname, text="", icon='X')
-            op.action = 'UNLINK'
+            row.operator(HDUSD_MATERIAL_OP_unlink_mx_node_tree.bl_idname, icon='X')
 
         else:
-            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname, text="New", icon='ADD')
-            op.action = 'NEW'
+            row.operator(HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname, icon='ADD')
 
     def draw_header(self, context):
         layout = self.layout
