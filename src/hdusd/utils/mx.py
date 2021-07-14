@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import MaterialX as mx
+import bpy
 
 from . import title_str, code_str
 
@@ -46,7 +47,7 @@ def set_param_value(mx_param, val, nd_type):
             mx_param.setAttribute('output', mx_output.getName())
 
     elif nd_type == 'filename':
-        mx_param.setValueString(val)
+        mx_param.setValueString(bpy.path.abspath(val))
 
     else:
         mx_type = getattr(mx, title_str(nd_type), None)
