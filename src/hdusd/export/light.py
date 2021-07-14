@@ -24,10 +24,6 @@ from ..utils import logging
 log = logging.Log(tag='export.light')
 
 
-def sdf_name(obj: bpy.types.Object):
-    return sdf_path(obj.name_full)
-
-
 def get_radiant_power(light: bpy.types.Light, is_gl_mode):
     """ Return light radiant power depending on light type """
 

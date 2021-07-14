@@ -14,7 +14,7 @@
 # ********************************************************************
 import bpy
 
-from pxr import UsdGeom
+from pxr import UsdGeom, Tf
 
 from .base_node import USDNode
 from ...export import object, material
@@ -118,7 +118,7 @@ class BlenderDataNode(USDNode):
 
                 elif self.export_type == 'OBJECT':
                     if not self.object_to_export or \
-                            object.sdf_name(self.object_to_export) != object.sdf_name(obj):
+                            Tf.MakeValidIdentifier(self.object_to_export.name_full) != Tf.MakeValidIdentifier(obj.name_full):
                         continue
 
                 # updating object
@@ -132,7 +132,7 @@ class BlenderDataNode(USDNode):
 
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
-                depsgraph_keys = set(object.sdf_name(obj)
+                depsgraph_keys = set(Tf.MakeValidIdentifier(obj.name_full)
                                      for obj in depsgraph_objects(depsgraph))
 
                 if self.export_type == 'SCENE':
@@ -145,15 +145,15 @@ class BlenderDataNode(USDNode):
                     if coll.name != self.collection_to_export.name:
                         continue
 
-                    required_keys = set(object.sdf_name(obj) for obj in coll.objects)
+                    required_keys = set(Tf.MakeValidIdentifier(obj.name_full) for obj in coll.objects)
                     required_keys.intersection_update(depsgraph_keys)
 
                 elif self.export_type == 'OBJECT':
                     if not self.object_to_export:
                         continue
 
-                    if object.sdf_name(self.object_to_export) in depsgraph_keys:
-                        required_keys = {object.sdf_name(self.object_to_export)}
+                    if Tf.MakeValidIdentifier(self.object_to_export.name_full) in depsgraph_keys:
+                        required_keys = {Tf.MakeValidIdentifier(self.object_to_export.name_full)}
 
                 keys_to_remove = current_keys - required_keys
                 keys_to_add = required_keys - current_keys
@@ -166,7 +166,7 @@ class BlenderDataNode(USDNode):
 
                 if keys_to_add:
                     for obj in depsgraph_objects(depsgraph):
-                        obj_key = object.sdf_name(obj)
+                        obj_key = Tf.MakeValidIdentifier(obj.name_full)
                         if obj_key not in keys_to_add:
                             continue
 
