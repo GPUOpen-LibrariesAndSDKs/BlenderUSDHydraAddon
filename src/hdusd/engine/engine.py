@@ -74,7 +74,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
     """
     bl_idname = "HdUSD"
     bl_label = "USD Hydra"
-    bl_use_preview = False #True
+    bl_use_preview = True
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
     bl_use_gpu_context = False

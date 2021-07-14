@@ -99,7 +99,7 @@ class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
 
 
 class HDUSD_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
-    """Create/Link/Unlink MaterialX node tree to selected material"""
+    """Create / Link / Unlink MaterialX node tree to selected material"""
     bl_idname = "hdusd.material_link_mx_node_tree"
     bl_label = ""
 
@@ -179,7 +179,7 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
 
         if mat_hdusd.mx_node_tree:
             row.prop(mat_hdusd.mx_node_tree, 'name', text="")
-            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname, text="", icon='REMOVE')
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname, text="", icon='X')
             op.action = 'UNLINK'
 
         else:
