@@ -25,7 +25,7 @@ from ...utils import depsgraph_objects
 # COLLECTION MENU and OPERATORS
 #
 class HDUSD_USD_NODETREE_OP_blender_data_link_collection(bpy.types.Operator):
-    """Unlink MaterialX node tree from selected material"""
+    """Link collection"""
     bl_idname = "hdusd.usd_nodetree_blender_data_link_collection"
     bl_label = ""
 
@@ -37,7 +37,7 @@ class HDUSD_USD_NODETREE_OP_blender_data_link_collection(bpy.types.Operator):
 
 
 class HDUSD_USD_NODETREE_OP_blender_data_unlink_collection(bpy.types.Operator):
-    """Unlink MaterialX node tree from selected material"""
+    """Unlink collection"""
     bl_idname = "hdusd.usd_nodetree_blender_data_unlink_collection"
     bl_label = ""
 
@@ -68,7 +68,7 @@ class HDUSD_USD_NODETREE_MT_blender_data_collection(bpy.types.Menu):
 # OBJECT MENU and OPERATORS
 #
 class HDUSD_USD_NODETREE_OP_blender_data_link_object(bpy.types.Operator):
-    """Unlink MaterialX node tree from selected material"""
+    """Link object"""
     bl_idname = "hdusd.usd_nodetree_blender_data_link_object"
     bl_label = ""
 
@@ -80,7 +80,7 @@ class HDUSD_USD_NODETREE_OP_blender_data_link_object(bpy.types.Operator):
 
 
 class HDUSD_USD_NODETREE_OP_blender_data_unlink_object(bpy.types.Operator):
-    """Unlink MaterialX node tree from selected material"""
+    """Unlink object"""
     bl_idname = "hdusd.usd_nodetree_blender_data_unlink_object"
     bl_label = ""
 
