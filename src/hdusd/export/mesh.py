@@ -16,12 +16,12 @@ from dataclasses import dataclass
 import numpy as np
 import math
 
-from pxr import UsdGeom, Sdf, UsdShade, Vt
+from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf
 import bpy
 import bmesh
 import mathutils
 
-from . import material, sdf_path
+from . import material
 from ..utils import get_data_from_collection
 
 from ..utils import logging
@@ -202,7 +202,7 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         return
 
     stage = obj_prim.GetStage()
-    usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(sdf_path(mesh.name)))
+    usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(mesh.name)))
 
     usd_mesh.CreateDoubleSidedAttr(True)
     usd_mesh.CreatePointsAttr(data.vertices)

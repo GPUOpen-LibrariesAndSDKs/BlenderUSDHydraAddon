@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from pxr import UsdGeom, Gf
+from pxr import UsdGeom, Gf, Tf
 import bpy
 
-from . import mesh, camera, to_mesh, light, sdf_path
+from . import mesh, camera, to_mesh, light
 
 from ..utils import logging
 log = logging.Log(tag='export.object')
 
 
 def sdf_name(obj: bpy.types.Object):
-    return sdf_path(obj.name_full)
+    return Tf.MakeValidIdentifier(obj.name_full)
 
 
 def get_transform(obj: bpy.types.Object):

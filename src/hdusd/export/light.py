@@ -15,17 +15,12 @@
 import math
 import numpy as np
 
-from pxr import UsdLux
+from pxr import UsdLux, Tf
 import bpy
 
-from . import sdf_path
 
 from ..utils import logging
 log = logging.Log(tag='export.light')
-
-
-def sdf_name(obj: bpy.types.Object):
-    return sdf_path(obj.name_full)
 
 
 def get_radiant_power(light: bpy.types.Light, is_gl_mode):
@@ -75,7 +70,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     is_preview_render = kwargs.get('is_preview_render', False)
     log("sync", light, obj)
 
-    light_path = obj_prim.GetPath().AppendChild(sdf_path(light.name))
+    light_path = obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(light.name))
 
     if light.type == 'POINT':
         usd_light = UsdLux.SphereLight.Define(stage, light_path)

@@ -19,7 +19,7 @@ It converts such blender object into blender mesh and exports it as mesh.
 
 import bpy
 
-from . import mesh, sdf_path
+from . import mesh
 
 from ..utils import logging
 log = logging.Log(tag='export.to_mesh')
