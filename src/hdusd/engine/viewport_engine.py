@@ -20,7 +20,7 @@ import bgl
 from bpy_extras import view3d_utils
 import weakref
 
-from pxr import Usd, UsdGeom, Tf
+from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
 
 from .engine import Engine, depsgraph_objects
@@ -412,7 +412,7 @@ class ViewportEngineScene(ViewportEngine):
             yield from depsgraph_objects(depsgraph, self.space_data,
                                          self.shading_data.use_scene_lights)
 
-        depsgraph_keys = set(Tf.MakeValidIdentifier(obj.name_full) for obj in dg_objects())
+        depsgraph_keys = set(object.sdf_name(obj) for obj in dg_objects())
         usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
         keys_to_remove = usd_object_keys - depsgraph_keys
         keys_to_add = depsgraph_keys - usd_object_keys
@@ -425,7 +425,7 @@ class ViewportEngineScene(ViewportEngine):
         if keys_to_add:
             log("Object keys to add", keys_to_add)
             for obj in dg_objects():
-                obj_key = Tf.MakeValidIdentifier(obj.name_full)
+                obj_key = object.sdf_name(obj)
                 if obj_key not in keys_to_add:
                     continue
 
