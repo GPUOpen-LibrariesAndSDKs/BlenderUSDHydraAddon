@@ -21,9 +21,7 @@ from pathlib import Path
 import bpy
 import mathutils
 
-from pxr import Gf, Sdf, UsdGeom, UsdLux
-
-from . import sdf_path
+from pxr import Gf, Sdf, UsdGeom, UsdLux, Tf
 
 from ..utils import logging
 log = logging.Log(tag='export.world')
@@ -134,7 +132,7 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
     xform = UsdGeom.Xform.Define(stage, root_prim.GetPath().AppendChild("_world"))
     obj_prim = xform.GetPrim()
 
-    usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild(sdf_path(world.name)))
+    usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(world.name)))
     usd_light.ClearXformOpOrder()
     usd_light.OrientToStageUpAxis()
 

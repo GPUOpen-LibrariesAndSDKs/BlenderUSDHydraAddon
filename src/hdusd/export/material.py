@@ -14,19 +14,18 @@
 #********************************************************************
 import bpy
 
-from pxr import Sdf, UsdShade
+from pxr import Sdf, UsdShade, Tf
 import MaterialX as mx
 
-from . import sdf_path
 from .. import utils
 from ..utils import logging
 log = logging.Log(tag='export.material')
 
 
 def sdf_name(mat: bpy.types.Material, input_socket_key='Surface'):
-    ret = sdf_path(mat.name_full)
+    ret = Tf.MakeValidIdentifier(mat.name_full)
     if input_socket_key != 'Surface':
-        ret += "/" + sdf_path(mat.name_full)
+        ret += "/" + Tf.MakeValidIdentifier(mat.name_full)
 
     return ret
 

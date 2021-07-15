@@ -15,10 +15,10 @@
 from dataclasses import dataclass
 import numpy as np
 
-from pxr import UsdGeom, Gf
+from pxr import UsdGeom, Gf, Tf
 import bpy
 
-from . import object, sdf_path
+from . import object
 
 from ..utils import logging
 log = logging.Log(tag='export.camera')
@@ -290,7 +290,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     log("sync", camera)
 
     stage = obj_prim.GetStage()
-    usd_camera = UsdGeom.Camera.Define(stage, obj_prim.GetPath().AppendChild(sdf_path(camera.name)))
+    usd_camera = UsdGeom.Camera.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(camera.name)))
 
     settings = CameraData.init_from_camera(camera, obj.matrix_world, screen_ratio)
     settings.export(usd_camera)

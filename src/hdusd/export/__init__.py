@@ -12,7 +12,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-
-
-def sdf_path(name):
-    return name.replace('.', '_').replace('-', '_').replace(' ', '_')
