@@ -21,6 +21,44 @@ from ...export import object, material
 from ...utils import depsgraph_objects
 
 
+class HDUSD_USD_NODETREE_OP_blender_data_link_object(bpy.types.Operator):
+    """Unlink MaterialX node tree from selected material"""
+    bl_idname = "hdusd.usd_nodetree_blender_data_link_objects"
+    bl_label = ""
+
+    object_name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+
+class HDUSD_USD_NODETREE_OP_blender_data_unlink_object(bpy.types.Operator):
+    """Unlink MaterialX node tree from selected material"""
+    bl_idname = "hdusd.usd_nodetree_blender_data_unlink_objects"
+    bl_label = ""
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+
+class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
+    bl_idname = "HDUSD_USD_NODETREE_MT_blender_data_object"
+    bl_label = "Object"
+
+    def draw(self, context):
+        layout = self.layout
+        objects = context.scene.objects
+
+        for obj in objects:
+            if obj.hdusd.is_usd:
+                continue
+
+            row = layout.row()
+            op = row.operator(HDUSD_USD_NODETREE_OP_blender_data_link_object.bl_idname,
+                              text=obj.name)
+            op.object_name = obj.name
+
+
 class BlenderDataNode(USDNode):
     """Blender data to USD can export whole scene, one collection or object"""
     bl_idname = 'usd.BlenderDataNode'
@@ -61,7 +99,18 @@ class BlenderDataNode(USDNode):
         if self.export_type == 'COLLECTION':
             col.prop(self, 'collection_to_export')
         elif self.export_type == 'OBJECT':
-            col.prop(self, 'object_to_export')
+            split = layout.row(align=True).split(factor=0.25)
+            col = split.column()
+            col.label(text="Object")
+            col = split.column()
+            row = col.row(align=True)
+            if self.object_to_export:
+                row.menu(HDUSD_USD_NODETREE_MT_blender_data_object.bl_idname,
+                         text=self.object_to_export.name, icon='MATERIAL')
+                row.operator(HDUSD_USD_NODETREE_OP_blender_data_unlink_object.bl_idname, icon='X')
+            else:
+                row.menu(HDUSD_USD_NODETREE_MT_blender_data_object.bl_idname,
+                         text=" ", icon='MATERIAL')
 
     def compute(self, **kwargs):
         depsgraph = bpy.context.evaluated_depsgraph_get()

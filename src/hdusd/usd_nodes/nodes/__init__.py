@@ -47,8 +47,12 @@ node_categories = [
 ]
 
 # nodes to register
-register_nodes, unregister_nodes = bpy.utils.register_classes_factory([
+register_classes, unregister_classes = bpy.utils.register_classes_factory([
+    blender_data.HDUSD_USD_NODETREE_OP_blender_data_link_object,
+    blender_data.HDUSD_USD_NODETREE_OP_blender_data_unlink_object,
+    blender_data.HDUSD_USD_NODETREE_MT_blender_data_object,
     blender_data.BlenderDataNode,
+
     usd_file.UsdFileNode,
     write_file.WriteFileNode,
     merge.MergeNode,
@@ -61,10 +65,10 @@ register_nodes, unregister_nodes = bpy.utils.register_classes_factory([
 
 
 def register():
-    register_nodes()
+    register_classes()
     nodeitems_utils.register_node_categories("USD_NODES", node_categories)
 
 
 def unregister():
     nodeitems_utils.unregister_node_categories("USD_NODES")
-    unregister_nodes()
+    unregister_classes()
