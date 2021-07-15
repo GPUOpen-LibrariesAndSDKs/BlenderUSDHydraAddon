@@ -48,6 +48,9 @@ node_categories = [
 
 # nodes to register
 register_classes, unregister_classes = bpy.utils.register_classes_factory([
+    blender_data.HDUSD_USD_NODETREE_OP_blender_data_link_collection,
+    blender_data.HDUSD_USD_NODETREE_OP_blender_data_unlink_collection,
+    blender_data.HDUSD_USD_NODETREE_MT_blender_data_collection,
     blender_data.HDUSD_USD_NODETREE_OP_blender_data_link_object,
     blender_data.HDUSD_USD_NODETREE_OP_blender_data_unlink_object,
     blender_data.HDUSD_USD_NODETREE_MT_blender_data_object,

@@ -21,23 +21,71 @@ from ...export import object, material
 from ...utils import depsgraph_objects
 
 
+#
+# COLLECTION MENU and OPERATORS
+#
+class HDUSD_USD_NODETREE_OP_blender_data_link_collection(bpy.types.Operator):
+    """Unlink MaterialX node tree from selected material"""
+    bl_idname = "hdusd.usd_nodetree_blender_data_link_collection"
+    bl_label = ""
+
+    collection_name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        context.node.collection = bpy.data.collections[self.collection_name]
+        return {"FINISHED"}
+
+
+class HDUSD_USD_NODETREE_OP_blender_data_unlink_collection(bpy.types.Operator):
+    """Unlink MaterialX node tree from selected material"""
+    bl_idname = "hdusd.usd_nodetree_blender_data_unlink_collection"
+    bl_label = ""
+
+    def execute(self, context):
+        context.node.collection = None
+        return {"FINISHED"}
+
+
+class HDUSD_USD_NODETREE_MT_blender_data_collection(bpy.types.Menu):
+    bl_idname = "HDUSD_USD_NODETREE_MT_blender_data_collection"
+    bl_label = "Object"
+
+    def draw(self, context):
+        layout = self.layout
+        collections = bpy.data.collections
+
+        for coll in collections:
+            if coll.name == "USD NodeTree":
+                continue
+
+            row = layout.row()
+            op = row.operator(HDUSD_USD_NODETREE_OP_blender_data_link_collection.bl_idname,
+                              text=coll.name)
+            op.collection_name = coll.name
+
+
+#
+# OBJECT MENU and OPERATORS
+#
 class HDUSD_USD_NODETREE_OP_blender_data_link_object(bpy.types.Operator):
     """Unlink MaterialX node tree from selected material"""
-    bl_idname = "hdusd.usd_nodetree_blender_data_link_objects"
+    bl_idname = "hdusd.usd_nodetree_blender_data_link_object"
     bl_label = ""
 
     object_name: bpy.props.StringProperty(default="")
 
     def execute(self, context):
+        context.node.object = bpy.data.objects[self.object_name]
         return {"FINISHED"}
 
 
 class HDUSD_USD_NODETREE_OP_blender_data_unlink_object(bpy.types.Operator):
     """Unlink MaterialX node tree from selected material"""
-    bl_idname = "hdusd.usd_nodetree_blender_data_unlink_objects"
+    bl_idname = "hdusd.usd_nodetree_blender_data_unlink_object"
     bl_label = ""
 
     def execute(self, context):
+        context.node.object = None
         return {"FINISHED"}
 
 
@@ -47,7 +95,7 @@ class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        objects = context.scene.objects
+        objects = bpy.data.objects
 
         for obj in objects:
             if obj.hdusd.is_usd:
@@ -70,7 +118,7 @@ class BlenderDataNode(USDNode):
     def update_data(self, context):
         self.reset(True)
 
-    export_type: bpy.props.EnumProperty(
+    data: bpy.props.EnumProperty(
         name="Data",
         description="Blender Data to read",
         items=(('SCENE', "Scene", "Read entire scene"),
@@ -80,13 +128,13 @@ class BlenderDataNode(USDNode):
         default='SCENE',
         update=update_data
     )
-    collection_to_export: bpy.props.PointerProperty(
+    collection: bpy.props.PointerProperty(
         type=bpy.types.Collection,
         name="Collection",
         description="",
         update=update_data
     )
-    object_to_export: bpy.props.PointerProperty(
+    object: bpy.props.PointerProperty(
         type=bpy.types.Object,
         name="Object",
         description="",
@@ -95,22 +143,35 @@ class BlenderDataNode(USDNode):
 
     def draw_buttons(self, context, layout):
         col = layout.column(align=True)
-        col.prop(self, 'export_type')
-        if self.export_type == 'COLLECTION':
-            col.prop(self, 'collection_to_export')
-        elif self.export_type == 'OBJECT':
+        col.prop(self, 'data')
+
+        if self.data == 'COLLECTION':
+            split = layout.row(align=True).split(factor=0.25)
+            col = split.column()
+            col.label(text="Collection")
+            col = split.column()
+            row = col.row(align=True)
+            if self.collection:
+                row.menu(HDUSD_USD_NODETREE_MT_blender_data_collection.bl_idname,
+                         text=self.collection.name, icon='OUTLINER_COLLECTION')
+                row.operator(HDUSD_USD_NODETREE_OP_blender_data_unlink_collection.bl_idname, icon='X')
+            else:
+                row.menu(HDUSD_USD_NODETREE_MT_blender_data_collection.bl_idname,
+                         text=" ", icon='OUTLINER_COLLECTION')
+
+        elif self.data == 'OBJECT':
             split = layout.row(align=True).split(factor=0.25)
             col = split.column()
             col.label(text="Object")
             col = split.column()
             row = col.row(align=True)
-            if self.object_to_export:
+            if self.object:
                 row.menu(HDUSD_USD_NODETREE_MT_blender_data_object.bl_idname,
-                         text=self.object_to_export.name, icon='MATERIAL')
+                         text=self.object.name, icon='OBJECT_DATAMODE')
                 row.operator(HDUSD_USD_NODETREE_OP_blender_data_unlink_object.bl_idname, icon='X')
             else:
                 row.menu(HDUSD_USD_NODETREE_MT_blender_data_object.bl_idname,
-                         text=" ", icon='MATERIAL')
+                         text=" ", icon='OBJECT_DATAMODE')
 
     def compute(self, **kwargs):
         depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -121,25 +182,25 @@ class BlenderDataNode(USDNode):
 
         root_prim = stage.GetPseudoRoot()
 
-        if self.export_type == 'SCENE':
+        if self.data == 'SCENE':
             for obj in depsgraph_objects(depsgraph):
                 object.sync(root_prim, obj)
 
-        elif self.export_type == 'COLLECTION':
-            if not self.collection_to_export:
+        elif self.data == 'COLLECTION':
+            if not self.collection:
                 return
 
-            for obj_col in self.collection_to_export.objects:
+            for obj_col in self.collection.objects:
                 if obj_col.hdusd.is_usd:
                     continue
 
                 object.sync(root_prim, obj_col.evaluated_get(depsgraph))
 
-        elif self.export_type == 'OBJECT':
-            if not self.object_to_export or self.object_to_export.hdusd.is_usd:
+        elif self.data == 'OBJECT':
+            if not self.object or self.object.hdusd.is_usd:
                 return
 
-            object.sync(root_prim, self.object_to_export.evaluated_get(depsgraph))
+            object.sync(root_prim, self.object.evaluated_get(depsgraph))
 
         return stage
 
@@ -160,14 +221,14 @@ class BlenderDataNode(USDNode):
                     continue
 
                 # checking if object has to be updated
-                if self.export_type == 'COLLECTION':
-                    if not self.collection_to_export or \
-                            obj.name not in self.collection_to_export.objects:
+                if self.data == 'COLLECTION':
+                    if not self.collection or \
+                            obj.name not in self.collection.objects:
                         continue
 
-                elif self.export_type == 'OBJECT':
-                    if not self.object_to_export or \
-                            object.sdf_name(self.object_to_export) != object.sdf_name(obj):
+                elif self.data == 'OBJECT':
+                    if not self.object or \
+                            object.sdf_name(self.object) != object.sdf_name(obj):
                         continue
 
                 # updating object
@@ -184,25 +245,25 @@ class BlenderDataNode(USDNode):
                 depsgraph_keys = set(object.sdf_name(obj)
                                      for obj in depsgraph_objects(depsgraph))
 
-                if self.export_type == 'SCENE':
+                if self.data == 'SCENE':
                     required_keys = depsgraph_keys
 
-                elif self.export_type == 'COLLECTION':
-                    if not self.collection_to_export:
+                elif self.data == 'COLLECTION':
+                    if not self.collection:
                         continue
 
-                    if coll.name != self.collection_to_export.name:
+                    if coll.name != self.collection.name:
                         continue
 
                     required_keys = set(object.sdf_name(obj) for obj in coll.objects)
                     required_keys.intersection_update(depsgraph_keys)
 
-                elif self.export_type == 'OBJECT':
-                    if not self.object_to_export:
+                elif self.data == 'OBJECT':
+                    if not self.object:
                         continue
 
-                    if object.sdf_name(self.object_to_export) in depsgraph_keys:
-                        required_keys = {object.sdf_name(self.object_to_export)}
+                    if object.sdf_name(self.object) in depsgraph_keys:
+                        required_keys = {object.sdf_name(self.object)}
 
                 keys_to_remove = current_keys - required_keys
                 keys_to_add = required_keys - current_keys
