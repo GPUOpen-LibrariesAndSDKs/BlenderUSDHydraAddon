@@ -15,14 +15,14 @@
 import time
 import numpy as np
 
-from pxr import Usd, UsdAppUtils, Glf
+from pxr import Usd, UsdAppUtils, Glf, Tf
 from pxr import UsdImagingGL, UsdImagingLite
 
 import bpy
 import bgl
 
 from .engine import Engine
-from ..export import nodegraph, sdf_path
+from ..export import nodegraph
 from ..utils import gl, time_str
 
 from ..utils import logging
@@ -136,7 +136,7 @@ class FinalEngine(Engine):
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path(scene.camera.name))
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.name))
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())

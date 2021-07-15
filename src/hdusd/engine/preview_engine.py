@@ -13,9 +13,8 @@
 # limitations under the License.
 #********************************************************************
 from .final_engine import FinalEngine
-from ..export import sdf_path
 
-from pxr import UsdAppUtils
+from pxr import UsdAppUtils, Tf
 
 from ..utils import logging
 log = logging.Log(tag='preview_engine')
@@ -28,7 +27,7 @@ class PreviewEngine(FinalEngine):
     SAMPLES_NUMBER = 50
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, sdf_path(scene.camera.data.name))
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
