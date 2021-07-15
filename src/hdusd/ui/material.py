@@ -99,9 +99,9 @@ class HDUSD_MATERIAL_PT_preview(HdUSD_Panel):
 
 
 class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
-    """Link new MaterialX node tree for selected material"""
-    bl_idname = "hdusd.new_mx_node_tree"
-    bl_label = "Link New MaterialX"
+    """Create new MaterialX node tree for selected material"""
+    bl_idname = "hdusd.material_new_mx_node_tree"
+    bl_label = "New"
 
     def execute(self, context):
         mat = context.material
@@ -124,6 +124,47 @@ class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
+    """Link MaterialX node tree to selected material"""
+    bl_idname = "hdusd.material_link_mx_node_tree"
+    bl_label = ""
+
+    mx_node_tree_name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        context.material.hdusd.mx_node_tree = bpy.data.node_groups[self.mx_node_tree_name]
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_OP_unlink_mx_node_tree(bpy.types.Operator):
+    """Unlink MaterialX node tree from selected material"""
+    bl_idname = "hdusd.material_unlink_mx_node_tree"
+    bl_label = ""
+
+    def execute(self, context):
+        context.material.hdusd.mx_node_tree = None
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_MT_mx_node_tree(bpy.types.Menu):
+    bl_idname = "HDUSD_MATERIAL_MT_mx_node_tree"
+    bl_label = "MX Nodetree"
+
+    def draw(self, context):
+        layout = self.layout
+        node_groups = bpy.data.node_groups
+
+        for ng in node_groups:
+            if ng.bl_idname != 'hdusd.MxNodeTree':
+                continue
+
+            row = layout.row()
+            row.enabled = bool(ng.output_node)
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node_tree.bl_idname,
+                              text=ng.name, icon='MATERIAL')
+            op.mx_node_tree_name = ng.name
+
+
 class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
@@ -136,10 +177,22 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         mat_hdusd = context.material.hdusd
         layout = self.layout
 
-        col = layout.column(align=True)
-        col.label(text="MaterialX Node Tree:")
-        col.template_ID(mat_hdusd, "mx_node_tree",
-                        new=HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname)
+        split = layout.row(align=True).split(factor=0.4)
+        col = split.column()
+        col.alignment = 'RIGHT'
+        col.label(text="MaterialX")
+        col = split.column()
+        row = col.row(align=True)
+        col1 = row.column()
+        col1.enabled = any(ng.bl_idname == 'hdusd.MxNodeTree' for ng in bpy.data.node_groups)
+        col1.menu(HDUSD_MATERIAL_MT_mx_node_tree.bl_idname, text="", icon='MATERIAL')
+
+        if mat_hdusd.mx_node_tree:
+            row.prop(mat_hdusd.mx_node_tree, 'name', text="")
+            row.operator(HDUSD_MATERIAL_OP_unlink_mx_node_tree.bl_idname, icon='X')
+
+        else:
+            row.operator(HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname, icon='ADD')
 
     def draw_header(self, context):
         layout = self.layout
