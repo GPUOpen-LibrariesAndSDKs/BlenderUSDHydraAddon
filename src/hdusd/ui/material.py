@@ -108,19 +108,8 @@ class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
         mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
         mx_node_tree.create_basic_nodes(
             'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
+
         mat.hdusd.mx_node_tree = mx_node_tree
-
-        # trying to show MaterialX area with created node tree
-        screen = context.screen
-        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
-        if not area:
-            area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
-
-        if area:
-            area.ui_type = 'hdusd.MxNodeTree'
-            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-            space.node_tree = mx_node_tree
-
         return {"FINISHED"}
 
 
@@ -288,3 +277,27 @@ class HDUSD_MATERIAL_PT_export_mx(HdUSD_Panel):
 
         layout.operator(HDUSD_MATERIAL_OP_export_mx_file.bl_idname)
         layout.operator(HDUSD_MATERIAL_OP_export_mx_console.bl_idname)
+
+
+def depsgraph_update(depsgraph):
+    context = bpy.context
+    mx_node_tree = None
+    if context.object and context.object.active_material:
+        mx_node_tree = context.object.active_material.hdusd.mx_node_tree
+
+    # trying to show MaterialX area with node tree or Shader area
+    screen = context.screen
+    if mx_node_tree:
+        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
+        if not area:
+            area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
+
+        if area:
+            area.ui_type = 'hdusd.MxNodeTree'
+            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+            space.node_tree = mx_node_tree
+
+    else:
+        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
+        if area:
+            area.ui_type = 'ShaderNodeTree'
