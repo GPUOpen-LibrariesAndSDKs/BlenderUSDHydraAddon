@@ -288,16 +288,17 @@ def depsgraph_update(depsgraph):
     # trying to show MaterialX area with node tree or Shader area
     screen = context.screen
     if mx_node_tree:
-        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
-        if not area:
-            area = next((a for a in screen.areas if a.ui_type == 'ShaderNodeTree'), None)
+        for area in screen.areas:
+            if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
+                continue
 
-        if area:
             area.ui_type = 'hdusd.MxNodeTree'
             space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
             space.node_tree = mx_node_tree
 
     else:
-        area = next((a for a in screen.areas if a.ui_type == 'hdusd.MxNodeTree'), None)
-        if area:
+        for area in screen.areas:
+            if area.ui_type != 'hdusd.MxNodeTree':
+                continue
+
             area.ui_type = 'ShaderNodeTree'
