@@ -199,12 +199,17 @@ class MxNode(bpy.types.ShaderNode):
 
         values = []
         for in_key in range(len(self.inputs)):
-            values.append(self.get_input_value(in_key, **kwargs))
+            nd_input = self.get_nodedef_input(in_key)
+            f = nd_input.getAttribute('uifolder')
+            if f and not getattr(self, self._folder_prop_name(f)):
+                continue
+
+            values.append((in_key, self.get_input_value(in_key, **kwargs)))
 
         mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, self.name, True)
         node_name = mx_utils.get_node_name_by_node_path(self.name)
         mx_node = mx_nodegraph.addNode(nodedef.getNodeString(), node_name, nd_output.getType())
-        for in_key, val in enumerate(values):
+        for in_key, val in values:
             nd_input = self.get_nodedef_input(in_key)
             nd_type = nd_input.getType()
             if not isinstance(val, mx.Node):
@@ -218,16 +223,11 @@ class MxNode(bpy.types.ShaderNode):
             mx_input = mx_node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(mx_input, val, nd_type)
 
-        for nd_input in mx_utils.get_nodedef_inputs(nodedef, True):
-            val = self.get_input_param_value(nd_input.getName())
-            nd_type = nd_input.getType()
-            if mx_utils.is_value_equal(nd_input.getValue(), val, nd_type):
+        for nd_param in nodedef.getParameters():
+            f = nd_param.getAttribute('uifolder')
+            if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
-            mx_input = mx_node.addInput(nd_input.getName(), nd_type)
-            mx_utils.set_param_value(mx_input, val, nd_type)
-
-        for nd_param in nodedef.getParameters():
             val = self.get_param_value(nd_param.getName())
             nd_type = nd_param.getType()
             if mx_utils.is_value_equal(nd_param.getValue(), val, nd_type):
