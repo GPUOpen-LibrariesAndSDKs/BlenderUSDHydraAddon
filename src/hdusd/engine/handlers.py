@@ -37,11 +37,12 @@ def on_load_post(*args):
 def on_depsgraph_update_post(scene, depsgraph):
     from ..properties import object, material
     from ..usd_nodes import node_tree
+    from ..ui import material as material_ui
 
     object.depsgraph_update(depsgraph)
     material.depsgraph_update(depsgraph)
     node_tree.depsgraph_update(depsgraph)
-
+    material_ui.depsgraph_update(depsgraph)
 
 @bpy.app.handlers.persistent
 def on_save_pre(*args):
