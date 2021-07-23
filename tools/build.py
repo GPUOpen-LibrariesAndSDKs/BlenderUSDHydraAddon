@@ -61,7 +61,8 @@ def hdrpr(bin_dir, compiler, jobs):
     _cmake(repo_dir / "deps/HdRPR", compiler, jobs, [
         f'-Dpxr_DIR={bin_dir / "USD/install"}',
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "HdRPR/install"}',
-        '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE'
+        f'-DCMAKE_PREFIX_PATH={(repo_dir / "deps/openexr").as_posix()};{(repo_dir / "deps/zlib").as_posix()}',
+        '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
     ])
 
 
