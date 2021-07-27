@@ -15,10 +15,13 @@
 import sys
 import os
 import subprocess
+import shutil
 from pathlib import Path
 
+from build import rm_dir
 
-def main(bin_dir, *args):
+
+def main(bin_dir, clean, *args):
     if len(args) == 1 and args[0] in ("--help", "-h"):
         print("""
 Usage
@@ -32,6 +35,9 @@ in USD repository.
 
     repo_dir = Path(__file__).parent.parent
     usd_dir = repo_dir / "deps/USD"
+
+    if clean:
+        rm_dir(bin_dir / "USD")
 
     cur_dir = os.getcwd()
     os.chdir(str(usd_dir))
