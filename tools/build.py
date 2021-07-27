@@ -78,11 +78,6 @@ def hdrpr(bin_dir, compiler, jobs, clean):
         f'-Dpxr_DIR={bin_dir / "USD/install"}',
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "HdRPR/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
-        f'-DRPR_LOCATION={hybrid_pro_dir.as_posix()}',
-        f'-DRPR_LOCATION_LIB={(hybrid_pro_dir / "lib").as_posix()}',
-        f'-DRPR_BIN_LOCATION={(hybrid_pro_dir / "bin").as_posix()}',
-        f'-DRPR_LOCATION_INCLUDE={(hybrid_pro_dir / "inc/Rpr").as_posix()}',
-        f'-DRPR_TOOLS_LOCATION={(hdrpr_dir / "deps/RPR/RadeonProRender/rprTools").as_posix()}',
     ])
 
 
