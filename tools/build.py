@@ -18,19 +18,28 @@ import os
 import argparse
 import sys
 import platform
+import shutil
 
 
 OS = platform.system()
 repo_dir = Path(__file__).parent.parent.resolve()
 
 
-def usd(bin_dir, jobs):
+def rm_dir(d: Path):
+    if not d.is_dir():
+        return
+
+    print(f"Removing: {d}")
+    shutil.rmtree(str(d))
+
+
+def usd(bin_dir, jobs, clean):
     import build_usd
     args = []
     if jobs > 0:
         args += ['-j', str(jobs)]
 
-    build_usd.main(bin_dir, *args)
+    build_usd.main(bin_dir, clean, *args)
 
 
 def _cmake(ch_dir, compiler, jobs, args):
@@ -57,16 +66,29 @@ def _cmake(ch_dir, compiler, jobs, args):
         os.chdir(cur_dir)
 
 
-def hdrpr(bin_dir, compiler, jobs):
-    _cmake(repo_dir / "deps/HdRPR", compiler, jobs, [
+def hdrpr(bin_dir, compiler, jobs, clean):
+    hybrid_pro_dir = repo_dir / "deps/BaikalNext"
+    hdrpr_dir = repo_dir / "deps/HdRPR"
+
+    if clean:
+        rm_dir(hdrpr_dir / "build")
+        rm_dir(bin_dir / "HdRPR")
+
+    _cmake(hdrpr_dir, compiler, jobs, [
         f'-Dpxr_DIR={bin_dir / "USD/install"}',
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "HdRPR/install"}',
-        '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE'
+        '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
     ])
 
 
-def materialx(bin_dir, compiler, jobs):
-    _cmake(repo_dir / "deps/HdRPR/deps/MaterialX", compiler, jobs, [
+def materialx(bin_dir, compiler, jobs, clean):
+    mx_dir = repo_dir / "deps/HdRPR/deps/MaterialX"
+
+    if clean:
+        rm_dir(mx_dir / "build")
+        rm_dir(bin_dir / "MaterialX")
+
+    _cmake(mx_dir, compiler, jobs, [
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "MaterialX/install"}',
         '-DMATERIALX_BUILD_PYTHON=ON',
         f'-DMATERIALX_PYTHON_EXECUTABLE={sys.executable}',
@@ -122,6 +144,8 @@ def main():
                     help="Number of jobs run in parallel")
     ap.add_argument("-usd-debug-libs", required=False, action="store_true",
                     help="Copy RelWithDebInfo USD libs")
+    ap.add_argument("-clean", required=False, action="store_true",
+                    help="Clean build dirs before start USD, HdRPR or MaterialX build")
 
     args = ap.parse_args()
 
@@ -132,13 +156,13 @@ def main():
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
 
     if args.all or args.usd:
-        usd(bin_dir, args.j)
+        usd(bin_dir, args.j, args.clean)
 
     if args.all or args.hdrpr:
-        hdrpr(bin_dir, args.G, args.j)
+        hdrpr(bin_dir, args.G, args.j, args.clean)
 
     if args.all or args.mx:
-        materialx(bin_dir, args.G, args.j)
+        materialx(bin_dir, args.G, args.j, args.clean)
 
     if args.all or args.libs:
         libs(bin_dir)

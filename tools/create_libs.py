@@ -17,6 +17,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from build import rm_dir
+
 
 OS = platform.system()
 
@@ -85,8 +87,8 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
 def main(bin_dir):
     repo_dir = Path(__file__).parent.parent
     libs_dir = repo_dir / "libs"
-    if libs_dir.is_dir():
-        shutil.rmtree(str(libs_dir))
+
+    rm_dir(libs_dir)
 
     print(f"Copying libs to: {libs_dir}")
 

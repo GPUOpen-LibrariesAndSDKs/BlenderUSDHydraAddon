@@ -13,11 +13,15 @@
 # limitations under the License.
 #********************************************************************
 import sys
+import os
 import subprocess
+import shutil
 from pathlib import Path
 
+from build import rm_dir
 
-def main(bin_dir, *args):
+
+def main(bin_dir, clean, *args):
     if len(args) == 1 and args[0] in ("--help", "-h"):
         print("""
 Usage
@@ -31,44 +35,46 @@ in USD repository.
 
     repo_dir = Path(__file__).parent.parent
     usd_dir = repo_dir / "deps/USD"
-    usd_imaging_lite_path = repo_dir / "deps/UsdImagingLite/pxr/usdImaging/usdImagingLite"
 
-    usd_imaging_cmake = usd_dir / "pxr/usdImaging/CMakeLists.txt"
-    print("Modifying:", usd_imaging_cmake)
-    cmake_txt = usd_imaging_cmake.read_text()
-    usd_imaging_cmake.write_text(cmake_txt + f"""
-add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
-""")
+    if clean:
+        rm_dir(bin_dir / "USD")
 
-    build_usd_py = usd_dir / "build_scripts/build_usd.py"
-    print("Modifying:", build_usd_py)
-    build_usd_txt = build_usd_py.read_text()
-    build_usd_py.write_text(build_usd_txt.replace(
-"""if Windows() and isPython38:
-    PrintError("Python 3.8+ is not supported on Windows")
-    sys.exit(1)""",
-"""# if Windows() and isPython38:
-#     PrintError("Python 3.8+ is not supported on Windows")
-#     sys.exit(1)"""
-    ))
-
-    bin_usd_dir = bin_dir / "USD"
-    call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
-                 '--build', str(bin_usd_dir / "build"),
-                 '--src', str(bin_usd_dir / "deps"),
-                 str(bin_usd_dir / "install"),
-                 *args)
+    cur_dir = os.getcwd()
+    os.chdir(str(usd_dir))
 
     try:
-        print("Running:", call_args)
-        subprocess.check_call(call_args)
+        # applying patch data/USD.path
+        subprocess.check_call(('git', 'apply', str(repo_dir / "tools/data/USD.patch")))
+
+        # modifying pxr/usdImaging/CMakeLists.txt
+        usd_imaging_lite_path = repo_dir / "deps/UsdImagingLite/pxr/usdImaging/usdImagingLite"
+
+        usd_imaging_cmake = usd_dir / "pxr/usdImaging/CMakeLists.txt"
+        print("Modifying:", usd_imaging_cmake)
+        cmake_txt = usd_imaging_cmake.read_text()
+        usd_imaging_cmake.write_text(cmake_txt + f"""
+add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
+        """)
+
+        bin_usd_dir = bin_dir / "USD"
+        call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
+                     '--build', str(bin_usd_dir / "build"),
+                     '--src', str(bin_usd_dir / "deps"),
+                     '--openvdb',
+                     str(bin_usd_dir / "install"),
+                     *args)
+
+        try:
+            print("Running:", call_args)
+            subprocess.check_call(call_args)
+
+        finally:
+            print("Reverting USD repo")
+            subprocess.check_call(('git', 'checkout', '--', '*'))
+            subprocess.check_call(('git', 'clean', '-f'))
 
     finally:
-        print("Reverting:", build_usd_py)
-        build_usd_py.write_text(build_usd_txt)
-
-        print("Reverting:", usd_imaging_cmake)
-        usd_imaging_cmake.write_text(cmake_txt)
+        os.chdir(cur_dir)
 
 
 if __name__ == "__main__":
