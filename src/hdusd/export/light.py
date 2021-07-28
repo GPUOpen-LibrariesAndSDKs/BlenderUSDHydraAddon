@@ -34,7 +34,7 @@ def get_radiant_power(light: bpy.types.Light, is_gl_mode):
         intensity /= 1000
 
     # calculating radian power for core
-    if light.type == 'POINT':
+    if light.type in ('POINT', 'SPOT'):
         if is_gl_mode:
             return intensity
 
@@ -79,19 +79,26 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         usd_light.CreateRadiusAttr(size)
 
     elif light.type in ('SUN', 'HEMI'):  # just in case old scenes will have outdated Hemi
-        if is_gl_mode:
-            log.warn(f"Unsupported in GL mode Sun light '{obj.name}' skipped")
-            return
+        usd_light = UsdLux.DistantLight.Define(stage, light_path)
 
         usd_light = UsdLux.DistantLight.Define(stage, light_path)
         angle = math.degrees(light.angle)
         usd_light.CreateAngleAttr(angle)
-        # TODO skip for HdStorm as unsupported
+        usd_light.CreateIntensityAttr(light.energy)
 
     elif light.type == 'SPOT':
-        log.warn(f"Unsupported Spot light '{obj.name}' skipped")
-        # TODO find a way to emulate Spot light in USD
-        return
+        usd_light = UsdLux.SphereLight.Define(stage, light_path)
+        a = stage.GetPrimAtPath(light_path)
+
+        usd_light.CreateTreatAsPointAttr(1)
+
+        spot_size = math.degrees(light.spot_size)
+
+        usd_shaping = UsdLux.ShapingAPI(a)
+        usd_shaping.CreateShapingConeAngleAttr(spot_size / 2)
+        usd_shaping.CreateShapingConeSoftnessAttr(light.spot_blend)
+
+        usd_shaping.Apply(a)
 
     elif light.type == 'AREA':
         shape_type = light.shape
