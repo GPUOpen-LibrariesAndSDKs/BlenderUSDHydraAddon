@@ -88,17 +88,17 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
     elif light.type == 'SPOT':
         usd_light = UsdLux.SphereLight.Define(stage, light_path)
-        a = stage.GetPrimAtPath(light_path)
+        usd_prim = stage.GetPrimAtPath(light_path)
 
         usd_light.CreateTreatAsPointAttr(1)
 
         spot_size = math.degrees(light.spot_size)
 
-        usd_shaping = UsdLux.ShapingAPI(a)
+        usd_shaping = UsdLux.ShapingAPI(usd_prim)
         usd_shaping.CreateShapingConeAngleAttr(spot_size / 2)
         usd_shaping.CreateShapingConeSoftnessAttr(light.spot_blend)
 
-        usd_shaping.Apply(a)
+        usd_shaping.Apply(usd_prim)
 
     elif light.type == 'AREA':
         shape_type = light.shape
