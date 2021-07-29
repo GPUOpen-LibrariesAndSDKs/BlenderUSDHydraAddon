@@ -234,32 +234,36 @@ class CameraData:
         gf_camera.clippingRange = Gf.Range1f(*self.clip_plane)
 
         # following formula is used:
-        #   lens_shift = lens_shift * resolution / tile_size + (center - resolution/2) / tile_size
+        # lens_shift = lens_shift * resolution / tile_size + (center - resolution/2) / tile_size
         # where: center = tile_pos + tile_size/2
-        lens_shift = tuple((self.lens_shift[i] + tile_pos[i] + tile_size[i] * 0.5 - 0.5) / tile_size[i] for i in (0, 1))
-        # usd_camera.set_lens_shift(*lens_shift)
-        gf_camera.horizontalApertureOffset = lens_shift[0]
-        gf_camera.verticalApertureOffset = lens_shift[1]
+        lens_shift = tuple((self.lens_shift[i] + tile_pos[i] + tile_size[i] * 0.5 - 0.5) / tile_size[i] for i in (0, 1))        
 
         if self.mode == 'PERSP':
             gf_camera.projection = Gf.Camera.Perspective
             gf_camera.focalLength = self.focal_length
 
             sensor_size = tuple(self.sensor_size[i] * tile_size[i] for i in (0, 1))
+
             gf_camera.horizontalAperture = sensor_size[0]
             gf_camera.verticalAperture = sensor_size[1]
+
+            gf_camera.horizontalApertureOffset = lens_shift[0] * sensor_size[0]
+            gf_camera.verticalApertureOffset = lens_shift[1] * sensor_size[1]
 
             gf_camera.focalLength = self.focal_length
 
         elif self.mode == 'ORTHO':
             gf_camera.projection = Gf.Camera.Orthographic
 
-            # Use tenths of a world unit
+            # Use tenths of a world unit accorging to USD docs https://graphics.pixar.com/usd/docs/api/class_gf_camera.html
             ortho_size = tuple(self.ortho_size[i] * tile_size[i] * 10 for i in (0, 1))
             log(f"export_gf ortho_size: {ortho_size}")
 
             gf_camera.horizontalAperture = ortho_size[0]
             gf_camera.verticalAperture = ortho_size[1]
+
+            gf_camera.horizontalApertureOffset = lens_shift[0] * self.ortho_size[0] * tile_size[0] * 10
+            gf_camera.verticalApertureOffset = lens_shift[1] * self.ortho_size[1] * tile_size[1] * 10
 
         elif self.mode == 'PANO':
             # TODO: store panoramic camera settings
