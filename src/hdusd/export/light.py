@@ -15,7 +15,7 @@
 import math
 import numpy as np
 
-from pxr import UsdLux, Tf
+from pxr import UsdLux, Tf, Sdf
 import bpy
 
 
@@ -118,13 +118,21 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
     power = get_radiant_power(light)
 
+    # usd_prim = stage.GetPrimAtPath(light_path)
+    #
+    # color_attr = usd_prim.CreateAttribute('color', Sdf.ValueTypeNames.Color3f, False)
+    # color_attr.Set((1.0, 0.0, 0.0))
+    # intensity_attr = usd_prim.CreateAttribute('intensity', Sdf.ValueTypeNames.Float, False)
+    # intensity_attr.Set(1000)
+
     colorAttr = usd_light.CreateColorAttr()
 
-    # Material Previews are overly bright, that's why
-    # decreasing light intensity for material preview by 10 times
     if is_preview_render:
+        # Material Previews are overly bright, that's why
+        # decreasing light intensity for material preview by 10 times
         power *= 0.1
-        colorAttr.Set(power)
+        colorAttr.Set(tuple(power))
+
     else:
         vset = obj_prim.GetVariantSets().AddVariantSet('delegate')
         vset.AddVariant('GL')

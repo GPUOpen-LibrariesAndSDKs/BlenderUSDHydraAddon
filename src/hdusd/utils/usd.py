@@ -19,3 +19,13 @@ import mathutils
 def get_xform_transform(xform):
     transform = mathutils.Matrix(xform.GetLocalTransformation())
     return transform.transposed()
+
+
+def set_variant_delegate(stage, delegate_name):
+    for prim in stage.TraverseAll():
+        vsets = prim.GetVariantSets()
+        if 'delegate' not in vsets.GetNames():
+            continue
+
+        vset = vsets.GetVariantSet('delegate')
+        vset.SetVariantSelection(delegate_name)

@@ -26,6 +26,7 @@ from pxr import UsdImagingGL
 from .engine import Engine, depsgraph_objects
 from ..export import camera, material, object
 from .. import utils
+from ..utils import usd as usd_utils
 
 from ..utils import logging
 log = logging.Log(tag='viewport_engine')
@@ -219,6 +220,8 @@ class ViewportEngine(Engine):
         self.renderer = UsdImagingGL.Engine()
 
         self._sync(context, depsgraph)
+        stage = self.cached_stage()
+        usd_utils.set_variant_delegate(stage, 'GL' if self.is_gl_delegate else 'RPR')
 
         self.is_synced = True
         log('Finish sync')
@@ -398,12 +401,16 @@ class ViewportEngineScene(ViewportEngine):
         resync_lights = self.is_gl_delegate != scene.hdusd.viewport.is_gl_delegate
         super()._sync_render_settings(scene)
 
-        if resync_lights and self.shading_data.use_scene_lights:
-            for obj in scene.objects:
-                if obj.type == 'LIGHT':
-                    objects_prim = self.stage.GetPseudoRoot()
-                    object.sync_update(objects_prim, obj, True, False,
-                                       is_gl_delegate=self.is_gl_delegate)
+        if resync_lights:
+            stage = self.cached_stage()
+            usd_utils.set_variant_delegate(stage, 'GL' if self.is_gl_delegate else 'RPR')
+
+        # if resync_lights and self.shading_data.use_scene_lights:
+        #     for obj in scene.objects:
+        #         if obj.type == 'LIGHT':
+        #             objects_prim = self.stage.GetPseudoRoot()
+        #             object.sync_update(objects_prim, obj, True, False,
+        #                                is_gl_delegate=self.is_gl_delegate)
 
     def _sync_objects_collection(self, depsgraph):
         root_prim = self.stage.GetPseudoRoot()
