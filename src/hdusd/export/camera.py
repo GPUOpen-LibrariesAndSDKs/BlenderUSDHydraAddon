@@ -184,30 +184,34 @@ class CameraData:
         usd_camera.CreateClippingRangeAttr(self.clip_plane)
 
         # following formula is used:
-        #   lens_shift = lens_shift * resolution / tile_size + (center - resolution/2) / tile_size
+        # lens_shift = lens_shift * resolution / tile_size + (center - resolution/2) / tile_size
         # where: center = tile_pos + tile_size/2
         lens_shift = tuple((self.lens_shift[i] + tile_pos[i] + tile_size[i] * 0.5 - 0.5) / tile_size[i] for i in (0, 1))
-        # usd_camera.set_lens_shift(*lens_shift)
-        usd_camera.CreateHorizontalApertureOffsetAttr(lens_shift[0])
-        usd_camera.CreateVerticalApertureOffsetAttr(lens_shift[1])
 
         if self.mode == 'PERSP':
             usd_camera.CreateProjectionAttr(UsdGeom.Tokens.perspective)
             usd_camera.CreateFocalLengthAttr(self.focal_length)
 
-            # Why is it only correct with world units whe tenths should be used instead according to USD docs?
+            # Why is it only correct with world units when tenths should be used instead according to USD docs?
             sensor_size = tuple(self.sensor_size[i] * tile_size[i] for i in (0, 1))
+
             usd_camera.CreateHorizontalApertureAttr(sensor_size[0])
             usd_camera.CreateVerticalApertureAttr(sensor_size[1])
+
+            usd_camera.CreateHorizontalApertureOffsetAttr(lens_shift[0] * sensor_size[0])
+            usd_camera.CreateVerticalApertureOffsetAttr(lens_shift[1] * sensor_size[1])
 
         elif self.mode == 'ORTHO':
             usd_camera.CreateProjectionAttr(UsdGeom.Tokens.orthographic)
 
-            # Use tenths of a world unit
+            # Use tenths of a world unit accorging to USD docs https://graphics.pixar.com/usd/docs/api/class_gf_camera.html
             ortho_size = tuple(self.ortho_size[i] * tile_size[i] * 10 for i in (0, 1))
 
             usd_camera.CreateHorizontalApertureAttr(ortho_size[0])
             usd_camera.CreateVerticalApertureAttr(ortho_size[1])
+
+            usd_camera.CreateHorizontalApertureOffsetAttr(lens_shift[0] * self.ortho_size[0] * tile_size[0] * 10)
+            usd_camera.CreateVerticalApertureOffsetAttr(lens_shift[1] * self.ortho_size[1] * tile_size[1] * 10)
 
         elif self.mode == 'PANO':
             # TODO: Make panoramic camera
@@ -249,8 +253,6 @@ class CameraData:
 
             gf_camera.horizontalApertureOffset = lens_shift[0] * sensor_size[0]
             gf_camera.verticalApertureOffset = lens_shift[1] * sensor_size[1]
-
-            gf_camera.focalLength = self.focal_length
 
         elif self.mode == 'ORTHO':
             gf_camera.projection = Gf.Camera.Orthographic
