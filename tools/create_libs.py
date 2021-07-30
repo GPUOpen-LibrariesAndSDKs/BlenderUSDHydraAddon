@@ -108,8 +108,13 @@ def main(bin_dir):
         patchelf_args = ['patchelf', '--set-rpath', "$ORIGIN/../../usd:$ORIGIN/../../hdrpr/lib",
                          str(libs_dir / 'plugins/usd/hdRpr.so')]
         print(patchelf_args)
-
         subprocess.check_call(patchelf_args)
+
+        for glob in ("libIlm*.so", "libIex*.so", "libhio*.so", "libHalf*.so"):
+            for f in iterate_files(libs_dir / "usd", glob):
+                patchelf_args = ['patchelf', '--set-rpath', "$ORIGIN/.", str(f)]
+                print(patchelf_args)
+                subprocess.check_call(patchelf_args)
 
     # Clear hdrpr/lib/python/rpr/RprUsd/__init__.py
     rpr_usd_init_py = libs_dir / "hdrpr/lib/python/rpr/RprUsd/__init__.py"
