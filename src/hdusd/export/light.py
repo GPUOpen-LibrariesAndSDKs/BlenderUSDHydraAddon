@@ -23,30 +23,24 @@ from ..utils import logging
 log = logging.Log(tag='export.light')
 
 
-def get_radiant_power(light: bpy.types.Light, is_gl_mode):
+def get_radiant_power(light: bpy.types.Light):
     """ Return light radiant power depending on light type """
 
     # calculating color intensity
     color = np.array(light.color)
     intensity = color * light.energy
-    if is_gl_mode:
-        # HdStorm results are about 50-100 times brighter than HdRPR one
-        intensity /= 1000
 
-    # calculating radian power for core
-    if light.type in ('POINT', 'SPOT'):
-        if is_gl_mode:
-            return intensity
+    if light.type == 'POINT':
+        return intensity * 4
 
-        # point light is a small sphere, adjust intensity to normalize it
-        area = 4 * math.pi * pow(light.shadow_soft_size / 0.75, 2)  # coefficient approximated to follow Cycles results
-        return intensity / area
+    elif light.type == 'SPOT':
+        return intensity
 
     elif light.type == 'SUN':
-        return intensity * 0.000025  # coefficient approximated to follow Cycles results with RPR render engine
+        return intensity * 0.000025  # coefficient approximated to follow Cycles results
 
     elif light.type == 'AREA':
-        area = 1
+        area = 1.0
         if light.shape == 'SQUARE':
             area = light.size * light.size
         elif light.shape == 'RECTANGLE':
@@ -66,7 +60,6 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     """ Creates pyrpr.Light from obj.data: bpy.types.Light """
     light = obj.data
     stage = obj_prim.GetStage()
-    is_gl_mode = kwargs.get('is_gl_delegate', False)
     is_preview_render = kwargs.get('is_preview_render', False)
     log("sync", light, obj)
 
@@ -79,8 +72,6 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         usd_light.CreateRadiusAttr(size)
 
     elif light.type in ('SUN', 'HEMI'):  # just in case old scenes will have outdated Hemi
-        usd_light = UsdLux.DistantLight.Define(stage, light_path)
-
         usd_light = UsdLux.DistantLight.Define(stage, light_path)
         angle = math.degrees(light.angle)
         usd_light.CreateAngleAttr(angle)
@@ -114,34 +105,38 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
             usd_light.CreateHeightAttr(light.size_y)
 
         elif shape_type == 'DISK':
-            if is_gl_mode:
-                # Disk light is unsupported by HdStorm, using square Rectangular light of the similar area instead
-                usd_light = UsdLux.RectLight.Define(stage, light_path)
-                size = 0.886 * light.size
-                usd_light.CreateWidthAttr(size)
-                usd_light.CreateHeightAttr(size)
-            else:
-                usd_light = UsdLux.DiskLight.Define(stage, light_path)
-                usd_light.CreateRadiusAttr(light.size)
+            usd_light = UsdLux.DiskLight.Define(stage, light_path)
+            usd_light.CreateRadiusAttr(light.size)
 
         else:  # shape_type == 'ELLIPSE':
-            # Using Rectangular light of the approximately similar area instead
-            usd_light = UsdLux.RectLight.Define(stage, light_path)
-            usd_light.CreateWidthAttr(0.886 * light.size)
-            usd_light.CreateHeightAttr(0.886 * light.size_y)
-            # TODO use custom ellipse-shaped mesh instead
+            # Using Disk light of the approximately similar area instead
+            usd_light = UsdLux.DiskLight.Define(stage, light_path)
+            usd_light.CreateRadiusAttr(light.size)
 
     else:
         raise ValueError("Unsupported light type", light, light.type)
 
-    power = get_radiant_power(light, is_gl_mode)
+    power = get_radiant_power(light)
+
+    colorAttr = usd_light.CreateColorAttr()
 
     # Material Previews are overly bright, that's why
     # decreasing light intensity for material preview by 10 times
     if is_preview_render:
         power *= 0.1
+        colorAttr.Set(power)
+    else:
+        vset = obj_prim.GetVariantSets().AddVariantSet('delegate')
+        vset.AddVariant('GL')
+        vset.AddVariant('RPR')
 
-    usd_light.CreateColorAttr(tuple(power))
+        vset.SetVariantSelection('GL')
+        with vset.GetVariantEditContext():
+            colorAttr.Set(tuple(power / 1000))
+
+        vset.SetVariantSelection('RPR')
+        with vset.GetVariantEditContext():
+            colorAttr.Set(tuple(power))
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):
