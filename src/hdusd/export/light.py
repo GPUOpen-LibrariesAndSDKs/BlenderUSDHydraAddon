@@ -109,7 +109,6 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
             usd_light.CreateRadiusAttr(light.size)
 
         else:  # shape_type == 'ELLIPSE':
-            # Using Disk light of the approximately similar area instead
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
             usd_light.CreateRadiusAttr(light.size)
 
@@ -117,13 +116,6 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         raise ValueError("Unsupported light type", light, light.type)
 
     power = get_radiant_power(light)
-
-    # usd_prim = stage.GetPrimAtPath(light_path)
-    #
-    # color_attr = usd_prim.CreateAttribute('color', Sdf.ValueTypeNames.Color3f, False)
-    # color_attr.Set((1.0, 0.0, 0.0))
-    # intensity_attr = usd_prim.CreateAttribute('intensity', Sdf.ValueTypeNames.Float, False)
-    # intensity_attr.Set(1000)
 
     colorAttr = usd_light.CreateColorAttr()
 
@@ -134,6 +126,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         colorAttr.Set(tuple(power))
 
     else:
+        # setting light color through variants for GL and RPR renderers
         vset = obj_prim.GetVariantSets().AddVariantSet('delegate')
         vset.AddVariant('GL')
         vset.AddVariant('RPR')
