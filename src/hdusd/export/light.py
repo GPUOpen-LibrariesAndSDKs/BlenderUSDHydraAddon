@@ -60,6 +60,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     """ Creates pyrpr.Light from obj.data: bpy.types.Light """
     light = obj.data
     stage = obj_prim.GetStage()
+    context = bpy.context
     is_preview_render = kwargs.get('is_preview_render', False)
     log("sync", light, obj)
 
@@ -138,6 +139,9 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         vset.SetVariantSelection('RPR')
         with vset.GetVariantEditContext():
             colorAttr.Set(tuple(power))
+
+        # setting default variant
+        vset.SetVariantSelection('GL' if context.scene.hdusd.viewport.is_gl_delegate else 'RPR')
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):
