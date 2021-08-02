@@ -102,7 +102,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_denoise_final(HdUSD_Panel):
         self.layout.prop(denoise, "enable")
 
     def draw(self, context):
-        denoise = context.scene.hdusd.viewport.hdrpr.denoise
+        denoise = context.scene.hdusd.final.hdrpr.denoise
 
         layout = self.layout
         layout.use_property_split = True
