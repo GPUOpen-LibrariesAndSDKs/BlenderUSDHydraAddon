@@ -21,7 +21,7 @@ from .base_node import USDNode
 
 
 class RootNode(USDNode):
-    """Takes in USD and filters out matching path or names"""
+    """Takes in USD """
     bl_idname = 'usd.RootNode'
     bl_label = "Root"
 
@@ -29,25 +29,33 @@ class RootNode(USDNode):
         self.reset()
 
     prefix_path: bpy.props.StringProperty(
-        name="Prefix",
-        description="USD Path pattern. Use special characters means:\n"
-                    "  * - any word or subword\n"
-                    "  ** - several words separated by '/' or subword",
-        default='',
+        name='Prefix',
+        description='Prefix"',
+        default='root',
         update=update_data
     )
 
     prim_type:  bpy.props.EnumProperty(
-        items=(('Xform', 'Xform', 'None'),
-               ('None', 'None', 'Lossless texture compression')),
+        items=(('Xform', 'Xform', ''),
+               ('None', 'None', '')),
         default='Xform',
         name="Type",
-        update = update_data
+        update=update_data
+    )
+
+    #TODO filter data type
+    data_type:  bpy.props.EnumProperty(
+        items=(('MESH', 'Mesh', ''),
+               ('LIGHT', 'Light', '')),
+        default='MESH',
+        name="Data",
+        update=update_data
     )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'prefix_path')
         layout.prop(self, 'prim_type')
+        layout.prop(self, 'data_type')
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
@@ -74,7 +82,11 @@ class RootNode(USDNode):
         root_prim = stage.GetPseudoRoot()
 
         for i, prim in enumerate(prims, 1):
-            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+            prim_name = prim.GetName()
+            if prim.GetTypeName() == self.prim_type:
+                prim_name = f'{self.prefix_path}_{prim.GetName()}'
+
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim_name))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 
