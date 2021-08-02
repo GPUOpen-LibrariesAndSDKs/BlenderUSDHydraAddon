@@ -267,10 +267,7 @@ class ViewportEngine(Engine):
         gf_camera = view_settings.export_camera()
         self.renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                      gf_camera.frustum.ComputeProjectionMatrix())
-        if self.is_gl_delegate:
-            self.renderer.SetRenderViewport((*view_settings.border[0], *view_settings.border[1]))
-        else:
-            self.renderer.SetRenderViewport((0, 0, *view_settings.border[1]))
+        self.renderer.SetRenderViewport((*view_settings.border[0], *view_settings.border[1]))
         self.renderer.SetRendererAov('color')
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
 
