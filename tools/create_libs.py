@@ -116,6 +116,11 @@ def main(bin_dir):
                 print(patchelf_args)
                 subprocess.check_call(patchelf_args)
 
+    # Clear hdrpr/lib/python/rpr/RprUsd/__init__.py
+    rpr_usd_init_py = libs_dir / "hdrpr/lib/python/rpr/RprUsd/__init__.py"
+    print(f"Clearing {rpr_usd_init_py}")
+    rpr_usd_init_py.write_text("")
+
     print("Done.")
 
 
