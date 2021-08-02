@@ -31,13 +31,13 @@ def get_radiant_power(light: bpy.types.Light):
     intensity = color * light.energy
 
     if light.type == 'POINT':
-        return intensity * 4
+        return intensity * 4            # coefficient approximated to follow Cycles results
 
     elif light.type == 'SPOT':
         return intensity
 
     elif light.type == 'SUN':
-        return intensity * 0.000025  # coefficient approximated to follow Cycles results
+        return intensity * 0.000025     # coefficient approximated to follow Cycles results
 
     elif light.type == 'AREA':
         area = 1.0
