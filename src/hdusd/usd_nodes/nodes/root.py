@@ -63,7 +63,7 @@ class RootNode(USDNode):
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
         root_prim = stage.GetPseudoRoot()
 
-        # create new root prim according to root_name and type
+        # create new root prim according to name and type
         if self.type == 'Xform':
             root_prim = UsdGeom.Xform.Define(stage, root_prim.GetPath().AppendChild(name))
         elif self.type == 'Scope':
