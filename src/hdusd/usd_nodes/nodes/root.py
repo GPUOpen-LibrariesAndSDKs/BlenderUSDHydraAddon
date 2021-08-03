@@ -15,29 +15,32 @@
 import re
 
 import bpy
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, UsdSkel, Sdf
 
 from .base_node import USDNode
 
+from . import log
 
 class RootNode(USDNode):
-    """Add prefix to USD primitives according to the type"""
+    """Create root primitive and make it parent for USD primitives"""
     bl_idname = 'usd.RootNode'
     bl_label = "Root"
 
     def update_data(self, context):
         self.reset()
 
-    prefix_path: bpy.props.StringProperty(
-        name='Prefix',
-        description="Prefix to be added to USD primitive name",
-        default='root',
+    root_name: bpy.props.StringProperty(
+        name='Name',
+        description="Name for USD root primitive",
+        default='Name',
         update=update_data
     )
 
     prim_type:  bpy.props.EnumProperty(
         items=(('Xform', 'Xform', 'USD primitive type'),
-               ('None', 'None', 'Disable filter')),
+               ('Scope', 'Scope', 'USD primitive type'),
+               ('SkelRoot', 'SkelRoot', 'USD primitive type'),
+               ('None', 'None', 'USD primitive type')),
         default='Xform',
         description='Filter by type for USD primitives',
         name="Type",
@@ -45,7 +48,7 @@ class RootNode(USDNode):
     )
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'prefix_path')
+        layout.prop(self, 'root_name')
         layout.prop(self, 'prim_type')
 
     def compute(self, **kwargs):
@@ -66,19 +69,26 @@ class RootNode(USDNode):
         if not prims:
             return None
 
+        if not self.root_name or not re.match("^[a-zA-Z]+.*", self.root_name):
+            return None
+
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-
         root_prim = stage.GetPseudoRoot()
 
+        # create new root prim according to root_name and type
+        if self.prim_type == 'Xform':
+            root_prim = UsdGeom.Xform.Define(stage, root_prim.GetPath().AppendChild(self.root_name))
+        elif self.prim_type == 'Scope':
+            root_prim = UsdGeom.Scope.Define(stage, root_prim.GetPath().AppendChild(self.root_name))
+        elif self.prim_type == 'SkelRoot':
+            root_prim = UsdSkel.Root.Define(stage, root_prim.GetPath().AppendChild(self.root_name))
+        else:
+            root_prim = stage.DefinePrim(f'/{self.root_name}')
+
         for i, prim in enumerate(prims, 1):
-            prim_name = prim.GetName()
-
-            if prim.GetTypeName() == self.prim_type:
-                prim_name = f'{self.prefix_path}_{prim.GetName()}'
-
-            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim_name))
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
