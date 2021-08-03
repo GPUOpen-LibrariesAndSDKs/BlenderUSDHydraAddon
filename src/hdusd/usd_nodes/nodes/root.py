@@ -21,7 +21,7 @@ from .base_node import USDNode
 
 
 class RootNode(USDNode):
-    """Takes in USD """
+    """Add prefix to USD primitives according to the type"""
     bl_idname = 'usd.RootNode'
     bl_label = "Root"
 
@@ -30,38 +30,28 @@ class RootNode(USDNode):
 
     prefix_path: bpy.props.StringProperty(
         name='Prefix',
-        description='Prefix"',
+        description="Prefix to be added to USD primitive name",
         default='root',
         update=update_data
     )
 
     prim_type:  bpy.props.EnumProperty(
-        items=(('Xform', 'Xform', ''),
-               ('None', 'None', '')),
+        items=(('Xform', 'Xform', 'USD primitive type'),
+               ('None', 'None', 'Disable filter')),
         default='Xform',
+        description='Filter by type for USD primitives',
         name="Type",
-        update=update_data
-    )
-
-    #TODO filter data type
-    data_type:  bpy.props.EnumProperty(
-        items=(('MESH', 'Mesh', ''),
-               ('LIGHT', 'Light', '')),
-        default='MESH',
-        name="Data",
         update=update_data
     )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'prefix_path')
         layout.prop(self, 'prim_type')
-        layout.prop(self, 'data_type')
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
         if not input_stage:
             return None
-
 
         def get_child_prims(prim):
             if not prim.IsPseudoRoot():
@@ -72,6 +62,7 @@ class RootNode(USDNode):
                 yield from get_child_prims(child)
 
         prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
+
         if not prims:
             return None
 
@@ -83,11 +74,11 @@ class RootNode(USDNode):
 
         for i, prim in enumerate(prims, 1):
             prim_name = prim.GetName()
+
             if prim.GetTypeName() == self.prim_type:
                 prim_name = f'{self.prefix_path}_{prim.GetName()}'
 
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim_name))
-            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
-                                                       prim.GetPath())
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
