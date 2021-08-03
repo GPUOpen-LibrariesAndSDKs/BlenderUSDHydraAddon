@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import re
-
 import bpy
-from pxr import Usd, UsdGeom, UsdSkel, Sdf
+from pxr import Usd, UsdGeom, UsdSkel, Sdf, Tf
 
 from .base_node import USDNode
 
 from . import log
+
 
 class RootNode(USDNode):
     """Create root primitive and make it parent for USD primitives"""
@@ -29,65 +28,52 @@ class RootNode(USDNode):
     def update_data(self, context):
         self.reset()
 
-    root_name: bpy.props.StringProperty(
-        name='Name',
+    name: bpy.props.StringProperty(
+        name="Name",
         description="Name for USD root primitive",
-        default='Name',
+        default="Root",
         update=update_data
     )
-
-    prim_type:  bpy.props.EnumProperty(
-        items=(('Xform', 'Xform', 'USD primitive type'),
-               ('Scope', 'Scope', 'USD primitive type'),
-               ('SkelRoot', 'SkelRoot', 'USD primitive type'),
-               ('None', 'None', 'USD primitive type')),
-        default='Xform',
-        description='Filter by type for USD primitives',
+    type:  bpy.props.EnumProperty(
         name="Type",
+        description="Filter by type for USD primitives",
+        items=(('Xform', "Xform", "Xform primitive type"),
+               ('Scope', "Scope", "Scope primitive type"),
+               ('SkelRoot', "SkelRoot", "SkelRoot primitive type"),
+               ('None', "None", "No primitive type")),
+        default='Xform',
         update=update_data
     )
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'root_name')
-        layout.prop(self, 'prim_type')
+        layout.prop(self, 'name')
+        layout.prop(self, 'type')
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
         if not input_stage:
             return None
 
-        def get_child_prims(prim):
-            if not prim.IsPseudoRoot():
-                yield prim
-                return
-
-            for child in prim.GetAllChildren():
-                yield from get_child_prims(child)
-
-        prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
-
-        if not prims:
+        if not self.name:
             return None
 
-        if not self.root_name or not re.match("^[a-zA-Z]+.*", self.root_name):
-            return None
-
+        name = Tf.MakeValidIdentifier(self.name)
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
         root_prim = stage.GetPseudoRoot()
 
         # create new root prim according to root_name and type
-        if self.prim_type == 'Xform':
-            root_prim = UsdGeom.Xform.Define(stage, root_prim.GetPath().AppendChild(self.root_name))
-        elif self.prim_type == 'Scope':
-            root_prim = UsdGeom.Scope.Define(stage, root_prim.GetPath().AppendChild(self.root_name))
-        elif self.prim_type == 'SkelRoot':
-            root_prim = UsdSkel.Root.Define(stage, root_prim.GetPath().AppendChild(self.root_name))
+        if self.type == 'Xform':
+            root_prim = UsdGeom.Xform.Define(stage, root_prim.GetPath().AppendChild(name))
+        elif self.type == 'Scope':
+            root_prim = UsdGeom.Scope.Define(stage, root_prim.GetPath().AppendChild(name))
+        elif self.type == 'SkelRoot':
+            root_prim = UsdSkel.Root.Define(stage, root_prim.GetPath().AppendChild(name))
         else:
-            root_prim = stage.DefinePrim(f'/{self.root_name}')
+            root_prim = stage.DefinePrim(f'/{name}')
 
-        for i, prim in enumerate(prims, 1):
+        for prim in input_stage.GetPseudoRoot().GetAllChildren():
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
 
