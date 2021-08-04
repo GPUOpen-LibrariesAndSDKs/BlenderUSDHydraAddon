@@ -17,14 +17,53 @@ from .node_parser import NodeParser
 
 class ShaderNodeOutputWorld(NodeParser):
     def export(self):
-        color = self.get_input_value('Color')
-        roughness = self.get_input_value('Roughness')
-        normal = self.get_input_link('Normal')
+        return self.get_input_link('Surface')
 
-        result = self.create_node('diffuse_brdf', 'BSDF', {
+
+class ShaderNodeBackground(NodeParser):
+    def export(self):
+        color = self.get_input_value('Color').data
+        strength = self.get_input_scalar('Strength').data
+
+        if isinstance(color, float):
+            color = (color, color, color)
+
+        if isinstance(strength, tuple):
+            strength = strength[0]
+
+        return self.node_item({
             'color': color,
-            'roughness': roughness,
-            'normal': normal,
+            'intensity': strength
         })
 
-        return result
+
+class ShaderNodeTexEnvironment(NodeParser):
+    def export(self):
+        return self.node_item({
+            'image': self.node.image
+        })
+
+
+class ShaderNodeTexImage(NodeParser):
+    def export(self):
+        return self.node_item({
+            'image': self.node.image
+        })
+
+
+class ShaderNodeRGB(NodeParser):
+    def export(self):
+        return self.get_output_default()
+
+
+class ShaderNodeValue(NodeParser):
+    def export(self):
+        return self.get_output_default()
+
+
+class ShaderNodeInvert(NodeParser):
+    def export(self):
+        fac = self.get_input_scalar('Fac')
+        color = self.get_input_scalar('Color')
+
+        return fac.blend(color, 1.0 - color)

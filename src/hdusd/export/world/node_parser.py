@@ -22,7 +22,7 @@ from . import log
 class NodeItem:
     """This class is a wrapper used for doing operations on MaterialX nodes, floats, and tuples"""
 
-    def __init__(self, data: [tuple, float, str]):
+    def __init__(self, data: [tuple, float, dict]):
         self.data = data
 
     def node_item(self, value):
@@ -62,7 +62,7 @@ class NodeItem:
                     result_data = tuple(map(func, data, other_data))
 
             else:
-                result_data = self.data if isinstance(self.data, str) else other_data
+                result_data = other_data if isinstance(self.data, (float, tuple)) else self.data
 
         return self.node_item(result_data)
 
@@ -175,6 +175,10 @@ class NodeItem:
 
     def log(self):
         return self._arithmetic_helper(None, lambda a: math.log(a))
+
+    def blend(self, value1, value2):
+        """ Line interpolate value between value1(0.0) and value2(1.0) by self.data as factor """
+        return self * value2 + (1.0 - self) * value1
 
 
 class NodeParser:
