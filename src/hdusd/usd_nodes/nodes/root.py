@@ -58,20 +58,20 @@ class RootNode(USDNode):
         if not self.name:
             return input_stage
 
-        name = f'/{Tf.MakeValidIdentifier(self.name)}'
+        path = f'/{Tf.MakeValidIdentifier(self.name)}'
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         # create new root prim according to name and type
         if self.type == 'Xform':
-            root_prim = UsdGeom.Xform.Define(stage, name)
+            root_prim = UsdGeom.Xform.Define(stage, path)
         elif self.type == 'Scope':
-            root_prim = UsdGeom.Scope.Define(stage, name)
+            root_prim = UsdGeom.Scope.Define(stage, path)
         elif self.type == 'SkelRoot':
-            root_prim = UsdSkel.Root.Define(stage, name)
+            root_prim = UsdSkel.Root.Define(stage, path)
         else:
-            root_prim = stage.DefinePrim(name)
+            root_prim = stage.DefinePrim(path)
 
         for prim in input_stage.GetPseudoRoot().GetAllChildren():
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
