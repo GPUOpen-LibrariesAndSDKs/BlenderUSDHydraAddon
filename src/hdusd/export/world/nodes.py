@@ -12,3 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+from .node_parser import NodeParser
+
+
+class ShaderNodeOutputWorld(NodeParser):
+    def export(self):
+        color = self.get_input_value('Color')
+        roughness = self.get_input_value('Roughness')
+        normal = self.get_input_link('Normal')
+
+        result = self.create_node('diffuse_brdf', 'BSDF', {
+            'color': color,
+            'roughness': roughness,
+            'normal': normal,
+        })
+
+        return result
