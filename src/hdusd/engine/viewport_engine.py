@@ -26,6 +26,7 @@ from pxr import UsdImagingGL
 from .engine import Engine, depsgraph_objects
 from ..export import camera, material, object
 from .. import utils
+from ..utils import usd as usd_utils
 
 from ..utils import logging
 log = logging.Log(tag='viewport_engine')
@@ -220,6 +221,8 @@ class ViewportEngine(Engine):
 
         self._sync(context, depsgraph)
 
+        usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
+
         self.is_synced = True
         log('Finish sync')
 
@@ -232,7 +235,12 @@ class ViewportEngine(Engine):
         if self.renderer.IsPauseRendererSupported():
             self.renderer.PauseRenderer()
 
+        gl_delegate_changed = self.is_gl_delegate != depsgraph.scene.hdusd.viewport.is_gl_delegate
+
         self._sync_update(context, depsgraph)
+
+        if gl_delegate_changed:
+            usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
 
         if self.renderer.IsPauseRendererSupported():
             self.renderer.ResumeRenderer()
@@ -352,8 +360,6 @@ class ViewportEngineScene(ViewportEngine):
         self._export_depsgraph(
             stage, depsgraph,
             space_data=self.space_data,
-            use_scene_lights=self.shading_data.use_scene_lights,
-            is_gl_delegate=self.is_gl_delegate,
         )
 
     def _sync_update(self, context, depsgraph):
@@ -390,17 +396,6 @@ class ViewportEngineScene(ViewportEngine):
                                    update.is_updated_transform,
                                    is_gl_delegate=self.is_gl_delegate)
                 continue
-
-    def _sync_render_settings(self, scene):
-        resync_lights = self.is_gl_delegate != scene.hdusd.viewport.is_gl_delegate
-        super()._sync_render_settings(scene)
-
-        if resync_lights and self.shading_data.use_scene_lights:
-            for obj in scene.objects:
-                if obj.type == 'LIGHT':
-                    objects_prim = self.stage.GetPseudoRoot()
-                    object.sync_update(objects_prim, obj, True, False,
-                                       is_gl_delegate=self.is_gl_delegate)
 
     def _sync_objects_collection(self, depsgraph):
         root_prim = self.stage.GetPseudoRoot()

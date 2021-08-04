@@ -215,7 +215,17 @@ class BlenderDataNode(USDNode):
         root_prim = stage.GetPseudoRoot()
 
         for update in depsgraph.updates:
-            if isinstance(update.id, bpy.types.Object):
+            if isinstance(update.id, bpy.types.Scene):
+                scene = update.id
+                for prim in root_prim.GetAllChildren():
+                    vsets = prim.GetVariantSets()
+                    if 'delegate' not in vsets.GetNames():
+                        continue
+
+                    vset = vsets.GetVariantSet('delegate')
+                    vset.SetVariantSelection('GL' if scene.hdusd.viewport.is_gl_delegate else 'RPR')
+
+            elif isinstance(update.id, bpy.types.Object):
                 obj = update.id
                 if obj.hdusd.is_usd:
                     continue
