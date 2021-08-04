@@ -187,9 +187,9 @@ class NodeParser:
     Subclasses should override only export() function.
     """
 
-    def __init__(self, material: bpy.types.Material,
+    def __init__(self, world: bpy.types.World,
                  node: bpy.types.Node, out_key, **kwargs):
-        self.material = material
+        self.world = world
         self.node = node
         self.out_key = out_key
         self.kwargs = kwargs
@@ -205,10 +205,10 @@ class NodeParser:
         # getting corresponded NodeParser class
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
         if not NodeParser_cls:
-            log.warn("Ignoring unsupported node", node, self.material)
+            log.warn("Ignoring unsupported node", node, self.world)
             return None
 
-        node_parser = NodeParser_cls(self.material, node, out_key, **self.kwargs)
+        node_parser = NodeParser_cls(self.world, node, out_key, **self.kwargs)
         return node_parser.export()
 
     def _parse_val(self, val):
@@ -256,7 +256,7 @@ class NodeParser:
 
         # # check if linked is correct
         if not link.is_valid:
-            log.warn("Invalid link ignored", link, socket_in, self.node, self.material)
+            log.warn("Invalid link ignored", link, socket_in, self.node, self.world)
             return None
 
         return self._export_node(link.from_node, link.from_socket.identifier)
@@ -273,7 +273,7 @@ class NodeParser:
     def get_input_scalar(self, socket_key):
         """ Parse link, accept only RPR core material nodes """
         val = self.get_input_link(socket_key)
-        if val is not None and isinstance(val, (float, tuple)):
+        if val is not None and isinstance(val.data, (float, tuple)):
             return val
 
         return self.get_input_default(socket_key)

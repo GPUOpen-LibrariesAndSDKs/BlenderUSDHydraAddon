@@ -16,6 +16,9 @@ from .node_parser import NodeParser
 
 
 class ShaderNodeOutputWorld(NodeParser):
+    def __init__(self, world, node, **kwargs):
+        super().__init__(world, node, None, **kwargs)
+
     def export(self):
         return self.get_input_link('Surface')
 
@@ -24,12 +27,6 @@ class ShaderNodeBackground(NodeParser):
     def export(self):
         color = self.get_input_value('Color').data
         strength = self.get_input_scalar('Strength').data
-
-        if isinstance(color, float):
-            color = (color, color, color)
-
-        if isinstance(strength, tuple):
-            strength = strength[0]
 
         return self.node_item({
             'color': color,
