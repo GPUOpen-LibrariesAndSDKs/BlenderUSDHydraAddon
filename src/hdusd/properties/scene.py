@@ -45,6 +45,10 @@ class FinalRenderSettings(RenderSettings):
         name="Data Source",
         default=""
     )
+    camera_source: bpy.props.StringProperty(
+        name="Camera Source",
+        default=""
+    )
 
 
 class ViewportRenderSettings(RenderSettings):

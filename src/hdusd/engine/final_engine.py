@@ -136,7 +136,11 @@ class FinalEngine(Engine):
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.name))
+        if scene.hdusd.final.camera_source != '':
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, scene.hdusd.final.camera_source)
+        else:
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.name))
+       
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
