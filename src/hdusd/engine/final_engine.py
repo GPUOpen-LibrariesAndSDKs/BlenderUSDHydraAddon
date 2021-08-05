@@ -22,7 +22,6 @@ import bpy
 import bgl
 
 from .engine import Engine
-from ..export import nodegraph
 from ..utils import gl, time_str
 
 from ..utils import logging
