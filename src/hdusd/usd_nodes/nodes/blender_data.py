@@ -17,7 +17,7 @@ import bpy
 from pxr import UsdGeom
 
 from .base_node import USDNode
-from ...export import object, material
+from ...export import object, material, world
 from ...utils import depsgraph_objects
 
 
@@ -186,6 +186,8 @@ class BlenderDataNode(USDNode):
             for obj in depsgraph_objects(depsgraph):
                 object.sync(root_prim, obj)
 
+            world.sync(root_prim, depsgraph.scene.world)
+
         elif self.data == 'COLLECTION':
             if not self.collection:
                 return
@@ -225,7 +227,9 @@ class BlenderDataNode(USDNode):
                     vset = vsets.GetVariantSet('delegate')
                     vset.SetVariantSelection('GL' if scene.hdusd.viewport.is_gl_delegate else 'RPR')
 
-            elif isinstance(update.id, bpy.types.Object):
+                continue
+
+            if isinstance(update.id, bpy.types.Object):
                 obj = update.id
                 if obj.hdusd.is_usd:
                     continue
@@ -246,8 +250,19 @@ class BlenderDataNode(USDNode):
                                    update.is_updated_geometry, update.is_updated_transform)
 
                 is_updated = True
+                continue
 
-            elif isinstance(update.id, bpy.types.Collection):
+            if isinstance(update.id, bpy.types.World):
+                if self.data != 'SCENE':
+                    continue
+
+                wld = update.id
+                world.sync_update(root_prim, wld)
+
+                is_updated = True
+                continue
+
+            if isinstance(update.id, bpy.types.Collection):
                 coll = update.id
 
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
@@ -293,6 +308,8 @@ class BlenderDataNode(USDNode):
                         object.sync(root_prim, obj)
 
                     is_updated = True
+
+                continue
 
         if is_updated:
             self.hdusd.usd_list.update_items()

@@ -106,10 +106,8 @@ class WorldData:
         return data
 
 
-def sync(root_prim, world: bpy.types.World, **kwargs):
-    # get the World IBL image
+def sync(root_prim, world: bpy.types.World):
     data = WorldData.init_from_world(world)
-    print(data)
 
     stage = root_prim.GetStage()
 
@@ -136,3 +134,14 @@ def sync(root_prim, world: bpy.types.World, **kwargs):
     # transform[:3, :3] = euler.to_matrix()
     #
     # usd_light.AddTransformOp().Set(Gf.Matrix4d(transform))
+
+
+def sync_update(root_prim, world: bpy.types.World):
+    stage = root_prim.GetStage()
+
+    usd_light = UsdLux.DomeLight.Define(stage,
+        Sdf.Path('/World').AppendChild(Tf.MakeValidIdentifier(world.name)))
+    usd_light.CreateColorAttr().Clear()
+    usd_light.CreateTextureFileAttr().Clear()
+
+    sync(root_prim, world)

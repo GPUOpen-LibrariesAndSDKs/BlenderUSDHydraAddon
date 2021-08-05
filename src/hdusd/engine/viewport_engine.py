@@ -24,7 +24,7 @@ from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
 
 from .engine import Engine, depsgraph_objects
-from ..export import camera, material, object
+from ..export import camera, material, object, world
 from .. import utils
 from ..utils import usd as usd_utils
 
@@ -365,26 +365,17 @@ class ViewportEngineScene(ViewportEngine):
     def _sync_update(self, context, depsgraph):
         super()._sync_update(context, depsgraph)
 
-        # get supported updates and sort by priorities
-        updates = []
-        for obj_type in (bpy.types.Scene, bpy.types.Object, bpy.types.Collection):
-            updates.extend(update for update in depsgraph.updates if isinstance(update.id, obj_type))
-
-        if not updates:
-            return
-
         root_prim = self.stage.GetPseudoRoot()
 
-        for update in updates:
-            obj = update.id
-            log("sync_update", obj)
+        for update in depsgraph.updates:
+            log("sync_update", update.id)
 
-            if isinstance(obj, (bpy.types.Collection, bpy.types.Scene)):
+            if isinstance(update.id, (bpy.types.Collection, bpy.types.Scene)):
                 self._sync_objects_collection(depsgraph)
                 continue
 
-            if isinstance(obj, bpy.types.Object):
-
+            if isinstance(update.id, bpy.types.Object):
+                obj = update.id
                 if obj.type == 'CAMERA':
                     continue
 
@@ -395,6 +386,11 @@ class ViewportEngineScene(ViewportEngine):
                                    update.is_updated_geometry,
                                    update.is_updated_transform,
                                    is_gl_delegate=self.is_gl_delegate)
+                continue
+
+            if isinstance(update.id, bpy.types.World):
+                wld = update.id
+                world.sync_update(root_prim, wld)
                 continue
 
     def _sync_objects_collection(self, depsgraph):
