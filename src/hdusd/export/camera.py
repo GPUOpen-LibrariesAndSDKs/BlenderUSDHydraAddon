@@ -294,3 +294,14 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
     settings = CameraData.init_from_camera(camera, obj.matrix_world, screen_ratio)
     settings.export(usd_camera)
+
+def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):
+    """ Update existing camera from obj.data: bpy.types.Camera or create a new light """
+    camera = obj.data
+    log("sync_update", camera, obj)
+
+    stage = obj_prim.GetStage()
+    for child_prim in obj_prim.GetAllChildren():
+        stage.RemovePrim(child_prim.GetPath())
+
+    sync(obj_prim, obj, **kwargs)
