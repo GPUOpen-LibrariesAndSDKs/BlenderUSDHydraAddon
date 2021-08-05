@@ -190,14 +190,7 @@ class FinalEngine(Engine):
             return self.render_engine.test_break()
 
         if settings.data_source:
-            nodetree = bpy.data.node_groups[settings.data_source]
-            stage = nodegraph.sync(
-                nodetree,
-                notify_callback=notify_callback,
-                test_break=test_break,
-                screen_ratio=screen_ratio,
-                is_gl_delegate=settings.is_gl_delegate,
-            )
+            stage = bpy.data.node_groups[settings.data_source].get_output_node().cached_stage()
             self.cached_stage.assign(stage)
 
         else:
