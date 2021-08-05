@@ -180,7 +180,6 @@ class FinalEngine(Engine):
 
         self.width = int(screen_width * border[1][0])
         self.height = int(screen_height * border[1][1])
-        screen_ratio = self.width / self.height
 
         def notify_callback(info):
             self.notify_status(0.0, info)
@@ -198,7 +197,6 @@ class FinalEngine(Engine):
                 stage, depsgraph,
                 notify_callback=notify_callback,
                 test_break=test_break,
-                screen_ratio=screen_ratio,
                 is_gl_delegate=settings.is_gl_delegate,
             )
 

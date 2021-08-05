@@ -285,7 +285,9 @@ class CameraData:
 def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     """Creates Usd camera from obj.data: bpy.types.Camera"""
 
-    screen_ratio = kwargs.get('screen_ratio', 1.0)
+    scene = bpy.context.scene
+    screen_ratio = scene.render.resolution_x / scene.render.resolution_y
+
     camera = obj.data
     log("sync", camera)
 

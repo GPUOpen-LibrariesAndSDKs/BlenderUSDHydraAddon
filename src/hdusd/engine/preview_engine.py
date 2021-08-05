@@ -55,7 +55,6 @@ class PreviewEngine(FinalEngine):
             notify_callback=notify_callback,
             test_break=test_break,
             is_preview_render=True,
-            screen_ratio=screen_ratio,
             is_gl_delegate=is_gl_delegate,
         )
 
