@@ -111,11 +111,9 @@ def sync(root_prim, world: bpy.types.World):
 
     stage = root_prim.GetStage()
 
-    # create Dome light
     obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild("World"))
     usd_light = UsdLux.DomeLight.Define(stage,
         obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(world.name)))
-    usd_light.ClearXformOpOrder()
     usd_light.OrientToStageUpAxis()
 
     if data.image:
@@ -126,14 +124,9 @@ def sync(root_prim, world: bpy.types.World):
     usd_light.CreateIntensityAttr(data.intensity)
 
     # # set correct Dome light rotation
-    # rot = data.rotation
-    # # euler = mathutils.Euler((-rot[0], -rot[1] + np.pi, -rot[2] - np.pi / 2))
-    # euler = mathutils.Euler((rot[0] + np.pi, rot[1], rot[2] - np.pi))
-    #
-    # transform = np.identity(4)
-    # transform[:3, :3] = euler.to_matrix()
-    #
-    # usd_light.AddTransformOp().Set(Gf.Matrix4d(transform))
+    usd_light.AddRotateXOp().Set(180.0)
+    usd_light.AddRotateYOp().Set(-90.0)
+    # TODO: enable rotation angles
 
 
 def sync_update(root_prim, world: bpy.types.World):
@@ -141,7 +134,10 @@ def sync_update(root_prim, world: bpy.types.World):
 
     usd_light = UsdLux.DomeLight.Define(stage,
         Sdf.Path('/World').AppendChild(Tf.MakeValidIdentifier(world.name)))
+
+    # removing prev settings
     usd_light.CreateColorAttr().Clear()
     usd_light.CreateTextureFileAttr().Clear()
+    usd_light.ClearXformOpOrder()
 
     sync(root_prim, world)

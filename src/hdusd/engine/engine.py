@@ -62,7 +62,7 @@ class Engine:
             except Exception as e:
                 log.error(e, 'EXCEPTION:', traceback.format_exc())
 
-        world.sync(root_prim, depsgraph.scene.world, **kwargs)
+        world.sync(root_prim, depsgraph.scene.world)
 
 
 from . import final_engine, viewport_engine, preview_engine
