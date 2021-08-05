@@ -14,7 +14,6 @@
 #********************************************************************
 from dataclasses import dataclass
 import numpy as np
-from pathlib import Path
 
 import bpy
 import mathutils
@@ -32,10 +31,10 @@ log = logging.Log(tag='export.world')
 class WorldData:
     """ Comparable dataclass which holds all environment settings """
 
-    color: tuple = (0, 0, 0)
+    color: tuple = (0.0, 0.0, 0.0)
     image: str = None
     intensity: float = 1.0
-    rotation: tuple = (0, 0, 0)
+    rotation: tuple = (0.0, 0.0, 0.0)
 
     @staticmethod
     def init_from_world(world: bpy.types.World):
@@ -60,33 +59,41 @@ class WorldData:
             return data
 
         d = node_item.data
-        print(d)
 
         if isinstance(d, float):
             data.color = (d, d, d)
+            return data
+
         if isinstance(d, tuple):
             data.color = d[:3]
-        else:   # dict
-            intensity = d.get('intensity', 1.0)
-            if isinstance(intensity, tuple):
-                intensity = intensity[0]
+            return data
 
-            data.intensity = intensity
+        # d is dict here
 
-            color = d.get('color')
-            if color:
-                if isinstance(color, float):
-                    data.color = (color, color, color)
-                if isinstance(color, tuple):
-                    data.color = color[:3]
-                else:   # dict
-                    image = color.get('image')
-                    if image:
-                        data.image = cache_image_file(image)
-            else:
-                image = d.get('image')
+        intensity = d.get('intensity', 1.0)
+        if isinstance(intensity, tuple):
+            intensity = intensity[0]
+
+        data.intensity = intensity
+
+        color = d.get('color')
+        if color:
+            if isinstance(color, float):
+                data.color = (color, color, color)
+            if isinstance(color, tuple):
+                data.color = color[:3]
+            else:   # dict
+                image = color.get('image')
                 if image:
                     data.image = cache_image_file(image)
+        else:
+            image = d.get('image')
+            if image:
+                data.image = cache_image_file(image)
+
+        rotation = d.get('rotation')
+        if isinstance(rotation, tuple):
+            data.rotation = rotation[:3]
 
         return data
 
@@ -95,44 +102,37 @@ class WorldData:
         data = WorldData()
         data.intensity = shading.studio_light_intensity
         data.rotation = (0.0, 0.0, shading.studio_light_rotate_z)
-        data.image = str(BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light)
+        data.image = BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light
         return data
 
 
 def sync(root_prim, world: bpy.types.World, **kwargs):
-
     # get the World IBL image
     data = WorldData.init_from_world(world)
     print(data)
 
-    #
-    #
-    #
-    # stage = root_prim.GetStage()
-    #
-    # if not data.cycles_ibl.image:
-    #     # TODO create image from environment color data if no image used
-    #     return
-    #
-    # # create Dome light
-    # xform = UsdGeom.Xform.Define(stage, root_prim.GetPath().AppendChild("_world"))
-    # obj_prim = xform.GetPrim()
-    #
-    # usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(world.name)))
-    # usd_light.ClearXformOpOrder()
-    # usd_light.OrientToStageUpAxis()
-    #
-    # p = Sdf.AssetPath(data.cycles_ibl.image)
-    # usd_light.CreateTextureFileAttr(p)
-    #
+    stage = root_prim.GetStage()
+
+    # create Dome light
+    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild("World"))
+    usd_light = UsdLux.DomeLight.Define(stage,
+        obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(world.name)))
+    usd_light.ClearXformOpOrder()
+    usd_light.OrientToStageUpAxis()
+
+    if data.image:
+        usd_light.CreateTextureFileAttr(str(data.image))
+    else:
+        usd_light.CreateColorAttr(data.color)
+
+    usd_light.CreateIntensityAttr(data.intensity)
+
     # # set correct Dome light rotation
-    # matrix = np.identity(4)
-    # rotation = data.cycles_ibl.rotation
-    # euler = mathutils.Euler((-rotation[0], -rotation[1] + np.pi, -rotation[2] - np.pi / 2))
+    # rot = data.rotation
+    # # euler = mathutils.Euler((-rot[0], -rot[1] + np.pi, -rot[2] - np.pi / 2))
+    # euler = mathutils.Euler((rot[0] + np.pi, rot[1], rot[2] - np.pi))
     #
-    # rotation_matrix = np.array(euler.to_matrix(), dtype=np.float32)
+    # transform = np.identity(4)
+    # transform[:3, :3] = euler.to_matrix()
     #
-    # matrix[:3, :3] = rotation_matrix[:, :]
-    #
-    # xform.ClearXformOpOrder()
-    # xform.AddTransformOp().Set(Gf.Matrix4d(matrix))
+    # usd_light.AddTransformOp().Set(Gf.Matrix4d(transform))
