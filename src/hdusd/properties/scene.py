@@ -53,6 +53,32 @@ class FinalRenderSettings(RenderSettings):
         default=""
     )
 
+    def nodetree_update(self, context):
+        if not self.data_source:
+            self.nodetree_camera = ""
+            return
+
+        output_node = bpy.data.node_groups[self.data_source].get_output_node()
+        if not output_node:
+            self.nodetree_camera = ""
+            return
+
+        stage = output_node.cached_stage()
+        if not stage:
+            self.nodetree_camera = ""
+            return
+
+        if self.nodetree_camera:
+            prim = stage.GetPrimAtPath(self.nodetree_camera)
+            if prim and prim.GetTypeName() == "Camera":
+                return
+
+        self.nodetree_camera = ""
+        for prim in stage.TraverseAll():
+            if prim.GetTypeName() == "Camera":
+                self.nodetree_camera = prim.GetPath().pathString
+                break
+
 
 class ViewportRenderSettings(RenderSettings):
     delegate: bpy.props.EnumProperty(

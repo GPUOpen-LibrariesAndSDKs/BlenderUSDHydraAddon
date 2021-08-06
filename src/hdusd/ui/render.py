@@ -35,6 +35,8 @@ class HDUSD_OP_data_source(bpy.types.Operator):
                    context.scene.hdusd.viewport
         settings.data_source = self.data_source
 
+        context.scene.hdusd.final.nodetree_update(context)
+
         return {"FINISHED"}
 
 class HDUSD_OP_nodetree_camera(bpy.types.Operator):
@@ -81,23 +83,22 @@ class NodetreeCameraMenu(bpy.types.Menu):
         layout = self.layout
         node_groups = bpy.data.node_groups
         op_idname = HDUSD_OP_nodetree_camera.bl_idname
+        settings = context.scene.hdusd.final
+        ng = bpy.data.node_groups[settings.data_source]
 
-        for ng in node_groups:
-            if ng.bl_idname != 'hdusd.USDTree':
-                continue
+        output_node = ng.get_output_node()
+        if output_node is None:
+            return
 
-            output_node = ng.get_output_node()
-            if output_node is None:
-                continue
+        stage = output_node.cached_stage()
+        if stage is None:
+            return
 
-            stage = output_node.cached_stage()
-            prims = stage.TraverseAll()
-
-            for prim in prims:
-                if prim.GetTypeName() == 'Camera':
-                    row = layout.row()
-                    op = row.operator(op_idname, text=prim.GetPath().pathString)
-                    op.nodetree_camera = prim.GetPath().pathString
+        for prim in stage.TraverseAll():
+            if prim.GetTypeName() == 'Camera':
+                row = layout.row()
+                op = row.operator(op_idname, text=prim.GetPath().pathString)
+                op.nodetree_camera = prim.GetPath().pathString
 
 
 class HDUSD_MT_data_source_final(DataSourceMenu):
@@ -142,7 +143,7 @@ class RenderSettingsPanel(HdUSD_Panel):
                  text=settings.data_source if settings.data_source else scene.name,
                  icon='NODETREE' if settings.data_source else 'SCENE_DATA')
 
-        if self.engine_type == 'FINAL' and settings.data_source and settings.data_source == 'NodeTree':
+        if self.engine_type == 'FINAL' and settings.data_source:
             split = layout.row(align=True).split(factor=0.4)
             col = split.column()
             col.alignment = 'RIGHT'

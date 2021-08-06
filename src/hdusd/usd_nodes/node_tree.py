@@ -131,19 +131,10 @@ class USDTree(bpy.types.ShaderNodeTree):
         if context.scene.hdusd.viewport.data_source == self.name:
             usd_collection.update(context)
 
+        if context.scene.hdusd.final.data_source == self.name:
+            context.scene.hdusd.final.nodetree_update(context)
+
         ViewportEngineNodetree.nodetree_output_node_computed(self)
-
-        output_node = self.get_output_node()
-
-        if output_node is not None:
-            stage = output_node.cached_stage()
-            prims = stage.TraverseAll()
-            for prim in prims:
-                if prim.GetTypeName() == 'Camera':
-                    context.scene.hdusd.final.nodetree_camera = prim.GetPath().pathString
-                    break
-
-                context.scene.hdusd.final.nodetree_camera = ''
 
 
 class RenderTaskTree(bpy.types.ShaderNodeTree):
