@@ -88,7 +88,7 @@ class NodetreeCameraMenu(bpy.types.Menu):
 
             output_node = ng.get_output_node()
             if output_node is None:
-                return
+                continue
 
             stage = output_node.cached_stage()
             prims = stage.TraverseAll()
