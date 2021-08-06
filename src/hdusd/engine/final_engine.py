@@ -23,6 +23,7 @@ import bgl
 
 from .engine import Engine
 from ..utils import gl, time_str
+from ..utils import usd as usd_utils
 
 from ..utils import logging
 log = logging.Log(tag='final_engine')
@@ -199,6 +200,8 @@ class FinalEngine(Engine):
                 test_break=test_break,
                 is_gl_delegate=settings.is_gl_delegate,
             )
+
+        usd_utils.set_variant_delegate(stage, settings.is_gl_delegate)
 
         if self.render_engine.test_break():
             log.warn("Syncing stopped by user termination")

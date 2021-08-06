@@ -19,6 +19,9 @@ from pxr import UsdGeom
 from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
+from ..utils import logging
+log = logging.Log(tag='ui.usd_list')
+
 
 class HDUSD_OP_usd_list_item_expand(bpy.types.Operator):
     """Expand USD item"""
@@ -208,17 +211,46 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
         tree = context.space_data.edit_tree
         node = context.active_node
         if not node:
-            print(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")
+            log(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")
             return {'CANCELLED'}
 
         # get the USD stage from selected node
-        stage = node._compute_node(node)
+        stage = node.cached_stage()
         if not stage:
-            print(f"Unable to print USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
+            log(f"Unable to print USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
             return {'CANCELLED'}
 
         print(f"Node \"{tree.name}\":\"{node.name}\" USD stage is:")
         print(stage.ExportToString())
+
+        return {'FINISHED'}
+
+
+class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
+    """ Print selected USD nodetree node stage to console """
+    bl_idname = "hdusd.usd_tree_node_print_root_layer"
+    bl_label = "Print Root Layer To Console"
+
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.space_data.tree_type == 'hdusd.USDTree' and \
+               context.active_node
+
+    def execute(self, context):
+        tree = context.space_data.edit_tree
+        node = context.active_node
+        if not node:
+            log(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")
+            return {'CANCELLED'}
+
+        # get the USD stage from selected node
+        stage = node.cached_stage()
+        if not stage:
+            log(f"Unable to print USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
+            return {'CANCELLED'}
+
+        print(f"Node \"{tree.name}\":\"{node.name}\" USD stage is:")
+        print(stage.GetRootLayer().ExportToString())
 
         return {'FINISHED'}
 
@@ -251,6 +283,6 @@ class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
 
     def draw(self, context):
         col = self.layout.column()
-        op_idname = HDUSD_OP_usd_tree_node_print_stage.bl_idname
 
-        col.operator(op_idname, text="Print node stage to console")
+        col.operator(HDUSD_OP_usd_tree_node_print_stage.bl_idname)
+        col.operator(HDUSD_OP_usd_tree_node_print_root_layer.bl_idname)
