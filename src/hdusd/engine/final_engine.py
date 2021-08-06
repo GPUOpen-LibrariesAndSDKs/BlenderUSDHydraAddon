@@ -136,8 +136,8 @@ class FinalEngine(Engine):
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
-        if scene.hdusd.final.camera_source != '':
-            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, scene.hdusd.final.camera_source)
+        if scene.hdusd.final.nodetree_camera != '' and scene.hdusd.final.data_source:
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, scene.hdusd.final.nodetree_camera)
         else:
             usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.name))
        
@@ -189,7 +189,13 @@ class FinalEngine(Engine):
             return self.render_engine.test_break()
 
         if settings.data_source:
-            stage = bpy.data.node_groups[settings.data_source].get_output_node().cached_stage()
+            output_node = bpy.data.node_groups[settings.data_source].get_output_node()
+
+            if output_node is None:
+                log.warn("Syncing stopped due to invalid output_node", output_node)
+                return
+
+            stage = output_node.cached_stage()
             self.cached_stage.assign(stage)
 
         else:

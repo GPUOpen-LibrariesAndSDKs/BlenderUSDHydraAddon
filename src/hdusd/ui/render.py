@@ -35,20 +35,18 @@ class HDUSD_OP_data_source(bpy.types.Operator):
                    context.scene.hdusd.viewport
         settings.data_source = self.data_source
 
-        if not settings.data_source:
-            settings.camera_source = ''
         return {"FINISHED"}
 
-class HDUSD_OP_camera_source(bpy.types.Operator):
-    """Select camera source"""
-    bl_idname = "hdusd.camera_source"
-    bl_label = "Camera Source"
+class HDUSD_OP_nodetree_camera(bpy.types.Operator):
+    """Select camera"""
+    bl_idname = "hdusd.nodetree_camera"
+    bl_label = "Camera"
 
-    camera_source: bpy.props.StringProperty(default="")
+    nodetree_camera: bpy.props.StringProperty(default="")
 
     def execute(self, context):
         settings = context.scene.hdusd.final
-        settings.camera_source = self.camera_source
+        settings.nodetree_camera = self.nodetree_camera
         return {"FINISHED"}
 
 
@@ -76,27 +74,30 @@ class DataSourceMenu(bpy.types.Menu):
             op.engine_type = self.engine_type
 
 
-class CameraSourceMenu(bpy.types.Menu):
-    bl_label = "Camera source"
+class NodetreeCameraMenu(bpy.types.Menu):
+    bl_label = "Camera"
 
     def draw(self, context):
         layout = self.layout
         node_groups = bpy.data.node_groups
-        op_idname = HDUSD_OP_camera_source.bl_idname
+        op_idname = HDUSD_OP_nodetree_camera.bl_idname
 
         for ng in node_groups:
             if ng.bl_idname != 'hdusd.USDTree':
                 continue
 
-            stage = ng.get_output_node().cached_stage()
-            prims = tuple(stage.TraverseAll())
+            output_node = ng.get_output_node()
+            if output_node is None:
+                return
+
+            stage = output_node.cached_stage()
+            prims = stage.TraverseAll()
 
             for prim in prims:
                 if prim.GetTypeName() == 'Camera':
                     row = layout.row()
-                    row.enabled = bool(ng.get_output_node())
                     op = row.operator(op_idname, text=prim.GetPath().pathString)
-                    op.camera_source = prim.GetPath().pathString
+                    op.nodetree_camera = prim.GetPath().pathString
 
 
 class HDUSD_MT_data_source_final(DataSourceMenu):
@@ -105,9 +106,9 @@ class HDUSD_MT_data_source_final(DataSourceMenu):
     engine_type = 'FINAL'
 
 
-class HDUSD_MT_camera_source_final(CameraSourceMenu):
-    """Select camera source"""
-    bl_idname = "HDUSD_MT_camera_source_final"
+class HDUSD_MT_nodetree_camera_final(NodetreeCameraMenu):
+    """Select camera"""
+    bl_idname = "HDUSD_MT_nodetree_camera_final"
     engine_type = 'FINAL'
 
 
@@ -142,29 +143,14 @@ class RenderSettingsPanel(HdUSD_Panel):
                  icon='NODETREE' if settings.data_source else 'SCENE_DATA')
 
         if self.engine_type == 'FINAL' and settings.data_source and settings.data_source == 'NodeTree':
-
-            node_groups = bpy.data.node_groups
-            camera_source = ''
-
-            for ng in node_groups:
-                if ng.bl_idname != 'hdusd.USDTree':
-                    continue
-
-                stage = ng.get_output_node().cached_stage()
-                prims = tuple(stage.TraverseAll())
-
-                for prim in prims:
-                    if prim.GetTypeName() == 'Camera':
-                        camera_source = prim.GetPath().pathString
-                        break
-
             split = layout.row(align=True).split(factor=0.4)
             col = split.column()
             col.alignment = 'RIGHT'
             col.label(text="Camera")
             col = split.column()
-            col.menu(HDUSD_MT_camera_source_final.bl_idname,
-                     text=settings.camera_source if settings.camera_source else camera_source)
+            col.enabled = settings.nodetree_camera != ''
+            col.menu(HDUSD_MT_nodetree_camera_final.bl_idname,
+                     text=settings.nodetree_camera if settings.nodetree_camera else '')
 
 
 class HDUSD_RENDER_PT_render_settings_final(RenderSettingsPanel):

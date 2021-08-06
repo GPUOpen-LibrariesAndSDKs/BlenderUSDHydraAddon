@@ -39,14 +39,17 @@ class FinalRenderSettings(RenderSettings):
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=RenderSettings.delegate_items,
+        description="Render delegate for final render",
         default='HdRprPlugin',
     )
     data_source: bpy.props.StringProperty(
         name="Data Source",
+        description="Data source for final render",
         default=""
     )
-    camera_source: bpy.props.StringProperty(
-        name="Camera Source",
+    nodetree_camera: bpy.props.StringProperty(
+        name="Camera",
+        description="Select camera from USD for final render",
         default=""
     )
 
@@ -63,6 +66,7 @@ class ViewportRenderSettings(RenderSettings):
 
     data_source: bpy.props.StringProperty(
         name="Data Source",
+        description="Data source for viewport render",
         default="",
         update=data_source_update
     )
