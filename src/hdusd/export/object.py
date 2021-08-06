@@ -93,6 +93,9 @@ def sync_update(root_prim, obj: bpy.types.Object, is_updated_geometry, is_update
         elif obj.type == 'LIGHT':
             light.sync_update(obj_prim, obj, **kwargs)
 
+        elif obj.type == 'CAMERA':
+            camera.sync_update(obj_prim, obj, **kwargs)
+
         elif obj.type in ('CURVE', 'FONT', 'SURFACE', 'META'):
             to_mesh.sync_update(obj_prim, obj, **kwargs)
 

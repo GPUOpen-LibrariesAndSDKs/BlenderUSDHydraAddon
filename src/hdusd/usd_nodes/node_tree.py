@@ -131,6 +131,9 @@ class USDTree(bpy.types.ShaderNodeTree):
         if context.scene.hdusd.viewport.data_source == self.name:
             usd_collection.update(context)
 
+        if context.scene.hdusd.final.data_source == self.name:
+            context.scene.hdusd.final.nodetree_update(context)
+
         ViewportEngineNodetree.nodetree_output_node_computed(self)
 
 

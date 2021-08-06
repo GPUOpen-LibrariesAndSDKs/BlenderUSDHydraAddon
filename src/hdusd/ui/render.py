@@ -16,6 +16,7 @@ import bpy
 
 from . import HdUSD_Panel
 
+from pxr import UsdAppUtils, Tf
 
 class HDUSD_OP_data_source(bpy.types.Operator):
     """Select render source"""
@@ -33,6 +34,21 @@ class HDUSD_OP_data_source(bpy.types.Operator):
         settings = context.scene.hdusd.final if self.engine_type == 'FINAL' else\
                    context.scene.hdusd.viewport
         settings.data_source = self.data_source
+
+        context.scene.hdusd.final.nodetree_update(context)
+
+        return {"FINISHED"}
+
+class HDUSD_OP_nodetree_camera(bpy.types.Operator):
+    """Select camera"""
+    bl_idname = "hdusd.nodetree_camera"
+    bl_label = "Camera"
+
+    nodetree_camera: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        settings = context.scene.hdusd.final
+        settings.nodetree_camera = self.nodetree_camera
         return {"FINISHED"}
 
 
@@ -60,9 +76,40 @@ class DataSourceMenu(bpy.types.Menu):
             op.engine_type = self.engine_type
 
 
+class NodetreeCameraMenu(bpy.types.Menu):
+    bl_label = "Camera"
+
+    def draw(self, context):
+        layout = self.layout
+        node_groups = bpy.data.node_groups
+        op_idname = HDUSD_OP_nodetree_camera.bl_idname
+        settings = context.scene.hdusd.final
+        ng = bpy.data.node_groups[settings.data_source]
+
+        output_node = ng.get_output_node()
+        if output_node is None:
+            return
+
+        stage = output_node.cached_stage()
+        if stage is None:
+            return
+
+        for prim in stage.TraverseAll():
+            if prim.GetTypeName() == 'Camera':
+                row = layout.row()
+                op = row.operator(op_idname, text=prim.GetPath().pathString)
+                op.nodetree_camera = prim.GetPath().pathString
+
+
 class HDUSD_MT_data_source_final(DataSourceMenu):
     """Select data source"""
     bl_idname = "HDUSD_MT_data_source_final"
+    engine_type = 'FINAL'
+
+
+class HDUSD_MT_nodetree_camera_final(NodetreeCameraMenu):
+    """Select camera"""
+    bl_idname = "HDUSD_MT_nodetree_camera_final"
     engine_type = 'FINAL'
 
 
@@ -95,6 +142,16 @@ class RenderSettingsPanel(HdUSD_Panel):
                  HDUSD_MT_data_source_viewport.bl_idname,
                  text=settings.data_source if settings.data_source else scene.name,
                  icon='NODETREE' if settings.data_source else 'SCENE_DATA')
+
+        if self.engine_type == 'FINAL' and settings.data_source:
+            split = layout.row(align=True).split(factor=0.4)
+            col = split.column()
+            col.alignment = 'RIGHT'
+            col.label(text="Camera")
+            col = split.column()
+            col.enabled = settings.nodetree_camera != ''
+            col.menu(HDUSD_MT_nodetree_camera_final.bl_idname,
+                     text=settings.nodetree_camera if settings.nodetree_camera else '')
 
 
 class HDUSD_RENDER_PT_render_settings_final(RenderSettingsPanel):

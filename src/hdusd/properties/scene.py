@@ -39,12 +39,45 @@ class FinalRenderSettings(RenderSettings):
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=RenderSettings.delegate_items,
+        description="Render delegate for final render",
         default='HdRprPlugin',
     )
     data_source: bpy.props.StringProperty(
         name="Data Source",
+        description="Data source for final render",
         default=""
     )
+    nodetree_camera: bpy.props.StringProperty(
+        name="Camera",
+        description="Select camera from USD for final render",
+        default=""
+    )
+
+    def nodetree_update(self, context):
+        if not self.data_source:
+            self.nodetree_camera = ""
+            return
+
+        output_node = bpy.data.node_groups[self.data_source].get_output_node()
+        if not output_node:
+            self.nodetree_camera = ""
+            return
+
+        stage = output_node.cached_stage()
+        if not stage:
+            self.nodetree_camera = ""
+            return
+
+        if self.nodetree_camera:
+            prim = stage.GetPrimAtPath(self.nodetree_camera)
+            if prim and prim.GetTypeName() == "Camera":
+                return
+
+        self.nodetree_camera = ""
+        for prim in stage.TraverseAll():
+            if prim.GetTypeName() == "Camera":
+                self.nodetree_camera = prim.GetPath().pathString
+                break
 
 
 class ViewportRenderSettings(RenderSettings):
@@ -59,6 +92,7 @@ class ViewportRenderSettings(RenderSettings):
 
     data_source: bpy.props.StringProperty(
         name="Data Source",
+        description="Data source for viewport render",
         default="",
         update=data_source_update
     )

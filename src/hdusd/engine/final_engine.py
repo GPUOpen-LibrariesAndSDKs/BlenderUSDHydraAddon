@@ -22,7 +22,6 @@ import bpy
 import bgl
 
 from .engine import Engine
-from ..export import nodegraph
 from ..utils import gl, time_str
 from ..utils import usd as usd_utils
 
@@ -137,7 +136,11 @@ class FinalEngine(Engine):
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
-        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.name))
+        if scene.hdusd.final.nodetree_camera != '' and scene.hdusd.final.data_source:
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, scene.hdusd.final.nodetree_camera)
+        else:
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.name))
+       
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
@@ -178,7 +181,6 @@ class FinalEngine(Engine):
 
         self.width = int(screen_width * border[1][0])
         self.height = int(screen_height * border[1][1])
-        screen_ratio = self.width / self.height
 
         def notify_callback(info):
             self.notify_status(0.0, info)
@@ -187,14 +189,13 @@ class FinalEngine(Engine):
             return self.render_engine.test_break()
 
         if settings.data_source:
-            nodetree = bpy.data.node_groups[settings.data_source]
-            stage = nodegraph.sync(
-                nodetree,
-                notify_callback=notify_callback,
-                test_break=test_break,
-                screen_ratio=screen_ratio,
-                is_gl_delegate=settings.is_gl_delegate,
-            )
+            output_node = bpy.data.node_groups[settings.data_source].get_output_node()
+
+            if output_node is None:
+                log.warn("Syncing stopped due to invalid output_node", output_node)
+                return
+
+            stage = output_node.cached_stage()
             self.cached_stage.assign(stage)
 
         else:
@@ -203,7 +204,6 @@ class FinalEngine(Engine):
                 stage, depsgraph,
                 notify_callback=notify_callback,
                 test_break=test_break,
-                screen_ratio=screen_ratio,
                 is_gl_delegate=settings.is_gl_delegate,
             )
 
