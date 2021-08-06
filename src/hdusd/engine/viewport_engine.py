@@ -401,7 +401,8 @@ class ViewportEngineScene(ViewportEngine):
                                          self.shading_data.use_scene_lights)
 
         depsgraph_keys = set(object.sdf_name(obj) for obj in dg_objects())
-        usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
+        usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren()
+                              if prim.GetName() != world.PRIM_NAME)
         keys_to_remove = usd_object_keys - depsgraph_keys
         keys_to_add = depsgraph_keys - usd_object_keys
 

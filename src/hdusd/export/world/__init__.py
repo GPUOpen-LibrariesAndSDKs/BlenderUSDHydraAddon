@@ -13,18 +13,19 @@
 # limitations under the License.
 #********************************************************************
 from dataclasses import dataclass
-import numpy as np
 
 import bpy
-import mathutils
 
-from pxr import Gf, Sdf, UsdGeom, UsdLux, Tf
+from pxr import Sdf, UsdLux, Tf
 
 from ...utils.image import cache_image_file
 from ...utils import BLENDER_DATA_DIR
 
 from ...utils import logging
 log = logging.Log(tag='export.world')
+
+
+PRIM_NAME = "World"
 
 
 @dataclass(init=False, eq=True, repr=True)
@@ -58,40 +59,42 @@ class WorldData:
         if not node_item:
             return data
 
-        d = node_item.data
+        node_data = node_item.data
 
-        if isinstance(d, float):
-            data.color = (d, d, d)
+        if isinstance(node_data, float):
+            data.color = (node_data, node_data, node_data)
             return data
 
-        if isinstance(d, tuple):
-            data.color = d[:3]
+        if isinstance(node_data, tuple):
+            data.color = node_data[:3]
             return data
 
-        # d is dict here
+        # node_data is dict here
 
-        intensity = d.get('intensity', 1.0)
+        intensity = node_data.get('intensity', 1.0)
         if isinstance(intensity, tuple):
             intensity = intensity[0]
 
         data.intensity = intensity
 
-        color = d.get('color')
-        if color:
-            if isinstance(color, float):
-                data.color = (color, color, color)
-            if isinstance(color, tuple):
-                data.color = color[:3]
-            else:   # dict
-                image = color.get('image')
-                if image:
-                    data.image = cache_image_file(image)
-        else:
-            image = d.get('image')
+        color = node_data.get('color')
+        if color is None:
+            image = node_data.get('image')
             if image:
                 data.image = cache_image_file(image)
 
-        rotation = d.get('rotation')
+        elif isinstance(color, float):
+            data.color = (color, color, color)
+
+        elif isinstance(color, tuple):
+            data.color = color[:3]
+
+        else:   # dict
+            image = color.get('image')
+            if image:
+                data.image = cache_image_file(image)
+
+        rotation = node_data.get('rotation')
         if isinstance(rotation, tuple):
             data.rotation = rotation[:3]
 
@@ -111,7 +114,7 @@ def sync(root_prim, world: bpy.types.World):
 
     stage = root_prim.GetStage()
 
-    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild("World"))
+    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
     usd_light = UsdLux.DomeLight.Define(stage,
         obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(world.name)))
     usd_light.OrientToStageUpAxis()
@@ -133,7 +136,7 @@ def sync_update(root_prim, world: bpy.types.World):
     stage = root_prim.GetStage()
 
     usd_light = UsdLux.DomeLight.Define(stage,
-        Sdf.Path('/World').AppendChild(Tf.MakeValidIdentifier(world.name)))
+        Sdf.Path(f"/{PRIM_NAME}").AppendChild(Tf.MakeValidIdentifier(world.name)))
 
     # removing prev settings
     usd_light.CreateColorAttr().Clear()
