@@ -80,6 +80,8 @@ wrapEngine()
             .def("GetRendererPlugins", &Cls::GetRendererPlugins,
                 return_value_policy< TfPySequenceToList >())
             .staticmethod("GetRendererPlugins")
+            .def("GetRenderStats",
+                    &Cls::GetRenderStats)
             ;
     }
 

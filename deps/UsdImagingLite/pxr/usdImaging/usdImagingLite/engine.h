@@ -30,6 +30,7 @@
 #include "pxr/imaging/hd/engine.h"
 #include "pxr/imaging/hd/rendererPlugin.h"
 #include "pxr/imaging/hdx/taskController.h"
+#include "pxr/imaging/hgi/hgi.h"
 #include "pxr/usdImaging/usdImaging/delegate.h"
 #include "pxr/usdImaging/usdImagingGL/rendererSettings.h"
 
@@ -181,6 +182,21 @@ public:
 
     /// @}
 
+    // ---------------------------------------------------------------------
+    /// \name Render Statistics
+    /// @{
+    // ---------------------------------------------------------------------
+
+    /// Returns render statistics.
+    ///
+    /// The contents of the dictionary will depend on the current render
+    /// delegate.
+    ///
+    USDIMAGINGLITE_API
+    VtDictionary GetRenderStats() const;
+
+    /// @}
+
 protected:
     HdEngine _engine;
     HdRenderIndex *_renderIndex;
@@ -197,6 +213,14 @@ protected:
     // This function disposes of: the render index, the render plugin,
     // the task controller, and the usd imaging delegate.
     void _DeleteHydraResources();
+
+    // Note that any of the fields below might become private
+    // in the future and subclasses should use the above getters
+    // to access them instead.
+
+    HgiUniquePtr _hgi;
+    // Similar for HdDriver.
+    HdDriver _hgiDriver;
 
 private:
     
