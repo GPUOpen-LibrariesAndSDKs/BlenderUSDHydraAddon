@@ -19,6 +19,7 @@ import bpy
 import bgl
 from bpy_extras import view3d_utils
 import weakref
+import time
 
 from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
@@ -27,7 +28,7 @@ from .engine import Engine, depsgraph_objects
 from ..export import camera, material, object, world
 from .. import utils
 from ..utils import usd as usd_utils
-
+from ..utils import time_str
 from ..utils import logging
 log = logging.Log(tag='viewport_engine')
 
@@ -183,6 +184,8 @@ class ViewportEngine(Engine):
 
         self.data_source = ""
 
+        self.time_begin = time.perf_counter()
+
         # adding current engine to engine refs
         self._engine_refs.add(weakref.ref(self))
 
@@ -302,10 +305,12 @@ class ViewportEngine(Engine):
         self.render_engine.unbind_display_space_shader()
         bgl.glDisable(bgl.GL_BLEND)
 
+        self.time_begin = time.perf_counter() if round(self.renderer.GetRenderStats()['percentDone']) == 0 else self.time_begin
+        elapsed_time = time_str(time.perf_counter() - self.time_begin)
         if not self.renderer.IsConverged():
-            self.notify_status("Rendering...", "")
+            self.notify_status(f"Render Time: {elapsed_time} | Done: {round(self.renderer.GetRenderStats()['percentDone'])}%", "Rendering...")
         else:
-            self.notify_status("Rendering Done", "", False)
+            self.notify_status("Rendering Done", f"Time: {elapsed_time}", False)
 
     def _sync_render_settings(self, scene):
         settings = scene.hdusd.viewport
