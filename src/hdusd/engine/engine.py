@@ -49,8 +49,10 @@ class Engine:
 
         root_prim = stage.GetPseudoRoot()
 
+        use_scene_cameras = self.TYPE!='FINAL'
+
         objects_len = len(depsgraph.objects)
-        for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights)):
+        for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights, use_scene_cameras)):
             if test_break and test_break():
                 return None
 
@@ -59,6 +61,13 @@ class Engine:
 
             try:
                 object.sync(root_prim, obj, **kwargs)
+            except Exception as e:
+                log.error(e, 'EXCEPTION:', traceback.format_exc())
+
+        # sync a scene camera separately for final render
+        if not use_scene_cameras:
+            try:
+                object.sync(root_prim, depsgraph.scene.camera, **kwargs)
             except Exception as e:
                 log.error(e, 'EXCEPTION:', traceback.format_exc())
 
