@@ -108,10 +108,11 @@ def time_str(val):
     return f"{math.floor(val / 60):02}:{math.floor(val % 60):02}.{math.floor((val % 1) * 100):02}"
 
 
-def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
+def depsgraph_objects(depsgraph, *, space_data=None, use_scene_lights=True):
+    SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA')
+
     for obj in depsgraph.objects:
-        if obj.type not in ('MESH', 'LIGHT', 'CURVE', 'FONT',
-                            'SURFACE', 'META', 'VOLUME', 'CAMERA'):
+        if obj.type not in SUPPORTED_TYPES:
             continue
 
         if obj.type == 'LIGHT' and not use_scene_lights:
@@ -121,6 +122,19 @@ def depsgraph_objects(depsgraph, space_data=None, use_scene_lights=True):
             continue
 
         yield obj
+
+    for instance in depsgraph.object_instances:
+        obj = instance.object
+        if obj.type not in SUPPORTED_TYPES:
+            continue
+
+        if obj.type == 'LIGHT' and not use_scene_lights:
+            continue
+
+        # if space_data and not instance.visible_in_viewport_get(space_data):
+        #     continue
+
+        yield instance
 
 
 def title_str(str):
