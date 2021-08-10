@@ -182,8 +182,8 @@ class BlenderDataNode(USDNode):
         root_prim = stage.GetPseudoRoot()
 
         if self.data == 'SCENE':
-            for obj in object.depsgraph_objects(depsgraph):
-                object.sync(root_prim, obj)
+            for obj_data in object.ObjectData.depsgraph_objects(depsgraph):
+                object.sync(root_prim, obj_data)
 
             world.sync(root_prim, depsgraph.scene.world)
 
@@ -195,7 +195,8 @@ class BlenderDataNode(USDNode):
                 if obj_col.hdusd.is_usd:
                     continue
 
-                object.sync(root_prim, obj_col.evaluated_get(depsgraph))
+                object.sync(root_prim, object.ObjectData.from_object(
+                    obj_col.evaluated_get(depsgraph)))
 
         elif self.data == 'OBJECT':
             if not self.object or self.object.hdusd.is_usd:
@@ -266,8 +267,8 @@ class BlenderDataNode(USDNode):
 
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
-                depsgraph_keys = set(object.sdf_name(obj)
-                                     for obj in object.depsgraph_objects(depsgraph))
+                depsgraph_keys = set(obj_data.sdf_name for obj_data in
+                                     object.ObjectData.depsgraph_objects(depsgraph))
 
                 if self.data == 'SCENE':
                     required_keys = depsgraph_keys
@@ -299,12 +300,11 @@ class BlenderDataNode(USDNode):
                     is_updated = True
 
                 if keys_to_add:
-                    for obj in object.depsgraph_objects(depsgraph):
-                        obj_key = object.sdf_name(obj)
-                        if obj_key not in keys_to_add:
+                    for obj_data in object.ObjectData.depsgraph_objects(depsgraph):
+                        if obj_data.sdf_name not in keys_to_add:
                             continue
 
-                        object.sync(root_prim, obj)
+                        object.sync(root_prim, obj_data)
 
                     is_updated = True
 
