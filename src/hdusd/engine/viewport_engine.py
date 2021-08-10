@@ -357,10 +357,18 @@ class ViewportEngineScene(ViewportEngine):
         super()._sync(context, depsgraph)
 
         stage = self.cached_stage.create()
-        self._export_depsgraph(
-            stage, depsgraph,
-            space_data=self.space_data,
-        )
+
+        log("sync", depsgraph)
+
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.GetPseudoRoot()
+
+        for obj_data in object.ObjectData.depsgraph_objects(depsgraph, space_data=self.space_data):
+            object.sync(root_prim, obj_data)
+
+        world.sync(root_prim, depsgraph.scene.world)
 
     def _sync_update(self, context, depsgraph):
         super()._sync_update(context, depsgraph)
@@ -397,11 +405,10 @@ class ViewportEngineScene(ViewportEngine):
         root_prim = self.stage.GetPseudoRoot()
 
         def dg_objects():
-            yield from object.depsgraph_objects(depsgraph,
-                                                space_data=self.space_data,
-                                                use_scene_lights=self.shading_data.use_scene_lights)
+            yield from object.ObjectData.depsgraph_objects(depsgraph,
+                space_data=self.space_data, use_scene_lights=self.shading_data.use_scene_lights)
 
-        depsgraph_keys = set(object.sdf_name(obj) for obj in dg_objects())
+        depsgraph_keys = set(obj_data.sdf_name for obj_data in dg_objects())
         usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren()
                               if prim.GetName() != world.PRIM_NAME)
         keys_to_remove = usd_object_keys - depsgraph_keys
@@ -414,12 +421,11 @@ class ViewportEngineScene(ViewportEngine):
 
         if keys_to_add:
             log("Object keys to add", keys_to_add)
-            for obj in dg_objects():
-                obj_key = object.sdf_name(obj)
-                if obj_key not in keys_to_add:
+            for obj_data in dg_objects():
+                if obj_data.sdf_name not in keys_to_add:
                     continue
 
-                object.sync(root_prim, obj)
+                object.sync(root_prim, obj_data)
 
 
 class ViewportEngineNodetree(ViewportEngine):
