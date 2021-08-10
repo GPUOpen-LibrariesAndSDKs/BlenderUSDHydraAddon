@@ -439,8 +439,7 @@ void UsdImagingLiteEngine::_DeleteHydraResources()
 // Resource Information
 //----------------------------------------------------------------------------
 
-VtDictionary
-UsdImagingLiteEngine::GetRenderStats() const
+VtDictionary UsdImagingLiteEngine::GetRenderStats() const
 {
     return _renderIndex->GetRenderDelegate()->GetRenderStats();
 }

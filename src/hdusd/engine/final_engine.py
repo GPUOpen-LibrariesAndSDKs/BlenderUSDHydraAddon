@@ -121,7 +121,8 @@ class FinalEngine(Engine):
             if self.render_engine.test_break():
                 break
 
-            self.notify_status(renderer.GetRenderStats()['percentDone'] / 100, f"Render Time: {time_str(time.perf_counter() - time_begin)} | Done: {round(renderer.GetRenderStats()['percentDone'])}%")
+            percent_done = renderer.GetRenderStats()['percentDone']
+            self.notify_status(percent_done / 100, f"Render Time: {time_str(time.perf_counter() - time_begin)} | Done: {round(percent_done)}%")
 
             if renderer.IsConverged():
                 break
