@@ -22,6 +22,7 @@ import bpy
 import bgl
 
 from .engine import Engine
+from ..export import object
 from ..utils import gl, time_str
 from ..utils import usd as usd_utils
 
@@ -97,6 +98,18 @@ class FinalEngine(Engine):
         # it's important to clear data explicitly
         draw_target = None
         renderer = None
+
+    def _export_depsgraph(self, stage, depsgraph, sync_callback=None, test_break=None,
+                          space_data=None, use_scene_lights=True, **kwargs):
+
+        super()._export_depsgraph(stage, depsgraph, sync_callback=sync_callback, test_break=test_break,
+                          space_data=space_data, use_scene_lights=use_scene_lights, **kwargs)
+
+        # add scene camera to a stage
+        try:
+            object.sync(stage.GetPseudoRoot(), depsgraph.scene.camera, **kwargs)
+        except Exception as e:
+            log.error(e, 'EXCEPTION:', traceback.format_exc())
 
     def _render(self, scene):
         # creating renderer
