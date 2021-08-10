@@ -309,9 +309,10 @@ class ViewportEngine(Engine):
         bgl.glDisable(bgl.GL_BLEND)
         elapsed_time = time_str(time.perf_counter() - self.time_begin)
         if not self.renderer.IsConverged():
-            self.notify_status(f"Time: {elapsed_time} | Done: {round(self.renderer.GetRenderStats()['percentDone'])}%", "Render")
+            self.notify_status(f"Time: {elapsed_time} | "
+                               f"Done: {round(self.renderer.GetRenderStats()['percentDone'])}%", "Render")
         else:
-            self.notify_status("Rendering Done", f"Time: {elapsed_time}", False)
+            self.notify_status(f"Time: {elapsed_time}", "Rendering Done", False)
 
     def _sync_render_settings(self, scene):
         settings = scene.hdusd.viewport
