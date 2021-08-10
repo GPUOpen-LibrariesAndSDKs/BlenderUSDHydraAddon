@@ -12,13 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+from dataclasses import dataclass
+
 from pxr import UsdGeom, Gf, Tf
 import bpy
+import mathutils
 
 from . import mesh, camera, to_mesh, light
 
 from ..utils import logging
-log = logging.Log(tag='export.object')
+log = logging.Log(tag='export.instance')
+
+
+SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA')
+
+
+@dataclass(init=False)
+class InstanceData:
+    object: bpy.types.Object
+    instance_id: int
+    transform: mathutils.Matrix
+
+    def __init__(self, instance):
+        self.object = instance.object
+        self.instance_id = instance.random_id
+        self.transform = instance.matrix_world.transposed()
+
+
+
+
+def depsgraph_objects(depsgraph, *, space_data=None, use_scene_lights=True):
+    for instance in depsgraph.object_instances:
+        obj = instance.object
+        if obj.type not in SUPPORTED_TYPES:
+            continue
+
+        if obj.type == 'LIGHT' and not use_scene_lights:
+            continue
+
+        if space_data and not instance.is_instance and not obj.visible_in_viewport_get(space_data):
+            continue
+
+        yield InstanceData(instance)
 
 
 def sdf_name(obj: bpy.types.Object):

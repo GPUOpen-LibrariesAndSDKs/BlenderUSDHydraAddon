@@ -23,7 +23,7 @@ import weakref
 from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
 
-from .engine import Engine, depsgraph_objects
+from .engine import Engine
 from ..export import camera, material, object, world
 from .. import utils
 from ..utils import usd as usd_utils
@@ -397,9 +397,9 @@ class ViewportEngineScene(ViewportEngine):
         root_prim = self.stage.GetPseudoRoot()
 
         def dg_objects():
-            yield from depsgraph_objects(depsgraph,
-                                         space_data=self.space_data,
-                                         use_scene_lights=self.shading_data.use_scene_lights)
+            yield from object.depsgraph_objects(depsgraph,
+                                                space_data=self.space_data,
+                                                use_scene_lights=self.shading_data.use_scene_lights)
 
         depsgraph_keys = set(object.sdf_name(obj) for obj in dg_objects())
         usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren()

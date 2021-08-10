@@ -18,7 +18,6 @@ from pxr import UsdGeom
 
 from .base_node import USDNode
 from ...export import object, material, world
-from ...utils import depsgraph_objects
 
 
 #
@@ -183,7 +182,7 @@ class BlenderDataNode(USDNode):
         root_prim = stage.GetPseudoRoot()
 
         if self.data == 'SCENE':
-            for obj in depsgraph_objects(depsgraph):
+            for obj in object.depsgraph_objects(depsgraph):
                 object.sync(root_prim, obj)
 
             world.sync(root_prim, depsgraph.scene.world)
@@ -268,7 +267,7 @@ class BlenderDataNode(USDNode):
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
                 depsgraph_keys = set(object.sdf_name(obj)
-                                     for obj in depsgraph_objects(depsgraph))
+                                     for obj in object.depsgraph_objects(depsgraph))
 
                 if self.data == 'SCENE':
                     required_keys = depsgraph_keys
@@ -300,7 +299,7 @@ class BlenderDataNode(USDNode):
                     is_updated = True
 
                 if keys_to_add:
-                    for obj in depsgraph_objects(depsgraph):
+                    for obj in object.depsgraph_objects(depsgraph):
                         obj_key = object.sdf_name(obj)
                         if obj_key not in keys_to_add:
                             continue
