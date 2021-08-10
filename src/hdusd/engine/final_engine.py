@@ -22,7 +22,6 @@ import bpy
 import bgl
 
 from .engine import Engine
-from ..export import object
 from ..utils import gl, time_str
 from ..utils import usd as usd_utils
 from ..export import object, world
@@ -99,18 +98,6 @@ class FinalEngine(Engine):
         # it's important to clear data explicitly
         draw_target = None
         renderer = None
-
-    def _export_depsgraph(self, stage, depsgraph, sync_callback=None, test_break=None,
-                          space_data=None, use_scene_lights=True, **kwargs):
-
-        super()._export_depsgraph(stage, depsgraph, sync_callback=sync_callback, test_break=test_break,
-                          space_data=space_data, use_scene_lights=use_scene_lights, **kwargs)
-
-        # add scene camera to a stage
-        try:
-            object.sync(stage.GetPseudoRoot(), depsgraph.scene.camera, **kwargs)
-        except Exception as e:
-            log.error(e, 'EXCEPTION:', traceback.format_exc())
 
     def _render(self, scene):
         # creating renderer
@@ -281,8 +268,10 @@ class FinalEngineScene(FinalEngine):
 
         root_prim = stage.GetPseudoRoot()
 
-        objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(depsgraph))
-        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(depsgraph)):
+        objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(
+                          depsgraph, use_scene_cameras=False))
+        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
+                                     depsgraph, use_scene_cameras=False)):
             if self.render_engine.test_break():
                 return None
 
@@ -291,6 +280,8 @@ class FinalEngineScene(FinalEngine):
             object.sync(root_prim, obj_data)
 
         world.sync(root_prim, depsgraph.scene.world)
+
+        object.sync(stage.GetPseudoRoot(), object.ObjectData.from_object(depsgraph.scene.camera))
 
 
 class FinalEngineNodetree(FinalEngine):
