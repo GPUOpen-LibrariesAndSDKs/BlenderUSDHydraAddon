@@ -50,7 +50,7 @@ class Engine:
         root_prim = stage.GetPseudoRoot()
 
         objects_len = len(depsgraph.objects)
-        for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights)):
+        for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights, False)):
             if test_break and test_break():
                 return None
 
