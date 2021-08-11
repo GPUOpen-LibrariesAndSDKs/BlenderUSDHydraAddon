@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from .final_engine import FinalEngine
+import numpy as np
 
-from pxr import UsdAppUtils, Tf
+from pxr import UsdGeom, UsdAppUtils, Tf
+from pxr import UsdImagingLite
+
+from .engine import Engine
+from ..export import object, world
 
 from ..utils import logging
 log = logging.Log(tag='preview_engine')
 
 
-class PreviewEngine(FinalEngine):
+class PreviewEngine(Engine):
     """ Render engine for preview material, lights, environment """
 
     TYPE = 'PREVIEW'
@@ -33,31 +37,67 @@ class PreviewEngine(FinalEngine):
                                 gf_camera.frustum.ComputeProjectionMatrix())
 
     def sync(self, depsgraph):
-
-        def notify_callback(info):
-            log(0.0, info)
-
-        def test_break():
-            return self.render_engine.test_break()
-
-        scene = depsgraph.scene
-        self.render_layer_name = depsgraph.view_layer.name
-
-        is_gl_delegate = False  # TODO fix Preview in the HdStorm mode
-
-        self.width = scene.render.resolution_x
-        self.height = scene.render.resolution_y
-        screen_ratio = self.width / self.height
-
         stage = self.cached_stage.create()
-        self._export_depsgraph(
-            stage, depsgraph,
-            notify_callback=notify_callback,
-            test_break=test_break,
-            is_preview_render=True,
-            is_gl_delegate=is_gl_delegate,
-        )
 
-        self.render_engine.bl_use_gpu_context = is_gl_delegate
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.GetPseudoRoot()
+
+        for obj_data in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False):
+            if self.render_engine.test_break():
+                return None
+
+            object.sync(root_prim, obj_data)
+
+        world.sync(root_prim, depsgraph.scene.world)
+
+        object.sync(stage.GetPseudoRoot(), object.ObjectData.from_object(depsgraph.scene.camera),
+                    scene=depsgraph.scene)
 
         log(f"Sync finished")
+
+    def render(self, depsgraph):
+        scene = depsgraph.scene
+        width, height = scene.render.resolution_x, scene.render.resolution_y
+
+        renderer = UsdImagingLite.Engine()
+        renderer.SetRendererPlugin('HdRprPlugin')
+        renderer.SetRendererSetting('maxSamples', self.SAMPLES_NUMBER)
+
+        renderer.SetRenderViewport((0, 0, width, height))
+        renderer.SetRendererAov('color')
+
+        # setting camera
+        usd_camera = UsdAppUtils.GetCameraAtPath(
+            self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
+        gf_camera = usd_camera.GetCamera()
+        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
+                                gf_camera.frustum.ComputeProjectionMatrix())
+
+        params = UsdImagingLite.RenderParams()
+        image = np.empty((width, height, 4), dtype=np.float32)
+
+        def update_render_result():
+            result = self.render_engine.begin_result(0, 0, width, height)
+            render_passes = result.layers[0].passes
+            render_passes.foreach_set('rect', image.flatten())
+            self.render_engine.end_result(result)
+
+        renderer.Render(self.stage.GetPseudoRoot(), params)
+
+        while True:
+            if self.render_engine.test_break():
+                break
+
+            if renderer.IsConverged():
+                break
+
+            renderer.GetRendererAov('color', image.ctypes.data)
+            update_render_result()
+
+        renderer.GetRendererAov('color', image.ctypes.data)
+        update_render_result()
+
+        # its important to clear data explicitly
+        renderer = None

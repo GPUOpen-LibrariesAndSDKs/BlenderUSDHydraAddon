@@ -365,7 +365,8 @@ class ViewportEngineScene(ViewportEngine):
 
         root_prim = stage.GetPseudoRoot()
 
-        for obj_data in object.ObjectData.depsgraph_objects(depsgraph, space_data=self.space_data):
+        for obj_data in object.ObjectData.depsgraph_objects(depsgraph,
+                space_data=self.space_data, use_scene_cameras=False):
             object.sync(root_prim, obj_data)
 
         world.sync(root_prim, depsgraph.scene.world)
@@ -376,7 +377,7 @@ class ViewportEngineScene(ViewportEngine):
         root_prim = self.stage.GetPseudoRoot()
 
         for update in depsgraph.updates:
-            log("sync_update", update.id)
+            log("sync_update", update.id, type(update.id))
 
             if isinstance(update.id, (bpy.types.Collection, bpy.types.Scene)):
                 self._sync_objects_collection(depsgraph)
