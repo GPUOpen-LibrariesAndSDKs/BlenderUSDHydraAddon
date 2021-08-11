@@ -181,6 +181,21 @@ public:
 
     /// @}
 
+    // ---------------------------------------------------------------------
+    /// \name Render Statistics
+    /// @{
+    // ---------------------------------------------------------------------
+
+    /// Returns render statistics.
+    ///
+    /// The contents of the dictionary will depend on the current render
+    /// delegate.
+    ///
+    USDIMAGINGLITE_API
+    VtDictionary GetRenderStats() const;
+
+    /// @}
+
 protected:
     HdEngine _engine;
     HdRenderIndex *_renderIndex;
