@@ -24,7 +24,7 @@ from ..utils import logging
 log = logging.Log(tag='export.instance')
 
 
-SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA')
+SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA', 'EMPTY')
 
 
 @dataclass(init=False)
@@ -32,6 +32,7 @@ class ObjectData:
     object: bpy.types.Object
     instance_id: int
     transform: mathutils.Matrix
+    parent: bpy.types.Object
 
     @staticmethod
     def from_object(obj):
@@ -39,6 +40,7 @@ class ObjectData:
         data.object = obj
         data.instance_id = 0
         data.transform = obj.matrix_world.transposed()
+        data.parent = obj.parent
         return data
 
     @staticmethod
@@ -47,6 +49,7 @@ class ObjectData:
         data.object = instance.object
         data.instance_id = abs(instance.random_id)
         data.transform = instance.matrix_world.transposed()
+        data.parent = instance.parent
         return data
 
     @property
@@ -110,6 +113,9 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
 
     elif obj.type == 'CAMERA':
         camera.sync(obj_prim, obj, **kwargs)
+
+    elif obj.type == 'EMPTY':
+        pass
 
     else:
         to_mesh.sync(obj_prim, obj, **kwargs)
