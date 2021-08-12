@@ -435,5 +435,14 @@ void UsdImagingLiteEngine::_DeleteHydraResources()
     }
 }
 
+//----------------------------------------------------------------------------
+// Resource Information
+//----------------------------------------------------------------------------
+
+VtDictionary UsdImagingLiteEngine::GetRenderStats() const
+{
+    return _renderIndex->GetRenderDelegate()->GetRenderStats();
+}
+
 PXR_NAMESPACE_CLOSE_SCOPE
 
