@@ -398,7 +398,7 @@ class ViewportEngineScene(ViewportEngine):
                 if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
                     continue
 
-                object.sync_update(root_prim, obj,
+                object.sync_update(root_prim, object.ObjectData.from_object(obj),
                                    update.is_updated_geometry,
                                    update.is_updated_transform,
                                    is_gl_delegate=self.is_gl_delegate)
@@ -414,7 +414,9 @@ class ViewportEngineScene(ViewportEngine):
 
         def dg_objects():
             yield from object.ObjectData.depsgraph_objects(depsgraph,
-                space_data=self.space_data, use_scene_lights=self.shading_data.use_scene_lights)
+                space_data=self.space_data,
+                use_scene_lights=self.shading_data.use_scene_lights,
+                use_scene_cameras=False)
 
         depsgraph_keys = set(obj_data.sdf_name for obj_data in dg_objects())
         usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren()
@@ -425,7 +427,7 @@ class ViewportEngineScene(ViewportEngine):
         if keys_to_remove:
             log("Object keys to remove", keys_to_remove)
             for key in keys_to_remove:
-                self.stage.RemovePrim(f"{root_prim.GetPath()}/{key}")
+                self.stage.RemovePrim(root_prim.GetPath().AppendChild(key))
 
         if keys_to_add:
             log("Object keys to add", keys_to_add)

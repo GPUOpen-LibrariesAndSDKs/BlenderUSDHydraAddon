@@ -21,7 +21,7 @@ import mathutils
 from . import mesh, camera, to_mesh, light
 
 from ..utils import logging
-log = logging.Log(tag='export.instance')
+log = logging.Log(tag='export.object')
 
 
 SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA', 'EMPTY')
@@ -121,22 +121,24 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
         to_mesh.sync(obj_prim, obj, **kwargs)
 
 
-def sync_update(root_prim, obj: bpy.types.Object, is_updated_geometry, is_updated_transform,
+def sync_update(root_prim, obj_data: ObjectData, is_updated_geometry, is_updated_transform,
                 **kwargs):
     """ Updates existing rpr object. Checks obj.type and calls corresponded sync_update() """
 
-    log("sync_update", obj, is_updated_geometry, is_updated_transform)
+    log("sync_update", obj_data.object, obj_data.instance_id,
+        is_updated_geometry, is_updated_transform)
 
-    obj_prim = root_prim.GetChild(sdf_name(obj))
+    obj_prim = root_prim.GetChild(obj_data.sdf_name)
     if not obj_prim.IsValid():
-        sync(root_prim, obj, **kwargs)
+        sync(root_prim, obj_data, **kwargs)
         return
 
     if is_updated_transform:
         xform = UsdGeom.Xform(obj_prim)
-        xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform(obj)))
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(obj_data.transform))
 
     if is_updated_geometry:
+        obj = obj_data.object
         if obj.type == 'MESH':
             if obj.mode == 'OBJECT':
                 mesh.sync_update(obj_prim, obj, **kwargs)
@@ -149,11 +151,8 @@ def sync_update(root_prim, obj: bpy.types.Object, is_updated_geometry, is_update
         elif obj.type == 'CAMERA':
             camera.sync_update(obj_prim, obj, **kwargs)
 
-        elif obj.type in ('CURVE', 'FONT', 'SURFACE', 'META'):
-            to_mesh.sync_update(obj_prim, obj, **kwargs)
-
         elif obj.type == 'EMPTY':
             pass
 
         else:
-            log.warn("Not supported object to sync_update", obj, obj.type)
+            to_mesh.sync_update(obj_prim, obj, **kwargs)
