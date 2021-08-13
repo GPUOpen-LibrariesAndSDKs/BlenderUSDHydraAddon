@@ -297,7 +297,7 @@ class ViewportEngine(Engine):
         bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
         self.render_engine.bind_display_space_shader(context.scene)
 
-        if self.renderer.GetRenderStats()['percentDone'] == 0.0:
+        if self.renderer.GetRenderStats().get('percentDone', 0.0) == 0.0:
             self.time_begin = time.perf_counter()
 
         try:
