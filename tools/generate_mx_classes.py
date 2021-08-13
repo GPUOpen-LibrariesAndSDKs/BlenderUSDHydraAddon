@@ -63,13 +63,8 @@ def generate_property_code(mx_param, nodegroup):
     mx_type = mx_param.getType()
     prop_attrs = {}
 
-    if nodegroup not in ("texture2d", "texture3d"):
-        prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname') \
-                             else title_str(mx_param.getName())
-
-    if mx_type != 'filename' and nodegroup in ("texture2d", "texture3d"):
-        prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname') \
-            else title_str(mx_param.getName())
+    prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname') \
+                         else title_str(mx_param.getName())
 
     prop_attrs['description'] = mx_param.getAttribute('doc')
 
@@ -161,7 +156,7 @@ def generate_property_code(mx_param, nodegroup):
     prop_attr_strings.append("update=MxNodeDef.update_prop")
 
     if mx_type == 'filename' and nodegroup in ("texture2d", "texture3d"):
-        prop_attr_strings.append("type=bpy.types.Image")
+        prop_attr_strings.insert(0, "type=bpy.types.Image")
 
     return f"{prop_type}({', '.join(prop_attr_strings)})"
 
