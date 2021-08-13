@@ -21,6 +21,8 @@ import bpy
 from .nodes import get_mx_node_cls
 from ..utils import mx as mx_utils
 
+import ntpath
+
 
 NODE_LAYER_SEPARATION_WIDTH = 280
 NODE_LAYER_SHIFT_X = 30
@@ -178,3 +180,28 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         for material in bpy.data.materials:
             if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
                 material.hdusd.update()
+
+        ng = bpy.data.node_groups.get(self.name, None)
+        if ng is None:
+            return
+
+        nodes = ng.nodes
+        if nodes is None:
+            return
+
+        for node in nodes:
+            if not hasattr(node.prop, 'p_file'):
+                continue
+
+            file = node.prop.p_file
+            if not file:
+                continue
+
+            filepath = file.filepath
+            if not filepath:
+                continue
+
+            if bpy.data.images.get(ntpath.basename(bpy.path.abspath(filepath)), None) is not None:
+                continue
+
+            bpy.ops.image.open(filepath=file)

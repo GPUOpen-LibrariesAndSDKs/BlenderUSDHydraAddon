@@ -59,12 +59,18 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
     return val_str
 
 
-def generate_property_code(mx_param):
+def generate_property_code(mx_param, nodegroup):
     mx_type = mx_param.getType()
     prop_attrs = {}
 
-    prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname') \
-                         else title_str(mx_param.getName())
+    if nodegroup not in ("texture2d", "texture3d"):
+        prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname') \
+                             else title_str(mx_param.getName())
+
+    if mx_type != 'filename' and nodegroup in ("texture2d", "texture3d"):
+        prop_attrs['name'] = mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname') \
+            else title_str(mx_param.getName())
+
     prop_attrs['description'] = mx_param.getAttribute('doc')
 
     while True:     # one way loop just for having break instead using nested 'if else'
@@ -77,6 +83,10 @@ def generate_property_code(mx_param):
             prop_type = "StringProperty"
             break
         if mx_type == 'filename':
+            if nodegroup in ("texture2d", "texture3d"):
+                prop_type = "PointerProperty"
+                break
+
             prop_type = "StringProperty"
             prop_attrs['subtype'] = 'FILE_PATH'
             break
@@ -137,6 +147,9 @@ def generate_property_code(mx_param):
                                ('uisoftmin', 'soft_min'), ('uisoftmax', 'soft_max'),
                                ('value', 'default')):
         if mx_param.hasAttribute(mx_attr):
+            if prop_attr == 'default' and nodegroup in ("texture2d", "texture3d") and mx_type == 'filename':
+                continue
+
             prop_attrs[prop_attr] = parse_value_str(
                 mx_param.getAttribute(mx_attr), mx_type, first_only=mx_attr != 'value')
 
@@ -146,6 +159,9 @@ def generate_property_code(mx_param):
         prop_attr_strings.append(f"{name}={val_str}")
 
     prop_attr_strings.append("update=MxNodeDef.update_prop")
+
+    if mx_type == 'filename' and nodegroup in ("texture2d", "texture3d"):
+        prop_attr_strings.append("type=bpy.types.Image")
 
     return f"{prop_type}({', '.join(prop_attr_strings)})"
 
@@ -200,25 +216,27 @@ class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
     _nodedef_name = '{nodedef.getName()}'
     _node_name = '{nodedef.getNodeString()}'""")
 
+    nodegroup = nodedef.getAttribute('nodegroup')
+
     for i, param in enumerate(nodedef.getParameters()):
         if i == 0:
             code_strings.append("")
 
-        prop_code = generate_property_code(param)
+        prop_code = generate_property_code(param, nodegroup)
         code_strings.append(f"    {param_prop_name(param.getName())}: {prop_code}")
 
     for i, input in enumerate(nodedef.getInputs()):
         if i == 0:
             code_strings.append("")
 
-        prop_code = generate_property_code(input)
+        prop_code = generate_property_code(input, nodegroup)
         code_strings.append(f"    {input_prop_name(input.getName())}: {prop_code}")
 
     for i, output in enumerate(nodedef.getOutputs()):
         if i == 0:
             code_strings.append("")
 
-        prop_code = generate_property_code(output)
+        prop_code = generate_property_code(output, nodegroup)
         code_strings.append(f"    {output_prop_name(output.getName())}: {prop_code}")
 
     code_strings.append("")
@@ -315,6 +333,7 @@ from bpy.props import (
 ) 
 from .base_node import MxNodeDef, MxNode
 
+import bpy
 
 FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)

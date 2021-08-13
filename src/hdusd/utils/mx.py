@@ -47,7 +47,7 @@ def set_param_value(mx_param, val, nd_type):
             mx_param.setAttribute('output', mx_output.getName())
 
     elif nd_type == 'filename':
-        mx_param.setValueString(bpy.path.abspath(val))
+        mx_param.setValueString(bpy.path.abspath(val.filepath))
 
     else:
         mx_type = getattr(mx, title_str(nd_type), None)
