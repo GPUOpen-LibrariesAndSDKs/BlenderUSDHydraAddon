@@ -351,10 +351,7 @@ class ViewportEngineScene(ViewportEngine):
     def update_material(self, mat):
         stage = self.cached_stage()
         material.sync_update_all(stage.GetPseudoRoot(), mat)
-        try:
-            self.render_engine.tag_redraw()
-        except Exception as e:
-            log.warn(e)
+        self.render_engine.tag_redraw()
 
     def _sync(self, context, depsgraph):
         super()._sync(context, depsgraph)
