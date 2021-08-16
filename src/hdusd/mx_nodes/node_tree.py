@@ -99,7 +99,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                 for mx_param in mx_node.getParameters():
                     node.set_param_value(
                         mx_param.getName(),
-                        mx_utils.parse_value(mx_param.getValue(), mx_param.getType(), file_prefix))
+                        mx_utils.parse_value(node, mx_param.getValue(), mx_param.getType(), file_prefix))
 
                 for mx_input in mx_node.getInputs():
                     input_name = mx_input.getName()
@@ -107,7 +107,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     if val is not None:
                         node.set_input_default(
                             input_name,
-                            mx_utils.parse_value(val, mx_input.getType(), file_prefix))
+                            mx_utils.parse_value(node, val, mx_input.getType(), file_prefix))
                         continue
 
                     node_name = mx_input.getNodeName()

@@ -17,6 +17,8 @@ import bpy
 
 from .image import cache_image_file
 
+from pathlib import Path
+
 from . import title_str, code_str
 
 from . import logging
@@ -78,8 +80,14 @@ def get_attr(mx_param, name, else_val=None):
     return mx_param.getAttribute(name) if mx_param.hasAttribute(name) else else_val
 
 
-def parse_value(mx_val, mx_type, file_prefix=None):
+def parse_value(node, mx_val, mx_type, file_prefix=None):
     if mx_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
+        if node.category in ('texture2d', 'texture3d') and mx_type == 'filename':
+            if Path(mx_val).exists():
+                return bpy.data.images.load(mx_val)
+
+            return None
+
         if file_prefix and mx_type == 'filename':
             mx_val = str((file_prefix / mx_val).resolve())
 
