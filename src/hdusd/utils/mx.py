@@ -53,6 +53,8 @@ def set_param_value(mx_param, val, nd_type):
     elif nd_type == 'filename':
         if isinstance(val, bpy.types.Image):
             mx_param.setValueString(str(cache_image_file(val)))
+        else:
+            mx_param.setValueString(str(val))
 
     else:
         mx_type = getattr(mx, title_str(nd_type), None)

@@ -21,7 +21,7 @@ from . import get_temp_file
 
 def cache_image_file(image: bpy.types.Image):
     # if image packed in .blend file
-    if image.packed_file is not None:
+    if image.packed_file is not None or image.source == 'GENERATED':
         temp_path = get_temp_file(".png")
         image.save_render(str(temp_path))
         return temp_path

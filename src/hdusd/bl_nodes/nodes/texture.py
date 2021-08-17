@@ -16,6 +16,7 @@ import os
 
 from ..node_parser import NodeParser
 from ... import utils
+from ...utils.image import cache_image_file
 from . import log
 
 
@@ -46,15 +47,7 @@ class ShaderNodeTexImage(NodeParser):
         if image.size[0] * image.size[1] * image.channels == 0:
             return image_error_result
 
-        file_path = image.filepath_from_user()
-        if image.source != 'FILE' or image.is_dirty or not os.path.isfile(file_path):  # generated, edited and packed
-            target_format, target_extension = IMAGE_FORMATS.get(image.file_format, DEFAULT_FORMAT)
-            temp_path = utils.get_temp_file(f"{hash(image.name)}.texture.{target_extension}")
-            if not os.path.isfile(temp_path):
-                image.save_render(str(temp_path))
-            img_path = str(temp_path)
-        else:
-            img_path = file_path
+        img_path = cache_image_file(image)
 
         # TODO use Vector input for UV
         uv = self.create_node('texcoord', 'vector2', {})
