@@ -27,11 +27,15 @@ class MergeNode(USDNode):
     bl_idname = 'usd.MergeNode'
     bl_label = "Merge"
 
-    input_names = tuple(f"Input {i + 1}" for i in range(MAX_INPUTS_NUMBER))
+    input_names = tuple(f"Input {i + 1}" for i in range(MAX_INPUTS_NUMBER) )
 
     def update_inputs_number(self, context):
         for i in range(MAX_INPUTS_NUMBER):
-            self.inputs[i].hide = i >= self.inputs_number
+            if len(self.inputs) > self.inputs_number:
+                self.inputs.remove(self.inputs[len(self.inputs) - 1])
+
+            if len(self.inputs) < self.inputs_number:
+                self.inputs.new(name=self.input_names[len(self.inputs)], type="NodeSocketShader")
 
     inputs_number: bpy.props.IntProperty(
         name="Inputs",
