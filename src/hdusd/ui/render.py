@@ -24,14 +24,14 @@ from pxr import UsdAppUtils, Tf
 from rpr import RprUsd
 
 class HDUSD_OP_open_web_page(HdUSD_Operator):
-    '''
+    """
     Operator to open web pages. Available page types:
     - 'main_site'
     - 'documentation'
     - 'downloads'
     - 'community'
     - 'bug_reports'
-    '''
+    """
 
     bl_idname = "hdusd.op_open_web_page"
     bl_label = "Open Web Page"
@@ -202,7 +202,7 @@ class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):
 
 
 class HDUSD_RENDER_PT_help_about(HdUSD_Panel):
-    ''' Help/About UI panel '''
+    """Help/About UI panel"""
 
     bl_label = "Help/About"
     bl_context = 'render'
