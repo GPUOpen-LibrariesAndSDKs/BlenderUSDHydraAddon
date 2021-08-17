@@ -263,9 +263,10 @@ class {class_name}(MxNode):
         if f and f not in ui_folders:
             ui_folders.append(f)
 
+    if len(ui_folders) > 2 or category in ("texture2d", "texture3d"):
+        code_strings += ["    bl_width_default = 250", ""]
+
     if ui_folders:
-        if len(ui_folders) > 2:
-            code_strings.append("    bl_width_default = 250")
         code_strings.append(f"    _ui_folders = {tuple(ui_folders)}")
 
     data_type_items = []
@@ -317,6 +318,7 @@ f"""#**********************************************************************
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import bpy
 from bpy.props import (
     EnumProperty,
     FloatProperty,
@@ -328,7 +330,6 @@ from bpy.props import (
 ) 
 from .base_node import MxNodeDef, MxNode
 
-import bpy
 
 FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)
