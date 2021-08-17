@@ -14,11 +14,22 @@
 #********************************************************************
 import requests
 from dataclasses import dataclass
+import shutil
+from pathlib import Path
 
 from .. import config
+from . import temp_pid_dir
 
 
 URL = config.matlib_url
+
+
+def download_file(url, path):
+    with requests.get(url, stream=True) as response:
+        with open(path, 'wb') as f:
+            shutil.copyfileobj(response.raw, f)
+
+    return path
 
 
 @dataclass(init=False)
@@ -27,8 +38,10 @@ class Render:
     author: str = None
     image: str = None
     image_url: str = None
+    image_path: Path = None
     thumbnail: str = None
     thumbnail_url: str = None
+    thumbnail_path: Path = None
 
     def __init__(self, id):
         self.id = id
@@ -43,14 +56,10 @@ class Render:
         self.thumbnail_url = res_json['thumbnail_url']
 
     def get_image(self):
-        response = requests.get(self.image_url, stream=True)
-        if response.status_code == 200:
-            print(response)
+        self.image_path = download_file(self.image_url, temp_pid_dir() / self.image)
 
     def get_thumbnail(self):
-        response = requests.get(self.thumbnail_url, stream=True)
-        if response.status_code == 200:
-            print(response)
+        self.thumbnail_path = download_file(self.thumbnail_url, temp_pid_dir() / self.thumbnail)
 
 
 @dataclass(init=False)
@@ -58,8 +67,11 @@ class Package:
     id: str
     author: str = None
     label: str = None
-    url: str = None
+    file: str = None
+    file_url: str = None
     size: str = None
+    file_path: Path = None
+    unzip_path: Path = None
 
     def __init__(self, id):
         self.id = id
@@ -68,14 +80,16 @@ class Package:
         response = requests.get(f"{URL}/packages/{self.id}")
         res_json = response.json()
         self.author = res_json['author']
-        self.url = res_json['file']
+        self.file = res_json['file']
+        self.file_url = res_json['file_url']
         self.label = res_json['label']
         self.size = res_json['size']
 
-    def get_data(self):
-        response = requests.get(self.url, stream=True)
-        if response.status_code == 200:
-            print(response)
+    def get_file(self):
+        self.file_path = download_file(self.file_url, temp_pid_dir() / self.file)
+
+    def unzip(self):
+        pass
 
 
 @dataclass(init=False)

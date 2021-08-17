@@ -16,21 +16,6 @@ from . import HdUSD_Panel
 from ..utils import matlib
 
 
-materials = tuple(matlib.Material.get_all_materials())
-mat = materials[20]
-print(mat)
-
-r = mat.renders[0]
-print(r)
-r.get_info()
-print(r)
-
-p = mat.packages[0]
-print(p)
-p.get_info()
-print(p)
-
-
 class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
     bl_label = "Material Library"
     bl_context = "material"
