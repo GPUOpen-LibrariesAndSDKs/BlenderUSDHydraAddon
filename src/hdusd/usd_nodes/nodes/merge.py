@@ -33,10 +33,17 @@ class MergeNode(USDNode):
         for i in range(MAX_INPUTS_NUMBER):
             self.inputs[i].hide = i >= self.inputs_number
 
+    def set_inputs_number(self, value):
+        max_i = max((i if input.is_linked else 0) for i, input in enumerate(self.inputs)) + 1
+        self["inputs_number"] = value if value > max_i else max_i
+
+    def get_inputs_number(self):
+        return self.get("inputs_number", 2)
+
     inputs_number: bpy.props.IntProperty(
         name="Inputs",
         min=2, max=MAX_INPUTS_NUMBER, default=2,
-        update=update_inputs_number
+        update=update_inputs_number, set=set_inputs_number, get=get_inputs_number
     )
 
     def init(self, context):
@@ -71,4 +78,3 @@ class MergeNode(USDNode):
                 override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
-
