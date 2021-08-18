@@ -44,7 +44,7 @@ class HDUSD_OP_open_web_page(HdUSD_Operator):
             'main_site':     "https://www.amd.com/en/technologies/radeon-prorender",
             'documentation': "https://radeon-pro.github.io/RadeonProRenderDocs/en/usd_hydra/about.html",
             'downloads':     "https://www.amd.com/en/technologies/radeon-prorender-downloads",
-            'community':     "https://community.amd.com/t5/blender-discussions/bd-p/blender-discussions",
+            'community':     "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/discussions",
             'bug_reports':   "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/issues",
         }[self.page]
 
