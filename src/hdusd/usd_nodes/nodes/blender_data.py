@@ -18,7 +18,7 @@ from pxr import UsdGeom
 
 from .base_node import USDNode
 from ...export import object, material, world
-from ...export.object import ObjectData
+from ...export.object import ObjectData, SUPPORTED_TYPES
 
 
 #
@@ -98,7 +98,7 @@ class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
         objects = bpy.data.objects
 
         for obj in objects:
-            if obj.hdusd.is_usd:
+            if obj.hdusd.is_usd or obj.type not in SUPPORTED_TYPES:
                 continue
 
             row = layout.row()
@@ -204,7 +204,8 @@ class BlenderDataNode(USDNode):
             if not self.object or self.object.hdusd.is_usd:
                 return
 
-            object.sync(root_prim, self.object.evaluated_get(depsgraph), **kwargs)
+            object.sync(root_prim, ObjectData.from_object(self.object.evaluated_get(depsgraph)),
+                        **kwargs)
 
         return stage
 
