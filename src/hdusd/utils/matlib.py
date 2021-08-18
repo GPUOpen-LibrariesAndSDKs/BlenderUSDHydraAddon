@@ -71,7 +71,6 @@ class Package:
     file_url: str = None
     size: str = None
     file_path: Path = None
-    unzip_path: Path = None
 
     def __init__(self, id):
         self.id = id
@@ -88,7 +87,7 @@ class Package:
     def get_file(self):
         self.file_path = download_file(self.file_url, temp_pid_dir() / self.file)
 
-    def unzip(self):
+    def unzip(self, path):
         pass
 
 
@@ -115,6 +114,11 @@ class Material:
         for id in mat_json['packages']:
             self.packages.append(Package(id))
 
+    def get_info(self):
+        response = requests.get(f"{URL}/materials/{self.id}")
+        res_json = response.json()
+        print(res_json)
+
     @classmethod
     def get_materials(cls, limit=10, offset=0):
         response = requests.get(f"{URL}/materials", params={'limit': limit, 'offset': offset})
@@ -137,3 +141,4 @@ class Material:
                 break
 
             offset += limit
+
