@@ -187,7 +187,18 @@ class MxNode(bpy.types.ShaderNode):
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
-            layout.prop(self.prop, MxNodeDef._param_prop_name(mx_param.getName()))
+            name = mx_param.getName()
+            if self.category in ("texture2d", "texture3d") and mx_param.getType() == 'filename':
+                split = layout.row(align=True).split(factor=0.25, align=True)
+                col = split.column()
+                col.label(text=mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')
+                          else title_str(name))
+                col = split.column()
+                col.template_ID(self.prop, MxNodeDef._param_prop_name(name),
+                                open="image.open", new="image.new")
+
+            else:
+                layout.prop(self.prop, MxNodeDef._param_prop_name(name))
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
