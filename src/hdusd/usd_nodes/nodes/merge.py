@@ -31,18 +31,10 @@ class MergeNode(USDNode):
 
     def update_inputs_number(self, context):
         for i in range(MAX_INPUTS_NUMBER):
-            if len(self.inputs) > self.inputs_number and not self.inputs[len(self.inputs) - 1].is_linked:
-                self.inputs.remove(self.inputs[len(self.inputs) - 1])
-
-            if len(self.inputs) < self.inputs_number:
-                self.inputs.new(name=self.input_names[len(self.inputs)], type="NodeSocketShader")
+            self.inputs[i].hide = i >= self.inputs_number
 
     def set_inputs_number(self, value):
-        max_i = 0
-        for i in range(len(self.inputs)):
-            if self.inputs[i].is_linked:
-                max_i = i + 1
-
+        max_i = max((i if input.is_linked else 0) for i, input in enumerate(self.inputs)) + 1
         self["inputs_number"] = value if value > max_i else max_i
 
     def get_inputs_number(self):
