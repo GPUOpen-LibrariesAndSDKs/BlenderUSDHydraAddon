@@ -37,10 +37,21 @@ class MergeNode(USDNode):
             if len(self.inputs) < self.inputs_number:
                 self.inputs.new(name=self.input_names[len(self.inputs)], type="NodeSocketShader")
 
+    def set_inputs_number(self, value):
+        max_i = 0
+        for i in range(len(self.inputs)):
+            if self.inputs[i].is_linked:
+                max_i = i + 1
+
+        self["inputs_number"] = value if value > max_i else max_i
+
+    def get_inputs_number(self):
+        return self["inputs_number"]
+
     inputs_number: bpy.props.IntProperty(
         name="Inputs",
         min=2, max=MAX_INPUTS_NUMBER, default=2,
-        update=update_inputs_number
+        update=update_inputs_number, set=set_inputs_number, get=get_inputs_number
     )
 
     def init(self, context):
@@ -75,4 +86,3 @@ class MergeNode(USDNode):
                 override_prim.GetReferences().AddReference(ref_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
-
