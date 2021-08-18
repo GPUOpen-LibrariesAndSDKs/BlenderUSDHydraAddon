@@ -20,7 +20,6 @@ import bpy
 from pxr import UsdGeom
 
 from ..utils.stage_cache import CachedStage
-from ..utils import depsgraph_objects
 from ..export import object, world
 
 from ..utils import logging
@@ -38,31 +37,6 @@ class Engine:
     @property
     def stage(self):
         return self.cached_stage()
-
-    def _export_depsgraph(self, stage, depsgraph, *,
-                          sync_callback=None, test_break=None,
-                          space_data=None, use_scene_lights=True, **kwargs):
-        log("sync", depsgraph)
-
-        UsdGeom.SetStageMetersPerUnit(stage, 1)
-        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-
-        root_prim = stage.GetPseudoRoot()
-
-        objects_len = len(depsgraph.objects)
-        for i, obj in enumerate(depsgraph_objects(depsgraph, space_data, use_scene_lights, False)):
-            if test_break and test_break():
-                return None
-
-            if sync_callback:
-                sync_callback(f"Syncing object {i}/{objects_len}: {obj.name}")
-
-            try:
-                object.sync(root_prim, obj, **kwargs)
-            except Exception as e:
-                log.error(e, 'EXCEPTION:', traceback.format_exc())
-
-        world.sync(root_prim, depsgraph.scene.world)
 
 
 from . import final_engine, viewport_engine, preview_engine
@@ -94,7 +68,10 @@ class HdUSDEngine(bpy.types.RenderEngine):
                 engine_cls = preview_engine.PreviewEngine
 
             else:
-                engine_cls = final_engine.FinalEngine
+                if depsgraph.scene.hdusd.final.data_source:
+                    engine_cls = final_engine.FinalEngineNodetree
+                else:
+                    engine_cls = final_engine.FinalEngineScene
 
             self.engine = engine_cls(self)
             self.engine.sync(depsgraph)

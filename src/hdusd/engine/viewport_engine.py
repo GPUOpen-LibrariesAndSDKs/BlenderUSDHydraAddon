@@ -24,7 +24,7 @@ import time
 from pxr import Usd, UsdGeom
 from pxr import UsdImagingGL
 
-from .engine import Engine, depsgraph_objects
+from .engine import Engine
 from ..export import camera, material, object, world
 from .. import utils
 from ..utils import usd as usd_utils
@@ -364,10 +364,19 @@ class ViewportEngineScene(ViewportEngine):
         super()._sync(context, depsgraph)
 
         stage = self.cached_stage.create()
-        self._export_depsgraph(
-            stage, depsgraph,
-            space_data=self.space_data,
-        )
+
+        log("sync", depsgraph)
+
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.GetPseudoRoot()
+
+        for obj_data in object.ObjectData.depsgraph_objects(depsgraph,
+                space_data=self.space_data, use_scene_cameras=False):
+            object.sync(root_prim, obj_data)
+
+        world.sync(root_prim, depsgraph.scene.world)
 
     def _sync_update(self, context, depsgraph):
         super()._sync_update(context, depsgraph)
@@ -375,7 +384,7 @@ class ViewportEngineScene(ViewportEngine):
         root_prim = self.stage.GetPseudoRoot()
 
         for update in depsgraph.updates:
-            log("sync_update", update.id)
+            log("sync_update", update.id, type(update.id))
 
             if isinstance(update.id, (bpy.types.Collection, bpy.types.Scene)):
                 self._sync_objects_collection(depsgraph)
@@ -389,7 +398,7 @@ class ViewportEngineScene(ViewportEngine):
                 if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
                     continue
 
-                object.sync_update(root_prim, obj,
+                object.sync_update(root_prim, object.ObjectData.from_object(obj),
                                    update.is_updated_geometry,
                                    update.is_updated_transform,
                                    is_gl_delegate=self.is_gl_delegate)
@@ -404,10 +413,12 @@ class ViewportEngineScene(ViewportEngine):
         root_prim = self.stage.GetPseudoRoot()
 
         def dg_objects():
-            yield from depsgraph_objects(depsgraph, self.space_data,
-                                         self.shading_data.use_scene_lights)
+            yield from object.ObjectData.depsgraph_objects(depsgraph,
+                space_data=self.space_data,
+                use_scene_lights=self.shading_data.use_scene_lights,
+                use_scene_cameras=False)
 
-        depsgraph_keys = set(object.sdf_name(obj) for obj in dg_objects())
+        depsgraph_keys = set(obj_data.sdf_name for obj_data in dg_objects())
         usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren()
                               if prim.GetName() != world.PRIM_NAME)
         keys_to_remove = usd_object_keys - depsgraph_keys
@@ -416,16 +427,15 @@ class ViewportEngineScene(ViewportEngine):
         if keys_to_remove:
             log("Object keys to remove", keys_to_remove)
             for key in keys_to_remove:
-                self.stage.RemovePrim(f"{root_prim.GetPath()}/{key}")
+                self.stage.RemovePrim(root_prim.GetPath().AppendChild(key))
 
         if keys_to_add:
             log("Object keys to add", keys_to_add)
-            for obj in dg_objects():
-                obj_key = object.sdf_name(obj)
-                if obj_key not in keys_to_add:
+            for obj_data in dg_objects():
+                if obj_data.sdf_name not in keys_to_add:
                     continue
 
-                object.sync(root_prim, obj)
+                object.sync(root_prim, obj_data)
 
 
 class ViewportEngineNodetree(ViewportEngine):

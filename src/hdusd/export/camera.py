@@ -290,8 +290,7 @@ class CameraData:
 
 def sync(obj_prim, obj: bpy.types.Object, **kwargs):
     """Creates Usd camera from obj.data: bpy.types.Camera"""
-
-    scene = bpy.context.scene
+    scene = kwargs['scene']
     screen_ratio = scene.render.resolution_x / scene.render.resolution_y
 
     camera = obj.data
@@ -302,6 +301,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
     settings = CameraData.init_from_camera(camera, obj.matrix_world, screen_ratio)
     settings.export(usd_camera)
+
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):
     """ Update existing camera from obj.data: bpy.types.Camera or create a new light """

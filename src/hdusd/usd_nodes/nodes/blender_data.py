@@ -18,7 +18,7 @@ from pxr import UsdGeom
 
 from .base_node import USDNode
 from ...export import object, material, world
-from ...utils import depsgraph_objects
+from ...export.object import ObjectData, SUPPORTED_TYPES
 
 
 #
@@ -98,7 +98,7 @@ class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
         objects = bpy.data.objects
 
         for obj in objects:
-            if obj.hdusd.is_usd:
+            if obj.hdusd.is_usd or obj.type not in SUPPORTED_TYPES:
                 continue
 
             row = layout.row()
@@ -181,10 +181,11 @@ class BlenderDataNode(USDNode):
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         root_prim = stage.GetPseudoRoot()
+        kwargs = {'scene': depsgraph.scene}
 
         if self.data == 'SCENE':
-            for obj in depsgraph_objects(depsgraph):
-                object.sync(root_prim, obj)
+            for obj_data in ObjectData.depsgraph_objects(depsgraph):
+                object.sync(root_prim, obj_data, **kwargs)
 
             world.sync(root_prim, depsgraph.scene.world)
 
@@ -196,13 +197,15 @@ class BlenderDataNode(USDNode):
                 if obj_col.hdusd.is_usd:
                     continue
 
-                object.sync(root_prim, obj_col.evaluated_get(depsgraph))
+                object.sync(root_prim, ObjectData.from_object(
+                    obj_col.evaluated_get(depsgraph)), **kwargs)
 
         elif self.data == 'OBJECT':
             if not self.object or self.object.hdusd.is_usd:
                 return
 
-            object.sync(root_prim, self.object.evaluated_get(depsgraph))
+            object.sync(root_prim, ObjectData.from_object(self.object.evaluated_get(depsgraph)),
+                        **kwargs)
 
         return stage
 
@@ -215,6 +218,7 @@ class BlenderDataNode(USDNode):
         is_updated = False
 
         root_prim = stage.GetPseudoRoot()
+        kwargs = {'scene': depsgraph.scene}
 
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Scene):
@@ -234,6 +238,7 @@ class BlenderDataNode(USDNode):
                 if obj.hdusd.is_usd:
                     continue
 
+                obj_data = ObjectData.from_object(obj)
                 # checking if object has to be updated
                 if self.data == 'COLLECTION':
                     if not self.collection or \
@@ -242,12 +247,13 @@ class BlenderDataNode(USDNode):
 
                 elif self.data == 'OBJECT':
                     if not self.object or \
-                            object.sdf_name(self.object) != object.sdf_name(obj):
+                            ObjectData.from_object(self.object).sdf_name != obj_data.sdf_name:
                         continue
 
                 # updating object
-                object.sync_update(root_prim, obj,
-                                   update.is_updated_geometry, update.is_updated_transform)
+                object.sync_update(root_prim, obj_data,
+                                   update.is_updated_geometry, update.is_updated_transform,
+                                   **kwargs)
 
                 is_updated = True
                 continue
@@ -267,8 +273,8 @@ class BlenderDataNode(USDNode):
 
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
-                depsgraph_keys = set(object.sdf_name(obj)
-                                     for obj in depsgraph_objects(depsgraph))
+                depsgraph_keys = set(obj_data.sdf_name for obj_data in
+                                     ObjectData.depsgraph_objects(depsgraph))
 
                 if self.data == 'SCENE':
                     required_keys = depsgraph_keys
@@ -300,12 +306,11 @@ class BlenderDataNode(USDNode):
                     is_updated = True
 
                 if keys_to_add:
-                    for obj in depsgraph_objects(depsgraph):
-                        obj_key = object.sdf_name(obj)
-                        if obj_key not in keys_to_add:
+                    for obj_data in ObjectData.depsgraph_objects(depsgraph):
+                        if obj_data.sdf_name not in keys_to_add:
                             continue
 
-                        object.sync(root_prim, obj)
+                        object.sync(root_prim, obj_data, **kwargs)
 
                     is_updated = True
 

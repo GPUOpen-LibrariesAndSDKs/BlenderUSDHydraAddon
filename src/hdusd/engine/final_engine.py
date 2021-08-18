@@ -15,16 +15,16 @@
 import time
 import numpy as np
 
-from pxr import Usd, UsdAppUtils, Glf, Tf
+from pxr import Usd, UsdAppUtils, Glf, Tf, UsdGeom
 from pxr import UsdImagingGL, UsdImagingLite
 
 import bpy
 import bgl
 
 from .engine import Engine
-from ..export import object
 from ..utils import gl, time_str
 from ..utils import usd as usd_utils
+from ..export import object, world
 
 from ..utils import logging
 log = logging.Log(tag='final_engine')
@@ -98,18 +98,6 @@ class FinalEngine(Engine):
         # it's important to clear data explicitly
         draw_target = None
         renderer = None
-
-    def _export_depsgraph(self, stage, depsgraph, sync_callback=None, test_break=None,
-                          space_data=None, use_scene_lights=True, **kwargs):
-
-        super()._export_depsgraph(stage, depsgraph, sync_callback=sync_callback, test_break=test_break,
-                          space_data=space_data, use_scene_lights=use_scene_lights, **kwargs)
-
-        # add scene camera to a stage
-        try:
-            object.sync(stage.GetPseudoRoot(), depsgraph.scene.camera, **kwargs)
-        except Exception as e:
-            log.error(e, 'EXCEPTION:', traceback.format_exc())
 
     def _render(self, scene):
         # creating renderer
@@ -196,32 +184,9 @@ class FinalEngine(Engine):
         self.width = int(screen_width * border[1][0])
         self.height = int(screen_height * border[1][1])
 
-        def notify_callback(info):
-            self.notify_status(0.0, info)
+        self._sync(depsgraph)
 
-        def test_break():
-            return self.render_engine.test_break()
-
-        if settings.data_source:
-            output_node = bpy.data.node_groups[settings.data_source].get_output_node()
-
-            if output_node is None:
-                log.warn("Syncing stopped due to invalid output_node", output_node)
-                return
-
-            stage = output_node.cached_stage()
-            self.cached_stage.assign(stage)
-
-        else:
-            stage = self.cached_stage.create()
-            self._export_depsgraph(
-                stage, depsgraph,
-                notify_callback=notify_callback,
-                test_break=test_break,
-                is_gl_delegate=settings.is_gl_delegate,
-            )
-
-        usd_utils.set_variant_delegate(stage, settings.is_gl_delegate)
+        usd_utils.set_variant_delegate(self.stage, settings.is_gl_delegate)
 
         if self.render_engine.test_break():
             log.warn("Syncing stopped by user termination")
@@ -232,6 +197,9 @@ class FinalEngine(Engine):
 
         log.info("Scene synchronization time:", time_str(time.perf_counter() - time_begin))
         self.notify_status(0.0, "Start render")
+
+    def _sync(self, depsgraph):
+        pass
 
     def update_render_result(self, render_images):
         result = self.render_engine.begin_result(0, 0, self.width, self.height,
@@ -290,3 +258,42 @@ class FinalEngine(Engine):
             renderer.SetRendererSetting('enableDenoising', denoise.enable)
             renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
             renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
+
+
+class FinalEngineScene(FinalEngine):
+    def _sync(self, depsgraph):
+        stage = self.cached_stage.create()
+
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.GetPseudoRoot()
+
+        objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(
+                          depsgraph, use_scene_cameras=False))
+        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
+                                     depsgraph, use_scene_cameras=False)):
+            if self.render_engine.test_break():
+                return
+
+            self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
+
+            object.sync(root_prim, obj_data)
+
+        world.sync(root_prim, depsgraph.scene.world)
+
+        object.sync(stage.GetPseudoRoot(), object.ObjectData.from_object(depsgraph.scene.camera),
+                    scene=depsgraph.scene)
+
+
+class FinalEngineNodetree(FinalEngine):
+    def _sync(self, depsgraph):
+        settings = depsgraph.scene.hdusd.final
+        output_node = bpy.data.node_groups[settings.data_source].get_output_node()
+
+        if output_node is None:
+            log.warn("Syncing stopped due to invalid output_node", output_node)
+            return
+
+        stage = output_node.cached_stage()
+        self.cached_stage.assign(stage)
