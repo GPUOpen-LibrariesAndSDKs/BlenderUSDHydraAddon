@@ -31,7 +31,7 @@ class MergeNode(USDNode):
 
     def update_inputs_number(self, context):
         for i in range(MAX_INPUTS_NUMBER):
-            if len(self.inputs) > self.inputs_number:
+            if len(self.inputs) > self.inputs_number and not self.inputs[len(self.inputs) - 1].is_linked:
                 self.inputs.remove(self.inputs[len(self.inputs) - 1])
 
             if len(self.inputs) < self.inputs_number:
