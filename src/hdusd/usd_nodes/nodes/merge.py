@@ -46,7 +46,7 @@ class MergeNode(USDNode):
         self["inputs_number"] = value if value > max_i else max_i
 
     def get_inputs_number(self):
-        return self["inputs_number"]
+        return self.get("inputs_number", 2)
 
     inputs_number: bpy.props.IntProperty(
         name="Inputs",
