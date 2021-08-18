@@ -16,6 +16,7 @@ import requests
 from dataclasses import dataclass
 import shutil
 from pathlib import Path
+import zipfile
 
 from .. import config
 from . import temp_pid_dir
@@ -88,7 +89,8 @@ class Package:
         self.file_path = download_file(self.file_url, temp_pid_dir() / self.file)
 
     def unzip(self, path):
-        pass
+        with zipfile.ZipFile(self.file_path) as z:
+            z.extractall(path=path)
 
 
 @dataclass(init=False)
