@@ -69,6 +69,7 @@ class MeshData:
                                                 (len_loop_triangles * 3, 3))
 
         data.uv_layers = {}
+        data.uv_indices = None
         for uv_layer in mesh.uv_layers:
             uvs = get_data_from_collection(uv_layer.data, 'uv', (len(uv_layer.data), 2))
             uv_indices = get_data_from_collection(mesh.loop_triangles, 'loops',
