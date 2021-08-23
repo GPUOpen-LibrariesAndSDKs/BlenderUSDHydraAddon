@@ -23,10 +23,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
     def draw(self, context):
         layout = self.layout
-        for mat in matlib.Material.get_all_materials():
-            print(mat)
+        matlib = context.window_manager.hdusd.matlib
 
-
-    
-
-
+        row = layout.row()
+        row.template_icon_view(matlib, "materials")
