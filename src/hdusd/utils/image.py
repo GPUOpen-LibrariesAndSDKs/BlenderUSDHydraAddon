@@ -18,6 +18,8 @@ import bpy
 
 from . import get_temp_file
 
+# https://graphics.pixar.com/usd/docs/Usdz-File-Format-Specification.html
+SUPPORTED_IMAGE_FORMATS = [".png", ".jpeg"]
 
 def cache_image_file(image: bpy.types.Image):
     # if image packed in .blend file
@@ -25,5 +27,10 @@ def cache_image_file(image: bpy.types.Image):
         temp_path = get_temp_file(".png")
         image.save_render(str(temp_path))
         return temp_path
-    else:
-        return Path(image.filepath_from_user())
+
+    if Path(image.filepath).suffix not in SUPPORTED_IMAGE_FORMATS:
+        temp_path = get_temp_file(".png")
+        image.save_render(str(temp_path))
+        return temp_path
+
+    return Path(image.filepath_from_user()) 
