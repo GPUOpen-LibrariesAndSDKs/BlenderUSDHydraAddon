@@ -12,8 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from . import HdUSD_Panel
-from ..utils import matlib
+from . import HdUSD_Panel, HdUSD_Operator
+
+
+class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
+    """Import Material"""
+    bl_idname = "hdusd.matlib_import_material"
+    bl_label = "Import Material"
+
+    def execute(self, context):
+        matlib = context.window_manager.hdusd.matlib
+        material = matlib.pcoll.materials[matlib.material]
+        
+        print(material)
+        return {"FINISHED"}
 
 
 class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
@@ -25,8 +37,8 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout = self.layout
         matlib = context.window_manager.hdusd.matlib
 
-        row = layout.row()
-        row.prop(matlib, "category")
+        layout.prop(matlib, "category")
+        layout.template_icon_view(matlib, "material")
 
-        row = layout.row()
-        row.template_icon_view(matlib, "material")
+        layout.operator(HDUSD_MATLIB_OP_import_material.bl_idname)
+

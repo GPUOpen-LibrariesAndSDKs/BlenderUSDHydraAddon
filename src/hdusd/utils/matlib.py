@@ -19,13 +19,20 @@ from pathlib import Path
 import zipfile
 
 from .. import config
-from . import temp_pid_dir
+from . import PLUGIN_ROOT_DIR, log
 
 
 URL = config.matlib_url
+MATLIB_DIR = PLUGIN_ROOT_DIR / ".matlib"
+if not MATLIB_DIR.is_dir():
+    log("Creating matlib dir", MATLIB_DIR)
+    MATLIB_DIR.mkdir()
 
 
-def download_file(url, path):
+def download_file(url, path, use_cache=True):
+    if use_cache and path.is_file():
+        return path
+
     with requests.get(url, stream=True) as response:
         with open(path, 'wb') as f:
             shutil.copyfileobj(response.raw, f)
@@ -58,10 +65,10 @@ class Render:
         self.thumbnail_url = res_json['thumbnail_url']
 
     def get_image(self):
-        self.image_path = download_file(self.image_url, temp_pid_dir() / self.image)
+        self.image_path = download_file(self.image_url, MATLIB_DIR / self.image)
 
     def get_thumbnail(self):
-        self.thumbnail_path = download_file(self.thumbnail_url, temp_pid_dir() / self.thumbnail)
+        self.thumbnail_path = download_file(self.thumbnail_url, MATLIB_DIR / self.thumbnail)
 
     def thumbnail_load(self, pcoll):
         thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
@@ -91,7 +98,7 @@ class Package:
         self.size = res_json['size']
 
     def get_file(self):
-        self.file_path = download_file(self.file_url, temp_pid_dir() / self.file)
+        self.file_path = download_file(self.file_url, MATLIB_DIR / self.file)
 
     def unzip(self, path):
         with zipfile.ZipFile(self.file_path) as z:
