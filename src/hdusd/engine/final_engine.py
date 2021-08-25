@@ -59,8 +59,6 @@ class FinalEngine(Engine):
         draw_target = Glf.DrawTarget(self.width, self.height)
         draw_target.Bind()
         draw_target.AddAttachment("color", bgl.GL_RGBA, bgl.GL_FLOAT, bgl.GL_RGBA)
-        draw_target.AddAttachment("depth", bgl.GL_DEPTH_COMPONENT, bgl.GL_FLOAT,
-                                  bgl.GL_DEPTH_COMPONENT32F)
 
         # creating renderer
         renderer = UsdImagingGL.Engine()
