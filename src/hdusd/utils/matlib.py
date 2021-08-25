@@ -43,6 +43,7 @@ class Render:
     thumbnail: str = None
     thumbnail_url: str = None
     thumbnail_path: Path = None
+    thumbnail_icon_id: int = None
 
     def __init__(self, id):
         self.id = id
@@ -61,6 +62,10 @@ class Render:
 
     def get_thumbnail(self):
         self.thumbnail_path = download_file(self.thumbnail_url, temp_pid_dir() / self.thumbnail)
+
+    def thumbnail_load(self, pcoll):
+        thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
+        self.thumbnail_icon_id = thumb.icon_id
 
 
 @dataclass(init=False)
@@ -94,11 +99,27 @@ class Package:
 
 
 @dataclass(init=False)
+class Category:
+    id: str
+    title: str = None
+
+    def __init__(self, id):
+        self.id = id
+
+    def get_info(self):
+        response = requests.get(f"{URL}/categories/{self.id}")
+        res_json = response.json()
+        self.title = res_json['title']
+
+
+@dataclass(init=False)
 class Material:
     id: str
     author: str
     title: str
     description: str
+    category: Category
+    status: str
     renders: list[Render]
     packages: list[Package]
 
@@ -107,9 +128,11 @@ class Material:
         self.author = mat_json['author']
         self.title = mat_json['title']
         self.description = mat_json['description']
+        self.category = Category(mat_json['category']) if mat_json['category'] else None
+        self.status = mat_json['status']
 
         self.renders = []
-        for id in mat_json['renders']:
+        for id in mat_json['renders_order']:
             self.renders.append(Render(id))
 
         self.packages = []

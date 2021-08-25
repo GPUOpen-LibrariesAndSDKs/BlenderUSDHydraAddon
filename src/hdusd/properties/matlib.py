@@ -22,28 +22,68 @@ from ..utils import matlib
 class MatlibProperties(bpy.types.PropertyGroup):
     pcoll = None
 
-    def get_materials(self, context):
-        if self.pcoll.materials is not None:
-            return self.pcoll.materials
-
-        self.pcoll.materials = []
-        for i, mat in enumerate(matlib.Material.get_all_materials()):
+    def _set_materials(self):
+        self.pcoll.materials = {}
+        for mat in matlib.Material.get_all_materials():
             render = mat.renders[0]
             render.get_info()
             render.get_thumbnail()
+            render.thumbnail_load(self.pcoll)
 
-            thumbnail = self.pcoll.load(render.thumbnail, str(render.thumbnail_path), 'IMAGE')
+            if mat.category:
+                mat.category.get_info()
+
+            self.pcoll.materials[mat.id] = mat
+
+    def get_materials(self, context):
+        if self.pcoll.materials is None:
+            self._set_materials()
+
+        materials = []
+        for i, mat in enumerate(self.pcoll.materials.values()):
+            if self.category != 'NONE' and mat.category and mat.category.id != self.category:
+                continue
+
             description = f"{mat.title}"
             if mat.description:
                 description += f"\n{mat.description}"
+            if mat.category:
+                description += f"\nCategory: {mat.category.title}"
             description += f"\nAuthor: {mat.author}"
-            self.pcoll.materials.append((mat.id, mat.title, description, thumbnail.icon_id, i))
 
-        return self.pcoll.materials
+            materials.append((mat.id, mat.title, description,mat.renders[0].thumbnail_icon_id, i))
 
-    materials: bpy.props.EnumProperty(
-        name="Materials",
+        return materials
+
+    def _set_categories(self):
+        self.pcoll.categories = {}
+        for mat in matlib.Material.get_all_materials():
+            cat = mat.category
+            if not cat or cat.id in self.pcoll.categories:
+                continue
+
+            cat.get_info()
+            self.pcoll.categories[cat.id] = cat
+
+    def get_categories(self, context):
+        if self.pcoll.categories is None:
+            self._set_categories()
+
+        categories = [(cat.id, cat.title, f"Category: {cat.title}")
+                      for cat in self.pcoll.categories.values()]
+        categories.insert(0, ('NONE', "", "No category"))
+        return categories
+
+    material: bpy.props.EnumProperty(
+        name="Material",
+        description="Select material",
         items=get_materials
+    )
+
+    category: bpy.props.EnumProperty(
+        name="Category",
+        description="Select materials category",
+        items=get_categories
     )
 
     @classmethod
@@ -51,6 +91,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
         import bpy.utils.previews
         cls.pcoll = bpy.utils.previews.new()
         cls.pcoll.materials = None
+        cls.pcoll.categories = None
 
     @classmethod
     def unregister(cls):

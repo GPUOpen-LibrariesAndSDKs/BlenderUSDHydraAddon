@@ -26,4 +26,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         matlib = context.window_manager.hdusd.matlib
 
         row = layout.row()
-        row.template_icon_view(matlib, "materials")
+        row.prop(matlib, "category")
+
+        row = layout.row()
+        row.template_icon_view(matlib, "material")
