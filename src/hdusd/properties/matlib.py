@@ -41,7 +41,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
         materials = []
         for i, mat in enumerate(self.pcoll.materials.values()):
-            if self.category != 'NONE' and mat.category and mat.category.id != self.category:
+            if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
                 continue
 
             description = f"{mat.title}"
@@ -69,21 +69,25 @@ class MatlibProperties(bpy.types.PropertyGroup):
         if self.pcoll.categories is None:
             self._set_categories()
 
-        categories = [(cat.id, cat.title, f"Category: {cat.title}")
-                      for cat in self.pcoll.categories.values()]
-        categories.insert(0, ('NONE', "", "No category"))
+        categories = [('ALL', "All Categories", "Show materials for all categories")]
+        categories += ((cat.id, cat.title, f"Category: {cat.title}")
+                       for cat in self.pcoll.categories.values())
         return categories
+
+    def update_category(self, context):
+        materials = self.get_materials(context)
+        self.material = materials[0][0]
 
     material: bpy.props.EnumProperty(
         name="Material",
         description="Select material",
-        items=get_materials
+        items=get_materials,
     )
-
     category: bpy.props.EnumProperty(
         name="Category",
         description="Select materials category",
-        items=get_categories
+        items=get_categories,
+        update=update_category,
     )
 
     @classmethod
