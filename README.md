@@ -85,7 +85,20 @@ Also, make more meaningful commits(one commit per feature) the easy way:
 - Visual Studio Code - has a very nice python extension, possible to enable intellisense for Blender and for RPR Core, provides remote debugging in Blender
 
 ## Build
+You can build project using build.py with different flag combinations. At the beginning you commonly will use `python tools\build.py -all -bin-dir bin\'user dir' -G "Visual Studio 15 2017 Win64"`.
+It allows you to create a folder with binaries and copy all the necessary files foк development to `\libs` folder. Also `build.py` provides a verity of ways to make a project builds:
+- `-all` - builds all binaries, needs to be passed with `-G "Visual Studio 15 2017 Win64"` 
+- `-usd` - builds usd binaries, needs to be passed with `-G "Visual Studio 15 2017 Win64"`
+- `-hdrpr` - builds HdRPR plugin binaries, need to pass every time with `-G "Visual Studio 15 2017 Win64"`
+- `-mx` - builds binaries for materialX library, needs to be passed with `-mx-classes`
+- `-bin-dir bin\'user dir'` - define folder to build binaries
+- `-libs` - copies all the necessary for development libraries to `\lib` folder, needs to be passed with `-usd`, `-hdrpr`
+- `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders, `-usd -hdrpr -clean ...` remove only `\Usd` and `\HdRPR`
+- `-mx-classes` - generates classes for materialX
+- `-G "Visual Studio 15 2017 Win64"` - set builder
+- `-addon` - generates zip archive with plugin to `\install` folder
 
+Switch to prebuild binary folder `dir_01` is next command `python tools\build.py -libs -mx-classes -bin-dir bin\dir_01`
 
 ## Run Addon while developing it(without real installation)
 
