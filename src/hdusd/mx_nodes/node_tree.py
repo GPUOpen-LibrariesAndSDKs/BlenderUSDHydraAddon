@@ -77,6 +77,34 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         return doc
 
     def import_(self, doc: mx.Document, file_path):
+        def prepare_for_import():
+            surfacematerial = next(
+                (n for n in doc.getNodes() if n.getCategory() == 'surfacematerial'), None)
+            if surfacematerial:
+                return
+
+            mat = doc.getMaterials()[0]
+            sr = mat.getShaderRefs()[0]
+
+            doc.removeMaterial(mat.getName())
+
+            node_name = sr.getName()
+            if not node_name.startswith("SR_"):
+                node_name = f"SR_{node_name}"
+            node = doc.addNode(sr.getNodeString(), node_name, 'surfaceshader')
+            for sr_input in sr.getBindInputs():
+                input = node.addInput(sr_input.getName(), sr_input.getType())
+                ng_name = sr_input.getNodeGraphString()
+                if ng_name:
+                    input.setAttribute('nodegraph', ng_name)
+                    input.setAttribute('output', sr_input.getOutputString())
+                else:
+                    input.setValue(sr_input.getValue())
+
+            surfacematerial = doc.addNode('surfacematerial', mat.getName(), 'material')
+            input = surfacematerial.addInput('surfaceshader', node.getType())
+            input.setNodeName(node.getName())
+
         def do_import():
             self.nodes.clear()
             layers = {}
@@ -113,7 +141,12 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     node_name = mx_input.getNodeName()
                     if node_name:
                         new_mx_node = mx_nodegraph.getNode(node_name)
-                        new_node = import_node(new_mx_node, layer + 1)
+                        try:
+                            new_node = import_node(new_mx_node, layer + 1)
+                        except KeyError as e:
+                            print(e)
+                            continue
+
                         self.links.new(new_node.outputs[0], node.inputs[input_name])
                         continue
 
@@ -124,7 +157,12 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         mx_output = new_mx_nodegraph.getOutput(output_name)
                         node_name = mx_output.getNodeName()
                         new_mx_node = new_mx_nodegraph.getNode(node_name)
-                        new_node = import_node(new_mx_node, layer + 1)
+                        try:
+                            new_node = import_node(new_mx_node, layer + 1)
+                        except KeyError as e:
+                            print(e)
+                            continue
+
                         self.links.new(new_node.outputs[0], node.inputs[input_name])
                         continue
 
@@ -150,6 +188,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                 loc_x -= NODE_LAYER_SEPARATION_WIDTH
 
+        prepare_for_import()
         self.no_update_call(do_import)
         self.update_()
 
