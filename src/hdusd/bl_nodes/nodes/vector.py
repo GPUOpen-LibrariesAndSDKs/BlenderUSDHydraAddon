@@ -17,6 +17,7 @@ import os
 from ..node_parser import NodeParser
 from . import log
 
+DEFAULT_SPACE = 'OBJECT'
 
 class ShaderNodeNormalMap(NodeParser):
     def export(self):
@@ -27,7 +28,7 @@ class ShaderNodeNormalMap(NodeParser):
         if space not in ('TANGENT', 'OBJECT'):
             log.warn("Ignoring unsupported Space", space, self.node, self.material,
                      "OBJECT will be used")
-            space = 'object'
+            space = DEFAULT_SPACE
 
         if space == 'TANGENT':
             log.warn("Ignoring unsupported UV Map", space, self.node, self.material,
