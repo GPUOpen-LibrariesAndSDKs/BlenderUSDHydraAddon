@@ -19,6 +19,7 @@ from . import log
 
 DEFAULT_SPACE = 'OBJECT'
 
+
 class ShaderNodeNormalMap(NodeParser):
     def export(self):
         color = self.get_input_value('Color')
