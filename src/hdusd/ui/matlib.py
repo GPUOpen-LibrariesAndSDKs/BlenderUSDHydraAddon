@@ -12,8 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import MaterialX as mx
+
+import bpy
+
 from . import HdUSD_Panel, HdUSD_Operator
-from ..utils import matlib
+from ..mx_nodes.node_tree import MxNodeTree
+from ..utils import LIBS_DIR
+
+from ..utils import logging
+log = logging.Log(tag='ui.matlib')
 
 
 class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
@@ -25,10 +33,26 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         matlib_prop = context.window_manager.hdusd.matlib
         material = matlib_prop.pcoll.materials[matlib_prop.material]
 
+        # unzipping package
         package = material.packages[0]
         package.get_info()
         package.get_file()
-        package.unzip(matlib.matlib_dir())
+        mtlx_file = package.unzip()
+
+        # getting/creating MxNodeTree
+        bl_material = context.material
+        mx_node_tree = bl_material.hdusd.mx_node_tree
+        if not bl_material.hdusd.mx_node_tree:
+            mx_node_tree = bpy.data.node_groups.new(f"MX_{bl_material.name}",
+                                                    type=MxNodeTree.bl_idname)
+            bl_material.hdusd.mx_node_tree = mx_node_tree
+
+        log("Reading", mtlx_file)
+        doc = mx.createDocument()
+        search_path = mx.FileSearchPath(str(mtlx_file.parent))
+        search_path.append(str(LIBS_DIR / "materialx/libraries"))
+        mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
+        mx_node_tree.import_(doc, mtlx_file)
 
         return {"FINISHED"}
 

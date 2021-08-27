@@ -26,17 +26,12 @@ URL = config.matlib_url
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
-def matlib_dir():
-    if not MATLIB_DIR.is_dir():
-        log("Creating matlib dir", MATLIB_DIR)
-        MATLIB_DIR.mkdir()
-
-    return MATLIB_DIR
-
-
 def download_file(url, path, use_cache=True):
     if use_cache and path.is_file():
         return path
+
+    if not path.parent.is_dir():
+        path.parent.mkdir(parents=True)
 
     with requests.get(url, stream=True) as response:
         with open(path, 'wb') as f:
@@ -70,10 +65,10 @@ class Render:
         self.thumbnail_url = res_json['thumbnail_url']
 
     def get_image(self):
-        self.image_path = download_file(self.image_url, matlib_dir() / self.image)
+        self.image_path = download_file(self.image_url, MATLIB_DIR / self.image)
 
     def get_thumbnail(self):
-        self.thumbnail_path = download_file(self.thumbnail_url, matlib_dir() / self.thumbnail)
+        self.thumbnail_path = download_file(self.thumbnail_url, MATLIB_DIR / self.thumbnail)
 
     def thumbnail_load(self, pcoll):
         thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
@@ -103,11 +98,17 @@ class Package:
         self.size = res_json['size']
 
     def get_file(self):
-        self.file_path = download_file(self.file_url, matlib_dir() / self.file)
+        self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file)
 
-    def unzip(self, path):
+    def unzip(self, path=None):
+        if not path:
+            path = self.file_path.parent
+
         with zipfile.ZipFile(self.file_path) as z:
             z.extractall(path=path)
+
+        mtlx_file = next(path.glob("*/*.mtlx"))
+        return mtlx_file
 
 
 @dataclass(init=False)
@@ -162,6 +163,9 @@ class Material:
         res_json = response.json()
         for mat_json in res_json['results']:
             mat = Material(mat_json)
+            if not mat.packages:
+                continue
+
             yield mat
 
     @classmethod
