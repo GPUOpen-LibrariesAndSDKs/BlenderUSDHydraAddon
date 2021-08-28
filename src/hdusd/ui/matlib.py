@@ -51,8 +51,13 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         doc = mx.createDocument()
         search_path = mx.FileSearchPath(str(mtlx_file.parent))
         search_path.append(str(LIBS_DIR / "materialx/libraries"))
-        mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
-        mx_node_tree.import_(doc, mtlx_file)
+        try:
+            mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
+            mx_node_tree.import_(doc, mtlx_file)
+
+        except Exception as e:
+            log.error(e, mtlx_file)
+            return {'CANCELLED'}
 
         return {"FINISHED"}
 

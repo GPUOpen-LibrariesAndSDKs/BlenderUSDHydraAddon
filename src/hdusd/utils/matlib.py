@@ -13,7 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import requests
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import shutil
 from pathlib import Path
 import zipfile
@@ -40,20 +40,17 @@ def download_file(url, path, use_cache=True):
     return path
 
 
-@dataclass(init=False)
+@dataclass
 class Render:
     id: str
-    author: str = None
-    image: str = None
-    image_url: str = None
-    image_path: Path = None
-    thumbnail: str = None
-    thumbnail_url: str = None
-    thumbnail_path: Path = None
-    thumbnail_icon_id: int = None
-
-    def __init__(self, id):
-        self.id = id
+    author: str = field(init=False, default=None)
+    image: str = field(init=False, default=None)
+    image_url: str = field(init=False, default=None)
+    image_path: Path = field(init=False, default=None)
+    thumbnail: str = field(init=False, default=None)
+    thumbnail_url: str = field(init=False, default=None)
+    thumbnail_path: Path = field(init=False, default=None)
+    thumbnail_icon_id: int = field(init=False, default=None)
 
     def get_info(self):
         response = requests.get(f"{URL}/renders/{self.id}")
@@ -75,18 +72,15 @@ class Render:
         self.thumbnail_icon_id = thumb.icon_id
 
 
-@dataclass(init=False)
+@dataclass
 class Package:
     id: str
-    author: str = None
-    label: str = None
-    file: str = None
-    file_url: str = None
-    size: str = None
-    file_path: Path = None
-
-    def __init__(self, id):
-        self.id = id
+    author: str = field(init=False, default=None)
+    label: str = field(init=False, default=None)
+    file: str = field(init=False, default=None)
+    file_url: str = field(init=False, default=None)
+    size: str = field(init=False, default=None)
+    file_path: Path = field(init=False, default=None)
 
     def get_info(self):
         response = requests.get(f"{URL}/packages/{self.id}")
@@ -111,13 +105,10 @@ class Package:
         return mtlx_file
 
 
-@dataclass(init=False)
+@dataclass
 class Category:
     id: str
-    title: str = None
-
-    def __init__(self, id):
-        self.id = id
+    title: str = field(init=False, default=None)
 
     def get_info(self):
         response = requests.get(f"{URL}/categories/{self.id}")
@@ -151,11 +142,6 @@ class Material:
         self.packages = []
         for id in mat_json['packages']:
             self.packages.append(Package(id))
-
-    def get_info(self):
-        response = requests.get(f"{URL}/materials/{self.id}")
-        res_json = response.json()
-        print(res_json)
 
     @classmethod
     def get_materials(cls, limit=10, offset=0):

@@ -17,10 +17,8 @@ import traceback
 
 import bpy
 
-from pxr import UsdGeom
-
+from .. import config
 from ..utils.stage_cache import CachedStage
-from ..export import object, world
 
 from ..utils import logging
 log = logging.Log(tag='engine')
@@ -48,7 +46,7 @@ class HdUSDEngine(bpy.types.RenderEngine):
     """
     bl_idname = "HdUSD"
     bl_label = "USD Hydra"
-    bl_use_preview = True
+    bl_use_preview = config.engine_use_preview
     bl_use_shading_nodes = True
     bl_use_shading_nodes_custom = False
     bl_use_gpu_context = False

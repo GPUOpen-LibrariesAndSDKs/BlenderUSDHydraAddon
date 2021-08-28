@@ -20,6 +20,7 @@ from bpy_extras.io_utils import ImportHelper, ExportHelper
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
+from ..utils import LIBS_DIR
 
 from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
@@ -39,16 +40,18 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
     def execute(self, context):
+        mx_node_tree = context.space_data.edit_tree
+
         doc = mx.createDocument()
+        search_path = mx.FileSearchPath(str(self.filepath.parent))
+        search_path.append(str(LIBS_DIR / "materialx/libraries"))
         try:
             mx.readFromXmlFile(doc, self.filepath)
+            mx_node_tree.import_(doc, Path(self.filepath))
 
         except Exception as e:
             log.error(e, self.filepath)
             return {'CANCELLED'}
-
-        mx_node_tree = context.space_data.edit_tree
-        mx_node_tree.import_(doc, Path(self.filepath))
 
         return {'FINISHED'}
 
