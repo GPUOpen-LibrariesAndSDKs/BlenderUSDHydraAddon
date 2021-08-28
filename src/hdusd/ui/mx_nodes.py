@@ -41,16 +41,17 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
 
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree
+        mtlx_file = Path(self.filepath)
 
         doc = mx.createDocument()
-        search_path = mx.FileSearchPath(str(self.filepath.parent))
+        search_path = mx.FileSearchPath(str(mtlx_file.parent))
         search_path.append(str(LIBS_DIR / "materialx/libraries"))
         try:
-            mx.readFromXmlFile(doc, self.filepath)
-            mx_node_tree.import_(doc, Path(self.filepath))
+            mx.readFromXmlFile(doc, str(mtlx_file))
+            mx_node_tree.import_(doc, mtlx_file)
 
         except Exception as e:
-            log.error(e, self.filepath)
+            log.error(e, mtlx_file)
             return {'CANCELLED'}
 
         return {'FINISHED'}
