@@ -110,7 +110,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
             self.nodes.clear()
             layers = {}
 
-            def import_node(mx_node, layer):
+            def import_node(mx_node, layer, mx_output_name=None, look_nodedef=True):
                 mx_nodegraph = mx_node.getParent()
                 node_path = mx_node.getNamePath()
                 file_prefix = mx_utils.get_file_prefix(mx_node, file_path)
@@ -119,7 +119,26 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     layers[node_path] = max(layers[node_path], layer)
                     return self.nodes[node_path]
 
-                MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+                try:
+                    MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+
+                except KeyError:
+                    if not look_nodedef:
+                        log.warn(f"Corresponding MxNode for {mx_node} wasn't found")
+                        return None
+
+                    # looking for nodedef and switching to another nodegraph defined in doc
+                    nodedef = next(nd for nd in doc.getNodeDefs()
+                                   if nd.getNodeString() == mx_node.getCategory() and
+                                   nd.getType() == mx_node.getType())
+                    new_mx_nodegraph = next(ng for ng in doc.getNodeGraphs()
+                                            if ng.getNodeDefString() == nodedef.getName())
+                    mx_output = new_mx_nodegraph.getOutput(mx_output_name)
+                    node_name = mx_output.getNodeName()
+                    new_mx_node = new_mx_nodegraph.getNode(node_name)
+
+                    return import_node(new_mx_node, layer, None, False)
+
                 node = self.nodes.new(MxNode_cls.bl_idname)
                 node.name = node_path
                 layers[node_path] = layer
@@ -132,6 +151,10 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                 for mx_input in mx_node.getInputs():
                     input_name = mx_input.getName()
+                    if input_name not in node.inputs:
+                        log.error(f"Incorrect input name '{input_name}' for node {node}")
+                        continue
+
                     val = mx_input.getValue()
                     if val is not None:
                         node.set_input_default(
@@ -148,38 +171,17 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                     new_nodegraph_name = mx_input.getAttribute('nodegraph')
                     if new_nodegraph_name:
-                        output_name = mx_input.getAttribute('output')
+                        mx_output_name = mx_input.getAttribute('output')
                         new_mx_nodegraph = mx_nodegraph.getNodeGraph(new_nodegraph_name)
-                        mx_output = new_mx_nodegraph.getOutput(output_name)
+                        mx_output = new_mx_nodegraph.getOutput(mx_output_name)
                         node_name = mx_output.getNodeName()
                         new_mx_node = new_mx_nodegraph.getNode(node_name)
-
-                        try:
-                            new_node = import_node(new_mx_node, layer + 1)
-                            self.links.new(new_node.outputs[0], node.inputs[input_name])
+                        new_node = import_node(new_mx_node, layer + 1, mx_output_name)
+                        if not new_node:
                             continue
-
-                        except KeyError:
-                            pass
-
-                        # looking for nodedef and switching to another nodegraph defined in doc
-                        nodedef = next(nd for nd in doc.getNodeDefs()
-                                       if nd.getNodeString() == new_mx_node.getCategory() and
-                                       nd.getType() == new_mx_node.getType())
-                        new_mx_nodegraph = next(ng for ng in doc.getNodeGraphs()
-                                                if ng.getNodeDefString() == nodedef.getName())
-
-                        mx_output = new_mx_nodegraph.getOutput(output_name)
-                        node_name = mx_output.getNodeName()
-                        new_mx_node = new_mx_nodegraph.getNode(node_name)
-
-                        try:
-                            new_node = import_node(new_mx_node, layer + 1)
-                            self.links.new(new_node.outputs[0], node.inputs[input_name])
-                            continue
-
-                        except KeyError:
-                            log.warn(f"Corresponding MxNode for {new_mx_node} wasn't found")
+                            
+                        self.links.new(new_node.outputs[0], node.inputs[input_name])
+                        continue
 
                 node.ui_folders_check()
                 return node

@@ -13,6 +13,8 @@
 # limitations under the License.
 #********************************************************************
 from pathlib import Path
+import traceback
+
 import MaterialX as mx
 
 import bpy
@@ -51,7 +53,7 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
             mx_node_tree.import_(doc, mtlx_file)
 
         except Exception as e:
-            log.error(e, mtlx_file)
+            log.error(traceback.format_exc(), mtlx_file)
             return {'CANCELLED'}
 
         return {'FINISHED'}

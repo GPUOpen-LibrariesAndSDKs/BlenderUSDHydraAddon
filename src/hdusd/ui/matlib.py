@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import traceback
+
 import MaterialX as mx
 
 import bpy
@@ -56,7 +58,7 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
             mx_node_tree.import_(doc, mtlx_file)
 
         except Exception as e:
-            log.error(e, mtlx_file)
+            log.error(traceback.format_exc(), mtlx_file)
             return {'CANCELLED'}
 
         return {"FINISHED"}
