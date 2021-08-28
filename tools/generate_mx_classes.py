@@ -335,11 +335,12 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)
 
     doc = mx.createDocument()
-    mx.readFromXmlFile(doc, str(file_path))
+    search_path = mx.FileSearchPath(str(libs_dir / "materialx/libraries"))
+    mx.readFromXmlFile(doc, str(file_path), searchPath=search_path)
     nodedefs = doc.getNodeDefs()
     nodedef_class_names = []
     for nodedef in nodedefs:
-        if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+        if nodedef.getSourceUri() or nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
             continue
 
         code_strings.append(generate_mx_nodedef_class_code(nodedef, prefix))
@@ -352,7 +353,7 @@ mx_nodedef_classes = [{', '.join(nodedef_class_names)}]
     # grouping node_def_classes by node and nodegroup
     node_def_classes_by_node = defaultdict(list)
     for nodedef in nodedefs:
-        if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+        if nodedef.getSourceUri() or nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
             continue
 
         node_def_classes_by_node[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
@@ -384,6 +385,7 @@ def main():
         ('USD', "USD", mx_libs_dir / "bxdf/usd_preview_surface.mtlx"),
         ('STD', None, mx_libs_dir / "stdlib/stdlib_defs.mtlx"),
         ('PBR', "PBR", mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),
+        ('ALG', "Algorithm", mx_libs_dir / "alglib/alglib_defs.mtlx"),
     ]
 
     for f in (hdrpr_mat_dir / "Shaders").glob("rpr_*.mtlx"):

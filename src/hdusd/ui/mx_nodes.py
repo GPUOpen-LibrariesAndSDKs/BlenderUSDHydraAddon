@@ -20,7 +20,7 @@ from bpy_extras.io_utils import ImportHelper, ExportHelper
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
-from ..utils import LIBS_DIR
+from ..utils import mx as mx_utils
 
 from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
@@ -45,7 +45,7 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
 
         doc = mx.createDocument()
         search_path = mx.FileSearchPath(str(mtlx_file.parent))
-        search_path.append(str(LIBS_DIR / "materialx/libraries"))
+        search_path.append(str(mx_utils.MX_LIBS_DIR))
         try:
             mx.readFromXmlFile(doc, str(mtlx_file))
             mx_node_tree.import_(doc, mtlx_file)

@@ -19,10 +19,13 @@ from .image import cache_image_file
 
 from pathlib import Path
 
-from . import title_str, code_str
+from . import LIBS_DIR, title_str, code_str
 
 from . import logging
 log = logging.Log(tag='utils.mx')
+
+
+MX_LIBS_DIR = LIBS_DIR / "materialx/libraries"
 
 
 def set_param_value(mx_param, val, nd_type):

@@ -83,7 +83,8 @@ class MxNodeDef(bpy.types.PropertyGroup):
     def nodedef(cls):
         if cls._nodedef is None:
             doc = mx.createDocument()
-            mx.readFromXmlFile(doc, str(LIBS_DIR / cls._file_path))
+            search_path = mx.FileSearchPath(str(mx_utils.MX_LIBS_DIR))
+            mx.readFromXmlFile(doc, str(LIBS_DIR / cls._file_path), searchPath=search_path)
             cls._nodedef = doc.getNodeDef(cls._nodedef_name)
 
         return cls._nodedef
