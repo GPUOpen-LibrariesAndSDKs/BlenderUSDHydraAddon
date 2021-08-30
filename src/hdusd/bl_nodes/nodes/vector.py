@@ -28,7 +28,7 @@ class ShaderNodeNormalMap(NodeParser):
 
         if space not in ('TANGENT', 'OBJECT'):
             log.warn("Ignoring unsupported Space", space, self.node, self.material,
-                     "OBJECT will be used")
+                     f"{DEFAULT_SPACE} will be used")
             space = DEFAULT_SPACE
 
         if space == 'TANGENT':
