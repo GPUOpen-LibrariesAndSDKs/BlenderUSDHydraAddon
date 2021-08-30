@@ -168,10 +168,12 @@ def get_attr(mx_param, name, else_val=""):
 def nodedef_data_type(nodedef):
     # nodedef name consists: ND_{node_name}_{data_type} therefore:
     outputs = nodedef.getOutputs()
-    if len(outputs) == 1:
-        return nodedef.getOutputs()[0].getType()
+    if len(outputs) > 1:
+        return 'multitypes'
 
-    return "multitypes"
+    output_type = nodedef.getOutputs()[0].getType()
+    nodedef_name_type = nodedef.getName().split('_')[-1]
+    return nodedef_name_type if nodedef_name_type.startswith(output_type) else output_type
 
 
 def param_prop_name(name):
