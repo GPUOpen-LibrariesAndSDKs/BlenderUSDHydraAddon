@@ -211,6 +211,8 @@ class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
     _nodedef_name = '{nodedef.getName()}'
     _node_name = '{nodedef.getNodeString()}'""")
 
+    return '\n'.join(code_strings)
+
     nodegroup = nodedef.getAttribute('nodegroup')
 
     for i, param in enumerate(nodedef.getParameters()):

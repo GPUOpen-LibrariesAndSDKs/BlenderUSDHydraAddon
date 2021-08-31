@@ -143,6 +143,10 @@ class MxNode(bpy.types.ShaderNode):
         return 'nd_' + name
 
     @staticmethod
+    def _param_prop_name(data_type, name):
+        return 'nd_' + data_type + '_p_' + name
+
+    @staticmethod
     def _node_prop_name(data_type, name, is_output):
         in_out = "out" if is_output else "in"
         return 'nd_' + data_type + "_" + in_out + "_" + name
@@ -199,11 +203,11 @@ class MxNode(bpy.types.ShaderNode):
                 col.label(text=mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')
                           else title_str(name))
                 col = split.column()
-                col.template_ID(self.prop, MxNodeDef._param_prop_name(name),
+                col.template_ID(self, MxNode._param_prop_name(self.data_type, name),
                                 open="image.open", new="image.new")
 
             else:
-                layout.prop(self.prop, MxNodeDef._param_prop_name(name))
+                layout.prop(self, MxNode._param_prop_name(self.data_type, name))
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
@@ -286,10 +290,10 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        return self.prop.get_input(self.inputs[in_key].identifier)
+        return getattr(self, self._node_prop_name(self.data_type, self.inputs[in_key].identifier, self.inputs[in_key].is_output))
 
     def get_param_value(self, name):
-        return self.prop.get_param(name)
+        return getattr(self, self._param_prop_name(self.data_type, name))
 
     def get_input_param_value(self, name):
         return self.prop.get_input(name)
