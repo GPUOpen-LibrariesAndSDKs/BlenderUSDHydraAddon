@@ -48,7 +48,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             else:
                 layout.label(text=f"{uiname}: {uitype}")
         else:
-            layout.prop(node.prop, MxNodeDef._input_prop_name(self.name), text=uiname)
+            layout.prop(node, node._node_prop_name(node.data_type, self.name, self.is_output), text=uiname)
 
     def draw_color(self, context, node):
         return self.get_color(node.prop.nodedef().getInput(self.name).getType())
@@ -141,6 +141,11 @@ class MxNode(bpy.types.ShaderNode):
     @staticmethod
     def _nodedef_prop_name(name):
         return 'nd_' + name
+
+    @staticmethod
+    def _node_prop_name(data_type, name, is_output):
+        in_out = "out" if is_output else "in"
+        return 'nd_' + data_type + "_" + in_out + "_" + name
 
     def init(self, context):
         def init_():
