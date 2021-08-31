@@ -241,7 +241,6 @@ class ShaderNodeBsdfPrincipled(NodeParser):
             'uber_reflection_mode': 'Metalness',
             'uber_reflection_metalness': metallic,
             'uber_reflection_color': base_color,
-            'uber_diffuse_normal': normal,
         })
 
         if enabled(anisotropic):
