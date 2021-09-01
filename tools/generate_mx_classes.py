@@ -173,6 +173,13 @@ def nodedef_data_type(nodedef):
 
     return "multitypes"
 
+def generate_data_type(nodedef):
+    outputs = nodedef.getOutputs()
+    if len(outputs) != 1:
+        return f"{{'multitypes': {{'{nodedef.getName()}': None}}}}"
+
+    return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None}}}}"
+
 
 def param_prop_name(name):
     return 'p_' + name
@@ -207,7 +214,6 @@ def generate_mx_nodedef_class_code(nodedef: mx.NodeDef, prefix: str):
     code_strings.append(
 f"""
 class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
-    _file_path = FILE_PATH
     _nodedef_name = '{nodedef.getName()}'
     _node_name = '{nodedef.getNodeString()}'""")
 
@@ -247,16 +253,21 @@ def generate_mx_node_class_code(nodedefs, prefix, category):
 
     class_name = get_mx_node_class_name(nodedef, prefix)
     code_strings = []
+
+    _data_types = {}
+    for nd in nodedefs:
+        _data_types.update(eval(generate_data_type(nd)))
+
     code_strings.append(
 f"""
 class {class_name}(MxNode):
+    _file_path = FILE_PATH
+    
     bl_label = '{get_attr(nodedef, 'uiname', title_str(nodedef.getNodeString()))}'
     bl_idname = 'hdusd.{class_name}'
     bl_description = "{get_attr(nodedef, 'doc')}"
-    
+    _data_types = {_data_types}
     category = '{category}'
-    
-    _data_types = {tuple(nodedef_data_type(nd) for nd in nodedefs)}
 """)
 
     ui_folders = []
