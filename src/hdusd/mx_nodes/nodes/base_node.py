@@ -110,10 +110,6 @@ class MxNode(bpy.types.ShaderNode):
         return 'f_' + code_str(name.lower())
 
     @staticmethod
-    def _nodedef_prop_name(name):
-        return 'nd_' + name
-
-    @staticmethod
     def _param_prop_name(data_type, name):
         return 'nd_' + data_type + '_p_' + name
 
@@ -165,7 +161,7 @@ class MxNode(bpy.types.ShaderNode):
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
-            layout.prop(self, MxNode._node_prop_name(mx_input.getName()))
+            layout.prop(self, MxNode._node_prop_name(self.data_type, mx_input.getName(), False))
 
         for mx_param in nodedef.getParameters():
             f = mx_param.getAttribute('uifolder')
@@ -270,9 +266,6 @@ class MxNode(bpy.types.ShaderNode):
 
     def get_param_value(self, name):
         return getattr(self, self._param_prop_name(self.data_type, name))
-
-    def get_input_param_value(self, name):
-        return getattr(self, self._node_prop_name(self.data_type, name, False))
 
     def get_nodedef_input(self, in_key: [str, int]):
         return self.get_nodedef(self.data_type).getInput(self.inputs[in_key].identifier)
