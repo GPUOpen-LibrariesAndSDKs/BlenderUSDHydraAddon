@@ -88,7 +88,7 @@ class MxNode(bpy.types.ShaderNode):
     category = ""
 
     @classmethod
-    def nodedef(cls, file_path):
+    def load_nodedefs(cls, file_path):
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(LIBS_DIR / file_path))
 
@@ -101,7 +101,7 @@ class MxNode(bpy.types.ShaderNode):
     def get_nodedef(cls, data_type):
         nodedef_name = cls._data_types[data_type]['nodedef_name']
         if cls._data_types[data_type][nodedef_name] is None:
-            cls.nodedef(cls._file_path)
+            cls.load_nodedefs(cls._file_path)
 
         return cls._data_types[data_type][nodedef_name]
 
