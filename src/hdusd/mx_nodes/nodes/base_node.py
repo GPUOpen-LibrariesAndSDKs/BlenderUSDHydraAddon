@@ -273,7 +273,7 @@ class MxNode(bpy.types.ShaderNode):
     def get_nodedef_output(self, out_key: [str, int]):
         return self.get_nodedef(self.data_type).getOutput(self.outputs[out_key].identifier)
 
-    def set_input_default(self, in_key, value):
+    def set_input_value(self, in_key, value):
         setattr(self, self._node_prop_name(self.data_type, self.inputs[in_key].identifier, False), value)
 
     def set_param_value(self, name, value):
