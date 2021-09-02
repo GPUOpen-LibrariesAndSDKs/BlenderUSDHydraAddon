@@ -209,43 +209,6 @@ def get_mx_node_class_name(nodedef, prefix):
     return f"MxNode_{prefix}_{nodedef.getNodeString()}"
 
 
-def generate_mx_nodedef_class_code(nodedef: mx.NodeDef, prefix: str):
-    code_strings = []
-    code_strings.append(
-f"""
-class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
-    _nodedef_name = '{nodedef.getName()}'
-    _node_name = '{nodedef.getNodeString()}'""")
-
-    return '\n'.join(code_strings)
-
-    nodegroup = nodedef.getAttribute('nodegroup')
-
-    for i, param in enumerate(nodedef.getParameters()):
-        if i == 0:
-            code_strings.append("")
-
-        prop_code = generate_property_code(param, nodegroup)
-        code_strings.append(f"    {param_prop_name(param.getName())}: {prop_code}")
-
-    for i, input in enumerate(nodedef.getInputs()):
-        if i == 0:
-            code_strings.append("")
-
-        prop_code = generate_property_code(input, nodegroup)
-        code_strings.append(f"    {input_prop_name(input.getName())}: {prop_code}")
-
-    for i, output in enumerate(nodedef.getOutputs()):
-        if i == 0:
-            code_strings.append("")
-
-        prop_code = generate_property_code(output, nodegroup)
-        code_strings.append(f"    {output_prop_name(output.getName())}: {prop_code}")
-
-    code_strings.append("")
-    return '\n'.join(code_strings)
-
-
 def generate_mx_node_class_code(nodedefs, prefix, category):
     nodedef = nodedefs[0]
     if not category:

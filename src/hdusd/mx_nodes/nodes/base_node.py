@@ -89,7 +89,6 @@ class MxNode(bpy.types.ShaderNode):
 
     @classmethod
     def nodedef(cls, file_path):
-
         doc = mx.createDocument()
         mx.readFromXmlFile(doc, str(LIBS_DIR / file_path))
 
