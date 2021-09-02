@@ -256,7 +256,6 @@ class {class_name}(MxNode):
             index_default = i
 
     code_strings += [
-        "",
         f'    data_type: EnumProperty(name="Type", description="Input Data Type", '
         f"items={data_type_items}, default='{data_type_items[index_default][0]}')",
     ]
@@ -269,30 +268,20 @@ class {class_name}(MxNode):
             f'    {folder_prop_name(f)}: BoolProperty(name="{f}", '
             f'description="Enable {f}", default={i == 0}, update=MxNode.ui_folders_update)')
 
-    if class_name == "MxNode_STD_image":
-        a = 1
-
     for j, nd in enumerate(nodedefs):
         nodegroup = nd.getAttribute('nodegroup')
         nd_type = nodedef_data_type(nd)
-        for i, param in enumerate(nd.getParameters()):
-            if i == 0:
-                code_strings.append("")
+        code_strings.append("")
 
+        for i, param in enumerate(nd.getParameters()):
             prop_code = generate_property_code(param, nodegroup)
             code_strings.append(f"    nd_{nd_type}_{param_prop_name(param.getName())}: {prop_code}")
 
         for i, input in enumerate(nodedef.getInputs()):
-            if i == 0:
-                code_strings.append("")
-
             prop_code = generate_property_code(input, nodegroup)
             code_strings.append(f"    nd_{nd_type}_{input_prop_name(input.getName())}: {prop_code}")
 
         for i, output in enumerate(nodedef.getOutputs()):
-            if i == 0:
-                code_strings.append("")
-
             prop_code = generate_property_code(output, nodegroup)
             code_strings.append(f"    nd_{nd_type}_{output_prop_name(output.getName())}: {prop_code}")
 
