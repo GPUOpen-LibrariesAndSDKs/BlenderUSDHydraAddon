@@ -14,7 +14,7 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
   - Redshift
   - Cycles
   - Intel Ospray
-- Importing, exporting and editing materials using ILM's MaterialX standard (TODO)
+- Importing, editing materials using ILM's MaterialX standard.
 
 In short, this addon will allow an artist or studio to assembled and compose USD data with Blender data, and render it all using various renderers via Hydra
 
@@ -24,14 +24,17 @@ In short, this addon will allow an artist or studio to assembled and compose USD
 - MaterialX http://www.materialx.org/
 
 ## Requirements
-Currently, this addon works only with Blender 2.90+ and only in Windows.  We hope to remove the restriction in the future, but there are a few things preventing this.  In particular, the current build of Blender has USD statically linked in, which the addon cannot access.  https://developer.blender.org/T76490
+Currently, this addon works only with [Blender 2.93+](https://www.blender.org/download/) and only in Windows.  We hope to remove the restriction in the future, but there are a few things preventing this.    In particular, the current build of Blender has USD statically linked in, which the addon cannot access.  https://developer.blender.org/T76490 
 
-On the releases page [LINK NEEDED] are prebuilt versions of the addon.  These include a copy of the USD library (under the directory "usd"), as well as the Radeon ProRender Hydra delegate.  If building from source, a local version of the USD library is required.  Point to this with the USD_ROOT environment variable.
+_WINDOWS USERS: For develop it's recommended to use Blender 2.93.0 so it provides clean console output, without some messy Windows exceptions._
+
+On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page  are prebuilt versions of the addon.  These include a copy of the USD library (under the directory "usd"), as well as the Radeon ProRender Hydra delegate.  If building from source, a local version of the USD library is required.  Point to this with the USD_ROOT environment variable.
 
 ## Installing
 
-Simply download a build from the releases page [LINK NEEDED] and install via the Blender addons in Edit->System Preferences menu.  
-WINDOWS USERS:  Please note that old versions need to be disabled and uninstalled, and then Blender restarted.  This is the case with many Blender addons that use C++ extenstions:  https://developer.blender.org/T77837
+Simply download a build from the releases page [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) and install via the Blender addons in Edit->System Preferences menu. 
+
+_WINDOWS USERS:  Please note that old versions need to be disabled and uninstalled, and then Blender restarted.  This is the case with many Blender addons that use C++ extenstions:  https://developer.blender.org/T77837_
 
 For users who wish to install 3rd party render delegates (see above), they should be installed to the "usd/plugins" directory in the addon folder similar to a regular USD installation.
 
@@ -41,17 +44,14 @@ At a simple level, this functions similar to any render addon to Blender, like C
 
 Select a different render delegate in the render settings.  Each render delegate may have it's own render settings
 
+
 ### Assembling USD
 By default, when rendering the plugin exports the Blender data to USD and passes through Hydra to the render delegate.  This has the benefit of not having to write any renderer specific code for export.
 
 However, more complex behavior is possible.  Let's say you are animating a character in Blender and want to import a USD background scene that was created in another application.  Normally these would be done via Blender's "linked libraries", but USD offers more powerful possibilities.  Opening an editor window in Blender to the "USD Nodegraph" type will allow referencing in the background scene and merging with the Blender scene character for example.
 
-[picture]
 
-The possibilities here are endless, to read more, look at our documentation on the various nodes available [HERE]
-
-
-### Materials via MaterialX (TODO)
+### Materials via MaterialX
 The correct way to interchange materials via USD is an open-ended question.  The only built-in material nodes to USD are a simple USDPreviewSurface (very similar to Blender's Principled BSDF) and nodes to read textures.  This is insufficient of course for complex materials.  However, the MaterialX standard has emerged as a good interchange format for node-based materials with support from various applications such as Adobe Substance and various Autodesk Applications.  Many renderers use their own nodes, but many can also support OSL shaders, which MaterialX can produce.
 
 Therefore the material solution in the USD Hydra addon uses MaterialX.  Here's a quick guide to materials:
@@ -68,7 +68,7 @@ Therefore the material solution in the USD Hydra addon uses MaterialX.  Here's a
 Aim is to conform to [pep8](https://www.python.org/dev/peps/pep-0008/). 
 At minimum it's 4 spaces for indentation, sources are utf-8, there's .gitconfig in the root of the project - please set you editor to use it(for most simplicity). E.g. PyCharm(recommended!) default setting are fine and seems that it also picks up .editorconfig automatically also, Tortoise Merge has a checkbox 'Enable EditorConfig', for Visual Studio there's [EditorConfig extension](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328)
 
-Git - we try to avoid merge commits, easiest way to do it:
+Git - we try to avoid merge commits, the easiest way to do it:
 
 `git config [--global] merge.ff only` # this one rejects merges that would result in merge commit
  
@@ -81,21 +81,21 @@ Also, make more meaningful commits(one commit per feature) the easy way:
 ### Recommended software
 
 - epydoc - enable PyCharm to parse Core's documentation. Use `py -m pip install epydoc` with your selected python interpreter or install it from PyCharm 
-- PyCharm Community Edition - very recommended, possible to enable intellisense(limited) for Blender code and for RPR Core
-- Visual Studio Code - has a very nice python extension, possible to enable intellisense for Blender and for RPR Core, provides remote debugging in Blender
+- [PyCharm Community Edition](https://www.jetbrains.com/pycharm/download/download-thanks.html?platform=windows&code=PCC) - very recommended, possible to enable intellisense(limited) for Blender code and for RPR Core
+- [Visual Studio](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) - has a very nice python extension, possible to enable intellisense for Blender and for RPR Core, provides remote debugging in Blender
 
 ## Build
 You can build project using build.py with different flag combinations. At the beginning you commonly will use `python tools\build.py -all -bin-dir bin\'user dir' -G "Visual Studio 15 2017 Win64"`.
 It allows you to create a folder with binaries and copy all the necessary files foк development to `\libs` folder. Also `build.py` provides a verity of ways to make a project builds:
-- `-all` - builds all binaries, needs to be passed with `-G "Visual Studio 15 2017 Win64"` 
-- `-usd` - builds usd binaries, needs to be passed with `-G "Visual Studio 15 2017 Win64"`
-- `-hdrpr` - builds HdRPR plugin binaries, need to pass every time with `-G "Visual Studio 15 2017 Win64"`
+- `-all` - builds all binaries, (Windows only, needs to be passed with `-G "Visual Studio 15 2017 Win64"`) 
+- `-usd` - builds usd binaries, (Windows only, needs to be passed with `-G "Visual Studio 15 2017 Win64"`)
+- `-hdrpr` - builds HdRPR plugin binaries, (Windows only, need to pass every time with `-G "Visual Studio 15 2017 Win64"`)
 - `-mx` - builds binaries for materialX library, needs to be passed with `-mx-classes`
 - `-bin-dir bin\'user dir'` - define folder to build binaries
 - `-libs` - copies all the necessary for development libraries to `\lib` folder, needs to be passed with `-usd`, `-hdrpr`
 - `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders, `-usd -hdrpr -clean ...` remove only `\Usd` and `\HdRPR`
 - `-mx-classes` - generates classes for materialX
-- `-G "Visual Studio 15 2017 Win64"` - set builder
+- `-G "Visual Studio 15 2017 Win64"` - set builder, example for Windows
 - `-addon` - generates zip archive with plugin to `\install` folder
 
 Switch to prebuild binary folder `dir_01` is next command `python tools\build.py -libs -mx-classes -bin-dir bin\dir_01`
@@ -104,11 +104,12 @@ Switch to prebuild binary folder `dir_01` is next command `python tools\build.py
 
 - make sure you have no installed addon for Blender version you want to use; remove installed version if needed.
 - set environment variable BLENDER_EXE to blender.exe you want to use via the command line or system environment settings.
-- run run_blender_with_rpr.cmd
+- run_blender_test_addon.py
 
 Example:
 
-`set BLENDER_EXE="C:\Program Files\Blender Foundation\Blender 2.90\blender.exe" && run_blender_with_rpr.cmd`
+`set BLENDER_EXE="C:\Program Files\Blender Foundation\Blender 2.93\blender.exe" && python tools\run_blender_test_addon.py --window-geometry 200 600 1920 1080
+`
 
 ### Debugging
 
@@ -133,7 +134,7 @@ so that `logging.limit_log(name, level_show_always)` will allow to filter out wh
     config.pyrpr_log_calls = True #  log all Core function calls to console, can be VERY useful
 
 - Visual Studio has really nice(and working) mixed(python and C stack) debugging - recommended! 
-- Blender debug - it's easiest to [build Blender](https://wiki.blender.org/index.php/Dev:Doc/Building_Blender/Windows/msvc/CMake) in Release or RelWithDebInfo(and add ``#pragma optimize( "", off )``) 
+- Blender debug - it's easiest to [build Blender](https://wiki.blender.org/wiki/Building_Blender/Windows) in Release or RelWithDebInfo(and add ``#pragma optimize( "", off )``) 
 - Debug in PyCharm - `import pydevd; pydevd.settrace('localhost', port=52128, stdoutToServer=True, stderrToServer=True, suspend=False)`
 
 ## Making a new release
@@ -157,18 +158,16 @@ Increase max file size for Pycharm intellisence(bpy.py generated is huge), go to
 
 Restart PyCharm
 
-## Visual Studio Code
+## Visual Studio
 
-#### Install Blender-VScode-Debugger addon
+Recommended software for debugging, easy to setup and use. Run blender with addon, and using Debug -> Attach to Process...(or use hotkey`Ctrl+Alt+P`). In opened window choose Blender process, now you connected and allowed to debuge.
+Also use build-in Python debugger in realtime. Turn on with Debug -> Windows -> Python Debug Interactive. This provides to you ability for interactive code evaluation. Also you can make breakpoints move step by step, watch variables and etc.  
 
-#### Attach VS remote debugger to Blender
 
- 
-
-### Versioning
+## Versioning
 
 The version number should be updated when a new plugin is released.  This is done by editing the version field
 of the bl_info structure in the src/hdusd/__init__.py file. Currently a build script will update the build
-number when checkins happen to the master branch.  So it is only necessary to update the major or minor number
+number when checkins happen to the master branch. So it is only necessary to update the major or minor number
 when required.
 
