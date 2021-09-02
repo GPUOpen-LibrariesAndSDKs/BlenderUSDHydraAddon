@@ -176,7 +176,7 @@ def nodedef_data_type(nodedef):
 def generate_data_type(nodedef):
     outputs = nodedef.getOutputs()
     if len(outputs) != 1:
-        return f"{{'multitypes': {{'{nodedef.getName()}': None}}}}"
+        return f"{{'multitypes': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
     return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
