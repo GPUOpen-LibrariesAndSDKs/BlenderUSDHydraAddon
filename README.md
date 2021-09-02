@@ -14,7 +14,7 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
   - Redshift
   - Cycles
   - Intel Ospray
-- Importing, editing materials using ILM's MaterialX standard.
+- Importing, exporting and editing materials using ILM's MaterialX standard
 
 In short, this addon will allow an artist or studio to assembled and compose USD data with Blender data, and render it all using various renderers via Hydra
 
