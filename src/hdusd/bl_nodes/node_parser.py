@@ -18,6 +18,7 @@ import bpy
 import MaterialX as mx
 
 from ..utils.mx import set_param_value
+from ..mx_nodes.nodes import get_mx_node_cls 
 from . import log
 
 
@@ -37,6 +38,7 @@ class NodeItem:
         self.id = id
         self.doc = doc
         self.data = data
+        self.nodedef = get_mx_node_cls(data.getCategory(), data.getType()).get_nodedef(self.type) if isinstance(data, mx.Node) else None
 
     def node_item(self, value):
         if isinstance(value, NodeItem):
