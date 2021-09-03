@@ -72,7 +72,7 @@ class FinalEngine(Engine):
 
         bgl.glEnable(bgl.GL_DEPTH_TEST)
         bgl.glViewport(0, 0, self.width, self.height)
-        bgl.glClearColor(*CLEAR_COLOR)
+
         bgl.glClearDepth(CLEAR_DEPTH)
         bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
 
@@ -80,7 +80,17 @@ class FinalEngine(Engine):
         params = UsdImagingGL.RenderParams()
         params.renderResolution = (self.width, self.height)
         params.frame = Usd.TimeCode.Default()
-        params.clearColor = CLEAR_COLOR
+
+
+        world_color = world.WorldData.init_from_world(scene.world)
+        color_final = (*(color * world_color.intensity for color in world_color.color),)
+
+        if world_color.image is None:
+            bgl.glClearColor(*color_final, world_color.transparency)
+            params.clearColor = (*color_final, world_color.transparency)
+        else:
+            bgl.glClearColor(*CLEAR_COLOR)
+            params.clearColor = CLEAR_COLOR
 
         try:
             renderer.Render(root, params)

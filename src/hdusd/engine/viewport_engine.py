@@ -218,7 +218,13 @@ class ViewportEngine(Engine):
 
         self.render_params = UsdImagingGL.RenderParams()
         self.render_params.frame = Usd.TimeCode.Default()
-        self.render_params.clearColor = (0, 0, 0, 0)
+
+        world_color = world.WorldData.init_from_world(context.scene.world)
+        
+        if world_color.image is None:
+            self.render_params.clearColor = (*(color * world_color.intensity for color in world_color.color), world_color.transparency)
+        else:
+            self.render_params.clearColor = (0, 0, 0, 0)
 
         self.renderer = UsdImagingGL.Engine()
 
@@ -287,8 +293,15 @@ class ViewportEngine(Engine):
         else:
             bgl.glDisable(bgl.GL_DEPTH_TEST)
 
+        world_color = world.WorldData.init_from_world(context.scene.world)
+
         bgl.glViewport(*view_settings.border[0], *view_settings.border[1])
-        bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
+
+        if world_color.image is None:
+            bgl.glClearColor(*(color * world_color.intensity for color in world_color.color), world_color.transparency)
+        else:
+            bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
+
         bgl.glClearDepth(1.0)
         bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
 

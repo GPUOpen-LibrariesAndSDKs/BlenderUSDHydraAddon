@@ -36,6 +36,7 @@ class WorldData:
     image: str = None
     intensity: float = 1.0
     rotation: tuple = (0.0, 0.0, 0.0)
+    transparency: float = 1.0
 
     @staticmethod
     def init_from_world(world: bpy.types.World):
@@ -44,6 +45,7 @@ class WorldData:
 
         if not world.use_nodes:
             data.color = tuple(world.color)
+            data.transparency = world.color[3]
             return data
 
         output_node = next((node for node in world.node_tree.nodes
@@ -63,10 +65,12 @@ class WorldData:
 
         if isinstance(node_data, float):
             data.color = (node_data, node_data, node_data)
+            data.transparency = node_data
             return data
 
         if isinstance(node_data, tuple):
             data.color = node_data[:3]
+            data.transparency = node_data[3]
             return data
 
         # node_data is dict here
@@ -85,9 +89,11 @@ class WorldData:
 
         elif isinstance(color, float):
             data.color = (color, color, color)
+            data.transparency = color
 
         elif isinstance(color, tuple):
             data.color = color[:3]
+            data.transparency = color[3]
 
         else:   # dict
             image = color.get('image')
