@@ -76,5 +76,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout.prop(matlib_prop, "category")
         layout.template_icon_view(matlib_prop, "material")
 
-        layout.operator(HDUSD_MATLIB_OP_import_material.bl_idname)
+        row = layout.row()
+        row.enabled = bool(context.material)
+        row.operator(HDUSD_MATLIB_OP_import_material.bl_idname)
 
