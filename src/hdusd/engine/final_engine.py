@@ -81,16 +81,31 @@ class FinalEngine(Engine):
         params.renderResolution = (self.width, self.height)
         params.frame = Usd.TimeCode.Default()
 
+        is_image = True
+        color_final = None
+        transparency = 1.0
 
-        world_color = world.WorldData.init_from_world(scene.world)
-        color_final = (*(color * world_color.intensity for color in world_color.color),)
+        for prim in self.stage.TraverseAll():
+            if prim.GetName() == 'World' and prim.GetTypeName() == 'DomeLight':
+                input_color = prim.GetAttribute('inputs:color').Get()
+                input_intensity = prim.GetAttribute('inputs:intensity').Get()
+                is_image = True if prim.GetAttribute('inputs:texture:file').Get() is not None else False
+                color_final =  (*(color * input_intensity for color in input_color),)
+                break
 
-        if world_color.image is None:
-            bgl.glClearColor(*color_final, world_color.transparency)
-            params.clearColor = (*color_final, world_color.transparency)
-        else:
+        #if source is Scene
+        if not scene.hdusd.final.data_source:
+            world_color = world.WorldData.init_from_world(scene.world)
+            color_final = (*(color * world_color.intensity for color in world_color.color),)
+            transparency = world_color.transparency
+
+        if is_image:
             bgl.glClearColor(*CLEAR_COLOR)
             params.clearColor = CLEAR_COLOR
+        else:
+            bgl.glClearColor(*color_final, transparency)
+            params.clearColor = (*color_final, transparency)
+            
 
         try:
             renderer.Render(root, params)

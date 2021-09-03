@@ -219,16 +219,32 @@ class ViewportEngine(Engine):
         self.render_params = UsdImagingGL.RenderParams()
         self.render_params.frame = Usd.TimeCode.Default()
 
-        world_color = world.WorldData.init_from_world(context.scene.world)
-        
-        if world_color.image is None:
-            self.render_params.clearColor = (*(color * world_color.intensity for color in world_color.color), world_color.transparency)
-        else:
-            self.render_params.clearColor = (0, 0, 0, 0)
-
         self.renderer = UsdImagingGL.Engine()
 
         self._sync(context, depsgraph)
+
+        is_image = True
+        color_final = None
+        transparency = 1.0
+
+        for prim in self.cached_stage().TraverseAll():
+            if prim.GetName() == 'World' and prim.GetTypeName() == 'DomeLight':
+                input_color = prim.GetAttribute('inputs:color').Get()
+                input_intensity = prim.GetAttribute('inputs:intensity').Get()
+                is_image = True if prim.GetAttribute('inputs:texture:file').Get() is not None else False
+                color_final =  (*(color * input_intensity for color in input_color),)
+                break
+
+        #if source is Scene
+        if not self.data_source:
+            world_color = world.WorldData.init_from_world(scene.world)
+            color_final = (*(color * world_color.intensity for color in world_color.color),)
+            transparency = world_color.transparency
+        
+        if is_image:
+            self.render_params.clearColor = (0, 0, 0, 0)
+        else:
+            self.render_params.clearColor = (*color_final, transparency)
 
         usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
 
@@ -296,12 +312,7 @@ class ViewportEngine(Engine):
         world_color = world.WorldData.init_from_world(context.scene.world)
 
         bgl.glViewport(*view_settings.border[0], *view_settings.border[1])
-
-        if world_color.image is None:
-            bgl.glClearColor(*(color * world_color.intensity for color in world_color.color), world_color.transparency)
-        else:
-            bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
-
+        bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
         bgl.glClearDepth(1.0)
         bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
 
