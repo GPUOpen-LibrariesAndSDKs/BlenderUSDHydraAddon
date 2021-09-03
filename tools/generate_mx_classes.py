@@ -153,7 +153,7 @@ def generate_property_code(mx_param, nodegroup):
         val_str = f'"{val}"' if isinstance(val, str) else str(val)
         prop_attr_strings.append(f"{name}={val_str}")
 
-    prop_attr_strings.append("update=MxNodeDef.update_prop")
+    prop_attr_strings.append("update=MxNode.update_prop")
 
     if mx_type == 'filename' and nodegroup in ("texture2d", "texture3d"):
         prop_attr_strings.insert(0, "type=bpy.types.Image")
@@ -172,6 +172,13 @@ def nodedef_data_type(nodedef):
         return nodedef.getOutputs()[0].getType()
 
     return "multitypes"
+
+def generate_data_type(nodedef):
+    outputs = nodedef.getOutputs()
+    if len(outputs) != 1:
+        return f"{{'multitypes': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
+
+    return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
 
 def param_prop_name(name):
@@ -202,42 +209,6 @@ def get_mx_node_class_name(nodedef, prefix):
     return f"MxNode_{prefix}_{nodedef.getNodeString()}"
 
 
-def generate_mx_nodedef_class_code(nodedef: mx.NodeDef, prefix: str):
-    code_strings = []
-    code_strings.append(
-f"""
-class {get_mx_nodedef_class_name(nodedef, prefix)}(MxNodeDef):
-    _file_path = FILE_PATH
-    _nodedef_name = '{nodedef.getName()}'
-    _node_name = '{nodedef.getNodeString()}'""")
-
-    nodegroup = nodedef.getAttribute('nodegroup')
-
-    for i, param in enumerate(nodedef.getParameters()):
-        if i == 0:
-            code_strings.append("")
-
-        prop_code = generate_property_code(param, nodegroup)
-        code_strings.append(f"    {param_prop_name(param.getName())}: {prop_code}")
-
-    for i, input in enumerate(nodedef.getInputs()):
-        if i == 0:
-            code_strings.append("")
-
-        prop_code = generate_property_code(input, nodegroup)
-        code_strings.append(f"    {input_prop_name(input.getName())}: {prop_code}")
-
-    for i, output in enumerate(nodedef.getOutputs()):
-        if i == 0:
-            code_strings.append("")
-
-        prop_code = generate_property_code(output, nodegroup)
-        code_strings.append(f"    {output_prop_name(output.getName())}: {prop_code}")
-
-    code_strings.append("")
-    return '\n'.join(code_strings)
-
-
 def generate_mx_node_class_code(nodedefs, prefix, category):
     nodedef = nodedefs[0]
     if not category:
@@ -245,16 +216,22 @@ def generate_mx_node_class_code(nodedefs, prefix, category):
 
     class_name = get_mx_node_class_name(nodedef, prefix)
     code_strings = []
+
+    _data_types = {}
+    for nd in nodedefs:
+        _data_types.update(eval(generate_data_type(nd)))
+
     code_strings.append(
 f"""
 class {class_name}(MxNode):
+    _file_path = FILE_PATH
+    _data_types = {_data_types}
+    
     bl_label = '{get_attr(nodedef, 'uiname', title_str(nodedef.getNodeString()))}'
     bl_idname = 'hdusd.{class_name}'
     bl_description = "{get_attr(nodedef, 'doc')}"
     
     category = '{category}'
-    
-    _data_types = {tuple(nodedef_data_type(nd) for nd in nodedefs)}
 """)
 
     ui_folders = []
@@ -273,16 +250,12 @@ class {class_name}(MxNode):
     index_default = 0
     for i, nd in enumerate(nodedefs):
         nd_type = nodedef_data_type(nd)
-        code_strings.append(
-            f"    {nodedef_prop_name(nd_type)}: PointerProperty("
-            f"type={get_mx_nodedef_class_name(nd, prefix)})")
 
         data_type_items.append((nd_type, title_str(nd_type), title_str(nd_type)))
         if nd_type == 'color3':
             index_default = i
 
     code_strings += [
-        "",
         f'    data_type: EnumProperty(name="Type", description="Input Data Type", '
         f"items={data_type_items}, default='{data_type_items[index_default][0]}')",
     ]
@@ -294,6 +267,23 @@ class {class_name}(MxNode):
         code_strings.append(
             f'    {folder_prop_name(f)}: BoolProperty(name="{f}", '
             f'description="Enable {f}", default={i == 0}, update=MxNode.ui_folders_update)')
+
+    for j, nd in enumerate(nodedefs):
+        nodegroup = nd.getAttribute('nodegroup')
+        nd_type = nodedef_data_type(nd)
+        code_strings.append("")
+
+        for i, param in enumerate(nd.getParameters()):
+            prop_code = generate_property_code(param, nodegroup)
+            code_strings.append(f"    nd_{nd_type}_{param_prop_name(param.getName())}: {prop_code}")
+
+        for i, input in enumerate(nodedef.getInputs()):
+            prop_code = generate_property_code(input, nodegroup)
+            code_strings.append(f"    nd_{nd_type}_{input_prop_name(input.getName())}: {prop_code}")
+
+        for i, output in enumerate(nodedef.getOutputs()):
+            prop_code = generate_property_code(output, nodegroup)
+            code_strings.append(f"    nd_{nd_type}_{output_prop_name(output.getName())}: {prop_code}")
 
     code_strings.append("")
     return '\n'.join(code_strings)
@@ -328,7 +318,7 @@ from bpy.props import (
     PointerProperty,
     FloatVectorProperty,
 ) 
-from .base_node import MxNodeDef, MxNode
+from .base_node import MxNode
 
 
 FILE_PATH = r"{file_path.relative_to(libs_dir)}"
@@ -342,12 +332,7 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
         if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
             continue
 
-        code_strings.append(generate_mx_nodedef_class_code(nodedef, prefix))
         nodedef_class_names.append(get_mx_nodedef_class_name(nodedef, prefix))
-
-    code_strings.append(f"""
-mx_nodedef_classes = [{', '.join(nodedef_class_names)}]
-""")
 
     # grouping node_def_classes by node and nodegroup
     node_def_classes_by_node = defaultdict(list)
