@@ -122,9 +122,6 @@ void HdRenderTask::Prepare(HdTaskContext* ctx,
     }
 
     m_passState->Prepare(renderIndex->GetResourceRegistry());
-    if (m_pass) {
-        m_pass->Prepare(GetRenderTags());
-    }
 }
 
 void HdRenderTask::Execute(HdTaskContext* ctx) {
