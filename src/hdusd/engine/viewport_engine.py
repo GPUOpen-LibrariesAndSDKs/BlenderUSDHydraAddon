@@ -309,8 +309,6 @@ class ViewportEngine(Engine):
         else:
             bgl.glDisable(bgl.GL_DEPTH_TEST)
 
-        world_color = world.WorldData.init_from_world(context.scene.world)
-
         bgl.glViewport(*view_settings.border[0], *view_settings.border[1])
         bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
         bgl.glClearDepth(1.0)
