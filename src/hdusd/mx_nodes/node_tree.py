@@ -157,7 +157,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                     val = mx_input.getValue()
                     if val is not None:
-                        node.set_input_default(
+                        node.set_input_value(
                             input_name,
                             mx_utils.parse_value(node, val, mx_input.getType(), file_prefix))
                         continue
