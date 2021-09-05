@@ -173,16 +173,13 @@ def nodedef_data_type(nodedef):
 
     return "multitypes"
 
+
 def generate_data_type(nodedef):
     outputs = nodedef.getOutputs()
     if len(outputs) != 1:
         return f"{{'multitypes': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
     return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
-
-
-def param_prop_name(name):
-    return 'p_' + name
 
 
 def input_prop_name(name):
@@ -268,10 +265,6 @@ class {class_name}(MxNode):
         nodegroup = nd.getAttribute('nodegroup')
         nd_type = nodedef_data_type(nd)
         code_strings.append("")
-
-        for i, param in enumerate(nd.getParameters()):
-            prop_code = generate_property_code(param, nodegroup)
-            code_strings.append(f"    nd_{nd_type}_{param_prop_name(param.getName())}: {prop_code}")
 
         for i, input in enumerate(nodedef.getInputs()):
             prop_code = generate_property_code(input, nodegroup)
