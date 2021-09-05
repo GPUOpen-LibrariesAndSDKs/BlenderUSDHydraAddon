@@ -149,10 +149,7 @@ class MxNode(bpy.types.ShaderNode):
                     r = col.row(align=True)
                 r.prop(self, self._folder_prop_name(f), toggle=True)
 
-        for mx_input in nodedef.getInputs():
-            if mx_input.getAttribute('uniform') != 'true':
-                continue
-
+        for mx_input in (i for i in nodedef.getInputs() if i.getAttribute('uniform') == 'true'):
             f = mx_input.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
@@ -204,7 +201,7 @@ class MxNode(bpy.types.ShaderNode):
             mx_input = mx_node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(mx_input, val, nd_type)
 
-        for nd_param in nodedef.getParameters():
+        for nd_param in (i for i in nodedef.getInputs() if i.getAttribute('uniform') == 'true'):
             f = nd_param.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
@@ -214,7 +211,7 @@ class MxNode(bpy.types.ShaderNode):
             if mx_utils.is_value_equal(nd_param.getValue(), val, nd_type):
                 continue
 
-            mx_param = mx_node.addParameter(nd_param.getName(), nd_type)
+            mx_param = mx_node.addInput(nd_param.getName(), nd_type)
             mx_utils.set_param_value(mx_param, val, nd_type)
 
         return mx_node
