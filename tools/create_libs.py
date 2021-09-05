@@ -52,11 +52,11 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
                            ignore_suffix=(".lib",)):
         yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
-    for f in iterate_files(hdrpr_dir / "libraries", "**/*"):
-        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
+    # for f in iterate_files(hdrpr_dir / "libraries", "**/*"):
+    #     yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
-    for f in iterate_files(hdrpr_dir / "materials", "**/*"):
-        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
+    # for f in iterate_files(hdrpr_dir / "materials", "**/*"):
+    #     yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
 
     # put all the plugins in the same folder so USD would load them all
     for f in iterate_files(usd_dir / "plugin", "**/*",
@@ -80,8 +80,8 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
                            ignore_suffix=(".lib",)):
         yield f, Path("materialx") / f.relative_to(mx_dir)
 
-    for f in iterate_files(mx_dir / "bin", "*"):
-        yield f, Path("materialx") / f.relative_to(mx_dir)
+    # for f in iterate_files(mx_dir / "bin", "*"):
+    #     yield f, Path("materialx") / f.relative_to(mx_dir)
 
 
 def main(bin_dir):
