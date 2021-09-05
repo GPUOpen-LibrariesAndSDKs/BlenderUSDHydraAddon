@@ -201,10 +201,6 @@ def nodedef_prop_name(name):
     return 'nd_' + name
 
 
-def get_mx_nodedef_class_name(nodedef, prefix):
-    return f"MxNodeDef_{prefix}_{nodedef.getName()}"
-
-
 def get_mx_node_class_name(nodedef, prefix):
     return f"MxNode_{prefix}_{nodedef.getNodeString()}"
 
@@ -327,25 +323,19 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
     doc = mx.createDocument()
     mx.readFromXmlFile(doc, str(file_path))
     nodedefs = doc.getNodeDefs()
-    nodedef_class_names = []
-    for nodedef in nodedefs:
-        if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
-            continue
-
-        nodedef_class_names.append(get_mx_nodedef_class_name(nodedef, prefix))
 
     # grouping node_def_classes by node and nodegroup
-    node_def_classes_by_node = defaultdict(list)
+    nodedefs_by_node_dict = defaultdict(list)
     for nodedef in nodedefs:
         if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
             continue
 
-        node_def_classes_by_node[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
+        nodedefs_by_node_dict[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
             append(nodedef)
 
     # creating MxNode types
     mx_node_class_names = []
-    for nodedefs_by_node in node_def_classes_by_node.values():
+    for nodedefs_by_node in nodedefs_by_node_dict.values():
         code_strings.append(generate_mx_node_class_code(nodedefs_by_node, prefix, category))
         mx_node_class_names.append(get_mx_node_class_name(nodedefs_by_node[0], prefix))
 
