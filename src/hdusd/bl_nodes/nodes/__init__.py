@@ -21,3 +21,4 @@ from .shader import *
 from .texture import *
 from .color import *
 from .converter import *
+from .vector import *
