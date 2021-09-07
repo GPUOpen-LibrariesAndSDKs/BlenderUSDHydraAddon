@@ -38,10 +38,19 @@ class WorldData:
     rotation: tuple = (0.0, 0.0, 0.0)
     transparency: float = 1.0
 
+    @property
+    def clear_color(self):
+        color = [c * self.intensity for c in self.color]
+        color.append(self.transparency)
+        return tuple(color)
+
     @staticmethod
     def init_from_world(world: bpy.types.World):
         """ Returns WorldData from bpy.types.World """
         data = WorldData()
+
+        if not world:
+            return data
 
         if not world.use_nodes:
             data.color = tuple(world.color)
@@ -65,7 +74,7 @@ class WorldData:
 
         if isinstance(node_data, float):
             data.color = (node_data, node_data, node_data)
-            data.transparency = node_data
+            data.transparency = 1.0
             return data
 
         if isinstance(node_data, tuple):
@@ -112,6 +121,18 @@ class WorldData:
         data.intensity = shading.studio_light_intensity
         data.rotation = (0.0, 0.0, shading.studio_light_rotate_z)
         data.image = BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light
+        return data
+
+    @staticmethod
+    def init_from_stage(stage):
+        data = WorldData()
+
+        light_prim = next((prim for prim in stage.TraverseAll() if
+                           prim.GetTypeName() == 'DomeLight'), None)
+        if light_prim:
+            data.color = light_prim.GetAttribute('inputs:color').Get()
+            data.intensity = light_prim.GetAttribute('inputs:intensity').Get()
+
         return data
 
 

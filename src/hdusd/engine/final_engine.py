@@ -52,7 +52,6 @@ class FinalEngine(Engine):
         log(f"Status [{progress:.2}]: {info}")
 
     def _render_gl(self, scene):
-        CLEAR_COLOR = (0.0, 0.0, 0.0, 0.0)
         CLEAR_DEPTH = 1.0
 
         # creating draw_target
@@ -70,45 +69,21 @@ class FinalEngine(Engine):
         renderer.SetRenderViewport((0, 0, self.width, self.height))
         renderer.SetRendererAov('color')
 
-        bgl.glEnable(bgl.GL_DEPTH_TEST)
-        bgl.glViewport(0, 0, self.width, self.height)
-
-        bgl.glClearDepth(CLEAR_DEPTH)
-        bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
-
         root = self.stage.GetPseudoRoot()
         params = UsdImagingGL.RenderParams()
         params.renderResolution = (self.width, self.height)
         params.frame = Usd.TimeCode.Default()
 
-        is_image = True
-        color_final = None
-        transparency = 1.0
-
-        for prim in self.stage.TraverseAll():
-            if prim.GetName() == 'World' and prim.GetTypeName() == 'DomeLight':
-                input_color = prim.GetAttribute('inputs:color').Get()
-                input_intensity = prim.GetAttribute('inputs:intensity').Get()
-                is_image = True if prim.GetAttribute('inputs:texture:file').Get() is not None else False
-                color_final =  (*(color * input_intensity for color in input_color),)
-                break
-
-        #if source is Scene
-        if not scene.hdusd.final.data_source:
-            world_color = world.WorldData.init_from_world(scene.world)
-            color_final = (*(color * world_color.intensity for color in world_color.color),)
-            transparency = world_color.transparency
-
-        if is_image:
-            bgl.glClearColor(*CLEAR_COLOR)
-            params.clearColor = CLEAR_COLOR
+        if scene.hdusd.final.data_source:
+            world_data = world.WorldData.init_from_stage(self.stage)
         else:
-            bgl.glClearColor(*color_final, transparency)
-            params.clearColor = (*color_final, transparency)
-            
+            world_data = world.WorldData.init_from_world(scene.world)
+
+        params.clearColor = world_data.clear_color
 
         try:
             renderer.Render(root, params)
+
         except Exception as e:
             log.error(e)
 

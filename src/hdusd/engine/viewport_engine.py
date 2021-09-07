@@ -223,28 +223,14 @@ class ViewportEngine(Engine):
 
         self._sync(context, depsgraph)
 
-        is_image = True
-        color_final = None
-        transparency = 1.0
-
-        for prim in self.cached_stage().TraverseAll():
-            if prim.GetName() == 'World' and prim.GetTypeName() == 'DomeLight':
-                input_color = prim.GetAttribute('inputs:color').Get()
-                input_intensity = prim.GetAttribute('inputs:intensity').Get()
-                is_image = True if prim.GetAttribute('inputs:texture:file').Get() is not None else False
-                color_final =  (*(color * input_intensity for color in input_color),)
-                break
-
-        #if source is Scene
-        if not self.data_source:
-            world_color = world.WorldData.init_from_world(scene.world)
-            color_final = (*(color * world_color.intensity for color in world_color.color),)
-            transparency = world_color.transparency
-        
-        if is_image:
-            self.render_params.clearColor = (0, 0, 0, 0)
+        if scene.hdusd.final.data_source:
+            world_data = world.WorldData.init_from_stage(self.stage)
         else:
-            self.render_params.clearColor = (*color_final, transparency)
+            world_data = world.WorldData.init_from_world(scene.world)
+
+        clear_color = [color * world_data.intensity for color in world_data.color]
+        clear_color.append(world_data.transparency)
+        self.render_params.clearColor = clear_color
 
         usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
 
@@ -310,7 +296,7 @@ class ViewportEngine(Engine):
             bgl.glDisable(bgl.GL_DEPTH_TEST)
 
         bgl.glViewport(*view_settings.border[0], *view_settings.border[1])
-        bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
+        # bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
         bgl.glClearDepth(1.0)
         bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
 
