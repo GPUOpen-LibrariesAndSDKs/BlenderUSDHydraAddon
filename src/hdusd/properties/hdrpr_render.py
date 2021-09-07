@@ -211,7 +211,7 @@ class RenderSettings(bpy.types.PropertyGroup):
             ('Medium', "Medium", "Medium render quality"),
             ('Low', "Low", "Low render quality")
         ),
-        default='Northstar',
+        default='HybridPro',
     )
     render_mode: EnumProperty(
         name="Render Mode",

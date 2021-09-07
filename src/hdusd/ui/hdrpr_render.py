@@ -133,6 +133,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_viewport(HdUSD_Panel):
 
         layout = layout.column()
         layout.prop(hdrpr, "device")
+        layout.prop(hdrpr, "render_quality")
         layout.prop(hdrpr, "render_mode")
 
 

@@ -64,6 +64,7 @@ class PreviewEngine(Engine):
         renderer = UsdImagingLite.Engine()
         renderer.SetRendererPlugin('HdRprPlugin')
         renderer.SetRendererSetting('maxSamples', self.SAMPLES_NUMBER)
+        renderer.SetRendererSetting('renderQuality', 'HybridPro')
 
         renderer.SetRenderViewport((0, 0, width, height))
         renderer.SetRendererAov('color')
