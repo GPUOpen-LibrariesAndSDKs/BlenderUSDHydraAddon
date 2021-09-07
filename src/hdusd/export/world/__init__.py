@@ -152,6 +152,7 @@ def sync(root_prim, world: bpy.types.World):
         usd_light.CreateColorAttr(data.color)
 
     usd_light.CreateIntensityAttr(data.intensity)
+    usd_light.CreateInput("transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
 
     # # set correct Dome light rotation
     usd_light.AddRotateXOp().Set(180.0)
@@ -171,3 +172,14 @@ def sync_update(root_prim, world: bpy.types.World):
     usd_light.ClearXformOpOrder()
 
     sync(root_prim, world)
+
+
+def get_clear_color(root_prim, world: bpy.types.World):
+    light_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME).
+                                                    AppendChild(Tf.MakeValidIdentifier(world.name)))
+    color = light_prim.GetAttribute('inputs:color').Get()
+    intensity = light_prim.GetAttribute('inputs:intensity').Get()
+    transparency = light_prim.GetAttribute('inputs:transparency').Get()
+    clear_color = [c * intensity for c in color]
+    clear_color.append(transparency)
+    return tuple(clear_color)

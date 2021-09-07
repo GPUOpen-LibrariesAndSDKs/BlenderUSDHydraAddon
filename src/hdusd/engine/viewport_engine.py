@@ -228,11 +228,9 @@ class ViewportEngine(Engine):
         else:
             world_data = world.WorldData.init_from_world(scene.world)
 
-        clear_color = [color * world_data.intensity for color in world_data.color]
-        clear_color.append(world_data.transparency)
-        self.render_params.clearColor = clear_color
+        self.render_params.clearColor = world_data.clear_color
 
-        usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
+        usd_utils.set_variant_delegate(self.stage, self.is_gl_delegate)
 
         self.is_synced = True
         log('Finish sync')
@@ -385,6 +383,7 @@ class ViewportEngineScene(ViewportEngine):
             object.sync(root_prim, obj_data)
 
         world.sync(root_prim, depsgraph.scene.world)
+        self.render_params.clearColor = world.get_clear_color(root_prim, depsgraph.scene.world)
 
     def _sync_update(self, context, depsgraph):
         super()._sync_update(context, depsgraph)
@@ -415,6 +414,7 @@ class ViewportEngineScene(ViewportEngine):
             if isinstance(update.id, bpy.types.World):
                 wld = update.id
                 world.sync_update(root_prim, wld)
+                self.render_params.clearColor = world.get_clear_color(root_prim, wld)
                 continue
 
     def _sync_objects_collection(self, depsgraph):
