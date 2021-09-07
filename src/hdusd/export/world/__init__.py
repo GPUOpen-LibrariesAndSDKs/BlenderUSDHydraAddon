@@ -132,6 +132,7 @@ class WorldData:
         if light_prim:
             data.color = light_prim.GetAttribute('inputs:color').Get()
             data.intensity = light_prim.GetAttribute('inputs:intensity').Get()
+            data.transparency = light_prim.GetAttribute('inputs:transparency').Get()
 
         return data
 
@@ -168,7 +169,11 @@ def sync_update(root_prim, world: bpy.types.World):
 
     # removing prev settings
     usd_light.CreateColorAttr().Clear()
-    usd_light.CreateTextureFileAttr().Clear()
+    usd_light.CreateIntensityAttr().Clear()
+
+    if usd_light.GetTextureFileAttr().Get() is not None:
+        usd_light.CreateTextureFileAttr().Clear()
+
     usd_light.ClearXformOpOrder()
 
     sync(root_prim, world)

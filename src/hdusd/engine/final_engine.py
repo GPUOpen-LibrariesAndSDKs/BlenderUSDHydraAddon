@@ -278,7 +278,8 @@ class FinalEngineScene(FinalEngine):
 
             object.sync(root_prim, obj_data)
 
-        world.sync(root_prim, depsgraph.scene.world)
+        if depsgraph.scene.world is not None:
+            world.sync(root_prim, depsgraph.scene.world)
 
         object.sync(stage.GetPseudoRoot(), object.ObjectData.from_object(depsgraph.scene.camera),
                     scene=depsgraph.scene)
