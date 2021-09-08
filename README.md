@@ -92,8 +92,8 @@ Also, make more meaningful commits(one commit per feature) the easy way. This wi
 
 ### ThirdParty libraries
 There is ThirdParty repositories included to the project as a submodules. Please update submodules:
-- deps/[USD](git@github.com:PixarAnimationStudios/USD)
-- deps/[HdRPR](git@github.com:GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD)
+- `deps/USD` git@github.com:PixarAnimationStudios/USD
+- `deps/HdRPR` git@github.com:GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
 
 All of them are included via SSH protocol. You will need to create and install [SSH keys](https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh).
 
