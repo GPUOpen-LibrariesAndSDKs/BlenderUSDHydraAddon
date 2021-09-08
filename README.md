@@ -3,7 +3,7 @@
 With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines and interchange, this addon is meant to add first class support for USD and the USD Hydra rendering system to Blender. This allows:
 - Importing USD files into Blender as "references". That USD file can be imported as part of the USD node tree, but not loaded into Blender's memory.
 - Assembling Blender data and USD data to form a complex scene.
-- Exporting assembled USD stages for use in other applications
+- Exporting assembled USD stages for use in other applications.
 - Rendering in Blender via the USD Hydra Framework. This is a middle layer for renderers, meaning that once a renderer is adapted to Hydra, it can work in many places including this addon for rendering. Known Hydra render delegates are:
   - AMD's Radeon ProRender (included)
   - Hydra's default Storm delegate (included)
@@ -14,7 +14,7 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
   - Redshift
   - Cycles
   - Intel Ospray
-- Importing, exporting and editing materials using ILM's MaterialX standard
+- Importing, exporting and editing materials using ILM's MaterialX standard.
 
 In short, this addon will allow an artist or studio to assembled and compose USD data with Blender data, and render it all using various renderers via Hydra.
 
@@ -51,9 +51,9 @@ However, more complex behavior is possible. Let's say you are animating a charac
 The correct way to interchange materials via USD is an open-ended question. The only built-in material nodes to USD are a simple USDPreviewSurface (very similar to Blender's Principled BSDF) and nodes to read textures. This is insufficient of course for complex materials. However, the MaterialX standard has emerged as a good interchange format for node-based materials with support from various applications such as Adobe Substance and various Autodesk Applications. Many renderers use their own nodes, but many can also support OSL shaders, which MaterialX can produce.
 
 Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a quick guide to materials:
-- By default, when rendering any Blender materials with just Principled BSDF nodes will be converted automatically
+- By default, when rendering any Blender materials with just Principled BSDF nodes will be converted automatically.
 - There is a MaterialX based nodegraph available under the "MaterialX" editor.
-- A handy conversion script is included to convert Blender Cycles nodegraphs to MaterialX (via the "Tools" panel in the material tab)
+- A handy conversion script is included to convert Blender Cycles nodegraphs to MaterialX (via the "Tools" panel in the material tab).
 - MaterialX networks can be assembled in the editor (and exported for usage elsewhere).
 - MaterialX networks from other applications can be imported here as well.
 
@@ -67,15 +67,15 @@ Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a 
 - cmake 3.x. Make sure it's added to the PATH environment variable
 
 ### Recommended software
-- [epydoc](http://epydoc.sourceforge.net/) - enable PyCharm to parse Core's documentation. Use `py -m pip install epydoc` with your selected python interpreter or install it from PyCharm 
-- [PyCharm Community Edition](https://www.jetbrains.com/pycharm/download/download-thanks.html?platform=windows&code=PCC) - very recommended coding, possible to enable intellisense(limited) for Blender code and for RPR Core
-- [Visual Studio 2019 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) - has a very nice python extension, possible to enable intellisense for Blender and for RPR Core, provides remote debugging in Blender
+- [epydoc](http://epydoc.sourceforge.net/) - enable PyCharm to parse Core's documentation. Use `py -m pip install epydoc` with your selected python interpreter or install it from PyCharm.
+- [PyCharm Community Edition](https://www.jetbrains.com/pycharm/download/download-thanks.html?platform=windows&code=PCC) - very recommended coding, possible to enable intellisense(limited) for Blender code.
+- [Visual Studio 2019 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) - has a very nice python extension, possible to enable intellisense for Blender, provides remote debugging in Blender.
 
 ### Coding Conventions
 Aim is to conform to [pep8](https://www.python.org/dev/peps/pep-0008/). 
-At minimum it's 4 spaces for indentation, sources are utf-8, there's .gitconfig in the root of the project - please set you editor to use it (for most simplicity). E.g. PyCharm(recommended!) default setting are fine and seems that it also picks up .editorconfig automatically also, Tortoise Merge has a checkbox 'Enable EditorConfig', for Visual Studio there's [EditorConfig extension](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328)
+At minimum it's 4 spaces for indentation, sources are utf-8, there's .gitconfig in the root of the project - please set you editor to use it (for most simplicity). E.g. PyCharm(recommended!) default setting are fine and seems that it also picks up .editorconfig automatically also, Tortoise Merge has a checkbox 'Enable EditorConfig', for Visual Studio there's [EditorConfig extension](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328).
 
-###Git
+### Git
 We try to avoid merge commits, the easiest way to do it. This one rejects merges that would result in merge commit:
 ```commandline
 > git config [--global] merge.ff only
@@ -94,7 +94,7 @@ There is ThirdParty repositories included to the project as a submodules. Please
 - deps/USD git@github.com:PixarAnimationStudios/USD
 - deps/HdRPR git@github.com:GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
 
-All of them are included via SSH protocol. You will need to create and install SSH keys https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
+All of them are included via SSH protocol. You will need to create and install SSH keys https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh.
 
 Once SSH keys are installed update/checkout submodules for active branch:
 ```commandline
@@ -103,6 +103,7 @@ Once SSH keys are installed update/checkout submodules for active branch:
 
 ### Build
 Required `python 3.9` to be set by default.
+
 #### Windows:
 Use Open x64 Native Tools Command Prompt for VS 2017 and run _(Version 2019 is not recommended)._
 ```
@@ -120,64 +121,67 @@ Use Open x64 Native Tools Command Prompt for VS 2017 and run _(Version 2019 is n
 > python tools/build.py -all -bin-dir bin
 ```
 
-You can build project using build.py with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `\libs` folder. Also `build.py` provides a verity of ways to make a project builds:
+#### Build tool
+You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
 - `-all` - builds all binaries 
 - `-usd` - builds usd binaries
 - `-hdrpr` - builds HdRPR plugin binaries
-- `-mx` - builds binaries for materialX library
-- `-bin-dir bin\'user dir'` - define folder to build binaries
+- `-mx` - builds binaries for MaterialX library
+- `-bin-dir <bin dir>` - define folder to build binaries
 - `-libs` - copies all the necessary for development libraries to `lib` folder, needs to be passed with `-usd`, `-hdrpr`
-- `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders, `-usd -hdrpr -clean` removes only `\Usd` and `\HdRPR`
-- `-mx-classes` - generates classes for materialX, passing with `-mx-classes`
+- `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders in `<bin dir>`, `-usd -hdrpr -clean` removes only `<bin dir>/Usd` and `<bin dir>/HdRPR`
+- `-mx-classes` - generates classes for MaterialX nodes
 - `-G "Visual Studio 15 2017 Win64"` - set builder, passing with `-all`, `-usd`, `-hdrpr` _(Windows only)_ 
-- `-addon` - generates zip archive with plugin to `\install` folder
+- `-addon` - generates zip archive with plugin to `/install` folder
 
-Arguments are mostly used to skip build unneeded binaries. For exaple you want switch to prebuild binary folder `dir\dir_01`.
-#####Example:
+Arguments are mostly used to skip build unneeded binaries. For example, you want switch to prebuild binary folder `bin/dir_01`:
 ```commandline
-> python tools\build.py -libs -mx-classes -bin-dir bin\dir_01
+> python tools/build.py -libs -mx-classes -bin-dir bin/dir_01
 ```
 ### Debugging
 #### Visual Studio 2019
 Recommended software for debugging, has really nice mixed python and C stack debugging. Provides to you ability of interactive code evaluation. You can make breakpoints move step by step, watch variables and etc.
-#### 1. Run Blender with the Add-on
+
+##### 1. Run Blender with the Add-on
 Make sure you have no installed addon for Blender version you want to use; remove installed version if needed.
 
 ```commandline
 > set BLENDER_EXE="C:\Program Files\Blender Foundation\Blender 2.93\blender.exe"
 > python tools\run_blender_test_addon.py --window-geometry 0 0 1920 1080
 ```
-#### 2. Attach VS to process
+
+##### 2. Attach Visual Studio to process
 Press menu Debug -> Attach to Process... or use hotkey`Ctrl+Alt+P`. In opened window choose Blender process, now you connected and allowed to debug.
 Also use build-in Python debugger in realtime. Turn on with Debug -> Windows -> Python Debug Interactive. 
 
 #### Blender
- It's easiest to [build Blender](https://wiki.blender.org/wiki/Building_Blender/Windows) in Release or RelWithDebInfo and add `#pragma optimize( "", off )`
+ It's easiest to [build Blender](https://wiki.blender.org/wiki/Building_Blender/Windows) in Release or RelWithDebInfo and add `#pragma optimize( "", off )`.
+
 #### PyCharm
 ```python
 import pydevd
 pydevd.settrace('localhost', port=52128, stdoutToServer=True, stderrToServer=True, suspend=False)
 ```
+
 ### Logging
-
 Using python's `logging` module underneath, hdusd.utils.logging has functions similar to logging. It also includes callable class Log which provides simplified interface to do logging.
-#####Code example:
-```python
-  from hdusd.utils import logging
-  log = logging.Log(tag='export.mesh')
 
-  log("sync", mesh, obj)
+##### Code example:
+```python
+from hdusd.utils import logging
+log = logging.Log(tag='export.mesh')
+
+log("sync", mesh, obj)
 ```
-e.g. `logging.debug(*argv, tag)` where argv is what is printed(same as with print) and tag is string suffix for logger name, for filtering
-so that `logging.limit_log(name, level_show_always)` will allow to filter out what doesn't start with `name`(expect levels equal or above `level_show_always`)
+e.g. `logging.debug(*argv, tag)` where argv is what is printed (same as with print) and tag is string suffix for logger name, for filtering, so that `logging.limit_log(name, level_show_always)` will allow to filter out what doesn't start with `name`(expect levels equal or above `level_show_always`).
 
- Configure your session configdev.py(loaded very early) can be used to include code like `limit_log`.
-#####configdev.py example:
+Configure your session `configdev.py` (loaded very early) can be used to include code like `limit_log`.
+
+##### configdev.py example:
 ```python
-  from .utils import logging
-  logging.limit_log('default', logging.DEBUG) # set debug level
+from .utils import logging
+logging.limit_log('default', logging.DEBUG) # set debug level
 
-  from . import config
-  config.engine_use_preview = False # turn of preview of materials
-  config.pyrpr_log_calls = True # log all Core function calls to console
+from . import config
+config.engine_use_preview = False # turn off preview of materials
 ```
