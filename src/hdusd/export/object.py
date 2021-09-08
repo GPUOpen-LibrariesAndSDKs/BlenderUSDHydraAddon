@@ -100,6 +100,14 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
     # setting transform
     xform.MakeMatrixXform().Set(Gf.Matrix4d(obj_data.transform))
 
+    if obj_data.object.parent is not None:
+        parent_prim = stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj_data.object.parent.name)}")
+
+        if parent_prim is not None:
+            obj_prim.GetInherits().AddInherit(parent_prim.GetPath().pathString)
+            obj_prim.SetInstanceable(False)
+            return
+
     obj = obj_data.object
     if obj.type == 'MESH':
         if obj.mode == 'OBJECT':
