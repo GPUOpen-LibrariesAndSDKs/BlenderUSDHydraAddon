@@ -65,7 +65,7 @@ Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a 
   - requests - `pip install requests`
 - [Visual Studio 2017 Community](https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads) _(Windows only)_
 >_Not recommended to use for build Visual Studio 2019._
-- [cmake 3.x](https://cmake.org/download/). Make sure it's added to the PATH environment variable
+- [CMake 3.x](https://cmake.org/download/). Make sure it's added to the PATH environment variable
 
 ### Recommended software
 - [epydoc](http://epydoc.sourceforge.net/) - enable PyCharm to parse Core's documentation. Use `py -m pip install epydoc` with your selected python interpreter or install it from PyCharm.
@@ -92,8 +92,8 @@ Also, make more meaningful commits(one commit per feature) the easy way. This wi
 
 ### ThirdParty libraries
 There is ThirdParty repositories included to the project as a submodules. Please update submodules:
-- `deps/USD` git@github.com:PixarAnimationStudios/USD
-- `deps/HdRPR` git@github.com:GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
+- `deps/USD` https://github.com/PixarAnimationStudios/USD
+- `deps/HdRPR` https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
 
 All of them are included via SSH protocol. You will need to create and install [SSH keys](https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh).
 
