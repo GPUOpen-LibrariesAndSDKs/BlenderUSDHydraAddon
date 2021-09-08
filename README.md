@@ -19,26 +19,26 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
 In short, this addon will allow an artist or studio to assembled and compose USD data with Blender data, and render it all using various renderers via Hydra.
 
 ## Additional Documentation
-- Pixar USD https://graphics.pixar.com/usd/docs/index.html
-- Hydra https://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Hydra
-- MaterialX http://www.materialx.org/
+- [Pixar USD](https://graphics.pixar.com/usd/docs/index.html)
+- [Hydra](https://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Hydra)
+- [MaterialX](http://www.materialx.org/)
 
 ## Requirements
 Currently, this addon works only with [Blender 2.93+](https://www.blender.org/download/) in Windows and Linux. We hope to remove the restriction in the future, but there are a few things preventing this.
 
-On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the addon. These include a copy of the USD library, as well as the Radeon ProRender Hydra delegate (under the directory "libs").
+On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the addon. These include a copy of the USD library, as well as the Radeon ProRender Hydra delegate (under the directory `/libs`).
 
 ## Installing Add-on
 
 Download the add-on from the releases page [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases). Open Blender preferences and got to the Add-ons section click Install button and pick the add-on in File Browser. Enable the add-on from the Add-ons section. 
 
-_WINDOWS USERS: Please note that old versions need to be disabled and uninstalled, and then Blender restarted. This is the case with many Blender addons that use C++ extenstions: https://developer.blender.org/T77837_
+>_WINDOWS USERS: Please note that old versions need to be disabled and uninstalled, and then Blender restarted. This is the case with many Blender addons that use C++ extenstions: https://developer.blender.org/T77837_
 
-For users who wish to install 3rd party render delegates (see above), they should be installed to the "libs/plugins/usd" directory in the addon folder similar to a regular USD installation.
+For users who wish to install 3rd party render delegates (see above), they should be installed to the `libs/plugins/usd` directory in the addon folder similar to a regular USD installation.
 
 ## Usage
 ### Rendering
-At a simple level, this functions similar to any render addon to Blender, like Cycles or EEVEE which are included in Blender. Simply select the render engine (in this case "USD Hydra") and render using the F12 key or starting a viewport render. However, Hydra allows the added benefit of selecting a "Render Delegate". The default is using Radeon ProRender, AMD's cross device GPU path tracer.
+At a simple level, this functions similar to any render addon to Blender, like Cycles or EEVEE which are included in Blender. Simply select the render engine (in this case "USD Hydra") and render using the `F12` key or starting a viewport render. However, Hydra allows the added benefit of selecting a "Render Delegate". The default is using Radeon ProRender, AMD's cross device GPU path tracer.
 
 Select a different render delegate in the render settings. Each render delegate may have it's own render settings.
 
@@ -59,21 +59,22 @@ Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a 
 
 ## Contributing
 ### Build Requirements
-- Blender 2.93+
-- Python 3.9 x64 _(Blender 2.93+ uses 3.9)_
+- [Blender 2.93+](https://www.blender.org/download/)
+- [Python 3.9 x64](https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe) _(Blender 2.93+ uses 3.9)_
   - numpy - `pip install numpy`
   - requests - `pip install requests`
-- Visual Studio 2017, not recommended 2019 _(Windows only)_
-- cmake 3.x. Make sure it's added to the PATH environment variable
+- [Visual Studio 2017 Community](https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads) _(Windows only)_
+>_Not recommended to use for build Visual Studio 2019._
+- [cmake 3.x](https://cmake.org/download/). Make sure it's added to the PATH environment variable
 
 ### Recommended software
 - [epydoc](http://epydoc.sourceforge.net/) - enable PyCharm to parse Core's documentation. Use `py -m pip install epydoc` with your selected python interpreter or install it from PyCharm.
-- [PyCharm Community Edition](https://www.jetbrains.com/pycharm/download/download-thanks.html?platform=windows&code=PCC) - very recommended coding, possible to enable intellisense(limited) for Blender code.
-- [Visual Studio 2019 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) - has a very nice python extension, possible to enable intellisense for Blender, provides remote debugging in Blender.
+- [PyCharm Community Edition](https://www.jetbrains.com/pycharm/download/download-thanks.html?platform=windows&code=PCC) - recommended for coding, possible to enable intellisense(limited) for Blender code.
+- [Visual Studio 2019 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) - has a powerful python extension, possible to enable intellisense for Blender, provides remote debugging in Blender.
 
 ### Coding Conventions
 Aim is to conform to [pep8](https://www.python.org/dev/peps/pep-0008/). 
-At minimum it's 4 spaces for indentation, sources are utf-8, there's .gitconfig in the root of the project - please set you editor to use it (for most simplicity). E.g. PyCharm(recommended!) default setting are fine and seems that it also picks up .editorconfig automatically also, Tortoise Merge has a checkbox 'Enable EditorConfig', for Visual Studio there's [EditorConfig extension](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328).
+At minimum it's 4 spaces for indentation, sources are utf-8, there's `.gitconfig` in the root of the project - please set you editor to use it (for most simplicity). PyCharm default setting are fine and seems that it also picks up `.editorconfig` automatically also, [Tortoise](https://tortoisegit.org/) Merge has a checkbox 'Enable EditorConfig', for Visual Studio there's [EditorConfig extension](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328).
 
 ### Git
 We try to avoid merge commits, the easiest way to do it. This one rejects merges that would result in merge commit:
@@ -91,22 +92,22 @@ Also, make more meaningful commits(one commit per feature) the easy way. This wi
 
 ### ThirdParty libraries
 There is ThirdParty repositories included to the project as a submodules. Please update submodules:
-- deps/USD git@github.com:PixarAnimationStudios/USD
-- deps/HdRPR git@github.com:GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
+- deps/[USD](git@github.com:PixarAnimationStudios/USD)
+- deps/[HdRPR](git@github.com:GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD)
 
-All of them are included via SSH protocol. You will need to create and install SSH keys https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh.
+All of them are included via SSH protocol. You will need to create and install [SSH keys](https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh).
 
 Once SSH keys are installed update/checkout submodules for active branch:
 ```commandline
-> git submodule update --init -f --recursive`
+> git submodule update --init -f --recursive
 ```
 
 ### Build
-Required `python 3.9` to be set by default.
+Require `python 3.9` to be set by default.
 
 #### Windows:
-Use Open x64 Native Tools Command Prompt for VS 2017 and run _(Version 2019 is not recommended)._
-```
+Use Open x64 Native Tools Command Prompt for Visual Studio 2017 Community and run.
+```commandline
 > git clone https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon
 > cd BlenderUSDHydraAddon
 > git submodule update --init --recursive
@@ -152,10 +153,10 @@ Make sure you have no installed addon for Blender version you want to use; remov
 
 ##### 2. Attach Visual Studio to process
 Press menu Debug -> Attach to Process... or use hotkey`Ctrl+Alt+P`. In opened window choose Blender process, now you connected and allowed to debug.
-Also use build-in Python debugger in realtime. Turn on with Debug -> Windows -> Python Debug Interactive. 
+Also use build-in Python debugger in realtime. Turn on with `Debug -> Windows -> Python Debug Interactive. 
 
 #### Blender
- It's easiest to [build Blender](https://wiki.blender.org/wiki/Building_Blender/Windows) in Release or RelWithDebInfo and add `#pragma optimize( "", off )`.
+ The easiest way to [build Blender](https://wiki.blender.org/wiki/Building_Blender/Windows) in Release or RelWithDebInfo and add `#pragma optimize( "", off )`.
 
 #### PyCharm
 ```python
@@ -173,7 +174,7 @@ log = logging.Log(tag='export.mesh')
 
 log("sync", mesh, obj)
 ```
-e.g. `logging.debug(*argv, tag)` where argv is what is printed (same as with print) and tag is string suffix for logger name, for filtering, so that `logging.limit_log(name, level_show_always)` will allow to filter out what doesn't start with `name`(expect levels equal or above `level_show_always`).
+For example, `logging.debug(*argv, tag)` where argv is what is printed (same as with print) and tag is string suffix for logger name, for filtering, so that `logging.limit_log(name, level_show_always)` will allow to filter out what doesn't start with `name`(expect levels equal or above `level_show_always`).
 
 Configure your session `configdev.py` (loaded very early) can be used to include code like `limit_log`.
 
