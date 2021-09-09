@@ -269,6 +269,12 @@ class FinalEngineScene(FinalEngine):
 
         objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(
                           depsgraph, use_scene_cameras=False))
+
+        # depsgraph_objects = object.ObjectData.depsgraph_objects(
+        #     depsgraph, use_scene_cameras=False)
+        # sorted_depsgraph_objects = sorted(list(depsgraph_objects), key=lambda a: a.instance_id)
+        # for i, obj_data in enumerate(sorted_depsgraph_objects):
+
         for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
                                      depsgraph, use_scene_cameras=False)):
             if self.render_engine.test_break():

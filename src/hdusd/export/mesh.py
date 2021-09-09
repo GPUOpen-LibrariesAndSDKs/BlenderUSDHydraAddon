@@ -203,6 +203,34 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         return
 
     stage = obj_prim.GetStage()
+    parent_prim = None
+    parent_object = None
+
+    if obj.parent is not None and obj_prim.GetName() == Tf.MakeValidIdentifier(obj.original.name):
+        parent_object = obj.parent
+        parent_prim = stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.parent.name)}")
+
+    if obj.parent is not None and obj_prim.GetName() != Tf.MakeValidIdentifier(obj.original.name):
+        parent_object = obj.original
+        parent_prim = stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.original.name)}")
+
+    if parent_prim is not None and parent_prim.IsValid() and parent_prim.GetChildren():
+        for child in parent_prim.GetChildren():
+            if child.GetTypeName() == 'Mesh':
+                usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
+                    Tf.MakeValidIdentifier(obj.name)))
+                usd_mesh.GetPrim().GetReferences().AddInternalReference(child.GetPath())
+
+            if child.GetTypeName() == 'Material':
+                usd_mesh = UsdGeom.Mesh.Get(stage, f"{obj_prim.GetPath().pathString}/{Tf.MakeValidIdentifier(obj.name)}")
+                if obj_prim.GetName() == Tf.MakeValidIdentifier(obj.name):
+                    _assign_materials(obj_prim, obj.original, usd_mesh)
+                else:
+                    usd_material = UsdShade.Material.Get(stage, child.GetPath())
+                    UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
+                
+        return
+    
     usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(mesh.name)))
 
     usd_mesh.CreateDoubleSidedAttr(True)
