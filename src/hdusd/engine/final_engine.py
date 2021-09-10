@@ -52,7 +52,6 @@ class FinalEngine(Engine):
         log(f"Status [{progress:.2}]: {info}")
 
     def _render_gl(self, scene):
-        CLEAR_COLOR = (0.0, 0.0, 0.0, 0.0)
         CLEAR_DEPTH = 1.0
 
         # creating draw_target
@@ -70,20 +69,21 @@ class FinalEngine(Engine):
         renderer.SetRenderViewport((0, 0, self.width, self.height))
         renderer.SetRendererAov('color')
 
-        bgl.glEnable(bgl.GL_DEPTH_TEST)
-        bgl.glViewport(0, 0, self.width, self.height)
-        bgl.glClearColor(*CLEAR_COLOR)
-        bgl.glClearDepth(CLEAR_DEPTH)
-        bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
-
         root = self.stage.GetPseudoRoot()
         params = UsdImagingGL.RenderParams()
         params.renderResolution = (self.width, self.height)
         params.frame = Usd.TimeCode.Default()
-        params.clearColor = CLEAR_COLOR
+
+        if scene.hdusd.final.data_source:
+            world_data = world.WorldData.init_from_stage(self.stage)
+        else:
+            world_data = world.WorldData.init_from_world(scene.world)
+
+        params.clearColor = world_data.clear_color
 
         try:
             renderer.Render(root, params)
+
         except Exception as e:
             log.error(e)
 
@@ -284,7 +284,8 @@ class FinalEngineScene(FinalEngine):
 
             object.sync(root_prim, obj_data)
 
-        world.sync(root_prim, depsgraph.scene.world)
+        if depsgraph.scene.world is not None:
+            world.sync(root_prim, depsgraph.scene.world)
 
         object.sync(stage.GetPseudoRoot(), object.ObjectData.from_object(depsgraph.scene.camera),
                     scene=depsgraph.scene)

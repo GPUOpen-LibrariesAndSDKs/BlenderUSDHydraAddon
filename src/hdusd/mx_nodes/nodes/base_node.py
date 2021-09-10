@@ -31,7 +31,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
                (0.16, 0.78, 0.16, 1.0)
 
     def draw(self, context, layout, node, text):
-        nd = node.prop.nodedef()
+        nd = node.nodedef
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
 
@@ -48,10 +48,10 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             else:
                 layout.label(text=f"{uiname}: {uitype}")
         else:
-            layout.prop(node.prop, MxNodeDef._input_prop_name(self.name), text=uiname)
+            layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
     def draw_color(self, context, node):
-        return self.get_color(node.prop.nodedef().getInput(self.name).getType())
+        return self.get_color(node.nodedef.getInput(self.name).getType())
 
 
 class MxNodeOutputSocket(bpy.types.NodeSocket):
@@ -59,7 +59,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
     bl_label = "MX Output Socket"
 
     def draw(self, context, layout, node, text):
-        nd = node.prop.nodedef()
+        nd = node.nodedef
         mx_output = nd.getOutput(self.name)
         uiname = mx_utils.get_attr(mx_output, 'uiname', title_str(mx_output.getName()))
         uitype = title_str(mx_output.getType())
@@ -69,58 +69,12 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
             layout.label(text=f"{uiname}: {uitype}")
 
     def draw_color(self, context, node):
-        return MxNodeInputSocket.get_color(node.prop.nodedef().getOutput(self.name).getType())
-
-
-class MxNodeDef(bpy.types.PropertyGroup):
-    _file_path: str
-    _nodedef_name: str
-    _node_name: str
-
-    _nodedef: mx.NodeDef = None
-
-    @classmethod
-    def nodedef(cls):
-        if cls._nodedef is None:
-            doc = mx.createDocument()
-            mx.readFromXmlFile(doc, str(LIBS_DIR / cls._file_path))
-            cls._nodedef = doc.getNodeDef(cls._nodedef_name)
-
-        return cls._nodedef
-
-    @staticmethod
-    def _param_prop_name(name):
-        return 'p_' + name
-
-    @staticmethod
-    def _input_prop_name(name):
-        return 'in_' + name
-
-    def update_prop(self, context):
-        nodetree = self.id_data
-        nodetree.update_()
-
-    def get_input(self, name):
-        return getattr(self, self._input_prop_name(name))
-
-    def set_input(self, name, value):
-        setattr(self, self._input_prop_name(name), value)
-
-    def get_param(self, name):
-        return getattr(self, self._param_prop_name(name))
-
-    def set_param(self, name, value):
-        setattr(self, self._param_prop_name(name), value)
-
-    def get_nodedef_input(self, name):
-        return self.nodedef().getInput(name)
-
-    def get_nodedef_output(self, name):
-        return self.nodedef().getOutput(name)
+        return MxNodeInputSocket.get_color(node.nodedef.getOutput(self.name).getType())
 
 
 class MxNode(bpy.types.ShaderNode):
     """Base node from which all MaterialX nodes will be made"""
+    _file_path: str
     bl_compatibility = {'HdUSD'}
     bl_idname = 'hdusd.'
     # bl_icon = 'MATERIAL'
@@ -129,22 +83,42 @@ class MxNode(bpy.types.ShaderNode):
     bl_description = ""
     bl_width_default = 200
 
-    _data_types = ()    # list of available types from nodedefs
+    _data_types = {}    # available types and nodedefs
     _ui_folders = ()    # list of ui folders mentioned in nodedef
     category = ""
-    data_type = None
 
-    @staticmethod
-    def _folder_prop_name(name):
-        return 'f_' + code_str(name.lower())
+    @classmethod
+    def get_nodedef(cls, data_type):
+        if not cls._data_types[data_type]['nd']:
+            # loading nodedefs
+            doc = mx.createDocument()
+            mx.readFromXmlFile(doc, str(LIBS_DIR / cls._file_path))
+            for val in cls._data_types.values():
+                val['nd'] = doc.getNodeDef(val['nd_name'])
 
-    @staticmethod
-    def _nodedef_prop_name(name):
-        return 'nd_' + name
+        return cls._data_types[data_type]['nd']
+
+    @property
+    def nodedef(self):
+        return self.get_nodedef(self.data_type)
+
+    def _folder_prop_name(self, name):
+        return f"f_{code_str(name.lower())}"
+
+    def _param_prop_name(self, name):
+        return f"nd_{self.data_type}_p_{name}"
+
+    def _input_prop_name(self, name):
+        return f"nd_{self.data_type}_in_{name}"
+
+    def update_prop(self, context):
+        nodetree = self.id_data
+        nodetree.update_()
 
     def init(self, context):
         def init_():
-            nodedef = self.prop.nodedef()
+
+            nodedef = self.nodedef
 
             for mx_input in nodedef.getInputs():
                 if mx_input.getAttribute('uniform') == 'true':
@@ -165,7 +139,7 @@ class MxNode(bpy.types.ShaderNode):
         if len(self._data_types) > 1:
             layout.prop(self, 'data_type')
 
-        nodedef = self.prop.nodedef()
+        nodedef = self.nodedef
 
         if self._ui_folders:
             col = layout.column(align=True)
@@ -180,7 +154,7 @@ class MxNode(bpy.types.ShaderNode):
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
-            layout.prop(self.prop, MxNodeDef._input_prop_name(mx_input.getName()))
+            layout.prop(self, self._input_prop_name(mx_input.getName()))
 
         for mx_param in nodedef.getParameters():
             f = mx_param.getAttribute('uifolder')
@@ -194,18 +168,18 @@ class MxNode(bpy.types.ShaderNode):
                 col.label(text=mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')
                           else title_str(name))
                 col = split.column()
-                col.template_ID(self.prop, MxNodeDef._param_prop_name(name),
+                col.template_ID(self, self._param_prop_name(name),
                                 open="image.open", new="image.new")
 
             else:
-                layout.prop(self.prop, MxNodeDef._param_prop_name(name))
+                layout.prop(self, self._param_prop_name(name))
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
         log("compute", self, out_key)
 
         doc = kwargs['doc']
-        nodedef = self.prop.nodedef()
+        nodedef = self.nodedef
         nd_output = self.get_nodedef_output(out_key)
 
         values = []
@@ -281,36 +255,29 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        return self.prop.get_input(self.inputs[in_key].identifier)
+        return getattr(self, self._input_prop_name(self.inputs[in_key].identifier))
 
     def get_param_value(self, name):
-        return self.prop.get_param(name)
-
-    def get_input_param_value(self, name):
-        return self.prop.get_input(name)
+        return getattr(self, self._param_prop_name(name))
 
     def get_nodedef_input(self, in_key: [str, int]):
-        return self.prop.get_nodedef_input(self.inputs[in_key].identifier)
+        return self.nodedef.getInput(self.inputs[in_key].identifier)
 
     def get_nodedef_output(self, out_key: [str, int]):
-        return self.prop.get_nodedef_output(self.outputs[out_key].identifier)
+        return self.nodedef.getOutput(self.outputs[out_key].identifier)
 
-    def set_input_default(self, in_key, value):
-        self.prop.set_input(self.inputs[in_key].identifier, value)
+    def set_input_value(self, in_key, value):
+        setattr(self, self._input_prop_name(self.inputs[in_key].identifier), value)
 
     def set_param_value(self, name, value):
-        self.prop.set_param(name, value)
-
-    @property
-    def prop(self):
-        return getattr(self, self._nodedef_prop_name(self.data_type))
+        setattr(self, self._param_prop_name(name), value)
 
     @classmethod
     def poll(cls, tree):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
     def ui_folders_update(self, context):
-        for i, mx_input in enumerate(self.prop.nodedef().getInputs()):
+        for i, mx_input in enumerate(self.nodedef.getInputs()):
             f = mx_input.getAttribute('uifolder')
             if f:
                 self.inputs[i].hide = not getattr(self, self._folder_prop_name(f))
@@ -325,7 +292,7 @@ class MxNode(bpy.types.ShaderNode):
         for f in self._ui_folders:
             setattr(self, self._folder_prop_name(f), False)
 
-        for in_key, mx_input in enumerate(self.prop.nodedef().getInputs()):
+        for in_key, mx_input in enumerate(self.nodedef.getInputs()):
             f = mx_input.getAttribute('uifolder')
             if not f:
                 continue

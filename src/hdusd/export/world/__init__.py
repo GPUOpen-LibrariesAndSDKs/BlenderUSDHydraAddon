@@ -36,14 +36,25 @@ class WorldData:
     image: str = None
     intensity: float = 1.0
     rotation: tuple = (0.0, 0.0, 0.0)
+    transparency: float = 1.0
+
+    @property
+    def clear_color(self):
+        color = [c * self.intensity for c in self.color]
+        color.append(self.transparency)
+        return tuple(color)
 
     @staticmethod
     def init_from_world(world: bpy.types.World):
         """ Returns WorldData from bpy.types.World """
         data = WorldData()
 
+        if not world:
+            return data
+
         if not world.use_nodes:
             data.color = tuple(world.color)
+            data.transparency = world.color[3]
             return data
 
         output_node = next((node for node in world.node_tree.nodes
@@ -63,10 +74,12 @@ class WorldData:
 
         if isinstance(node_data, float):
             data.color = (node_data, node_data, node_data)
+            data.transparency = 1.0
             return data
 
         if isinstance(node_data, tuple):
             data.color = node_data[:3]
+            data.transparency = node_data[3]
             return data
 
         # node_data is dict here
@@ -85,9 +98,11 @@ class WorldData:
 
         elif isinstance(color, float):
             data.color = (color, color, color)
+            data.transparency = color
 
         elif isinstance(color, tuple):
             data.color = color[:3]
+            data.transparency = color[3]
 
         else:   # dict
             image = color.get('image')
@@ -108,6 +123,19 @@ class WorldData:
         data.image = BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light
         return data
 
+    @staticmethod
+    def init_from_stage(stage):
+        data = WorldData()
+
+        light_prim = next((prim for prim in stage.TraverseAll() if
+                           prim.GetTypeName() == 'DomeLight'), None)
+        if light_prim:
+            data.color = light_prim.GetAttribute('inputs:color').Get()
+            data.intensity = light_prim.GetAttribute('inputs:intensity').Get()
+            data.transparency = light_prim.GetAttribute('inputs:transparency').Get()
+
+        return data
+
 
 def sync(root_prim, world: bpy.types.World):
     data = WorldData.init_from_world(world)
@@ -125,6 +153,7 @@ def sync(root_prim, world: bpy.types.World):
         usd_light.CreateColorAttr(data.color)
 
     usd_light.CreateIntensityAttr(data.intensity)
+    usd_light.CreateInput("transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
 
     # # set correct Dome light rotation
     usd_light.AddRotateXOp().Set(180.0)
@@ -140,7 +169,22 @@ def sync_update(root_prim, world: bpy.types.World):
 
     # removing prev settings
     usd_light.CreateColorAttr().Clear()
-    usd_light.CreateTextureFileAttr().Clear()
+    usd_light.CreateIntensityAttr().Clear()
+
+    if usd_light.GetTextureFileAttr().Get() is not None:
+        usd_light.CreateTextureFileAttr().Clear()
+
     usd_light.ClearXformOpOrder()
 
     sync(root_prim, world)
+
+
+def get_clear_color(root_prim, world: bpy.types.World):
+    light_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME).
+                                                    AppendChild(Tf.MakeValidIdentifier(world.name)))
+    color = light_prim.GetAttribute('inputs:color').Get()
+    intensity = light_prim.GetAttribute('inputs:intensity').Get()
+    transparency = light_prim.GetAttribute('inputs:transparency').Get()
+    clear_color = [c * intensity for c in color]
+    clear_color.append(transparency)
+    return tuple(clear_color)

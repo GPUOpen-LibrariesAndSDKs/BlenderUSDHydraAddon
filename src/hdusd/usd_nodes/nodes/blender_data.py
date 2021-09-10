@@ -187,7 +187,8 @@ class BlenderDataNode(USDNode):
             for obj_data in ObjectData.depsgraph_objects(depsgraph):
                 object.sync(root_prim, obj_data, **kwargs)
 
-            world.sync(root_prim, depsgraph.scene.world)
+            if depsgraph.scene.world is not None:
+                world.sync(root_prim, depsgraph.scene.world)
 
         elif self.data == 'COLLECTION':
             if not self.collection:
