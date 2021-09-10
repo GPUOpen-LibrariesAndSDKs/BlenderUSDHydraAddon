@@ -68,7 +68,11 @@ def set_param_value(mx_param, val, nd_type):
 
 
 def is_value_equal(mx_val, val, nd_type):
-    if nd_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
+    if nd_type in ('string', 'float', 'integer', 'boolean', 'angle'):
+        return mx_val == val
+
+    if nd_type == 'filename':
+        val = "" if val is None else val
         return mx_val == val
 
     return tuple(mx_val) == tuple(val)
