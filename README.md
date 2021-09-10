@@ -63,6 +63,9 @@ Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a 
 - [Python 3.9 x64](https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe) _(Blender 2.93+ uses 3.9)_
   - numpy - `pip install numpy`
   - requests - `pip install requests`
+  - PyOpenGL - `pip install PyOpenGL`
+  - PySide2 - `pip install PySide2`
+
 - [Visual Studio 2017 Community](https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads) _(Windows only)_
 >_Not recommended to use for build Visual Studio 2019._
 - [CMake 3.x](https://cmake.org/download/). Make sure it's added to the PATH environment variable
@@ -124,7 +127,7 @@ Use Open x64 Native Tools Command Prompt for Visual Studio 2017 Community and ru
 
 #### Build tool
 You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
-- `-all` - builds all binaries 
+- `-all` - builds all binaries, equals to `-usd -hdrpr -mx -libs -mx-classes -addon` 
 - `-usd` - builds usd binaries
 - `-hdrpr` - builds HdRPR plugin binaries
 - `-mx` - builds binaries for MaterialX library
