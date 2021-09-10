@@ -19,10 +19,13 @@ from .image import cache_image_file
 
 from pathlib import Path
 
-from . import title_str, code_str
+from . import LIBS_DIR, title_str, code_str
 
 from . import logging
 log = logging.Log(tag='utils.mx')
+
+
+MX_LIBS_DIR = LIBS_DIR / "materialx/libraries"
 
 
 def set_param_value(mx_param, val, nd_type):
@@ -88,14 +91,21 @@ def get_attr(mx_param, name, else_val=None):
 
 def parse_value(node, mx_val, mx_type, file_prefix=None):
     if mx_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
+        if file_prefix and mx_type == 'filename':
+            mx_val = str((file_prefix / mx_val).resolve())
+
         if node.category in ('texture2d', 'texture3d') and mx_type == 'filename':
-            if Path(mx_val).exists():
-                return bpy.data.images.load(mx_val)
+            file_path = Path(mx_val)
+            if file_path.exists():
+                image = bpy.data.images.get(file_path.name)
+                if image and image.filepath_from_user() == str(file_path):
+                    return image
+
+                image = bpy.data.images.load(str(file_path))
+                return image
 
             return None
 
-        if file_prefix and mx_type == 'filename':
-            mx_val = str((file_prefix / mx_val).resolve())
 
         return mx_val
 

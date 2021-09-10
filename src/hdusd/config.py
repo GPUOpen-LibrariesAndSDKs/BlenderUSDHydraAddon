@@ -16,6 +16,9 @@ from .utils import logging
 
 logging.limit_log('', level_show_min=logging.INFO)
 
+matlib_enabled = False
+engine_use_preview = True
+
 try:
     # configdev.py example for logging setup:
     # from .utils import logging

@@ -33,7 +33,7 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
         yield f
 
 
-def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
+def iterate_copied_files(repo_dir, usd_dir, hdrpr_dir, mx_dir):
     # USD libraries
     for f in iterate_files(usd_dir / "lib", "**/*",
                            ignore_parts=("__pycache__",),
@@ -83,6 +83,10 @@ def iterate_copied_files(usd_dir, hdrpr_dir, mx_dir):
     for f in iterate_files(mx_dir / "bin", "*"):
         yield f, Path("materialx") / f.relative_to(mx_dir)
 
+    deps_mx_libs = repo_dir / "deps/mx_libs"
+    for f in iterate_files(deps_mx_libs, "**/*"):
+        yield f, Path("materialx/libraries") / f.relative_to(deps_mx_libs)
+
 
 def main(bin_dir):
     repo_dir = Path(__file__).parent.parent
@@ -92,7 +96,8 @@ def main(bin_dir):
 
     print(f"Copying libs to: {libs_dir}")
 
-    for f, relative in iterate_copied_files(bin_dir / "USD/install",
+    for f, relative in iterate_copied_files(repo_dir,
+                                            bin_dir / "USD/install",
                                             bin_dir / "HdRPR/install",
                                             bin_dir / "MaterialX/install"):
         print(f, '->', relative)

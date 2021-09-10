@@ -168,10 +168,12 @@ def get_attr(mx_param, name, else_val=""):
 def nodedef_data_type(nodedef):
     # nodedef name consists: ND_{node_name}_{data_type} therefore:
     outputs = nodedef.getOutputs()
-    if len(outputs) == 1:
-        return nodedef.getOutputs()[0].getType()
+    if len(outputs) > 1:
+        return 'multitypes'
 
-    return "multitypes"
+    output_type = nodedef.getOutputs()[0].getType()
+    nodedef_name_type = nodedef.getName().split('_')[-1]
+    return nodedef_name_type if nodedef_name_type.startswith(output_type) else output_type
 
 
 def generate_data_type(nodedef):
@@ -322,13 +324,14 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)
 
     doc = mx.createDocument()
-    mx.readFromXmlFile(doc, str(file_path))
+    search_path = mx.FileSearchPath(str(libs_dir / "materialx/libraries"))
+    mx.readFromXmlFile(doc, str(file_path), searchPath=search_path)
     nodedefs = doc.getNodeDefs()
 
     # grouping node_def_classes by node and nodegroup
     node_def_classes_by_node = defaultdict(list)
     for nodedef in nodedefs:
-        if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+        if nodedef.getSourceUri() or nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
             continue
 
         node_def_classes_by_node[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
@@ -360,6 +363,7 @@ def main():
         ('USD', "USD", mx_libs_dir / "bxdf/usd_preview_surface.mtlx"),
         ('STD', None, mx_libs_dir / "stdlib/stdlib_defs.mtlx"),
         ('PBR', "PBR", mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),
+        ('ALG', "Algorithm", mx_libs_dir / "alglib/alglib_defs.mtlx"),
     ]
 
     for f in (hdrpr_mat_dir / "Shaders").glob("rpr_*.mtlx"):
