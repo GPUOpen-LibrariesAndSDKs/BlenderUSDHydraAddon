@@ -107,9 +107,11 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
 
     if obj_data.is_particle:
         usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
-                    Tf.MakeValidIdentifier(obj.original.name)))
-        usd_mesh.GetPrim().GetReferences().AddInternalReference(f"/{Tf.MakeValidIdentifier(obj.original.name)}/{Tf.MakeValidIdentifier(obj.data.name)}")
-        usd_material = UsdShade.Material.Get(stage, f"/{Tf.MakeValidIdentifier(obj.original.name)}/{material.sdf_name(obj.active_material)}")
+            Tf.MakeValidIdentifier(obj.original.name)))
+        usd_mesh.GetPrim().GetReferences().AddInternalReference(
+            f"/{Tf.MakeValidIdentifier(obj.original.name)}/{Tf.MakeValidIdentifier(obj.data.name)}")
+        usd_material = UsdShade.Material.Get(stage,
+            f"/{Tf.MakeValidIdentifier(obj.original.name)}/{material.sdf_name(obj.active_material)}")
         UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
         return
 

@@ -362,11 +362,8 @@ class ViewportEngineScene(ViewportEngine):
 
         root_prim = stage.GetPseudoRoot()
 
-        depsgraph_objects = object.ObjectData.depsgraph_objects(depsgraph,
-                space_data=self.space_data, use_scene_cameras=False)
-        sorted_depsgraph_objects = sorted(list(depsgraph_objects), key=lambda a: a.instance_id)
-
-        for obj_data in sorted_depsgraph_objects:
+        for obj_data in object.ObjectData.depsgraph_objects(depsgraph,
+                space_data=self.space_data, use_scene_cameras=False):
             object.sync(root_prim, obj_data)
 
         if depsgraph.scene.world is not None:

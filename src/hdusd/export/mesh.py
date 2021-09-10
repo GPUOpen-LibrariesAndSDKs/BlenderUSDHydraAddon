@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 import math
 
-from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf
+from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf, Gf
 import bpy
 import bmesh
 import mathutils
@@ -206,13 +206,15 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
     parent_prim = None
     parent_object = None
 
-    if obj.parent is not None and obj_prim.GetName() == Tf.MakeValidIdentifier(obj.original.name):
-        parent_object = obj.parent
-        parent_prim = stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.parent.name)}")
-
     if obj.parent is not None and obj_prim.GetName() != Tf.MakeValidIdentifier(obj.original.name):
         parent_object = obj.original
         parent_prim = stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.original.name)}")
+
+    if parent_prim is not None and not parent_prim.IsValid():
+        xform = UsdGeom.Xform.Define(stage, f"/{Tf.MakeValidIdentifier(obj.original.name)}")
+        parent_prim = xform.GetPrim()
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(parent_object.matrix_world.transposed()))
+        sync(parent_prim, parent_object)
 
     if parent_prim is not None and parent_prim.IsValid() and parent_prim.GetChildren():
         for child in parent_prim.GetChildren():
@@ -222,12 +224,10 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
                 usd_mesh.GetPrim().GetReferences().AddInternalReference(child.GetPath())
 
             if child.GetTypeName() == 'Material':
-                usd_mesh = UsdGeom.Mesh.Get(stage, f"{obj_prim.GetPath().pathString}/{Tf.MakeValidIdentifier(obj.name)}")
-                if obj_prim.GetName() == Tf.MakeValidIdentifier(obj.name):
-                    _assign_materials(obj_prim, obj.original, usd_mesh)
-                else:
-                    usd_material = UsdShade.Material.Get(stage, child.GetPath())
-                    UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
+                usd_mesh = UsdGeom.Mesh.Get(stage,
+                    f"{obj_prim.GetPath().pathString}/{Tf.MakeValidIdentifier(obj.name)}")
+                usd_material = UsdShade.Material.Get(stage, child.GetPath())
+                UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
                 
         return
     
