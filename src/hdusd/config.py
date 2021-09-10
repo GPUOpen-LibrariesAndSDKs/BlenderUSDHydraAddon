@@ -16,7 +16,7 @@ from .utils import logging
 
 logging.limit_log('', level_show_min=logging.INFO)
 
-matlib_url = "https://matlibapi.cistest.luxoft.com/api"
+matlib_enabled = False
 engine_use_preview = True
 
 try:

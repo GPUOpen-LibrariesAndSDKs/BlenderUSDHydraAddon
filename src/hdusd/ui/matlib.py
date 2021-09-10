@@ -21,6 +21,7 @@ import bpy
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
 from ..utils import mx as mx_utils
+from .. import config
 
 from ..utils import logging
 log = logging.Log(tag='ui.matlib')
@@ -68,6 +69,10 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
     bl_label = "Material Library"
     bl_context = "material"
     bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and config.matlib_enabled
 
     def draw(self, context):
         layout = self.layout
