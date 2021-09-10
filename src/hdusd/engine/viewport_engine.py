@@ -16,7 +16,6 @@ from dataclasses import dataclass
 import textwrap
 
 import bpy
-import bgl
 from bpy_extras import view3d_utils
 import weakref
 import time
@@ -218,13 +217,19 @@ class ViewportEngine(Engine):
 
         self.render_params = UsdImagingGL.RenderParams()
         self.render_params.frame = Usd.TimeCode.Default()
-        self.render_params.clearColor = (0, 0, 0, 0)
 
         self.renderer = UsdImagingGL.Engine()
 
         self._sync(context, depsgraph)
 
-        usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
+        if scene.hdusd.final.data_source:
+            world_data = world.WorldData.init_from_stage(self.stage)
+        else:
+            world_data = world.WorldData.init_from_world(scene.world)
+
+        self.render_params.clearColor = world_data.clear_color
+
+        usd_utils.set_variant_delegate(self.stage, self.is_gl_delegate)
 
         self.is_synced = True
         log('Finish sync')
@@ -281,20 +286,6 @@ class ViewportEngine(Engine):
         self.renderer.SetRenderViewport((*view_settings.border[0], *view_settings.border[1]))
         self.renderer.SetRendererAov('color')
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
-
-        if self.is_gl_delegate:
-            bgl.glEnable(bgl.GL_DEPTH_TEST)
-        else:
-            bgl.glDisable(bgl.GL_DEPTH_TEST)
-
-        bgl.glViewport(*view_settings.border[0], *view_settings.border[1])
-        bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
-        bgl.glClearDepth(1.0)
-        bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
-
-        # Bind shader that converts from scene linear to display space,
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
         self.render_engine.bind_display_space_shader(context.scene)
 
         if self.renderer.GetRenderStats().get('percentDone', 0.0) == 0.0:
@@ -306,7 +297,6 @@ class ViewportEngine(Engine):
             log.error(e)
 
         self.render_engine.unbind_display_space_shader()
-        bgl.glDisable(bgl.GL_BLEND)
         elapsed_time = time_str(time.perf_counter() - self.time_begin)
         if not self.renderer.IsConverged():
             self.notify_status(f"Time: {elapsed_time} | "
@@ -376,7 +366,9 @@ class ViewportEngineScene(ViewportEngine):
                 space_data=self.space_data, use_scene_cameras=False):
             object.sync(root_prim, obj_data)
 
-        world.sync(root_prim, depsgraph.scene.world)
+        if depsgraph.scene.world is not None:
+            world.sync(root_prim, depsgraph.scene.world)
+            self.render_params.clearColor = world.get_clear_color(root_prim, depsgraph.scene.world)
 
     def _sync_update(self, context, depsgraph):
         super()._sync_update(context, depsgraph)
@@ -407,6 +399,7 @@ class ViewportEngineScene(ViewportEngine):
             if isinstance(update.id, bpy.types.World):
                 wld = update.id
                 world.sync_update(root_prim, wld)
+                self.render_params.clearColor = world.get_clear_color(root_prim, wld)
                 continue
 
     def _sync_objects_collection(self, depsgraph):
@@ -474,6 +467,10 @@ class ViewportEngineNodetree(ViewportEngine):
         if stage:
             # creating overrides from nodetree stage
             for prim in stage.GetPseudoRoot().GetAllChildren():
+                if prim.GetName() == 'World':
+                    world_data = world.WorldData.init_from_stage(stage)
+                    self.render_params.clearColor = world_data.clear_color
+
                 override_prim = engine_stage.OverridePrim(
                     root_prim.GetPath().AppendChild(prim.GetName()))
                 override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,

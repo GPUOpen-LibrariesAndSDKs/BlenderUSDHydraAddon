@@ -173,6 +173,7 @@ def nodedef_data_type(nodedef):
 
     return "multitypes"
 
+
 def generate_data_type(nodedef):
     outputs = nodedef.getOutputs()
     if len(outputs) != 1:
@@ -201,10 +202,6 @@ def nodedef_prop_name(name):
     return 'nd_' + name
 
 
-def get_mx_nodedef_class_name(nodedef, prefix):
-    return f"MxNodeDef_{prefix}_{nodedef.getName()}"
-
-
 def get_mx_node_class_name(nodedef, prefix):
     return f"MxNode_{prefix}_{nodedef.getNodeString()}"
 
@@ -217,15 +214,15 @@ def generate_mx_node_class_code(nodedefs, prefix, category):
     class_name = get_mx_node_class_name(nodedef, prefix)
     code_strings = []
 
-    _data_types = {}
+    data_types = {}
     for nd in nodedefs:
-        _data_types.update(eval(generate_data_type(nd)))
+        data_types[nodedef_data_type(nd)] = {'nd_name': nd.getName(), 'nd': None }
 
     code_strings.append(
 f"""
 class {class_name}(MxNode):
     _file_path = FILE_PATH
-    _data_types = {_data_types}
+    _data_types = {data_types}
     
     bl_label = '{get_attr(nodedef, 'uiname', title_str(nodedef.getNodeString()))}'
     bl_idname = 'hdusd.{class_name}'
@@ -268,20 +265,20 @@ class {class_name}(MxNode):
             f'    {folder_prop_name(f)}: BoolProperty(name="{f}", '
             f'description="Enable {f}", default={i == 0}, update=MxNode.ui_folders_update)')
 
-    for j, nd in enumerate(nodedefs):
+    for nd in nodedefs:
         nodegroup = nd.getAttribute('nodegroup')
         nd_type = nodedef_data_type(nd)
         code_strings.append("")
 
-        for i, param in enumerate(nd.getParameters()):
+        for param in nd.getParameters():
             prop_code = generate_property_code(param, nodegroup)
             code_strings.append(f"    nd_{nd_type}_{param_prop_name(param.getName())}: {prop_code}")
 
-        for i, input in enumerate(nodedef.getInputs()):
+        for input in nodedef.getInputs():
             prop_code = generate_property_code(input, nodegroup)
             code_strings.append(f"    nd_{nd_type}_{input_prop_name(input.getName())}: {prop_code}")
 
-        for i, output in enumerate(nodedef.getOutputs()):
+        for output in nodedef.getOutputs():
             prop_code = generate_property_code(output, nodegroup)
             code_strings.append(f"    nd_{nd_type}_{output_prop_name(output.getName())}: {prop_code}")
 
@@ -327,12 +324,6 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
     doc = mx.createDocument()
     mx.readFromXmlFile(doc, str(file_path))
     nodedefs = doc.getNodeDefs()
-    nodedef_class_names = []
-    for nodedef in nodedefs:
-        if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
-            continue
-
-        nodedef_class_names.append(get_mx_nodedef_class_name(nodedef, prefix))
 
     # grouping node_def_classes by node and nodegroup
     node_def_classes_by_node = defaultdict(list)
