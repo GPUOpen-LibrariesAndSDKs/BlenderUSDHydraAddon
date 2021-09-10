@@ -230,7 +230,10 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
                 UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
                 
         return
-    
+
+    if len(stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.original.name)}").GetChildren()) > 0:
+        return
+
     usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(mesh.name)))
 
     usd_mesh.CreateDoubleSidedAttr(True)
