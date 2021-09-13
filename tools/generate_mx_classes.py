@@ -59,7 +59,7 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
     return val_str
 
 
-def generate_property_code(mx_param, nodegroup):
+def generate_property_code(mx_param, category):
     mx_type = mx_param.getType()
     prop_attrs = {}
 
@@ -78,7 +78,7 @@ def generate_property_code(mx_param, nodegroup):
             prop_type = "StringProperty"
             break
         if mx_type == 'filename':
-            if nodegroup in ("texture2d", "texture3d"):
+            if category in ("texture2d", "texture3d"):
                 prop_type = "PointerProperty"
                 break
 
@@ -142,7 +142,7 @@ def generate_property_code(mx_param, nodegroup):
                                ('uisoftmin', 'soft_min'), ('uisoftmax', 'soft_max'),
                                ('value', 'default')):
         if mx_param.hasAttribute(mx_attr):
-            if prop_attr == 'default' and nodegroup in ("texture2d", "texture3d") and mx_type == 'filename':
+            if prop_attr == 'default' and category in ("texture2d", "texture3d") and mx_type == 'filename':
                 continue
 
             prop_attrs[prop_attr] = parse_value_str(
@@ -155,7 +155,7 @@ def generate_property_code(mx_param, nodegroup):
 
     prop_attr_strings.append("update=MxNode.update_prop")
 
-    if mx_type == 'filename' and nodegroup in ("texture2d", "texture3d"):
+    if mx_type == 'filename' and category in ("texture2d", "texture3d"):
         prop_attr_strings.insert(0, "type=bpy.types.Image")
 
     return f"{prop_type}({', '.join(prop_attr_strings)})"
@@ -184,24 +184,20 @@ def generate_data_type(nodedef):
     return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
 
-def param_prop_name(name):
-    return 'p_' + name
+def param_prop_name(nd_type, name):
+    return f'nd_{nd_type}_p_{name}'
 
 
-def input_prop_name(name):
-    return 'in_' + name
+def input_prop_name(nd_type, name):
+    return f'nd_{nd_type}_in_{name}'
 
 
-def output_prop_name(name):
-    return 'out_' + name
+def output_prop_name(nd_type, name):
+    return f'nd_{nd_type}_out_{name}'
 
 
 def folder_prop_name(name):
     return 'f_' + code_str(name.lower())
-
-
-def nodedef_prop_name(name):
-    return 'nd_' + name
 
 
 def get_mx_node_class_name(nodedef, prefix):
@@ -268,21 +264,20 @@ class {class_name}(MxNode):
             f'description="Enable {f}", default={i == 0}, update=MxNode.ui_folders_update)')
 
     for nd in nodedefs:
-        nodegroup = nd.getAttribute('nodegroup')
         nd_type = nodedef_data_type(nd)
         code_strings.append("")
 
         for param in nd.getParameters():
-            prop_code = generate_property_code(param, nodegroup)
-            code_strings.append(f"    nd_{nd_type}_{param_prop_name(param.getName())}: {prop_code}")
+            prop_code = generate_property_code(param, category)
+            code_strings.append(f"    {param_prop_name(nd_type, param.getName())}: {prop_code}")
 
-        for input in nodedef.getInputs():
-            prop_code = generate_property_code(input, nodegroup)
-            code_strings.append(f"    nd_{nd_type}_{input_prop_name(input.getName())}: {prop_code}")
+        for input in nd.getInputs():
+            prop_code = generate_property_code(input, category)
+            code_strings.append(f"    {input_prop_name(nd_type, input.getName())}: {prop_code}")
 
-        for output in nodedef.getOutputs():
-            prop_code = generate_property_code(output, nodegroup)
-            code_strings.append(f"    nd_{nd_type}_{output_prop_name(output.getName())}: {prop_code}")
+        for output in nd.getOutputs():
+            prop_code = generate_property_code(output, category)
+            code_strings.append(f"    {output_prop_name(nd_type, output.getName())}: {prop_code}")
 
     code_strings.append("")
     return '\n'.join(code_strings)
