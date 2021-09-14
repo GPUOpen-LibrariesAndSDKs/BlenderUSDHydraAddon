@@ -122,13 +122,15 @@ class MxNode(bpy.types.ShaderNode):
         nodetree.update_()
 
     def update_data_type(self, context):
+        # updating names for inputs and outputs
         nodedef = self.nodedef
+        for i, nd_input in enumerate(nodedef.getInputs()):
+            self.inputs[i].name = nd_input.getName()
         for i, nd_output in enumerate(nodedef.getOutputs()):
             self.outputs[i].name = nd_output.getName()
 
     def init(self, context):
         def init_():
-
             nodedef = self.nodedef
 
             for mx_input in nodedef.getInputs():
@@ -266,19 +268,19 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        return getattr(self, self._input_prop_name(self.inputs[in_key].identifier))
+        return getattr(self, self._input_prop_name(self.inputs[in_key].name))
 
     def get_param_value(self, name):
         return getattr(self, self._param_prop_name(name))
 
     def get_nodedef_input(self, in_key: [str, int]):
-        return self.nodedef.getInput(self.inputs[in_key].identifier)
+        return self.nodedef.getInput(self.inputs[in_key].name)
 
     def get_nodedef_output(self, out_key: [str, int]):
-        return self.nodedef.getOutput(self.outputs[out_key].identifier)
+        return self.nodedef.getOutput(self.outputs[out_key].name)
 
     def set_input_value(self, in_key, value):
-        setattr(self, self._input_prop_name(self.inputs[in_key].identifier), value)
+        setattr(self, self._input_prop_name(self.inputs[in_key].name), value)
 
     def set_param_value(self, name, value):
         setattr(self, self._param_prop_name(name), value)
@@ -323,7 +325,9 @@ class MxNode(bpy.types.ShaderNode):
         self.update_ui_folders(None)
 
     def create_input(self, mx_input):
-        return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
+        input = self.inputs.new(MxNodeInputSocket.bl_idname, f'in_{len(self.inputs)}')
+        input.name = mx_input.getName()
+        return input
 
     def create_output(self, mx_output):
         output = self.outputs.new(MxNodeOutputSocket.bl_idname, f'out_{len(self.outputs)}')
