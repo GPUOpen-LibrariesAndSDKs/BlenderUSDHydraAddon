@@ -104,14 +104,14 @@ def generate_property_code(mx_param, category):
             prop_type = "StringProperty"
             break
 
-        m = re.fullmatch('matrix(\d)(\d)', mx_type)
+        m = re.fullmatch(r'matrix(\d)(\d)', mx_type)
         if m:
             prop_type = "FloatVectorProperty"
             prop_attrs['subtype'] = 'MATRIX'
             prop_attrs['size'] = int(m[1]) * int(m[2])
             break
 
-        m = re.fullmatch('color(\d)', mx_type)
+        m = re.fullmatch(r'color(\d)', mx_type)
         if m:
             prop_type = "FloatVectorProperty"
             prop_attrs['subtype'] = 'COLOR'
@@ -120,7 +120,7 @@ def generate_property_code(mx_param, category):
             prop_attrs['soft_max'] = 1.0
             break
 
-        m = re.fullmatch('vector(\d)', mx_type)
+        m = re.fullmatch(r'vector(\d)', mx_type)
         if m:
             prop_type = "FloatVectorProperty"
             dim = int(m[1])
@@ -128,7 +128,7 @@ def generate_property_code(mx_param, category):
             prop_attrs['size'] = dim
             break
 
-        m = re.fullmatch('(.+)array', mx_type)
+        m = re.fullmatch(r'(.+)array', mx_type)
         if m:
             prop_type = "StringProperty"
             # TODO: Change to CollectionProperty
@@ -166,14 +166,17 @@ def get_attr(mx_param, name, else_val=""):
 
 
 def nodedef_data_type(nodedef):
-    # nodedef name consists: ND_{node_name}_{data_type} therefore:
-    outputs = nodedef.getOutputs()
-    if len(outputs) > 1:
-        return 'multitypes'
+    nd_name = nodedef.getName()
+    node_name = nodedef.getNodeString()
 
-    output_type = nodedef.getOutputs()[0].getType()
-    nodedef_name_type = nodedef.getName().split('_')[-1]
-    return nodedef_name_type if nodedef_name_type.startswith(output_type) else output_type
+    if nd_name.startswith('rpr_'):
+        return nodedef.getOutputs()[0].getType()
+
+    m = re.fullmatch(rf'ND_{node_name}_(.+)', nd_name)
+    if m:
+        return m[1]
+
+    return nodedef.getOutputs()[0].getType()
 
 
 def generate_data_type(nodedef):
@@ -326,7 +329,11 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
     # grouping node_def_classes by node and nodegroup
     node_def_classes_by_node = defaultdict(list)
     for nodedef in nodedefs:
-        if nodedef.getSourceUri() or nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+        if nodedef.getSourceUri():
+            continue
+
+        if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
+            print(f"Ignoring nodedef {nodedef.getName()}")
             continue
 
         node_def_classes_by_node[(nodedef.getNodeString(), nodedef.getAttribute('nodegroup'))].\
