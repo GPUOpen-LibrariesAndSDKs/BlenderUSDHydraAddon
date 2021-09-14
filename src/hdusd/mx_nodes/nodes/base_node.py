@@ -207,16 +207,29 @@ class MxNode(bpy.types.ShaderNode):
         mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, self.name, True)
         node_name = mx_utils.get_node_name_by_node_path(self.name)
         mx_node = mx_nodegraph.addNode(nodedef.getNodeString(), node_name, nd_output.getType())
+
         for in_key, val in values:
             nd_input = self.get_nodedef_input(in_key)
             nd_type = nd_input.getType()
-            if not isinstance(val, mx.Node):
-                if mx_utils.is_shader_type(nd_type):
-                    continue
 
-                nd_val = nd_input.getValue()
-                if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
-                    continue
+            if isinstance(val, mx.Node):
+                mx_input = mx_node.addInput(nd_input.getName(), nd_type)
+                mx_utils.set_param_value(mx_input, val, nd_type)
+                continue
+
+            if isinstance(val, tuple) and isinstance(val[0], mx.Node):
+                # node with multioutput type
+                in_node, out_name = val
+                mx_input = mx_node.addInput(nd_input.getName(), nd_type)
+                mx_utils.set_param_value(mx_input, in_node, nd_type, out_name)
+                continue
+
+            if mx_utils.is_shader_type(nd_type):
+                continue
+
+            nd_val = nd_input.getValue()
+            if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
+                continue
 
             mx_input = mx_node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(mx_input, val, nd_type)
@@ -234,9 +247,15 @@ class MxNode(bpy.types.ShaderNode):
             mx_param = mx_node.addParameter(nd_param.getName(), nd_type)
             mx_utils.set_param_value(mx_param, val, nd_type)
 
+        if len(nodedef.getOutputs()) > 1:
+            mx_node.setType('multioutput')
+            return mx_node, nd_output.getName()
+
         return mx_node
 
     def _compute_node(self, node, out_key, **kwargs):
+        # checking if node is already in nodegraph
+
         doc = kwargs['doc']
         mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node.name)
         if mx_nodegraph:

@@ -28,13 +28,15 @@ log = logging.Log(tag='utils.mx')
 MX_LIBS_DIR = LIBS_DIR / "materialx/libraries"
 
 
-def set_param_value(mx_param, val, nd_type):
+def set_param_value(mx_param, val, nd_type, out_name=None):
     if isinstance(val, mx.Node):
         param_nodegraph = mx_param.getParent().getParent()
         val_nodegraph = val.getParent()
         node_name = val.getName()
         if val_nodegraph == param_nodegraph:
             mx_param.setNodeName(node_name)
+            if out_name:
+                mx_param.setAttribute('output', out_name)
         else:
             # checking nodegraph paths
             val_ng_path = val_nodegraph.getNamePath()
