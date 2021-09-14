@@ -255,7 +255,8 @@ class {class_name}(MxNode):
 
     code_strings += [
         f'    data_type: EnumProperty(name="Type", description="Input Data Type", '
-        f"items={data_type_items}, default='{data_type_items[index_default][0]}')",
+        f"items={data_type_items}, default='{data_type_items[index_default][0]}', "
+        f"update=MxNode.update_data_type)",
     ]
 
     for i, f in enumerate(ui_folders):
@@ -264,7 +265,7 @@ class {class_name}(MxNode):
 
         code_strings.append(
             f'    {folder_prop_name(f)}: BoolProperty(name="{f}", '
-            f'description="Enable {f}", default={i == 0}, update=MxNode.ui_folders_update)')
+            f'description="Enable {f}", default={i == 0}, update=MxNode.update_ui_folders)')
 
     for nd in nodedefs:
         nd_type = nodedef_data_type(nd)

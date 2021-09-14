@@ -121,6 +121,11 @@ class MxNode(bpy.types.ShaderNode):
         nodetree = self.id_data
         nodetree.update_()
 
+    def update_data_type(self, context):
+        nodedef = self.nodedef
+        for i, nd_output in enumerate(nodedef.getOutputs()):
+            self.outputs[i].name = nd_output.getName()
+
     def init(self, context):
         def init_():
 
@@ -136,7 +141,7 @@ class MxNode(bpy.types.ShaderNode):
                 self.create_output(mx_output)
 
             if self._ui_folders:
-                self.ui_folders_update(context)
+                self.update_ui_folders(context)
 
         nodetree = self.id_data
         nodetree.no_update_call(init_)
@@ -282,7 +287,7 @@ class MxNode(bpy.types.ShaderNode):
     def poll(cls, tree):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
-    def ui_folders_update(self, context):
+    def update_ui_folders(self, context):
         for i, mx_input in enumerate(self.nodedef.getInputs()):
             f = mx_input.getAttribute('uifolder')
             if f:
@@ -291,7 +296,7 @@ class MxNode(bpy.types.ShaderNode):
         nodetree = self.id_data
         nodetree.update_()
 
-    def ui_folders_check(self):
+    def check_ui_folders(self):
         if not self._ui_folders:
             return
 
@@ -315,10 +320,12 @@ class MxNode(bpy.types.ShaderNode):
 
             setattr(self, self._folder_prop_name(f), True)
 
-        self.ui_folders_update(None)
+        self.update_ui_folders(None)
 
     def create_input(self, mx_input):
         return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
 
     def create_output(self, mx_output):
-        return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
+        output = self.outputs.new(MxNodeOutputSocket.bl_idname, f'out_{len(self.outputs)}')
+        output.name = mx_output.getName()
+        return output
