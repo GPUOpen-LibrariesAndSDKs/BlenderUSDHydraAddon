@@ -122,9 +122,9 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                 try:
                     MxNode_cls, data_type = get_mx_node_cls(mx_node)
 
-                except KeyError:
+                except KeyError as e:
                     if not look_nodedef:
-                        log.warn(f"Corresponding MxNode for {mx_node} wasn't found")
+                        log.warn(e)
                         return None
 
                     # looking for nodedef and switching to another nodegraph defined in doc
@@ -164,15 +164,17 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         continue
 
                     node_name = mx_input.getNodeName()
+                    mx_output_name = mx_input.getAttribute('output')
+
                     if node_name:
                         new_mx_node = mx_nodegraph.getNode(node_name)
                         new_node = import_node(new_mx_node, layer + 1)
-                        self.links.new(new_node.outputs[0], node.inputs[input_name])
+                        self.links.new(new_node.outputs[mx_output_name] if mx_output_name else
+                                       new_node.outputs[0], node.inputs[input_name])
                         continue
 
                     new_nodegraph_name = mx_input.getAttribute('nodegraph')
                     if new_nodegraph_name:
-                        mx_output_name = mx_input.getAttribute('output')
                         new_mx_nodegraph = mx_nodegraph.getNodeGraph(new_nodegraph_name)
                         mx_output = new_mx_nodegraph.getOutput(mx_output_name)
                         node_name = mx_output.getNodeName()
