@@ -99,6 +99,11 @@ class MxNode(bpy.types.ShaderNode):
 
         return cls._data_types[data_type]['nd']
 
+    @classmethod
+    def get_nodedefs(cls):
+        for data_type in cls._data_types.keys():
+            yield cls.get_nodedef(data_type), data_type
+
     @property
     def nodedef(self):
         return self.get_nodedef(self.data_type)

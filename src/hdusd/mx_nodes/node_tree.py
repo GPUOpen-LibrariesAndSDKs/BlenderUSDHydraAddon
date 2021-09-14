@@ -120,7 +120,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     return self.nodes[node_path]
 
                 try:
-                    MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+                    MxNode_cls, data_type = get_mx_node_cls(mx_node)
 
                 except KeyError:
                     if not look_nodedef:
@@ -133,6 +133,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                                    nd.getType() == mx_node.getType())
                     new_mx_nodegraph = next(ng for ng in doc.getNodeGraphs()
                                             if ng.getNodeDefString() == nodedef.getName())
+                    assert mx_output_name
                     mx_output = new_mx_nodegraph.getOutput(mx_output_name)
                     node_name = mx_output.getNodeName()
                     new_mx_node = new_mx_nodegraph.getNode(node_name)
@@ -143,7 +144,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                 node.name = node_path
                 layers[node_path] = layer
 
-                node.data_type = mx_node.getType()
+                node.data_type = data_type
                 for mx_param in mx_node.getParameters():
                     node.set_param_value(
                         mx_param.getName(),
