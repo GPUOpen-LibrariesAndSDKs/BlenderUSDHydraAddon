@@ -133,7 +133,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                                    nd.getType() == mx_node.getType())
                     new_mx_nodegraph = next(ng for ng in doc.getNodeGraphs()
                                             if ng.getNodeDefString() == nodedef.getName())
-                    assert mx_output_name
+
                     mx_output = new_mx_nodegraph.getOutput(mx_output_name)
                     node_name = mx_output.getNodeName()
                     new_mx_node = new_mx_nodegraph.getNode(node_name)
@@ -164,17 +164,23 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         continue
 
                     node_name = mx_input.getNodeName()
-                    mx_output_name = mx_input.getAttribute('output')
 
                     if node_name:
                         new_mx_node = mx_nodegraph.getNode(node_name)
                         new_node = import_node(new_mx_node, layer + 1)
-                        self.links.new(new_node.outputs[mx_output_name] if mx_output_name else
-                                       new_node.outputs[0], node.inputs[input_name])
+
+                        out_name = mx_input.getAttribute('output')
+                        if len(new_node.nodedef.getOutputs()) > 1 and out_name:
+                            new_node_output = new_node.outputs[out_name]
+                        else:
+                            new_node_output = new_node.outputs[0]
+
+                        self.links.new(new_node_output, node.inputs[input_name])
                         continue
 
                     new_nodegraph_name = mx_input.getAttribute('nodegraph')
                     if new_nodegraph_name:
+                        mx_output_name = mx_input.getAttribute('output')
                         new_mx_nodegraph = mx_nodegraph.getNodeGraph(new_nodegraph_name)
                         mx_output = new_mx_nodegraph.getOutput(mx_output_name)
                         node_name = mx_output.getNodeName()
@@ -182,8 +188,14 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         new_node = import_node(new_mx_node, layer + 1, mx_output_name)
                         if not new_node:
                             continue
-                            
-                        self.links.new(new_node.outputs[0], node.inputs[input_name])
+
+                        out_name = mx_output.getAttribute('output')
+                        if len(new_node.nodedef.getOutputs()) > 1 and out_name:
+                            new_node_output = new_node.outputs[out_name]
+                        else:
+                            new_node_output = new_node.outputs[0]
+
+                        self.links.new(new_node_output, node.inputs[input_name])
                         continue
 
                 node.check_ui_folders()
