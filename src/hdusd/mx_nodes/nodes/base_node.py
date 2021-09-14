@@ -219,9 +219,9 @@ class MxNode(bpy.types.ShaderNode):
 
             if isinstance(val, tuple) and isinstance(val[0], mx.Node):
                 # node with multioutput type
-                in_node, out_name = val
+                in_node, in_nd_output = val
                 mx_input = mx_node.addInput(nd_input.getName(), nd_type)
-                mx_utils.set_param_value(mx_input, in_node, nd_type, out_name)
+                mx_utils.set_param_value(mx_input, in_node, nd_type, in_nd_output)
                 continue
 
             if mx_utils.is_shader_type(nd_type):
@@ -249,7 +249,7 @@ class MxNode(bpy.types.ShaderNode):
 
         if len(nodedef.getOutputs()) > 1:
             mx_node.setType('multioutput')
-            return mx_node, nd_output.getName()
+            return mx_node, nd_output
 
         return mx_node
 
@@ -262,6 +262,10 @@ class MxNode(bpy.types.ShaderNode):
             node_name = mx_utils.get_node_name_by_node_path(node.name)
             mx_node = mx_nodegraph.getNode(node_name)
             if mx_node:
+                if mx_node.getType() == 'multioutput':
+                    nd_output = node.get_nodedef_output(out_key)
+                    return mx_node, nd_output
+
                 return mx_node
 
         return node.compute(out_key, **kwargs)

@@ -28,15 +28,15 @@ log = logging.Log(tag='utils.mx')
 MX_LIBS_DIR = LIBS_DIR / "materialx/libraries"
 
 
-def set_param_value(mx_param, val, nd_type, out_name=None):
+def set_param_value(mx_param, val, nd_type, nd_output=None):
     if isinstance(val, mx.Node):
         param_nodegraph = mx_param.getParent().getParent()
         val_nodegraph = val.getParent()
         node_name = val.getName()
         if val_nodegraph == param_nodegraph:
             mx_param.setNodeName(node_name)
-            if out_name:
-                mx_param.setAttribute('output', out_name)
+            if nd_output:
+                mx_param.setAttribute('output', nd_output.getName())
         else:
             # checking nodegraph paths
             val_ng_path = val_nodegraph.getNamePath()
@@ -47,10 +47,17 @@ def set_param_value(mx_param, val, nd_type, out_name=None):
                 raise ValueError(f"Inconsistent nodegraphs. Cannot connect input "
                                  f"{mx_param.getNamePath()} to {val.getNamePath()}")
 
-            mx_output = val_nodegraph.getOutput(f"out_{node_name}")
+            mx_output_name = f'out_{node_name}'
+            if nd_output:
+                mx_output_name += f'_{nd_output.getName()}'
+
+            mx_output = val_nodegraph.getOutput(mx_output_name)
             if not mx_output:
-                mx_output = val_nodegraph.addOutput(f"out_{node_name}", val.getType())
+                mx_output = val_nodegraph.addOutput(mx_output_name, val.getType())
                 mx_output.setNodeName(node_name)
+                if nd_output:
+                    mx_output.setType(nd_output.getType())
+                    mx_output.setAttribute('output', nd_output.getName())
 
             mx_param.setAttribute('nodegraph', val_nodegraph.getName())
             mx_param.setAttribute('output', mx_output.getName())
