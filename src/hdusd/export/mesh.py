@@ -206,12 +206,12 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
     parent_prim = None
     parent_object = None
 
-    if obj.parent is not None and obj_prim.GetName() != Tf.MakeValidIdentifier(obj.original.name):
+    if obj.parent is not None and obj_prim.GetName() != Tf.MakeValidIdentifier(obj.original.name_full):
         parent_object = obj.original
-        parent_prim = stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.original.name)}")
+        parent_prim = stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.original.name_full)}")
 
     if parent_prim is not None and not parent_prim.IsValid():
-        xform = UsdGeom.Xform.Define(stage, f"/{Tf.MakeValidIdentifier(obj.original.name)}")
+        xform = UsdGeom.Xform.Define(stage, f"/{Tf.MakeValidIdentifier(obj.original.name_full)}")
         parent_prim = xform.GetPrim()
         xform.MakeMatrixXform().Set(Gf.Matrix4d(parent_object.matrix_world.transposed()))
         sync(parent_prim, parent_object)
@@ -220,19 +220,20 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         for child in parent_prim.GetChildren():
             if child.GetTypeName() == 'Mesh':
                 usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
-                    Tf.MakeValidIdentifier(obj.name)))
+                    Tf.MakeValidIdentifier(obj.name_full)))
                 usd_mesh.GetPrim().GetReferences().AddInternalReference(child.GetPath())
 
             if child.GetTypeName() == 'Material':
                 usd_mesh = UsdGeom.Mesh.Get(stage,
-                    f"{obj_prim.GetPath().pathString}/{Tf.MakeValidIdentifier(obj.name)}")
+                    f"{obj_prim.GetPath().pathString}/{Tf.MakeValidIdentifier(obj.name_full)}")
                 usd_material = UsdShade.Material.Get(stage, child.GetPath())
                 UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
                 
         return
 
-    if len(stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.original.name)}").GetChildren()) > 0:
-        return
+    for child in stage.GetPrimAtPath(f"/{Tf.MakeValidIdentifier(obj.original.name_full)}").GetChildren():
+        if len(child.GetAuthoredPropertyNames()) > 0:
+            return
 
     usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(mesh.name)))
 
