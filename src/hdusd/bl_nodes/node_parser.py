@@ -38,7 +38,10 @@ class NodeItem:
         self.id = id
         self.doc = doc
         self.data = data
-        self.nodedef = get_mx_node_cls(data.getCategory(), data.getType()).get_nodedef(self.type) if isinstance(data, mx.Node) else None
+        self.nodedef = None
+        if isinstance(data, mx.Node):
+            MxNode_cls, _ = get_mx_node_cls(data)
+            self.nodedef = MxNode_cls.get_nodedef(self.type)
 
     def node_item(self, value):
         if isinstance(value, NodeItem):

@@ -51,7 +51,6 @@ def unregister():
 
 def get_mx_node_cls(mx_node):
     node_name = mx_node.getCategory()
-    node_type = mx_node.getType()
 
     suffix = f'_{node_name}'
     classes = tuple(cls for cls in mx_node_classes if cls.__name__.endswith(suffix))
