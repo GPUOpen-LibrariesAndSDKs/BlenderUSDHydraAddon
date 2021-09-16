@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 import math
 
-from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf
+from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf, Gf
 import bpy
 import bmesh
 import mathutils
@@ -193,6 +193,8 @@ def sync_visibility(rpr_context, obj: bpy.types.Object, rpr_shape, indirect_only
 
 def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs):
     """ Creates pyrpr.Shape from obj.data:bpy.types.Mesh """
+    from .object import sdf_name
+
     if not mesh:
         mesh = obj.data
 
@@ -203,7 +205,38 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         return
 
     stage = obj_prim.GetStage()
-    usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(mesh.name)))
+    parent_prim = None
+    parent_object = None
+
+    if obj.parent is not None and obj_prim.GetName() != sdf_name(obj.original):
+        parent_object = obj.original
+        parent_prim = stage.GetPrimAtPath(f"/{sdf_name(obj.original)}")
+
+    if parent_prim is not None and not parent_prim.IsValid():
+        xform = UsdGeom.Xform.Define(stage, f"/{sdf_name(obj.original)}")
+        parent_prim = xform.GetPrim()
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(parent_object.matrix_world.transposed()))
+        sync(parent_prim, parent_object)
+
+    if parent_prim is not None and parent_prim.IsValid() and parent_prim.GetChildren():
+        for child in parent_prim.GetChildren():
+            if child.GetTypeName() == 'Mesh':
+                usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(sdf_name(obj)))
+                usd_mesh.GetPrim().GetReferences().AddInternalReference(child.GetPath())
+
+            if child.GetTypeName() == 'Material':
+                usd_mesh = UsdGeom.Mesh.Get(stage, obj_prim.GetPath().AppendChild(sdf_name(obj)))
+                usd_material = UsdShade.Material.Get(stage, child.GetPath())
+                UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
+                
+        return
+
+    for child in stage.GetPrimAtPath(f"/{sdf_name(obj.original)}").GetChildren():
+        if len(child.GetAuthoredPropertyNames()) > 0:
+            return
+
+    usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
+        Tf.MakeValidIdentifier(mesh.name)))
 
     usd_mesh.CreateDoubleSidedAttr(True)
     usd_mesh.CreatePointsAttr(data.vertices)
