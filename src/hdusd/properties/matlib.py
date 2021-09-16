@@ -51,7 +51,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
                 description += f"\nCategory: {mat.category.title}"
             description += f"\nAuthor: {mat.author}"
 
-            materials.append((mat.id, mat.title, description,mat.renders[0].thumbnail_icon_id, i))
+            materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
 
         return materials
 
@@ -88,6 +88,10 @@ class MatlibProperties(bpy.types.PropertyGroup):
         description="Select materials category",
         items=get_categories,
         update=update_category,
+    )
+    package_id: bpy.props.StringProperty(
+        name="Package id",
+        description="Selected material package"
     )
 
     @classmethod
