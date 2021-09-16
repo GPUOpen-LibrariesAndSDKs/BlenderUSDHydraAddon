@@ -25,8 +25,8 @@ gen_modules = [importlib.import_module(f"hdusd.mx_nodes.nodes.{f.name[:-len(f.su
                for f in Path(__file__).parent.glob("gen_*.py")]
 
 mx_node_classes = []
-for m in gen_modules:
-    mx_node_classes.extend(m.mx_node_classes)
+for mod in gen_modules:
+    mx_node_classes.extend(mod.mx_node_classes)
 
 register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
     base_node.MxNodeInputSocket,
@@ -49,11 +49,27 @@ def unregister():
     unregister_sockets()
 
 
-def get_mx_node_cls(node_name, nd_type):
-    node_cls = next((cls for cls in mx_node_classes if cls.__name__.endswith(node_name) and
-                nd_type in cls._data_types),
-                None)
-    if node_cls:
-        return node_cls
+def get_mx_node_cls(mx_node):
+    node_name = mx_node.getCategory()
 
-    raise KeyError("Unable to find MaterialX node class", node_name, nd_type)
+    suffix = f'_{node_name}'
+    classes = tuple(cls for cls in mx_node_classes if cls.__name__.endswith(suffix))
+    if not classes:
+        raise KeyError(f"Unable to find MxNode class for {mx_node}")
+
+    def params_set(node, out_type):
+        return {f"in_{p.getName()}:{p.getType()}" for p in node.getInputs()} | \
+               {f"p_{p.getName()}:{p.getType()}" for p in node.getParameters()} | \
+               {out_type}
+
+    node_params_set = params_set(mx_node, mx_node.getType())
+
+    for cls in classes:
+        for nodedef, data_type in cls.get_nodedefs():
+            nd_outputs = nodedef.getOutputs()
+            nd_params_set = params_set(nodedef, 'multioutput' if len(nd_outputs) > 1 else
+                                       nd_outputs[0].getType())
+            if node_params_set.issubset(nd_params_set):
+                return cls, data_type
+
+    raise TypeError(f"Unable to find suitable nodedef for {mx_node}")
