@@ -111,7 +111,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                 package.get_info()
 
             col.menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                     text=package.label + "size=" + package.size if package is not None else None,
+                     text=package.label + " size=" + package.size if package is not None else None,
                      icon='DOCUMENTS')
 
 
@@ -131,7 +131,7 @@ class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
                 package.get_info()
 
             row = layout.row()
-            op = row.operator(op_idname, text=package.label + "  s ize=" + package.size,
+            op = row.operator(op_idname, text=package.label + " size=" + package.size,
                               icon='DOCUMENTS')
             op.matlib_package_id = package.id
 
