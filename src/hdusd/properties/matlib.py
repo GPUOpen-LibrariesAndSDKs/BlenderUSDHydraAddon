@@ -77,6 +77,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
     def update_category(self, context):
         materials = self.get_materials(context)
         self.material = materials[0][0]
+        self.package_id = self.pcoll.materials[self.material].packages[0].id
 
     material: bpy.props.EnumProperty(
         name="Material",

@@ -37,7 +37,8 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         material = matlib_prop.pcoll.materials[matlib_prop.material]
 
         # unzipping package
-        package = material.packages[0]
+        package = next(package for package in material.packages
+                                   if package.id == matlib_prop.package_id)
         package.get_info()
         package.get_file()
         mtlx_file = package.unzip()
@@ -107,12 +108,16 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
             else:
                 package = packages[0]
 
-            if package is not None and package.file is None:
-                package.get_info()
+            if package is not None:
 
-            col.menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                     text=package.label + " size=" + package.size if package is not None else None,
-                     icon='DOCUMENTS')
+                if package.file is None:
+                    package.get_info()
+
+                matlib_prop.package_id = package.id
+
+                col.menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
+                         text=package.label + " size=" + package.size if package is not None else None,
+                         icon='DOCUMENTS')
 
 
 class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
