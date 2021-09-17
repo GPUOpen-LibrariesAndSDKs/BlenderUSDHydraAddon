@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 import shutil
 from pathlib import Path
 import zipfile
+import json
 
 from .. import config
 from . import LIBS_DIR, log
@@ -82,14 +83,31 @@ class Package:
     size: str = field(init=False, default=None)
     file_path: Path = field(init=False, default=None)
 
-    def get_info(self):
-        response = requests.get(f"{URL}/packages/{self.id}")
-        res_json = response.json()
-        self.author = res_json['author']
-        self.file = res_json['file']
-        self.file_url = res_json['file_url']
-        self.label = res_json['label']
-        self.size = res_json['size']
+    def get_info(self, use_cache=True):
+        json_path = MATLIB_DIR / self.id / "info.json"
+
+        if not (use_cache and json_path.is_file()):
+            response = requests.get(f"{URL}/packages/{self.id}")
+            res_json = response.json()
+            self.author = res_json['author']
+            self.file = res_json['file']
+            self.file_url = res_json['file_url']
+            self.label = res_json['label']
+            self.size = res_json['size']
+
+            if not json_path.parent.is_dir():
+                json_path.parent.mkdir(parents=True)
+
+            with open(json_path, 'w') as outfile:
+                json.dump(self.__dict__, outfile)
+        else:
+            with open(json_path) as json_file:
+                json_data = json.load(json_file)
+                self.author = json_data['author']
+                self.file = json_data['file']
+                self.file_url = json_data['file_url']
+                self.label = json_data['label']
+                self.size = json_data['size']
 
     def get_file(self):
         self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file)
@@ -98,7 +116,7 @@ class Package:
         if not path:
             path = self.file_path.parent
 
-        if not (use_cache and Path(str(path) + "/" + self.file_path.stem).is_dir()):
+        if not (use_cache and (path / self.file_path.stem).is_dir()):
             with zipfile.ZipFile(self.file_path) as z:
                 z.extractall(path=path)
 
