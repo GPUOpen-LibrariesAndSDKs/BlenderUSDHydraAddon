@@ -99,7 +99,7 @@ class Package:
                 json_path.parent.mkdir(parents=True)
 
             with open(json_path, 'w') as outfile:
-                json.dump(self.__dict__, outfile)
+                json.dump(res_json, outfile)
         else:
             with open(json_path) as json_file:
                 json_data = json.load(json_file)
@@ -109,8 +109,9 @@ class Package:
                 self.label = json_data['label']
                 self.size = json_data['size']
 
-    def get_file(self):
-        self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file)
+    def get_file(self, use_cache=True):
+        self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file,
+                                       use_cache=use_cache)
 
     def unzip(self, path=None, use_cache=True):
         if not path:
