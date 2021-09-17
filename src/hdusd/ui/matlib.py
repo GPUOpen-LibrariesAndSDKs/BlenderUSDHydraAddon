@@ -39,8 +39,11 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         # unzipping package
         package = next(package for package in material.packages
                                    if package.id == matlib_prop.package_id)
-        package.get_info()
-        package.get_file()
+        
+        if package.file_path is None:
+            package.get_info()
+            package.get_file()
+
         mtlx_file = package.unzip()
 
         # getting/creating MxNodeTree

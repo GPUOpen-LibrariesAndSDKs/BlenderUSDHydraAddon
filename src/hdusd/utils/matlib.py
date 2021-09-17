@@ -94,12 +94,13 @@ class Package:
     def get_file(self):
         self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file)
 
-    def unzip(self, path=None):
+    def unzip(self, path=None, use_cache=True):
         if not path:
             path = self.file_path.parent
 
-        with zipfile.ZipFile(self.file_path) as z:
-            z.extractall(path=path)
+        if not (use_cache and Path(str(path) + "/" + self.file_path.stem).is_dir()):
+            with zipfile.ZipFile(self.file_path) as z:
+                z.extractall(path=path)
 
         mtlx_file = next(path.glob("*/*.mtlx"))
         return mtlx_file
