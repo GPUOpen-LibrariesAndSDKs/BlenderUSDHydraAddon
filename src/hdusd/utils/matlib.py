@@ -53,20 +53,39 @@ class Render:
     thumbnail_path: Path = field(init=False, default=None)
     thumbnail_icon_id: int = field(init=False, default=None)
 
-    def get_info(self):
-        response = requests.get(f"{URL}/renders/{self.id}")
-        res_json = response.json()
-        self.author = res_json['author']
-        self.image = res_json['image']
-        self.image_url = res_json['image_url']
-        self.thumbnail = res_json['thumbnail']
-        self.thumbnail_url = res_json['thumbnail_url']
+    def get_info(self, use_cache=True):
+        json_path = (MATLIB_DIR / self.id).with_suffix(".json")
+        if not (use_cache and json_path.is_file()):
 
-    def get_image(self):
-        self.image_path = download_file(self.image_url, MATLIB_DIR / self.image)
+            response = requests.get(f"{URL}/renders/{self.id}")
+            res_json = response.json()
+            self.author = res_json['author']
+            self.image = res_json['image']
+            self.image_url = res_json['image_url']
+            self.thumbnail = res_json['thumbnail']
+            self.thumbnail_url = res_json['thumbnail_url']
 
-    def get_thumbnail(self):
-        self.thumbnail_path = download_file(self.thumbnail_url, MATLIB_DIR / self.thumbnail)
+            if not json_path.parent.is_dir():
+                json_path.parent.mkdir(parents=True)
+
+            with open(json_path, 'w') as outfile:
+                json.dump(res_json, outfile)
+        else:
+            with open(json_path) as json_file:
+                json_data = json.load(json_file)
+                self.author = json_data['author']
+                self.image = json_data['image']
+                self.image_url = json_data['image_url']
+                self.thumbnail = json_data['thumbnail']
+                self.thumbnail_url = json_data['thumbnail_url']
+
+    def get_image(self, use_cache=True):
+        self.image_path = download_file(self.image_url, MATLIB_DIR / self.image,
+                                        use_cache=True)
+
+    def get_thumbnail(self, use_cache=True):
+        self.thumbnail_path = download_file(self.thumbnail_url, MATLIB_DIR / self.thumbnail,
+                                            use_cache=use_cache)
 
     def thumbnail_load(self, pcoll):
         thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')

@@ -17,6 +17,7 @@ import traceback
 import MaterialX as mx
 
 import bpy
+import math
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
@@ -126,6 +127,18 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout.prop(matlib_prop, "category")
         layout.template_icon_view(matlib_prop, "material")
 
+        renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
+        split = layout.row(align=True).split(factor=math.floor(1 / len(renders)))
+
+        for render in renders:
+            if render.thumbnail_icon_id is None:
+                render.get_info()
+                render.get_thumbnail()
+                render.thumbnail_load(matlib_prop.pcoll)
+
+            col = split.column()
+            col.template_icon(render.thumbnail_icon_id, scale=2.5)
+
         if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
             material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
 
@@ -162,7 +175,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                 matlib_prop.package_id = package.id
 
                 col.menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                         text=f"{package.label} size= {package.size}" if package is not None else None,
+                         text=f"{package.label} ({package.size})" if package is not None else None,
                          icon='DOCUMENTS')
 
         split = layout.row(align=True).split()
@@ -191,7 +204,7 @@ class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
                 package.get_info()
 
             row = layout.row()
-            op = row.operator(op_idname, text=f"{package.label} size= {package.size}",
+            op = row.operator(op_idname, text=f"{package.label} ({package.size})",
                               icon='DOCUMENTS')
             op.matlib_package_id = package.id
 
