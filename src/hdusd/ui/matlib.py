@@ -126,15 +126,12 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout.prop(matlib_prop, "category")
         layout.template_icon_view(matlib_prop, "material")
 
-        split = layout.row(align=True).split()
+        if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
+            material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
 
-        col = split.column()
-        col.enabled = bool(context.material)
-        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname)
-
-        col = split.column()
-        col.enabled = bool(context.material)
-        col.operator(HDUSD_MATLIB_OP_reload_material.bl_idname)
+            for line in material_description.splitlines():
+                row = layout.row()
+                row.label(text=line)
 
         split = layout.row(align=True).split(factor=0.25)
         
@@ -142,8 +139,6 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         col.alignment = 'LEFT'
         col.label(text="Package")
         col = split.column()
-
-        matlib_prop = context.window_manager.hdusd.matlib
 
         if matlib_prop.material:
             packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
@@ -167,9 +162,18 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                 matlib_prop.package_id = package.id
 
                 col.menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                         text=package.label + " size=" + package.size if package is not None else None,
+                         text=f"{package.label} size= {package.size}" if package is not None else None,
                          icon='DOCUMENTS')
 
+        split = layout.row(align=True).split()
+
+        col = split.column()
+        col.enabled = bool(context.material)
+        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, icon="IMPORT")
+
+        col = split.column()
+        col.enabled = bool(context.material)
+        col.operator(HDUSD_MATLIB_OP_reload_material.bl_idname, icon="FILE_REFRESH")
 
 class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
     bl_label = "Package"
@@ -187,7 +191,7 @@ class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
                 package.get_info()
 
             row = layout.row()
-            op = row.operator(op_idname, text=package.label + " size=" + package.size,
+            op = row.operator(op_idname, text=f"{package.label} size= {package.size}",
                               icon='DOCUMENTS')
             op.matlib_package_id = package.id
 

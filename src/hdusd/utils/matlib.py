@@ -163,6 +163,16 @@ class Material:
         for id in mat_json['packages']:
             self.packages.append(Package(id))
 
+    def get_description(self):
+        description = f"{self.title}"
+        if self.description:
+            description += f"\n{self.description}"
+        if self.category:
+            description += f"\nCategory: {self.category.title}"
+        description += f"\nAuthor: {self.author}"
+
+        return description
+
     @classmethod
     def get_materials(cls, limit=10, offset=0):
         response = requests.get(f"{URL}/materials", params={'limit': limit, 'offset': offset})
