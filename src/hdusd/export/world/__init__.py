@@ -54,7 +54,6 @@ class WorldData:
 
         if not world.use_nodes:
             data.color = tuple(world.color)
-            data.transparency = world.color[3]
             return data
 
         output_node = next((node for node in world.node_tree.nodes

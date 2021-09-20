@@ -99,6 +99,11 @@ class MxNode(bpy.types.ShaderNode):
 
         return cls._data_types[data_type]['nd']
 
+    @classmethod
+    def get_nodedefs(cls):
+        for data_type in cls._data_types.keys():
+            yield cls.get_nodedef(data_type), data_type
+
     @property
     def nodedef(self):
         return self.get_nodedef(self.data_type)
@@ -116,9 +121,16 @@ class MxNode(bpy.types.ShaderNode):
         nodetree = self.id_data
         nodetree.update_()
 
+    def update_data_type(self, context):
+        # updating names for inputs and outputs
+        nodedef = self.nodedef
+        for i, nd_input in enumerate(nodedef.getInputs()):
+            self.inputs[i].name = nd_input.getName()
+        for i, nd_output in enumerate(nodedef.getOutputs()):
+            self.outputs[i].name = nd_output.getName()
+
     def init(self, context):
         def init_():
-
             nodedef = self.nodedef
 
             for mx_input in nodedef.getInputs():
@@ -131,7 +143,7 @@ class MxNode(bpy.types.ShaderNode):
                 self.create_output(mx_output)
 
             if self._ui_folders:
-                self.ui_folders_update(context)
+                self.update_ui_folders(context)
 
         nodetree = self.id_data
         nodetree.no_update_call(init_)
@@ -195,16 +207,29 @@ class MxNode(bpy.types.ShaderNode):
         mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, self.name, True)
         node_name = mx_utils.get_node_name_by_node_path(self.name)
         mx_node = mx_nodegraph.addNode(nodedef.getNodeString(), node_name, nd_output.getType())
+
         for in_key, val in values:
             nd_input = self.get_nodedef_input(in_key)
             nd_type = nd_input.getType()
-            if not isinstance(val, mx.Node):
-                if mx_utils.is_shader_type(nd_type):
-                    continue
 
-                nd_val = nd_input.getValue()
-                if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
-                    continue
+            if isinstance(val, mx.Node):
+                mx_input = mx_node.addInput(nd_input.getName(), nd_type)
+                mx_utils.set_param_value(mx_input, val, nd_type)
+                continue
+
+            if isinstance(val, tuple) and isinstance(val[0], mx.Node):
+                # node with multioutput type
+                in_node, in_nd_output = val
+                mx_input = mx_node.addInput(nd_input.getName(), nd_type)
+                mx_utils.set_param_value(mx_input, in_node, nd_type, in_nd_output)
+                continue
+
+            if mx_utils.is_shader_type(nd_type):
+                continue
+
+            nd_val = nd_input.getValue()
+            if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
+                continue
 
             mx_input = mx_node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(mx_input, val, nd_type)
@@ -222,15 +247,25 @@ class MxNode(bpy.types.ShaderNode):
             mx_param = mx_node.addParameter(nd_param.getName(), nd_type)
             mx_utils.set_param_value(mx_param, val, nd_type)
 
+        if len(nodedef.getOutputs()) > 1:
+            mx_node.setType('multioutput')
+            return mx_node, nd_output
+
         return mx_node
 
     def _compute_node(self, node, out_key, **kwargs):
+        # checking if node is already in nodegraph
+
         doc = kwargs['doc']
         mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node.name)
         if mx_nodegraph:
             node_name = mx_utils.get_node_name_by_node_path(node.name)
             mx_node = mx_nodegraph.getNode(node_name)
             if mx_node:
+                if mx_node.getType() == 'multioutput':
+                    nd_output = node.get_nodedef_output(out_key)
+                    return mx_node, nd_output
+
                 return mx_node
 
         return node.compute(out_key, **kwargs)
@@ -256,19 +291,19 @@ class MxNode(bpy.types.ShaderNode):
         return self.get_input_default(in_key)
 
     def get_input_default(self, in_key: [str, int]):
-        return getattr(self, self._input_prop_name(self.inputs[in_key].identifier))
+        return getattr(self, self._input_prop_name(self.inputs[in_key].name))
 
     def get_param_value(self, name):
         return getattr(self, self._param_prop_name(name))
 
     def get_nodedef_input(self, in_key: [str, int]):
-        return self.nodedef.getInput(self.inputs[in_key].identifier)
+        return self.nodedef.getInput(self.inputs[in_key].name)
 
     def get_nodedef_output(self, out_key: [str, int]):
-        return self.nodedef.getOutput(self.outputs[out_key].identifier)
+        return self.nodedef.getOutput(self.outputs[out_key].name)
 
     def set_input_value(self, in_key, value):
-        setattr(self, self._input_prop_name(self.inputs[in_key].identifier), value)
+        setattr(self, self._input_prop_name(self.inputs[in_key].name), value)
 
     def set_param_value(self, name, value):
         setattr(self, self._param_prop_name(name), value)
@@ -277,7 +312,7 @@ class MxNode(bpy.types.ShaderNode):
     def poll(cls, tree):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
-    def ui_folders_update(self, context):
+    def update_ui_folders(self, context):
         for i, mx_input in enumerate(self.nodedef.getInputs()):
             f = mx_input.getAttribute('uifolder')
             if f:
@@ -286,7 +321,7 @@ class MxNode(bpy.types.ShaderNode):
         nodetree = self.id_data
         nodetree.update_()
 
-    def ui_folders_check(self):
+    def check_ui_folders(self):
         if not self._ui_folders:
             return
 
@@ -310,10 +345,14 @@ class MxNode(bpy.types.ShaderNode):
 
             setattr(self, self._folder_prop_name(f), True)
 
-        self.ui_folders_update(None)
+        self.update_ui_folders(None)
 
     def create_input(self, mx_input):
-        return self.inputs.new(MxNodeInputSocket.bl_idname, mx_input.getName())
+        input = self.inputs.new(MxNodeInputSocket.bl_idname, f'in_{len(self.inputs)}')
+        input.name = mx_input.getName()
+        return input
 
     def create_output(self, mx_output):
-        return self.outputs.new(MxNodeOutputSocket.bl_idname, mx_output.getName())
+        output = self.outputs.new(MxNodeOutputSocket.bl_idname, f'out_{len(self.outputs)}')
+        output.name = mx_output.getName()
+        return output

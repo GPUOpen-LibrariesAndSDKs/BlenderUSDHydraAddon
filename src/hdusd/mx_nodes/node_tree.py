@@ -120,11 +120,11 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     return self.nodes[node_path]
 
                 try:
-                    MxNode_cls = get_mx_node_cls(mx_node.getCategory(), mx_node.getType())
+                    MxNode_cls, data_type = get_mx_node_cls(mx_node)
 
-                except KeyError:
+                except KeyError as e:
                     if not look_nodedef:
-                        log.warn(f"Corresponding MxNode for {mx_node} wasn't found")
+                        log.warn(e)
                         return None
 
                     # looking for nodedef and switching to another nodegraph defined in doc
@@ -133,6 +133,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                                    nd.getType() == mx_node.getType())
                     new_mx_nodegraph = next(ng for ng in doc.getNodeGraphs()
                                             if ng.getNodeDefString() == nodedef.getName())
+
                     mx_output = new_mx_nodegraph.getOutput(mx_output_name)
                     node_name = mx_output.getNodeName()
                     new_mx_node = new_mx_nodegraph.getNode(node_name)
@@ -143,7 +144,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                 node.name = node_path
                 layers[node_path] = layer
 
-                node.data_type = mx_node.getType()
+                node.data_type = data_type
                 for mx_param in mx_node.getParameters():
                     node.set_param_value(
                         mx_param.getName(),
@@ -163,10 +164,18 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         continue
 
                     node_name = mx_input.getNodeName()
+
                     if node_name:
                         new_mx_node = mx_nodegraph.getNode(node_name)
                         new_node = import_node(new_mx_node, layer + 1)
-                        self.links.new(new_node.outputs[0], node.inputs[input_name])
+
+                        out_name = mx_input.getAttribute('output')
+                        if len(new_node.nodedef.getOutputs()) > 1 and out_name:
+                            new_node_output = new_node.outputs[out_name]
+                        else:
+                            new_node_output = new_node.outputs[0]
+
+                        self.links.new(new_node_output, node.inputs[input_name])
                         continue
 
                     new_nodegraph_name = mx_input.getAttribute('nodegraph')
@@ -179,11 +188,17 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         new_node = import_node(new_mx_node, layer + 1, mx_output_name)
                         if not new_node:
                             continue
-                            
-                        self.links.new(new_node.outputs[0], node.inputs[input_name])
+
+                        out_name = mx_output.getAttribute('output')
+                        if len(new_node.nodedef.getOutputs()) > 1 and out_name:
+                            new_node_output = new_node.outputs[out_name]
+                        else:
+                            new_node_output = new_node.outputs[0]
+
+                        self.links.new(new_node_output, node.inputs[input_name])
                         continue
 
-                node.ui_folders_check()
+                node.check_ui_folders()
                 return node
 
             mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
