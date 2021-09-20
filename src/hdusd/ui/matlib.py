@@ -128,16 +128,20 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout.template_icon_view(matlib_prop, "material")
 
         renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
-        split = layout.row(align=True).split(factor=math.floor(1 / len(renders)))
 
-        for render in renders:
+        grid = layout.grid_flow(align=True)
+        row = None
+        for i, render in enumerate(renders):
             if render.thumbnail_icon_id is None:
                 render.get_info()
                 render.get_thumbnail()
                 render.thumbnail_load(matlib_prop.pcoll)
 
-            col = split.column()
-            col.template_icon(render.thumbnail_icon_id, scale=2.5)
+            if i % 6 == 0:
+                row = grid.row()
+                row.alignment = "CENTER"
+
+            row.template_icon(render.thumbnail_icon_id, scale=5)
 
         if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
             material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
