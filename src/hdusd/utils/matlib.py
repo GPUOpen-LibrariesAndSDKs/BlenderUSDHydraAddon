@@ -23,7 +23,7 @@ from .. import config
 from . import LIBS_DIR, log
 
 
-URL = "https://matlibapi.cistest.luxoft.com/api"
+URL = "https://matlibapi.stvcis.online/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
@@ -103,7 +103,7 @@ class Package:
     file_path: Path = field(init=False, default=None)
 
     def get_info(self, use_cache=True):
-        json_path = MATLIB_DIR / self.id / "info.json"
+        json_path = MATLIB_DIR / self.id / "Package.json"
 
         if not (use_cache and json_path.is_file()):
             response = requests.get(f"{URL}/packages/{self.id}")
@@ -149,10 +149,23 @@ class Category:
     id: str
     title: str = field(init=False, default=None)
 
-    def get_info(self):
-        response = requests.get(f"{URL}/categories/{self.id}")
-        res_json = response.json()
-        self.title = res_json['title']
+    def get_info(self, use_cache=True):
+        json_path = MATLIB_DIR / self.id / "Category.json"
+
+        if not (use_cache and json_path.is_file()):
+            response = requests.get(f"{URL}/categories/{self.id}")
+            res_json = response.json()
+            self.title = res_json['title']
+
+            if not json_path.parent.is_dir():
+                json_path.parent.mkdir(parents=True)
+
+            with open(json_path, 'w') as outfile:
+                json.dump(res_json, outfile)
+        else:
+            with open(json_path) as json_file:
+                json_data = json.load(json_file)
+                self.title = json_data['title']
 
 
 @dataclass(init=False)
