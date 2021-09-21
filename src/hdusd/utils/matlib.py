@@ -72,10 +72,8 @@ class Render:
     thumbnail_icon_id: int = field(init=False, default=None)
 
     def get_info(self, use_cache=True):
-        json_path = (MATLIB_DIR / self.id).with_suffix(".json")
-        url = f"{URL}/renders/{self.id}"
-
-        json_data = get_json(url, json_path, use_cache=use_cache)
+        json_data = get_json(f"{URL}/renders/{self.id}", (MATLIB_DIR / self.id).with_suffix(".json"),
+                             use_cache=use_cache)
 
         self.author = json_data['author']
         self.image = json_data['image']
@@ -107,10 +105,8 @@ class Package:
     file_path: Path = field(init=False, default=None)
 
     def get_info(self, use_cache=True):
-        json_path = MATLIB_DIR / self.id / "Package.json"
-        url = f"{URL}/packages/{self.id}"
-
-        json_data = get_json(url, json_path, use_cache=use_cache)
+        json_data = get_json(f"{URL}/packages/{self.id}", MATLIB_DIR / self.id / "Package.json",
+                             use_cache=use_cache)
 
         self.author = json_data['author']
         self.file = json_data['file']
@@ -140,10 +136,8 @@ class Category:
     title: str = field(init=False, default=None)
 
     def get_info(self, use_cache=True):
-        json_path = MATLIB_DIR / self.id / "Category.json"
-        url = f"{URL}/categories/{self.id}"
-
-        json_data = get_json(url, json_path, use_cache=use_cache)
+        json_data = get_json(f"{URL}/categories/{self.id}", MATLIB_DIR / self.id / "Category.json",
+                             use_cache=use_cache)
 
         self.title = json_data['title']
 
