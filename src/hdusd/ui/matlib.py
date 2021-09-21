@@ -17,7 +17,6 @@ import traceback
 import MaterialX as mx
 
 import bpy
-import math
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
