@@ -14,11 +14,11 @@
 #********************************************************************
 from dataclasses import dataclass
 
-from pxr import UsdGeom, Gf, Tf
+from pxr import UsdGeom, Gf, Tf, UsdShade
 import bpy
 import mathutils
 
-from . import mesh, camera, to_mesh, light
+from . import mesh, camera, to_mesh, light, material
 
 from ..utils import logging
 log = logging.Log(tag='export.object')
@@ -33,6 +33,7 @@ class ObjectData:
     instance_id: int
     transform: mathutils.Matrix
     parent: bpy.types.Object
+    is_particle: bool
 
     @staticmethod
     def from_object(obj):
@@ -41,6 +42,7 @@ class ObjectData:
         data.instance_id = 0
         data.transform = obj.matrix_world.transposed()
         data.parent = obj.parent
+        data.is_particle = False
         return data
 
     @staticmethod
@@ -50,6 +52,7 @@ class ObjectData:
         data.instance_id = abs(instance.random_id)
         data.transform = instance.matrix_world.transposed()
         data.parent = instance.parent
+        data.is_particle = bool(instance.particle_system)
         return data
 
     @property
@@ -101,6 +104,24 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
     xform.MakeMatrixXform().Set(Gf.Matrix4d(obj_data.transform))
 
     obj = obj_data.object
+
+    if obj_data.is_particle:
+        usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
+            sdf_name(obj.original)))
+        mesh_prim = stage.DefinePrim(f"/{sdf_name(obj.original)}"
+                                         f"/{sdf_name(obj.data)}", 'Mesh')
+        usd_mesh.GetPrim().GetReferences().AddInternalReference(mesh_prim.GetPath())
+
+        if obj.active_material is not None:
+            material_prim = stage.DefinePrim(
+                f"/{sdf_name(obj.original)}"
+                f"/{material.sdf_name(obj.active_material)}", 'Material')
+
+            usd_material = UsdShade.Material.Get(stage, material_prim.GetPath())
+            UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
+
+        return
+
     if obj.type == 'MESH':
         if obj.mode == 'OBJECT':
             # if in edit mode use to_mesh

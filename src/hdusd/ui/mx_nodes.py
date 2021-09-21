@@ -13,6 +13,8 @@
 # limitations under the License.
 #********************************************************************
 from pathlib import Path
+import traceback
+
 import MaterialX as mx
 
 import bpy
@@ -20,6 +22,7 @@ from bpy_extras.io_utils import ImportHelper, ExportHelper
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
+from ..utils import mx as mx_utils
 
 from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
@@ -39,16 +42,19 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
     def execute(self, context):
+        mx_node_tree = context.space_data.edit_tree
+        mtlx_file = Path(self.filepath)
+
         doc = mx.createDocument()
+        search_path = mx.FileSearchPath(str(mtlx_file.parent))
+        search_path.append(str(mx_utils.MX_LIBS_DIR))
         try:
-            mx.readFromXmlFile(doc, self.filepath)
+            mx.readFromXmlFile(doc, str(mtlx_file))
+            mx_node_tree.import_(doc, mtlx_file)
 
         except Exception as e:
-            log.error(e, self.filepath)
+            log.error(traceback.format_exc(), mtlx_file)
             return {'CANCELLED'}
-
-        mx_node_tree = context.space_data.edit_tree
-        mx_node_tree.import_(doc, Path(self.filepath))
 
         return {'FINISHED'}
 

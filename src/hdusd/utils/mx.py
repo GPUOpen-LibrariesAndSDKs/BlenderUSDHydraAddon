@@ -19,19 +19,24 @@ from .image import cache_image_file
 
 from pathlib import Path
 
-from . import title_str, code_str
+from . import LIBS_DIR, title_str, code_str
 
 from . import logging
 log = logging.Log(tag='utils.mx')
 
 
-def set_param_value(mx_param, val, nd_type):
+MX_LIBS_DIR = LIBS_DIR / "materialx/libraries"
+
+
+def set_param_value(mx_param, val, nd_type, nd_output=None):
     if isinstance(val, mx.Node):
         param_nodegraph = mx_param.getParent().getParent()
         val_nodegraph = val.getParent()
         node_name = val.getName()
         if val_nodegraph == param_nodegraph:
             mx_param.setNodeName(node_name)
+            if nd_output:
+                mx_param.setAttribute('output', nd_output.getName())
         else:
             # checking nodegraph paths
             val_ng_path = val_nodegraph.getNamePath()
@@ -42,10 +47,17 @@ def set_param_value(mx_param, val, nd_type):
                 raise ValueError(f"Inconsistent nodegraphs. Cannot connect input "
                                  f"{mx_param.getNamePath()} to {val.getNamePath()}")
 
-            mx_output = val_nodegraph.getOutput(f"out_{node_name}")
+            mx_output_name = f'out_{node_name}'
+            if nd_output:
+                mx_output_name += f'_{nd_output.getName()}'
+
+            mx_output = val_nodegraph.getOutput(mx_output_name)
             if not mx_output:
-                mx_output = val_nodegraph.addOutput(f"out_{node_name}", val.getType())
+                mx_output = val_nodegraph.addOutput(mx_output_name, val.getType())
                 mx_output.setNodeName(node_name)
+                if nd_output:
+                    mx_output.setType(nd_output.getType())
+                    mx_output.setAttribute('output', nd_output.getName())
 
             mx_param.setAttribute('nodegraph', val_nodegraph.getName())
             mx_param.setAttribute('output', mx_output.getName())
@@ -65,10 +77,14 @@ def set_param_value(mx_param, val, nd_type):
 
 
 def is_value_equal(mx_val, val, nd_type):
-    if nd_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
+    if nd_type in ('string', 'float', 'integer', 'boolean', 'angle'):
         if nd_type == 'filename' and val is None:
             val = ""
 
+        return mx_val == val
+
+    if nd_type == 'filename':
+        val = "" if val is None else val
         return mx_val == val
 
     return tuple(mx_val) == tuple(val)
@@ -87,14 +103,21 @@ def get_attr(mx_param, name, else_val=None):
 
 def parse_value(node, mx_val, mx_type, file_prefix=None):
     if mx_type in ('string', 'float', 'integer', 'boolean', 'filename', 'angle'):
+        if file_prefix and mx_type == 'filename':
+            mx_val = str((file_prefix / mx_val).resolve())
+
         if node.category in ('texture2d', 'texture3d') and mx_type == 'filename':
-            if Path(mx_val).exists():
-                return bpy.data.images.load(mx_val)
+            file_path = Path(mx_val)
+            if file_path.exists():
+                image = bpy.data.images.get(file_path.name)
+                if image and image.filepath_from_user() == str(file_path):
+                    return image
+
+                image = bpy.data.images.load(str(file_path))
+                return image
 
             return None
 
-        if file_prefix and mx_type == 'filename':
-            mx_val = str((file_prefix / mx_val).resolve())
 
         return mx_val
 
