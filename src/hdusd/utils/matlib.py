@@ -41,6 +41,24 @@ def download_file(url, path, use_cache=True):
     return path
 
 
+def get_json(url, path, use_cache=True):
+    res_json = None
+    if not (use_cache and path.is_file()):
+        response = requests.get(url)
+        res_json = response.json()
+
+        if not path.parent.is_dir():
+            path.parent.mkdir(parents=True)
+
+        with open(path, 'w') as outfile:
+            json.dump(res_json, outfile)
+    else:
+        with open(path) as json_file:
+            res_json = json.load(json_file)
+
+    return res_json
+
+
 @dataclass
 class Render:
     id: str
@@ -55,33 +73,19 @@ class Render:
 
     def get_info(self, use_cache=True):
         json_path = (MATLIB_DIR / self.id).with_suffix(".json")
-        if not (use_cache and json_path.is_file()):
+        url = f"{URL}/renders/{self.id}"
 
-            response = requests.get(f"{URL}/renders/{self.id}")
-            res_json = response.json()
-            self.author = res_json['author']
-            self.image = res_json['image']
-            self.image_url = res_json['image_url']
-            self.thumbnail = res_json['thumbnail']
-            self.thumbnail_url = res_json['thumbnail_url']
+        json_data = get_json(url, json_path, use_cache=use_cache)
 
-            if not json_path.parent.is_dir():
-                json_path.parent.mkdir(parents=True)
-
-            with open(json_path, 'w') as outfile:
-                json.dump(res_json, outfile)
-        else:
-            with open(json_path) as json_file:
-                json_data = json.load(json_file)
-                self.author = json_data['author']
-                self.image = json_data['image']
-                self.image_url = json_data['image_url']
-                self.thumbnail = json_data['thumbnail']
-                self.thumbnail_url = json_data['thumbnail_url']
+        self.author = json_data['author']
+        self.image = json_data['image']
+        self.image_url = json_data['image_url']
+        self.thumbnail = json_data['thumbnail']
+        self.thumbnail_url = json_data['thumbnail_url']
 
     def get_image(self, use_cache=True):
         self.image_path = download_file(self.image_url, MATLIB_DIR / self.image,
-                                        use_cache=True)
+                                        use_cache=use_cache)
 
     def get_thumbnail(self, use_cache=True):
         self.thumbnail_path = download_file(self.thumbnail_url, MATLIB_DIR / self.thumbnail,
@@ -104,29 +108,15 @@ class Package:
 
     def get_info(self, use_cache=True):
         json_path = MATLIB_DIR / self.id / "Package.json"
+        url = f"{URL}/packages/{self.id}"
 
-        if not (use_cache and json_path.is_file()):
-            response = requests.get(f"{URL}/packages/{self.id}")
-            res_json = response.json()
-            self.author = res_json['author']
-            self.file = res_json['file']
-            self.file_url = res_json['file_url']
-            self.label = res_json['label']
-            self.size = res_json['size']
+        json_data = get_json(url, json_path, use_cache=use_cache)
 
-            if not json_path.parent.is_dir():
-                json_path.parent.mkdir(parents=True)
-
-            with open(json_path, 'w') as outfile:
-                json.dump(res_json, outfile)
-        else:
-            with open(json_path) as json_file:
-                json_data = json.load(json_file)
-                self.author = json_data['author']
-                self.file = json_data['file']
-                self.file_url = json_data['file_url']
-                self.label = json_data['label']
-                self.size = json_data['size']
+        self.author = json_data['author']
+        self.file = json_data['file']
+        self.file_url = json_data['file_url']
+        self.label = json_data['label']
+        self.size = json_data['size']
 
     def get_file(self, use_cache=True):
         self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file,
@@ -151,21 +141,11 @@ class Category:
 
     def get_info(self, use_cache=True):
         json_path = MATLIB_DIR / self.id / "Category.json"
+        url = f"{URL}/categories/{self.id}"
 
-        if not (use_cache and json_path.is_file()):
-            response = requests.get(f"{URL}/categories/{self.id}")
-            res_json = response.json()
-            self.title = res_json['title']
+        json_data = get_json(url, json_path, use_cache=use_cache)
 
-            if not json_path.parent.is_dir():
-                json_path.parent.mkdir(parents=True)
-
-            with open(json_path, 'w') as outfile:
-                json.dump(res_json, outfile)
-        else:
-            with open(json_path) as json_file:
-                json_data = json.load(json_file)
-                self.title = json_data['title']
+        self.title = json_data['title']
 
 
 @dataclass(init=False)
