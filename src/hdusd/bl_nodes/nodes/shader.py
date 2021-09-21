@@ -291,11 +291,11 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         # Emission -> Emission
         if enabled(emission):
             # more related formula for emission weight:
-            emission_weight = emission.average_xyz().min(1.0) * 0.5 + 0.5
+            emission_weight = min(self.node.inputs["Emission Strength"].default_value, 1.0) * 0.5
 
             result.set_inputs({
                 'uber_emission_weight': emission_weight,
-                'uber_emission_color': emission,
+                'uber_emission_color': emission.data[:3],
                 'uber_emission_mode': 'Doublesided',
             })
 
