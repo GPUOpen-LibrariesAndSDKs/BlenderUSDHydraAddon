@@ -162,8 +162,6 @@ class MxNode(bpy.types.ShaderNode):
                     r = col.row(align=True)
                 r.prop(self, self._folder_prop_name(f), toggle=True)
 
-            if self.category in ("texture2d", "texture3d") and mx_param.getType() == 'filename':
-
         for mx_param in (i for i in nodedef.getInputs() if i.getAttribute('uniform') == 'true'):
             f = mx_param.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop_name(f)):
@@ -173,7 +171,7 @@ class MxNode(bpy.types.ShaderNode):
             if self.category in ("texture2d", "texture3d") and mx_param.getType() == 'filename':
                 split = layout.row(align=True).split(factor=0.25, align=True)
                 col = split.column()
-                col.label(text=mx_input.getAttribute('uiname') if mx_input.hasAttribute('uiname')
+                col.label(text=mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')
                           else title_str(name))
                 col = split.column()
                 col.template_ID(self, self._param_prop_name(name),
