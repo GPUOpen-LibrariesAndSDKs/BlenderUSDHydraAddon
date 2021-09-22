@@ -69,6 +69,13 @@ def request_json(url, path, use_cache):
     return res_json
 
 
+def get_cached_path(path):
+    if path.is_file():
+        return path
+
+    return None
+
+
 @dataclass
 class Render:
     id: str
@@ -123,6 +130,7 @@ class Package:
         self.file_url = json_data['file_url']
         self.label = json_data['label']
         self.size = json_data['size']
+        self.file_path = get_cached_path(MATLIB_DIR / self.id / self.file)
 
     def get_file(self, use_cache=True):
         self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file,

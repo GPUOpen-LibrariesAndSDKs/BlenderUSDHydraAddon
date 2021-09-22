@@ -128,19 +128,20 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
         renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
 
-        grid = layout.grid_flow(align=True)
-        row = None
-        for i, render in enumerate(renders):
-            if render.thumbnail_icon_id is None:
-                render.get_info()
-                render.get_thumbnail()
-                render.thumbnail_load(matlib_prop.pcoll)
+        if len(renders) > 1:
+            grid = layout.grid_flow(align=True)
+            row = None
+            for i, render in enumerate(renders):
+                if render.thumbnail_icon_id is None:
+                    render.get_info()
+                    render.get_thumbnail()
+                    render.thumbnail_load(matlib_prop.pcoll)
 
-            if i % 6 == 0:
-                row = grid.row()
-                row.alignment = "CENTER"
+                if i % 6 == 0:
+                    row = grid.row()
+                    row.alignment = "CENTER"
 
-            row.template_icon(render.thumbnail_icon_id, scale=5)
+                row.template_icon(render.thumbnail_icon_id, scale=5)
 
         if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
             material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
@@ -149,13 +150,13 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                 row = layout.row()
                 row.label(text=line)
 
-        split = layout.row(align=True).split(factor=0.25)
-        
-        col = split.column()
-        col.alignment = 'LEFT'
-        col.label(text="Package")
-        col = split.column()
+        split = layout.split(factor=0.25)
 
+        row = split.row()
+        row.alignment = 'LEFT'
+        row.label(text="Package")
+
+        split = split.split(align=True, factor=0.9)
         if matlib_prop.material:
             packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
             package = None
@@ -177,19 +178,25 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
                 matlib_prop.package_id = package.id
 
-                col.menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
+                split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
                          text=f"{package.label} ({package.size})" if package is not None else None,
                          icon='DOCUMENTS')
 
-        split = layout.row(align=True).split()
+        material = matlib_prop.pcoll.materials[matlib_prop.material]
+        package = next(package for package in material.packages
+                       if package.id == matlib_prop.package_id)
 
-        col = split.column()
-        col.enabled = bool(context.material)
-        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, icon="IMPORT")
+        icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
 
-        col = split.column()
+        row = split.row()
+        row.alignment = 'RIGHT'
+        row.enabled = bool(context.material)
+        row.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="", icon=icon)
+
+        col = layout.row()
         col.enabled = bool(context.material)
-        col.operator(HDUSD_MATLIB_OP_reload_material.bl_idname, icon="FILE_REFRESH")
+        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package", icon="IMPORT")
+
 
 class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
     bl_label = "Package"
