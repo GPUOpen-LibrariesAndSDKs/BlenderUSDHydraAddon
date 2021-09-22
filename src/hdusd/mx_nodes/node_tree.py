@@ -142,16 +142,18 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                 node = self.nodes.new(MxNode_cls.bl_idname)
                 node.name = node_path
-                layers[node_path] = layer
-
                 node.data_type = data_type
-                for mx_param in mx_node.getParameters():
-                    node.set_param_value(
-                        mx_param.getName(),
-                        mx_utils.parse_value(node, mx_param.getValue(), mx_param.getType(), file_prefix))
+                nodedef = node.nodedef
+                layers[node_path] = layer
 
                 for mx_input in mx_node.getInputs():
                     input_name = mx_input.getName()
+                    nd_input = nodedef.getInput(input_name)
+                    if nd_input.getAttribute('uniform') == 'true':
+                        node.set_param_value(input_name,mx_utils.parse_value(
+                            node, mx_input.getValue(), mx_input.getType(), file_prefix))
+                        continue
+
                     if input_name not in node.inputs:
                         log.error(f"Incorrect input name '{input_name}' for node {node}")
                         continue

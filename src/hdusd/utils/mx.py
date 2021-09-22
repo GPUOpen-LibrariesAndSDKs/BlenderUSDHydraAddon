@@ -151,16 +151,12 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
 
 
 def get_nodedef_inputs(nodedef, uniform=None):
-    for input in nodedef.getInputs():
-        if uniform is None:
-            yield input
+    for nd_input in nodedef.getInputs():
+        if (uniform is True and nd_input.getAttribute('uniform') != 'true') or \
+                (uniform is False and nd_input.getAttribute('uniform') == 'true'):
+            continue
 
-        elif input.getAttribute('uniform') == 'true':
-            if uniform:
-                yield input
-        else:
-            if not uniform:
-                yield input
+        yield nd_input
 
 
 def get_file_prefix(mx_node, file_path):

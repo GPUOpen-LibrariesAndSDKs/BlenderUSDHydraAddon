@@ -111,9 +111,6 @@ class MxNode(bpy.types.ShaderNode):
     def _folder_prop_name(self, name):
         return f"f_{code_str(name.lower())}"
 
-    def _param_prop_name(self, name):
-        return f"nd_{self.data_type}_p_{name}"
-
     def _input_prop_name(self, name):
         return f"nd_{self.data_type}_in_{name}"
 
@@ -124,7 +121,7 @@ class MxNode(bpy.types.ShaderNode):
     def update_data_type(self, context):
         # updating names for inputs and outputs
         nodedef = self.nodedef
-        for i, nd_input in enumerate(nodedef.getInputs()):
+        for i, nd_input in enumerate(mx_utils.get_nodedef_inputs(nodedef, False)):
             self.inputs[i].name = nd_input.getName()
         for i, nd_output in enumerate(nodedef.getOutputs()):
             self.outputs[i].name = nd_output.getName()
@@ -133,11 +130,11 @@ class MxNode(bpy.types.ShaderNode):
         def init_():
             nodedef = self.nodedef
 
-            for mx_input in (i for i in nodedef.getInputs() if i.getAttribute('uniform') != 'true'):
-                self.create_input(mx_input)
+            for nd_input in mx_utils.get_nodedef_inputs(nodedef, False):
+                self.create_input(nd_input)
 
-            for mx_output in nodedef.getOutputs():
-                self.create_output(mx_output)
+            for nd_output in nodedef.getOutputs():
+                self.create_output(nd_output)
 
             if self._ui_folders:
                 self.update_ui_folders(context)
@@ -159,23 +156,23 @@ class MxNode(bpy.types.ShaderNode):
                     r = col.row(align=True)
                 r.prop(self, self._folder_prop_name(f), toggle=True)
 
-        for mx_param in (i for i in nodedef.getInputs() if i.getAttribute('uniform') == 'true'):
-            f = mx_param.getAttribute('uifolder')
+        for nd_input in mx_utils.get_nodedef_inputs(nodedef, True):
+            f = nd_input.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
-            name = mx_param.getName()
-            if self.category in ("texture2d", "texture3d") and mx_param.getType() == 'filename':
+            name = nd_input.getName()
+            if self.category in ("texture2d", "texture3d") and nd_input.getType() == 'filename':
                 split = layout.row(align=True).split(factor=0.25, align=True)
                 col = split.column()
-                col.label(text=mx_param.getAttribute('uiname') if mx_param.hasAttribute('uiname')
+                col.label(text=nd_input.getAttribute('uiname') if nd_input.hasAttribute('uiname')
                           else title_str(name))
                 col = split.column()
-                col.template_ID(self, self._param_prop_name(name),
+                col.template_ID(self, self._input_prop_name(name),
                                 open="image.open", new="image.new")
 
             else:
-                layout.prop(self, self._param_prop_name(name))
+                layout.prop(self, self._input_prop_name(name))
 
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
@@ -228,17 +225,17 @@ class MxNode(bpy.types.ShaderNode):
             mx_input = mx_node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(mx_input, val, nd_type)
 
-        for nd_param in (i for i in nodedef.getInputs() if i.getAttribute('uniform') == 'true'):
-            f = nd_param.getAttribute('uifolder')
+        for nd_input in mx_utils.get_nodedef_inputs(nodedef, True):
+            f = nd_input.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop_name(f)):
                 continue
 
-            val = self.get_param_value(nd_param.getName())
-            nd_type = nd_param.getType()
-            if mx_utils.is_value_equal(nd_param.getValue(), val, nd_type):
+            val = self.get_param_value(nd_input.getName())
+            nd_type = nd_input.getType()
+            if mx_utils.is_value_equal(nd_input.getValue(), val, nd_type):
                 continue
 
-            mx_param = mx_node.addInput(nd_param.getName(), nd_type)
+            mx_param = mx_node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(mx_param, val, nd_type)
 
         if len(nodedef.getOutputs()) > 1:
@@ -288,7 +285,7 @@ class MxNode(bpy.types.ShaderNode):
         return getattr(self, self._input_prop_name(self.inputs[in_key].name))
 
     def get_param_value(self, name):
-        return getattr(self, self._param_prop_name(name))
+        return getattr(self, self._input_prop_name(name))
 
     def get_nodedef_input(self, in_key: [str, int]):
         return self.nodedef.getInput(self.inputs[in_key].name)
@@ -300,15 +297,15 @@ class MxNode(bpy.types.ShaderNode):
         setattr(self, self._input_prop_name(self.inputs[in_key].name), value)
 
     def set_param_value(self, name, value):
-        setattr(self, self._param_prop_name(name), value)
+        setattr(self, self._input_prop_name(name), value)
 
     @classmethod
     def poll(cls, tree):
         return tree.bl_idname == 'hdusd.MxNodeTree'
 
     def update_ui_folders(self, context):
-        for i, mx_input in enumerate(self.nodedef.getInputs()):
-            f = mx_input.getAttribute('uifolder')
+        for i, nd_input in enumerate(mx_utils.get_nodedef_inputs(self.nodedef, False)):
+            f = nd_input.getAttribute('uifolder')
             if f:
                 self.inputs[i].hide = not getattr(self, self._folder_prop_name(f))
 
@@ -322,8 +319,8 @@ class MxNode(bpy.types.ShaderNode):
         for f in self._ui_folders:
             setattr(self, self._folder_prop_name(f), False)
 
-        for in_key, mx_input in enumerate(self.nodedef.getInputs()):
-            f = mx_input.getAttribute('uifolder')
+        for in_key, nd_input in enumerate(mx_utils.get_nodedef_inputs(self.nodedef, False)):
+            f = nd_input.getAttribute('uifolder')
             if not f:
                 continue
 
@@ -341,9 +338,9 @@ class MxNode(bpy.types.ShaderNode):
 
         self.update_ui_folders(None)
 
-    def create_input(self, mx_input):
+    def create_input(self, nd_input):
         input = self.inputs.new(MxNodeInputSocket.bl_idname, f'in_{len(self.inputs)}')
-        input.name = mx_input.getName()
+        input.name = nd_input.getName()
         return input
 
     def create_output(self, mx_output):

@@ -188,10 +188,6 @@ def generate_data_type(nodedef):
     return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
 
-def param_prop_name(nd_type, name):
-    return f'nd_{nd_type}_p_{name}'
-
-
 def input_prop_name(nd_type, name):
     return f'nd_{nd_type}_in_{name}'
 
@@ -272,11 +268,7 @@ class {class_name}(MxNode):
         nd_type = nodedef_data_type(nd)
         code_strings.append("")
 
-        for param in (i for i in nd.getInputs() if i.getAttribute('uniform') == 'true'):
-            prop_code = generate_property_code(param, category)
-            code_strings.append(f"    {param_prop_name(nd_type, param.getName())}: {prop_code}")
-
-        for input in (i for i in nd.getInputs() if i.getAttribute('uniform') != 'true'):
+        for input in nd.getInputs():
             prop_code = generate_property_code(input, category)
             code_strings.append(f"    {input_prop_name(nd_type, input.getName())}: {prop_code}")
 
