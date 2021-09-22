@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import os
+from pathlib import Path
+
 import MaterialX as mx
 import bpy
 
 from .image import cache_image_file
-
-from pathlib import Path
 
 from . import LIBS_DIR, title_str, code_str
 
@@ -26,6 +27,8 @@ log = logging.Log(tag='utils.mx')
 
 
 MX_LIBS_DIR = LIBS_DIR / "libraries"
+
+os.environ['MATERIALX_SEARCH_PATH'] = str(MX_LIBS_DIR)
 
 
 def set_param_value(mx_param, val, nd_type, nd_output=None):

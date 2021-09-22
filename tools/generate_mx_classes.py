@@ -21,6 +21,7 @@ from collections import defaultdict
 
 repo_dir = Path(__file__).parent.parent
 libs_dir = repo_dir / "libs"
+mx_libs_dir = libs_dir / "libraries"
 
 
 sys.path.append(str(libs_dir / "materialx/python"))
@@ -323,7 +324,7 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)
 
     doc = mx.createDocument()
-    search_path = mx.FileSearchPath(str(libs_dir / "libraries"))
+    search_path = mx.FileSearchPath(str(mx_libs_dir))
     mx.readFromXmlFile(doc, str(file_path), searchPath=search_path)
     nodedefs = doc.getNodeDefs()
 
@@ -354,7 +355,6 @@ mx_node_classes = [{', '.join(mx_node_class_names)}]
 
 
 def main():
-    mx_libs_dir = libs_dir / "libraries"
     gen_code_dir = repo_dir / "src/hdusd/mx_nodes/nodes"
     hdrpr_mat_dir = libs_dir / "hdrpr/materials"
 
