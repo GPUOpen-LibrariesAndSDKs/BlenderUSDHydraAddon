@@ -21,10 +21,19 @@ from ..utils import matlib
 
 class MatlibProperties(bpy.types.PropertyGroup):
     pcoll = None
+    materials = []
+
+    def _load_materials(self):
+        for mat in matlib.Material.get_all_materials():
+            self.materials.append(mat)
 
     def _set_materials(self):
         self.pcoll.materials = {}
-        for mat in matlib.Material.get_all_materials():
+
+        if len(self.materials) == 0:
+            self._load_materials()
+
+        for mat in self.materials:
             render = mat.renders[0]
             render.get_info()
             render.get_thumbnail()
@@ -57,7 +66,11 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
     def _set_categories(self):
         self.pcoll.categories = {}
-        for mat in matlib.Material.get_all_materials():
+
+        if len(self.materials) == 0:
+            self._load_materials()
+
+        for mat in self.materials:
             cat = mat.category
             if not cat or cat.id in self.pcoll.categories:
                 continue
