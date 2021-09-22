@@ -41,10 +41,10 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
                        if package.id == matlib_prop.package_id)
 
         if package.file_path is None or not package.file_path.is_file():
-            package.get_info()
-            package.get_file()
+            package.get_info(use_cache=True)
+            package.get_file(use_cache=True)
 
-        mtlx_file = package.unzip()
+        mtlx_file = package.unzip(use_cache=True)
 
         # getting/creating MxNodeTree
         bl_material = context.material
@@ -69,10 +69,10 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         return {"FINISHED"}
 
 
-class HDUSD_MATLIB_OP_reload_material(HdUSD_Operator):
+class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
     """Reload Material"""
-    bl_idname = "hdusd.matlib_reload_material"
-    bl_label = "Reload Material"
+    bl_idname = "hdusd.matlib_load_package"
+    bl_label = "load package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
@@ -85,27 +85,7 @@ class HDUSD_MATLIB_OP_reload_material(HdUSD_Operator):
         package.get_info(use_cache=False)
         package.get_file(use_cache=False)
 
-        mtlx_file = package.unzip(use_cache=False)
-
-        # getting/creating MxNodeTree
-        bl_material = context.material
-        mx_node_tree = bl_material.hdusd.mx_node_tree
-        if not bl_material.hdusd.mx_node_tree:
-            mx_node_tree = bpy.data.node_groups.new(f"MX_{bl_material.name}",
-                                                    type=MxNodeTree.bl_idname)
-            bl_material.hdusd.mx_node_tree = mx_node_tree
-
-        log("Reading", mtlx_file)
-        doc = mx.createDocument()
-        search_path = mx.FileSearchPath(str(mtlx_file.parent))
-        search_path.append(str(mx_utils.MX_LIBS_DIR))
-        try:
-            mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
-            mx_node_tree.import_(doc, mtlx_file)
-
-        except Exception as e:
-            log.error(traceback.format_exc(), mtlx_file)
-            return {'CANCELLED'}
+        package.unzip(use_cache=False)
 
         return {"FINISHED"}
 
@@ -191,7 +171,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         row = split.row()
         row.alignment = 'RIGHT'
         row.enabled = bool(context.material)
-        row.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="", icon=icon)
+        row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon=icon)
 
         col = layout.row()
         col.enabled = bool(context.material)
