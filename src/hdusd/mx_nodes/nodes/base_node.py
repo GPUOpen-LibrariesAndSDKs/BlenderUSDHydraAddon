@@ -133,10 +133,7 @@ class MxNode(bpy.types.ShaderNode):
         def init_():
             nodedef = self.nodedef
 
-            for mx_input in nodedef.getInputs():
-                if mx_input.getAttribute('uniform') == 'true':
-                    continue
-
+            for mx_input in (i for i in nodedef.getInputs() if i.getAttribute('uniform') != 'true'):
                 self.create_input(mx_input)
 
             for mx_output in nodedef.getOutputs():
@@ -187,6 +184,10 @@ class MxNode(bpy.types.ShaderNode):
         doc = kwargs['doc']
         nodedef = self.nodedef
         nd_output = self.get_nodedef_output(out_key)
+        node_path = self.name
+        if nodedef.getNodeString() not in ('surfacematerial', 'standard_surface', 'rpr_uberv2') \
+                and '/' not in node_path:
+            node_path = f"NG/{node_path}"
 
         values = []
         for in_key in range(len(self.inputs)):
@@ -197,8 +198,8 @@ class MxNode(bpy.types.ShaderNode):
 
             values.append((in_key, self.get_input_value(in_key, **kwargs)))
 
-        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, self.name, True)
-        node_name = mx_utils.get_node_name_by_node_path(self.name)
+        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node_path, True)
+        node_name = mx_utils.get_node_name_by_node_path(node_path)
         mx_node = mx_nodegraph.addNode(nodedef.getNodeString(), node_name, nd_output.getType())
 
         for in_key, val in values:

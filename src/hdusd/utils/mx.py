@@ -25,7 +25,7 @@ from . import logging
 log = logging.Log(tag='utils.mx')
 
 
-MX_LIBS_DIR = LIBS_DIR / "materialx/libraries"
+MX_LIBS_DIR = LIBS_DIR / "libraries"
 
 
 def set_param_value(mx_param, val, nd_type, nd_output=None):

@@ -323,7 +323,7 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)
 
     doc = mx.createDocument()
-    search_path = mx.FileSearchPath(str(libs_dir / "materialx/libraries"))
+    search_path = mx.FileSearchPath(str(libs_dir / "libraries"))
     mx.readFromXmlFile(doc, str(file_path), searchPath=search_path)
     nodedefs = doc.getNodeDefs()
 
@@ -354,7 +354,7 @@ mx_node_classes = [{', '.join(mx_node_class_names)}]
 
 
 def main():
-    mx_libs_dir = libs_dir / "materialx/libraries"
+    mx_libs_dir = libs_dir / "libraries"
     gen_code_dir = repo_dir / "src/hdusd/mx_nodes/nodes"
     hdrpr_mat_dir = libs_dir / "hdrpr/materials"
 
