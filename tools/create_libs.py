@@ -46,6 +46,10 @@ def iterate_copied_files(repo_dir, usd_dir, hdrpr_dir, mx_dir):
                            ignore_suffix=('.pdb',)):
         yield f, Path("usd") / f.relative_to(usd_dir / "bin")
 
+    if OS == 'Windows':
+        yield usd_dir.parent / "build/openexr-2.3.0/OpenEXR/IlmImf/RelWithDebInfo/IlmImf-2_3.dll",\
+              Path("usd") / "IlmImf-2_3.dll"
+
     # copy RPR Hydra delegate libraries
     for f in iterate_files(hdrpr_dir / "lib", "**/*",
                            ignore_parts=("__pycache__",),
