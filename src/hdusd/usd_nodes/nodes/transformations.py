@@ -79,9 +79,30 @@ class RotatorNode(USDNode):
     bl_idname = 'usd.RotatorNode'
     bl_label = "Rotator"
 
-    rotate_x: bpy.props.FloatProperty(name="X origin")
-    rotate_y: bpy.props.FloatProperty(name="Y origin")
-    rotate_z: bpy.props.FloatProperty(name="Z origin")
+    def update_data(self, context):
+        self.reset()
+
+    def set_x(self, value):
+        self["rotate_x"] = value
+
+    def set_y(self, value):
+        self["update_y"] = value
+
+    def set_z(self, value):
+        self["update_z"] = value
+
+    def get_x(self):
+        return self.get("rotate_x", 0.0)
+
+    def get_y(self):
+        return self.get("update_y", 0.0)
+
+    def get_z(self):
+        return self.get("update_z", 0.0)
+
+    rotate_x: bpy.props.FloatProperty(name="X origin", set=set_x, get=get_x, update=update_data)
+    rotate_y: bpy.props.FloatProperty(name="Y origin", set=set_y, get=get_y, update=update_data)
+    rotate_z: bpy.props.FloatProperty(name="Z origin", set=set_z, get=get_z, update=update_data)
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'rotate_x')
@@ -89,7 +110,17 @@ class RotatorNode(USDNode):
         layout.prop(self, 'rotate_z')
 
     def compute(self, **kwargs):
-        stage = self.cached_stage.create()
+        stage = self.get_input_link('Input', **kwargs)
+
+        if stage is not None:
+
+            for prim in stage.TraverseAll():
+                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+
+                if not prim.HasAttribute('xformOp:rotateXYZ'):
+                    usd_geom.AddRotateXYZOp()
+
+                prim.GetAttribute('xformOp:rotateXYZ').Set((self.rotate_x, self.rotate_y, self.rotate_z))
 
         return stage
 
