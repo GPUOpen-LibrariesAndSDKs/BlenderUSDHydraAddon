@@ -14,7 +14,7 @@
 #********************************************************************
 import math
 
-from ..node_parser import NodeParser
+from ..node_parser import NodeParser, NodeItem
 
 
 SSS_MIN_RADIUS = 0.0001
@@ -290,9 +290,16 @@ class ShaderNodeBsdfPrincipled(NodeParser):
 
         # Emission -> Emission
         if enabled(emission) and enabled(emission_strength):
+
+            emission_weight = min(1.0, max((emission_strength.data * 0.5, 0.5))) \
+                if isinstance(emission_strength.data, float) else emission_strength.min(1.0) * 0.5 + 0.5
+            
+            emission_color = (emission if isinstance(emission, NodeItem) else
+                              emission.data[:3]) * emission_strength
+
             result.set_inputs({
-                'uber_emission_weight': emission_strength * 0.5,
-                'uber_emission_color': emission,
+                'uber_emission_weight': emission_weight,
+                'uber_emission_color': emission_color,
                 'uber_emission_mode': 'Doublesided',
             })
 
