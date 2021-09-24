@@ -18,7 +18,6 @@ from pxr import Usd, UsdGeom
 
 from .base_node import USDNode
 
-
 EDITABLE_TYPES = ('Mesh', 'SphereLight', 'Camera')
 
 
@@ -27,6 +26,7 @@ class TransformNode(USDNode):
     bl_idname = 'usd.TransformNode'
     bl_label = "Transform"
 
+    # region get/set
     def update_data(self, context):
         self.reset()
 
@@ -83,7 +83,9 @@ class TransformNode(USDNode):
 
     def get_rotate_z(self):
         return self.get("rotate_z", 0.0)
+    # endregion
 
+    # region properties
     offset_x: bpy.props.FloatProperty(
         name="X offset", set=set_offset_x, get=get_offset_x, update=update_data)
     offset_y: bpy.props.FloatProperty(
@@ -104,6 +106,7 @@ class TransformNode(USDNode):
         name="Y origin", set=set_rotate_y, get=get_rotate_y, update=update_data)
     rotate_z: bpy.props.FloatProperty(
         name="Z origin", set=set_rotate_z, get=get_rotate_z, update=update_data)
+    # endregion
 
     def draw_buttons(self, context, layout):
         layout.label(text='Offset')
@@ -161,6 +164,7 @@ class OffsetterNode(USDNode):
     bl_idname = 'usd.OffsetterNode'
     bl_label = "Offsetter"
 
+    # region get/set
     def update_data(self, context):
         self.reset()
 
@@ -181,6 +185,7 @@ class OffsetterNode(USDNode):
 
     def get_z(self):
         return self.get("offset_z", 0.0)
+    # endregion
 
     offset_x: bpy.props.FloatProperty(name="X offset", set=set_x, get=get_x, update=update_data)
     offset_y: bpy.props.FloatProperty(name="Y offset", set=set_y, get=get_y, update=update_data)
@@ -215,6 +220,7 @@ class RotatorNode(USDNode):
     bl_idname = 'usd.RotatorNode'
     bl_label = "Rotator"
 
+    # region get/set
     def update_data(self, context):
         self.reset()
 
@@ -235,6 +241,7 @@ class RotatorNode(USDNode):
 
     def get_z(self):
         return self.get("rotate_z", 0.0)
+    # endregion
 
     rotate_x: bpy.props.FloatProperty(name="X origin", set=set_x, get=get_x, update=update_data)
     rotate_y: bpy.props.FloatProperty(name="Y origin", set=set_y, get=get_y, update=update_data)
@@ -269,6 +276,7 @@ class ScalerNode(USDNode):
     bl_idname = 'usd.ScalerNode'
     bl_label = "Scaler"
 
+    # region get/set
     def update_data(self, context):
         self.reset()
 
@@ -289,6 +297,7 @@ class ScalerNode(USDNode):
 
     def get_z(self):
         return self.get("scale_z", 1.0)
+    # endregion
 
     scale_x: bpy.props.FloatProperty(name="X axis", set=set_x, get=get_x, update=update_data)
     scale_y: bpy.props.FloatProperty(name="Y axis", set=set_y, get=get_y, update=update_data)
@@ -324,38 +333,134 @@ class AffinerNode(USDNode):
     bl_label = "Affiner"
     bl_description = 'Coefficients <A>, <F> and <K> must be non-zero.'
 
-    A: bpy.props.FloatProperty(name="Ax")
-    B: bpy.props.FloatProperty(name="By")
-    C: bpy.props.FloatProperty(name="Cz")
-    D: bpy.props.FloatProperty(name="D")
+    def update_data(self, context):
+        self.reset()
 
-    E: bpy.props.FloatProperty(name="Ex")
-    F: bpy.props.FloatProperty(name="Fy")
-    G: bpy.props.FloatProperty(name="Gz")
-    H: bpy.props.FloatProperty(name="H")
+    # region get/set
+    def set_A(self, value):
+        self["A"] = value
 
-    I: bpy.props.FloatProperty(name="Ix")
-    J: bpy.props.FloatProperty(name="Jy")
-    K: bpy.props.FloatProperty(name="Kz")
-    L: bpy.props.FloatProperty(name="L")
+    def set_B(self, value):
+        self["B"] = value
+
+    def set_C(self, value):
+        self["C"] = value
+
+    def set_D(self, value):
+        self["D"] = value
+
+    def get_A(self):
+        return self.get("A", 1.0)
+
+    def get_B(self):
+        return self.get("B", 0.0)
+
+    def get_C(self):
+        return self.get("C", 0.0)
+
+    def get_D(self):
+        return self.get("D", 0.0)
+    # endregion
+
+    # region get/set
+    def set_E(self, value):
+        self["E"] = value
+
+    def set_F(self, value):
+        self["F"] = value
+
+    def set_G(self, value):
+        self["G"] = value
+
+    def set_H(self, value):
+        self["H"] = value
+
+    def get_E(self):
+        return self.get("E", 0.0)
+
+    def get_F(self):
+        return self.get("F", 1.0)
+
+    def get_G(self):
+        return self.get("G", 0.0)
+
+    def get_H(self):
+        return self.get("H", 0.0)
+    # endregion
+
+    # region get/set
+    def set_I(self, value):
+        self["I"] = value
+
+    def set_J(self, value):
+        self["J"] = value
+
+    def set_K(self, value):
+        self["K"] = value
+
+    def set_L(self, value):
+        self["L"] = value
+
+    def get_I(self):
+        return self.get("I", 0.0)
+
+    def get_J(self):
+        return self.get("J", 0.0)
+
+    def get_K(self):
+        return self.get("K", 1.0)
+
+    def get_L(self):
+        return self.get("L", 0.0)
+    # endregion
+
+    # region properties
+    A: bpy.props.FloatProperty(name="Ax", set=set_A, get=get_A, update=update_data)
+    B: bpy.props.FloatProperty(name="By", set=set_B, get=get_B, update=update_data)
+    C: bpy.props.FloatProperty(name="Cz", set=set_C, get=get_C, update=update_data)
+    D: bpy.props.FloatProperty(name="D", set=set_D, get=get_D, update=update_data)
+
+    E: bpy.props.FloatProperty(name="Ex", set=set_E, get=get_E, update=update_data)
+    F: bpy.props.FloatProperty(name="Fy", set=set_F, get=get_F, update=update_data)
+    G: bpy.props.FloatProperty(name="Gz", set=set_G, get=get_G, update=update_data)
+    H: bpy.props.FloatProperty(name="H", set=set_H, get=get_H, update=update_data)
+
+    I: bpy.props.FloatProperty(name="Ix", set=set_I, get=get_I, update=update_data)
+    J: bpy.props.FloatProperty(name="Jy", set=set_J, get=get_J, update=update_data)
+    K: bpy.props.FloatProperty(name="Kz", set=set_K, get=get_K, update=update_data)
+    L: bpy.props.FloatProperty(name="L", set=set_L, get=get_L, update=update_data)
+    # endregion
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'A')
-        layout.prop(self, 'B')
-        layout.prop(self, 'C')
-        layout.prop(self, 'D')
+        row = layout.row()
+        row.prop(self, 'A')
+        row.prop(self, 'B')
+        row.prop(self, 'C')
+        row.prop(self, 'D')
 
-        layout.prop(self, 'E')
-        layout.prop(self, 'F')
-        layout.prop(self, 'G')
-        layout.prop(self, 'H')
+        row = layout.row()
+        row.prop(self, 'E')
+        row.prop(self, 'F')
+        row.prop(self, 'G')
+        row.prop(self, 'H')
 
-        layout.prop(self, 'I')
-        layout.prop(self, 'J')
-        layout.prop(self, 'K')
-        layout.prop(self, 'L')
+        row = layout.row()
+        row.prop(self, 'I')
+        row.prop(self, 'J')
+        row.prop(self, 'K')
+        row.prop(self, 'L')
 
     def compute(self, **kwargs):
-        stage = self.cached_stage.create()
+        stage = self.get_input_link('Input', **kwargs)
+
+        if stage is not None:
+
+            for prim in stage.TraverseAll():
+                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+
+                if prim.GetTypeName() in EDITABLE_TYPES:
+
+                    if not prim.HasAttribute('xformOp:transform'):
+                        usd_geom.AddXformOp(())
 
         return stage

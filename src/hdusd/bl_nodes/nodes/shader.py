@@ -1,4 +1,4 @@
-# **********************************************************************
+#**********************************************************************
 # Copyright 2020 Advanced Micro Devices, Inc
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #********************************************************************
 import math
 
-from ..node_parser import NodeParser, NodeItem
+from ..node_parser import NodeParser
 
 
 SSS_MIN_RADIUS = 0.0001
@@ -289,17 +289,13 @@ class ShaderNodeBsdfPrincipled(NodeParser):
             })
 
         # Emission -> Emission
-        if enabled(emission) and enabled(emission_strength):
-
-            emission_weight = min(1.0, max((emission_strength.data * 0.5, 0.5))) \
-                if isinstance(emission_strength.data, float) else emission_strength.min(1.0) * 0.5 + 0.5
-            
-            emission_color = (emission if isinstance(emission, NodeItem) else
-                              emission.data[:3]) * emission_strength
+        if enabled(emission):
+            # more related formula for emission weight:
+            emission_weight = emission.average_xyz().min(1.0) * 0.5 + 0.5
 
             result.set_inputs({
                 'uber_emission_weight': emission_weight,
-                'uber_emission_color': emission_color,
+                'uber_emission_color': emission,
                 'uber_emission_mode': 'Doublesided',
             })
 
