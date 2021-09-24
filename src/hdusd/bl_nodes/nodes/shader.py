@@ -14,29 +14,29 @@
 #********************************************************************
 import math
 
-from ..node_parser import NodeParser, NodeItem
+from ..node_parser import NodeParser
 
 
 SSS_MIN_RADIUS = 0.0001
 
+def enabled(val):
+    if val is None:
+        return False
+
+    if isinstance(val.data, float) and math.isclose(val.data, 0.0):
+        return False
+
+    if isinstance(val.data, tuple) and \
+            math.isclose(val.data[0], 0.0) and \
+            math.isclose(val.data[1], 0.0) and \
+            math.isclose(val.data[2], 0.0):
+        return False
+
+    return True
+
 
 class ShaderNodeBsdfPrincipled(NodeParser):
     def export(self):
-        def enabled(val):
-            if val is None:
-                return False
-
-            if isinstance(val.data, float) and math.isclose(val.data, 0.0):
-                return False
-
-            if isinstance(val.data, tuple) and \
-               math.isclose(val.data[0], 0.0) and \
-               math.isclose(val.data[1], 0.0) and \
-               math.isclose(val.data[2], 0.0):
-                return False
-
-            return True
-
         # GETTING REQUIRED INPUTS
         # Note: if some inputs are not needed they won't be taken
 
@@ -154,21 +154,6 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         return result
 
     def export_rpr(self):
-        def enabled(val):
-            if val is None:
-                return False
-
-            if isinstance(val.data, float) and math.isclose(val.data, 0.0):
-                return False
-
-            if isinstance(val.data, tuple) and \
-               math.isclose(val.data[0], 0.0) and \
-               math.isclose(val.data[1], 0.0) and \
-               math.isclose(val.data[2], 0.0):
-                return False
-
-            return True
-
         # GETTING REQUIRED INPUTS
         # Note: if some inputs are not needed they won't be taken
 
@@ -290,16 +275,9 @@ class ShaderNodeBsdfPrincipled(NodeParser):
 
         # Emission -> Emission
         if enabled(emission) and enabled(emission_strength):
-
-            emission_weight = min(1.0, max((emission_strength.data * 0.5, 0.5))) \
-                if isinstance(emission_strength.data, float) else emission_strength.min(1.0) * 0.5 + 0.5
-            
-            emission_color = (emission if isinstance(emission, NodeItem) else
-                              emission.data[:3]) * emission_strength
-
             result.set_inputs({
-                'uber_emission_weight': emission_weight,
-                'uber_emission_color': emission_color,
+                'uber_emission_weight': emission_strength.min(1.0) * 0.5 + 0.5,
+                'uber_emission_color': emission * emission_strength,
                 'uber_emission_mode': 'Doublesided',
             })
 
@@ -364,12 +342,32 @@ class ShaderNodeBsdfGlass(NodeParser):
 
 class ShaderNodeEmission(NodeParser):
     def export(self):
+        result = self.create_node('standard_surface', 'surfaceshader')
+
         color = self.get_input_value('Color')
         strength = self.get_input_value('Strength')
 
-        result = self.create_node('uniform_edf', 'EDF', {
-            'color': color * strength,
-        })
+        if enabled(color) and enabled(strength):
+            result.set_inputs({
+                'emission': 1.0,
+                'emission_color': color * strength,
+            })
+
+        return result
+
+    def export_rpr(self):
+        result = self.create_node('rpr_uberv2', 'surfaceshader')
+
+        color = self.get_input_value('Color')
+        strength = self.get_input_value('Strength')
+
+        if enabled(color) and enabled(strength):
+
+            result.set_inputs({
+                'uber_emission_weight': 1.0,
+                'uber_emission_color': color * strength,
+                'uber_emission_mode': 'Doublesided',
+            })
 
         return result
 
