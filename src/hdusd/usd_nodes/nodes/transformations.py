@@ -86,19 +86,19 @@ class RotatorNode(USDNode):
         self["rotate_x"] = value
 
     def set_y(self, value):
-        self["update_y"] = value
+        self["rotate_y"] = value
 
     def set_z(self, value):
-        self["update_z"] = value
+        self["rotate_z"] = value
 
     def get_x(self):
         return self.get("rotate_x", 0.0)
 
     def get_y(self):
-        return self.get("update_y", 0.0)
+        return self.get("rotate_y", 0.0)
 
     def get_z(self):
-        return self.get("update_z", 0.0)
+        return self.get("rotate_z", 0.0)
 
     rotate_x: bpy.props.FloatProperty(name="X origin", set=set_x, get=get_x, update=update_data)
     rotate_y: bpy.props.FloatProperty(name="Y origin", set=set_y, get=get_y, update=update_data)
