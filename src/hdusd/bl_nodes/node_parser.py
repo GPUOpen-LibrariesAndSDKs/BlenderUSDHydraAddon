@@ -34,9 +34,9 @@ class Id:
 class NodeItem:
     """This class is a wrapper used for doing operations on MaterialX nodes, floats, and tuples"""
 
-    def __init__(self, id: Id, doc: mx.Document, data: [tuple, float, mx.Node]):
+    def __init__(self, id: Id, ng: [mx.Document, mx.NodeGraph], data: [tuple, float, mx.Node]):
         self.id = id
-        self.doc = doc
+        self.nodegraph = ng
         self.data = data
         self.nodedef = None
         if isinstance(data, mx.Node):
@@ -47,7 +47,7 @@ class NodeItem:
         if isinstance(value, NodeItem):
             return value
 
-        return NodeItem(self.id, self.doc, value)
+        return NodeItem(self.id, self.nodegraph, value)
 
     @property
     def type(self):
@@ -71,15 +71,6 @@ class NodeItem:
         for name, value in inputs.items():
             self.set_input(name, value)
 
-    def set_parameter(self, name, value):
-        if value is None:
-            return
-
-        val_data = value.data if isinstance(value, NodeItem) else value
-        nd_param = self.nodedef.getParameter(name)
-        param = self.data.addParameter(name, nd_param.getType())
-        set_param_value(param, val_data, param.getType())
-
     # MATH OPERATIONS
     def _arithmetic_helper(self, other, op_node, func):
         ''' helper function for overridden math functions.
@@ -92,8 +83,8 @@ class NodeItem:
             elif isinstance(self.data, tuple):
                 result_data = tuple(map(func, self.data))
             else:
-                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}",
-                                               self.data.getType())
+                result_data = self.nodegraph.addNode(op_node, f"{op_node}_{self.id()}",
+                                                     self.data.getType())
                 input = result_data.addInput('in', self.data.getType())
                 set_param_value(input, self.data, self.data.getType())
 
@@ -121,7 +112,7 @@ class NodeItem:
                 nd_type = self.data.getType() if isinstance(self.data, mx.Node) else \
                           other_data.getType()
 
-                result_data = self.doc.addNode(op_node, f"{op_node}_{self.id()}", nd_type)
+                result_data = self.nodegraph.addNode(op_node, f"{op_node}_{self.id()}", nd_type)
                 input1 = result_data.addInput('in1', nd_type)
                 set_param_value(input1, self.data, nd_type)
                 input2 = result_data.addInput('in2', nd_type)
@@ -253,10 +244,10 @@ class NodeParser:
     Subclasses should override only export() function.
     """
 
-    def __init__(self, id: Id, doc: mx.Document, material: bpy.types.Material,
+    def __init__(self, id: Id, ng: [mx.Document, mx.NodeGraph], material: bpy.types.Material,
                  node: bpy.types.Node, obj: bpy.types.Object, out_key, group_nodes=(), **kwargs):
         self.id = id
-        self.doc = doc
+        self.nodegraph = ng
         self.material = material
         self.node = node
         self.object = obj
@@ -288,8 +279,8 @@ class NodeParser:
             log.warn("Ignoring unsupported node", node, self.material)
             return None
 
-        node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object, out_key,
-                                     group_nodes, **self.kwargs)
+        node_parser = NodeParser_cls(self.id, self.nodegraph, self.material, node, self.object,
+                                     out_key, group_nodes, **self.kwargs)
 
         if self.kwargs.get('rpr', False):
             return node_parser.export_rpr()
@@ -314,7 +305,7 @@ class NodeParser:
         if isinstance(value, NodeItem):
             return value
 
-        return NodeItem(self.id, self.doc, value)
+        return NodeItem(self.id, self.nodegraph, value)
 
     # HELPER FUNCTIONS
     # Child classes should use them to do their export
@@ -356,8 +347,8 @@ class NodeParser:
         return self.get_input_default(in_key)
 
     def create_node(self, node_name, nd_type, inputs=None):
-        node = self.doc.addNode(node_name, f"{node_name}_{self.id()}", nd_type)
-        node_item = NodeItem(self.id, self.doc, node)
+        node = self.nodegraph.addNode(node_name, f"{node_name}_{self.id()}", nd_type)
+        node_item = NodeItem(self.id, self.nodegraph, node)
 
         if inputs:
             node_item.set_inputs(inputs)

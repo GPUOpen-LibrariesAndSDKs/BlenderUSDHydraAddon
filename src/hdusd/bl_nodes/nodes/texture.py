@@ -53,8 +53,8 @@ class ShaderNodeTexImage(NodeParser):
         uv = self.create_node('texcoord', 'vector2', {})
 
         result = self.create_node('image', 'color3', {
+            'file': img_path,
             'texcoord': uv,
         })
-        result.set_parameter('file', img_path)
 
         return result
