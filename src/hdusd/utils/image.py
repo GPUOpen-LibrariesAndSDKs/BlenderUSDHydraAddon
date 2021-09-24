@@ -19,14 +19,15 @@ import bpy
 from . import get_temp_file
 
 
-SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tiff", ".tga", ".bmp"}
+SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tga", ".bmp"}
 DEFAULT_FORMAT = ".hdr"
 
 
 def cache_image_file(image: bpy.types.Image):
     # if image packed in .blend file
     if image.packed_file is not None or image.source == 'GENERATED' or \
-            Path(image.filepath).suffix.lower() not in SUPPORTED_FORMATS:
+            Path(image.filepath).suffix.lower() not in SUPPORTED_FORMATS or \
+            f".{image.file_format.lower()}" not in SUPPORTED_FORMATS:
         temp_path = get_temp_file(DEFAULT_FORMAT)
         image.save_render(str(temp_path))
         return temp_path
