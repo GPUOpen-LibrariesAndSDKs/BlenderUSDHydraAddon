@@ -14,7 +14,7 @@
 # ********************************************************************
 import bpy
 
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, Gf
 
 from .base_node import USDNode
 
@@ -461,6 +461,13 @@ class AffinerNode(USDNode):
                 if prim.GetTypeName() in EDITABLE_TYPES:
 
                     if not prim.HasAttribute('xformOp:transform'):
-                        usd_geom.AddXformOp(())
+                        usd_geom.AddTransformOp()
+
+                    matrix = Gf.Matrix4d(self.A, self.B, self.C, 0,
+                                         self.E, self.F, self.G, 0,
+                                         self.I, self.J, self.K, 0,
+                                         self.D, self.H, self.L, 1)
+
+                    prim.GetAttribute('xformOp:transform').Set(matrix)
 
         return stage
