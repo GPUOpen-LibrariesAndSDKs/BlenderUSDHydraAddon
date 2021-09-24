@@ -17,6 +17,8 @@ from . import log
 
 
 class ShaderNodeOutputMaterial(NodeParser):
+    nodegraph_path = ""
+
     def __init__(self, doc, material, node, obj, **kwargs):
         super().__init__(Id(), doc, material, node, obj, None, **kwargs)
 

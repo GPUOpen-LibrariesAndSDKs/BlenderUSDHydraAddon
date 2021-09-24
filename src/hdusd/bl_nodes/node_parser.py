@@ -17,7 +17,7 @@ import math
 import bpy
 import MaterialX as mx
 
-from ..utils.mx import set_param_value
+from ..utils import mx as mx_utils
 from ..mx_nodes.nodes import get_mx_node_cls 
 from . import log
 
@@ -65,7 +65,7 @@ class NodeItem:
         val_data = value.data if isinstance(value, NodeItem) else value
         nd_input = self.nodedef.getInput(name)
         input = self.data.addInput(name, nd_input.getType())
-        set_param_value(input, val_data, input.getType())
+        mx_utils.set_param_value(input, val_data, input.getType())
 
     def set_inputs(self, inputs):
         for name, value in inputs.items():
@@ -86,7 +86,7 @@ class NodeItem:
                 result_data = self.nodegraph.addNode(op_node, f"{op_node}_{self.id()}",
                                                      self.data.getType())
                 input = result_data.addInput('in', self.data.getType())
-                set_param_value(input, self.data, self.data.getType())
+                mx_utils.set_param_value(input, self.data, self.data.getType())
 
         else:
             other_data = other.data if isinstance(other, NodeItem) else other
@@ -114,9 +114,9 @@ class NodeItem:
 
                 result_data = self.nodegraph.addNode(op_node, f"{op_node}_{self.id()}", nd_type)
                 input1 = result_data.addInput('in1', nd_type)
-                set_param_value(input1, self.data, nd_type)
+                mx_utils.set_param_value(input1, self.data, nd_type)
                 input2 = result_data.addInput('in2', nd_type)
-                set_param_value(input2, other_data, nd_type)
+                mx_utils.set_param_value(input2, other_data, nd_type)
 
         return self.node_item(result_data)
 
@@ -244,10 +244,12 @@ class NodeParser:
     Subclasses should override only export() function.
     """
 
-    def __init__(self, id: Id, ng: [mx.Document, mx.NodeGraph], material: bpy.types.Material,
+    nodegraph_path = "NG"
+
+    def __init__(self, id: Id, doc: mx.Document, material: bpy.types.Material,
                  node: bpy.types.Node, obj: bpy.types.Object, out_key, group_nodes=(), **kwargs):
         self.id = id
-        self.nodegraph = ng
+        self.doc = doc
         self.material = material
         self.node = node
         self.object = obj
@@ -279,7 +281,7 @@ class NodeParser:
             log.warn("Ignoring unsupported node", node, self.material)
             return None
 
-        node_parser = NodeParser_cls(self.id, self.nodegraph, self.material, node, self.object,
+        node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object,
                                      out_key, group_nodes, **self.kwargs)
 
         if self.kwargs.get('rpr', False):
@@ -305,7 +307,8 @@ class NodeParser:
         if isinstance(value, NodeItem):
             return value
 
-        return NodeItem(self.id, self.nodegraph, value)
+        nodegraph = mx_utils.get_nodegraph_by_path(self.doc, self.nodegraph_path, True)
+        return NodeItem(self.id, nodegraph, value)
 
     # HELPER FUNCTIONS
     # Child classes should use them to do their export
@@ -347,8 +350,9 @@ class NodeParser:
         return self.get_input_default(in_key)
 
     def create_node(self, node_name, nd_type, inputs=None):
-        node = self.nodegraph.addNode(node_name, f"{node_name}_{self.id()}", nd_type)
-        node_item = NodeItem(self.id, self.nodegraph, node)
+        nodegraph = mx_utils.get_nodegraph_by_path(self.doc, self.nodegraph_path, True)
+        node = nodegraph.addNode(node_name, f"{node_name}_{self.id()}", nd_type)
+        node_item = NodeItem(self.id, nodegraph, node)
 
         if inputs:
             node_item.set_inputs(inputs)

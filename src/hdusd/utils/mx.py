@@ -171,8 +171,8 @@ def get_file_prefix(mx_node, file_path):
     return file_prefix.resolve()
 
 
-def get_nodegraph_by_node_path(doc, node_path, do_create=False):
-    nodegraph_names = code_str(node_path).split('/')[:-1]
+def get_nodegraph_by_path(doc, ng_path, do_create=False):
+    nodegraph_names = code_str(ng_path).split('/') if ng_path else ()
     mx_nodegraph = doc
     for nodegraph_name in nodegraph_names:
         next_mx_nodegraph = mx_nodegraph.getNodeGraph(nodegraph_name)
@@ -185,6 +185,11 @@ def get_nodegraph_by_node_path(doc, node_path, do_create=False):
         mx_nodegraph = next_mx_nodegraph
 
     return mx_nodegraph
+
+
+def get_nodegraph_by_node_path(doc, node_path, do_create=False):
+    nodegraph_names = code_str(node_path).split('/')[:-1]
+    return get_nodegraph_by_path(doc, '/'.join(nodegraph_names), do_create)
 
 
 def get_node_name_by_node_path(node_path):

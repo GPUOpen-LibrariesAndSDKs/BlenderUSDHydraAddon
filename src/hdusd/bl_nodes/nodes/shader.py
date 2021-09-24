@@ -21,6 +21,8 @@ SSS_MIN_RADIUS = 0.0001
 
 
 class ShaderNodeBsdfPrincipled(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         def enabled(val):
             if val is None:
@@ -319,6 +321,8 @@ class ShaderNodeBsdfPrincipled(NodeParser):
 
 
 class ShaderNodeBsdfDiffuse(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         color = self.get_input_value('Color')
         roughness = self.get_input_value('Roughness')
@@ -359,6 +363,8 @@ class ShaderNodeBsdfGlass(NodeParser):
 
 
 class ShaderNodeEmission(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         color = self.get_input_value('Color')
         strength = self.get_input_value('Strength')
