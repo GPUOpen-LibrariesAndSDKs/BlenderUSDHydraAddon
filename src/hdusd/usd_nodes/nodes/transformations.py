@@ -18,6 +18,10 @@ from pxr import Usd, UsdGeom
 
 from .base_node import USDNode
 
+
+EDITABLE_TYPES = ('Mesh', 'SphereLight', 'Camera')
+
+
 class TransformNode(USDNode):
     """Transforms input data"""
     bl_idname = 'usd.TransformNode'
@@ -97,7 +101,7 @@ class OffsetterNode(USDNode):
             for prim in stage.TraverseAll():
                 usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                if prim.GetTypeName() == 'Mesh':
+                if prim.GetTypeName() in EDITABLE_TYPES:
 
                     if not prim.HasAttribute('xformOp:translate'):
                         usd_geom.AddTranslateOp()
@@ -151,7 +155,7 @@ class RotatorNode(USDNode):
             for prim in stage.TraverseAll():
                 usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                if prim.GetTypeName() == 'Mesh':
+                if prim.GetTypeName() in EDITABLE_TYPES:
 
                     if not prim.HasAttribute('xformOp:rotateXYZ'):
                         usd_geom.AddRotateXYZOp()
