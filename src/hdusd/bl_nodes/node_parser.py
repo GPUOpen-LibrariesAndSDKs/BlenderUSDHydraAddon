@@ -247,13 +247,15 @@ class NodeParser:
     nodegraph_path = "NG"
 
     def __init__(self, id: Id, doc: mx.Document, material: bpy.types.Material,
-                 node: bpy.types.Node, obj: bpy.types.Object, out_key, group_nodes=(), **kwargs):
+                 node: bpy.types.Node, obj: bpy.types.Object, out_key, cached_nodes,
+                 group_nodes=(), **kwargs):
         self.id = id
         self.doc = doc
         self.material = material
         self.node = node
         self.object = obj
         self.out_key = out_key
+        self.cached_nodes = cached_nodes
         self.group_nodes = group_nodes
         self.kwargs = kwargs
 
@@ -273,21 +275,28 @@ class NodeParser:
         else:
             group_nodes = self.group_nodes
 
-        # TODO: check if this node was already parsed
+        # check if this node was already parsed and cached
+        node_item = self.cached_nodes.get((node.name, out_key))
+        if node_item:
+            return node_item
 
         # getting corresponded NodeParser class
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
         if not NodeParser_cls:
             log.warn("Ignoring unsupported node", node, self.material)
+            self.cached_nodes[(node.name, out_key)] = None
             return None
 
         node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object,
-                                     out_key, group_nodes, **self.kwargs)
+                                     out_key, self.cached_nodes, group_nodes, **self.kwargs)
 
         if self.kwargs.get('rpr', False):
-            return node_parser.export_rpr()
+            node_item = node_parser.export_rpr()
         else:
-            return node_parser.export()
+            node_item = node_parser.export()
+
+        self.cached_nodes[(node.name, out_key)] = node_item
+        return node_item
 
     def _parse_val(self, val):
         """Turn blender socket value into python's value"""
