@@ -19,6 +19,7 @@ from ..node_parser import NodeParser
 
 SSS_MIN_RADIUS = 0.0001
 
+
 def enabled(val):
     if val is None:
         return False
@@ -362,7 +363,6 @@ class ShaderNodeEmission(NodeParser):
         strength = self.get_input_value('Strength')
 
         if enabled(color) and enabled(strength):
-
             result.set_inputs({
                 'uber_emission_weight': 1.0,
                 'uber_emission_color': color * strength,
