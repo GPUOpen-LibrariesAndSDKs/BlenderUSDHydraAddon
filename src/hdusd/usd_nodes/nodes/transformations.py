@@ -15,7 +15,7 @@
 import bpy
 import math
 
-from pxr import Usd, UsdGeom, Gf, Tf
+from pxr import Usd, UsdGeom
 
 from .base_node import USDNode
 
