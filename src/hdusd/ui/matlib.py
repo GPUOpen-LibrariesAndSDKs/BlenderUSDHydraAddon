@@ -72,7 +72,7 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
 class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
     """Reload Material"""
     bl_idname = "hdusd.matlib_load_package"
-    bl_label = "load package"
+    bl_label = "Load package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
@@ -159,8 +159,8 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                 matlib_prop.package_id = package.id
 
                 split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                         text=f"{package.label} ({package.size})" if package is not None else None,
-                         icon='DOCUMENTS')
+                                 text=f"{package.label} ({package.size})" if package is not None else None,
+                                 icon='DOCUMENTS')
 
         material = matlib_prop.pcoll.materials[matlib_prop.material]
         package = next(package for package in material.packages
@@ -175,7 +175,8 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
         col = layout.row()
         col.enabled = bool(context.material)
-        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package", icon="IMPORT")
+        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
+                     icon="IMPORT")
 
 
 class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
