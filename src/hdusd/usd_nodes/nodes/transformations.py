@@ -132,30 +132,32 @@ class TransformNode(USDNode):
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
 
-        if stage is not None:
+        if stage is None:
+            return
 
-            for prim in stage.TraverseAll():
-                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+        prims = [prim for prim in stage.GetPseudoRoot().GetAllChildren()
+                 if prim.GetTypeName() in EDITABLE_TYPES]
 
-                if prim.GetTypeName() in EDITABLE_TYPES:
+        for prim in prims:
+            usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                    if not prim.HasAttribute('xformOp:translate'):
-                        usd_geom.AddTranslateOp()
+            if not prim.HasAttribute('xformOp:translate'):
+                usd_geom.AddTranslateOp()
 
-                    if not prim.HasAttribute('xformOp:rotateXYZ'):
-                        usd_geom.AddRotateXYZOp()
+            if not prim.HasAttribute('xformOp:rotateXYZ'):
+                usd_geom.AddRotateXYZOp()
 
-                    if not prim.HasAttribute('xformOp:scale'):
-                        usd_geom.AddScaleOp()
+            if not prim.HasAttribute('xformOp:scale'):
+                usd_geom.AddScaleOp()
 
-                    prim.GetAttribute('xformOp:translate').Set(
-                        (self.offset_x, self.offset_y, self.offset_z))
+            prim.GetAttribute('xformOp:translate').Set(
+                (self.offset_x, self.offset_y, self.offset_z))
 
-                    prim.GetAttribute('xformOp:rotateXYZ').Set(
-                        (self.rotate_x, self.rotate_y, self.rotate_z))
+            prim.GetAttribute('xformOp:rotateXYZ').Set(
+                (self.rotate_x, self.rotate_y, self.rotate_z))
 
-                    prim.GetAttribute('xformOp:scale').Set(
-                        (self.scale_x, self.scale_y, self.scale_z))
+            prim.GetAttribute('xformOp:scale').Set(
+                (self.scale_x, self.scale_y, self.scale_z))
 
         return stage
 
@@ -200,18 +202,20 @@ class OffsetterNode(USDNode):
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
 
-        if stage is not None:
+        if stage is None:
+            return
 
-            for prim in stage.TraverseAll():
-                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+        prims = [prim for prim in stage.GetPseudoRoot().GetAllChildren()
+                 if prim.GetTypeName() in EDITABLE_TYPES]
 
-                if prim.GetTypeName() in EDITABLE_TYPES:
+        for prim in prims:
+            usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                    if not prim.HasAttribute('xformOp:translate'):
-                        usd_geom.AddTranslateOp()
+            if not prim.HasAttribute('xformOp:translate'):
+                usd_geom.AddTranslateOp()
 
-                    prim.GetAttribute('xformOp:translate').Set(
-                        (self.offset_x, self.offset_y, self.offset_z))
+            prim.GetAttribute('xformOp:translate').Set(
+                (self.offset_x, self.offset_y, self.offset_z))
 
         return stage
 
@@ -256,18 +260,20 @@ class RotatorNode(USDNode):
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
 
-        if stage is not None:
+        if stage is None:
+            return
 
-            for prim in stage.TraverseAll():
-                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+        prims = [prim for prim in stage.GetPseudoRoot().GetAllChildren()
+                 if prim.GetTypeName() in EDITABLE_TYPES]
 
-                if prim.GetTypeName() in EDITABLE_TYPES:
+        for prim in prims:
+            usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                    if not prim.HasAttribute('xformOp:rotateXYZ'):
-                        usd_geom.AddRotateXYZOp()
+            if not prim.HasAttribute('xformOp:rotateXYZ'):
+                usd_geom.AddRotateXYZOp()
 
-                    prim.GetAttribute('xformOp:rotateXYZ').Set(
-                        (self.rotate_x, self.rotate_y, self.rotate_z))
+            prim.GetAttribute('xformOp:rotateXYZ').Set(
+                (self.rotate_x, self.rotate_y, self.rotate_z))
 
         return stage
 
@@ -312,18 +318,20 @@ class ScalerNode(USDNode):
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
 
-        if stage is not None:
+        if stage is None:
+            return
 
-            for prim in stage.TraverseAll():
-                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+        prims = [prim for prim in stage.GetPseudoRoot().GetAllChildren()
+                 if prim.GetTypeName() in EDITABLE_TYPES]
 
-                if prim.GetTypeName() in EDITABLE_TYPES:
+        for prim in prims:
+            usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                    if not prim.HasAttribute('xformOp:scale'):
-                        usd_geom.AddScaleOp()
+            if not prim.HasAttribute('xformOp:scale'):
+                usd_geom.AddScaleOp()
 
-                    prim.GetAttribute('xformOp:scale').Set(
-                        (self.scale_x, self.scale_y, self.scale_z))
+            prim.GetAttribute('xformOp:scale').Set(
+                (self.scale_x, self.scale_y, self.scale_z))
 
         return stage
 
@@ -454,22 +462,24 @@ class AffinerNode(USDNode):
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
 
-        if stage is not None:
+        if stage is None:
+            return
 
-            for prim in stage.TraverseAll():
-                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+        prims = [prim for prim in stage.GetPseudoRoot().GetAllChildren()
+                 if prim.GetTypeName() in EDITABLE_TYPES]
 
-                if prim.GetTypeName() in EDITABLE_TYPES:
+        for prim in prims:
+            usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                    if not prim.HasAttribute('xformOp:transform'):
-                        usd_geom.AddTransformOp()
+            if not prim.HasAttribute('xformOp:transform'):
+                usd_geom.AddTransformOp()
 
-                    matrix = Gf.Matrix4d(self.A, self.B, self.C, 0,
-                                         self.E, self.F, self.G, 0,
-                                         self.I, self.J, self.K, 0,
-                                         self.D, self.H, self.L, 1)
+            matrix = Gf.Matrix4d(self.A, self.B, self.C, 0,
+                                 self.E, self.F, self.G, 0,
+                                 self.I, self.J, self.K, 0,
+                                 self.D, self.H, self.L, 1)
 
-                    prim.GetAttribute('xformOp:transform').Set(matrix)
+            prim.GetAttribute('xformOp:transform').Set(matrix)
 
         return stage
 
@@ -485,27 +495,29 @@ class IdentityNode(USDNode):
     def compute(self, **kwargs):
         stage = self.get_input_link('Input', **kwargs)
 
-        if stage is not None:
+        if stage is None:
+            return
 
-            for prim in stage.TraverseAll():
-                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+        prims = [prim for prim in stage.GetPseudoRoot().GetAllChildren()
+                 if prim.GetTypeName() in EDITABLE_TYPES]
 
-                if prim.GetTypeName() in EDITABLE_TYPES:
+        for prim in prims:
+            usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
 
-                    if not prim.HasAttribute('xformOpOrder'):
-                        usd_geom.CreateXformOpOrderAttr()
+            if not prim.HasAttribute('xformOpOrder'):
+                usd_geom.CreateXformOpOrderAttr()
 
-                    for attr in prim.GetAttribute('xformOpOrder').Get():
-                        prim.RemoveProperty(attr)
+            for attr in prim.GetAttribute('xformOpOrder').Get():
+                prim.RemoveProperty(attr)
 
-                    usd_geom.ClearXformOpOrder()
+            usd_geom.ClearXformOpOrder()
 
-                    matrix = Gf.Matrix4d(1, 0, 0, 0,
-                                         0, 1, 0, 0,
-                                         0, 0, 1, 0,
-                                         0, 0, 0, 1)
+            matrix = Gf.Matrix4d(1, 0, 0, 0,
+                                 0, 1, 0, 0,
+                                 0, 0, 1, 0,
+                                 0, 0, 0, 1)
 
-                    usd_geom.AddTransformOp()
-                    prim.GetAttribute('xformOp:transform').Set(matrix)
+            usd_geom.AddTransformOp()
+            prim.GetAttribute('xformOp:transform').Set(matrix)
 
         return stage
