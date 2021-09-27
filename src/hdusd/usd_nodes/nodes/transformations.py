@@ -134,9 +134,6 @@ class TransformNode(USDNode):
         name="Y origin", set=set_rotate_y, get=get_rotate_y, update=update_data)
     rotate_z: bpy.props.FloatProperty(
         name="Z origin", set=set_rotate_z, get=get_rotate_z, update=update_data)
-
-    transform_sdf_path: bpy.props.StringProperty()
-    object_sdf_path: bpy.props.StringProperty()
     # endregion
 
     def draw_buttons(self, context, layout):
@@ -237,7 +234,6 @@ class TransformNode(USDNode):
             if self.toggle_rotate and enabled(value):
                 if not override_prim.HasAttribute('xformOp:rotateXYZ'):
                     usd_geom.AddRotateXYZOp()
-
 
                 override_prim.GetAttribute('xformOp:rotateXYZ').Set(value)
 
