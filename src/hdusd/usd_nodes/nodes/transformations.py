@@ -13,7 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-import uuid
+import math
 
 from pxr import Usd, UsdGeom, Gf, Tf
 
@@ -21,6 +21,22 @@ from .base_node import USDNode
 
 
 EDITABLE_TYPES = ('Xform',)
+
+
+def enabled(val):
+    if val is None:
+        return False
+
+    if isinstance(val, float) and math.isclose(val, 0.0):
+        return False
+
+    if isinstance(val, tuple) and \
+            math.isclose(val[0], 0.0) and \
+            math.isclose(val[1], 0.0) and \
+            math.isclose(val[2], 0.0):
+        return False
+
+    return True
 
 
 class TransformNode(USDNode):
@@ -125,13 +141,24 @@ class TransformNode(USDNode):
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'name')
+
         row = layout.split(factor=0.4).row()
         row.alignment = 'LEFT'
         row.label(text='Offset')
         row.prop(self, 'toggle_offset', text='')
-        layout.prop(self, 'offset_x')
-        layout.prop(self, 'offset_y')
-        layout.prop(self, 'offset_z')
+
+        row = layout.row()
+        row.prop(self, 'offset_x')
+        row.enabled = self.toggle_offset
+
+        row = layout.row()
+        row.prop(self, 'offset_y')
+        row.enabled = self.toggle_offset
+
+        row = layout.row()
+        row.prop(self, 'offset_z')
+        row.enabled = self.toggle_offset
+
 
         layout.separator()
 
@@ -139,9 +166,18 @@ class TransformNode(USDNode):
         row.alignment = 'LEFT'
         row.label(text='Rotate')
         row.prop(self, 'toggle_rotate', text='')
-        layout.prop(self, 'rotate_x')
-        layout.prop(self, 'rotate_y')
-        layout.prop(self, 'rotate_z')
+
+        row = layout.row()
+        row.prop(self, 'rotate_x')
+        row.enabled = self.toggle_rotate
+
+        row = layout.row()
+        row.prop(self, 'rotate_y')
+        row.enabled = self.toggle_rotate
+
+        row = layout.row()
+        row.prop(self, 'rotate_z')
+        row.enabled = self.toggle_rotate
 
         layout.separator()
 
@@ -149,9 +185,18 @@ class TransformNode(USDNode):
         row.alignment = 'LEFT'
         row.label(text='Scale')
         row.prop(self, 'toggle_scale', text='')
-        layout.prop(self, 'scale_x')
-        layout.prop(self, 'scale_y')
-        layout.prop(self, 'scale_z')
+
+        row = layout.row()
+        row.prop(self, 'scale_x')
+        row.enabled = self.toggle_scale
+
+        row = layout.row()
+        row.prop(self, 'scale_y')
+        row.enabled = self.toggle_scale
+
+        row = layout.row()
+        row.prop(self, 'scale_z')
+        row.enabled = self.toggle_scale
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
@@ -179,26 +224,29 @@ class TransformNode(USDNode):
                 continue
 
             usd_geom = UsdGeom.Xform.Get(stage, override_prim.GetPath())
+            value = (self.offset_x, self.offset_y, self.offset_z)
 
-            if self.toggle_offset:
+            if self.toggle_offset and enabled(value):
                 if not override_prim.HasAttribute('xformOp:translate'):
                     usd_geom.AddTranslateOp()
 
-                override_prim.GetAttribute('xformOp:translate').Set(
-                    (self.offset_x, self.offset_y, self.offset_z))
+                override_prim.GetAttribute('xformOp:translate').Set(value)
 
-            if self.toggle_rotate:
+            value = (self.rotate_x, self.rotate_y, self.rotate_z)
+
+            if self.toggle_rotate and enabled(value):
                 if not override_prim.HasAttribute('xformOp:rotateXYZ'):
                     usd_geom.AddRotateXYZOp()
 
-                override_prim.GetAttribute('xformOp:rotateXYZ').Set(
-                    (self.rotate_x, self.rotate_y, self.rotate_z))
 
-            if self.toggle_scale:
+                override_prim.GetAttribute('xformOp:rotateXYZ').Set(value)
+
+            value = (self.scale_x, self.scale_y, self.scale_z)
+
+            if self.toggle_scale and enabled(value):
                 if not override_prim.HasAttribute('xformOp:scale'):
                     usd_geom.AddScaleOp()
 
-                override_prim.GetAttribute('xformOp:scale').Set(
-                    (self.scale_x, self.scale_y, self.scale_z))
+                override_prim.GetAttribute('xformOp:scale').Set(value)
 
         return stage
