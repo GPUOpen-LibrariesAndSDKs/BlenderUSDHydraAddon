@@ -156,7 +156,6 @@ class TransformNode(USDNode):
         row.prop(self, 'offset_z')
         row.enabled = self.toggle_offset
 
-
         layout.separator()
 
         row = layout.split(factor=0.4).row()
