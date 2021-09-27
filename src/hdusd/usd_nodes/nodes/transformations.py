@@ -95,7 +95,7 @@ class TransformNode(USDNode):
         update=update_data
     )
 
-    toggle_offset: bpy.props.BoolProperty()
+    toggle_offset: bpy.props.BoolProperty(update=update_data)
     offset_x: bpy.props.FloatProperty(
         name="X offset", set=set_offset_x, get=get_offset_x, update=update_data)
     offset_y: bpy.props.FloatProperty(
@@ -103,7 +103,7 @@ class TransformNode(USDNode):
     offset_z: bpy.props.FloatProperty(
         name="Z offset", set=set_offset_z, get=get_offset_z, update=update_data)
 
-    toggle_scale: bpy.props.BoolProperty()
+    toggle_scale: bpy.props.BoolProperty(update=update_data)
     scale_x: bpy.props.FloatProperty(
         name="X axis", set=set_scale_x, get=get_scale_x, update=update_data)
     scale_y: bpy.props.FloatProperty(
@@ -111,7 +111,7 @@ class TransformNode(USDNode):
     scale_z: bpy.props.FloatProperty(
         name="Z axis", set=set_scale_z, get=get_scale_z, update=update_data)
 
-    toggle_rotate: bpy.props.BoolProperty()
+    toggle_rotate: bpy.props.BoolProperty(update=update_data)
     rotate_x: bpy.props.FloatProperty(
         name="X origin", set=set_rotate_x, get=get_rotate_x, update=update_data)
     rotate_y: bpy.props.FloatProperty(
@@ -138,7 +138,7 @@ class TransformNode(USDNode):
         row = layout.split(factor=0.4).row()
         row.alignment = 'LEFT'
         row.label(text='Rotate')
-        row.prop(self, 'toggle_offset', text='')
+        row.prop(self, 'toggle_rotate', text='')
         layout.prop(self, 'rotate_x')
         layout.prop(self, 'rotate_y')
         layout.prop(self, 'rotate_z')
@@ -148,7 +148,7 @@ class TransformNode(USDNode):
         row = layout.split(factor=0.4).row()
         row.alignment = 'LEFT'
         row.label(text='Scale')
-        row.prop(self, 'toggle_offset', text='')
+        row.prop(self, 'toggle_scale', text='')
         layout.prop(self, 'scale_x')
         layout.prop(self, 'scale_y')
         layout.prop(self, 'scale_z')
@@ -180,22 +180,25 @@ class TransformNode(USDNode):
 
             usd_geom = UsdGeom.Xform.Get(stage, override_prim.GetPath())
 
-            if not override_prim.HasAttribute('xformOp:translate'):
-                usd_geom.AddTranslateOp()
+            if self.toggle_offset:
+                if not override_prim.HasAttribute('xformOp:translate'):
+                    usd_geom.AddTranslateOp()
 
-            if not override_prim.HasAttribute('xformOp:rotateXYZ'):
-                usd_geom.AddRotateXYZOp()
+                override_prim.GetAttribute('xformOp:translate').Set(
+                    (self.offset_x, self.offset_y, self.offset_z))
 
-            if not override_prim.HasAttribute('xformOp:scale'):
-                usd_geom.AddScaleOp()
+            if self.toggle_rotate:
+                if not override_prim.HasAttribute('xformOp:rotateXYZ'):
+                    usd_geom.AddRotateXYZOp()
 
-            override_prim.GetAttribute('xformOp:translate').Set(
-                (self.offset_x, self.offset_y, self.offset_z))
+                override_prim.GetAttribute('xformOp:rotateXYZ').Set(
+                    (self.rotate_x, self.rotate_y, self.rotate_z))
 
-            override_prim.GetAttribute('xformOp:rotateXYZ').Set(
-                (self.rotate_x, self.rotate_y, self.rotate_z))
+            if self.toggle_scale:
+                if not override_prim.HasAttribute('xformOp:scale'):
+                    usd_geom.AddScaleOp()
 
-            override_prim.GetAttribute('xformOp:scale').Set(
-                (self.scale_x, self.scale_y, self.scale_z))
+                override_prim.GetAttribute('xformOp:scale').Set(
+                    (self.scale_x, self.scale_y, self.scale_z))
 
         return stage
