@@ -51,6 +51,7 @@ node_categories = [
         NodeItem('usd.RotatorNode'),
         NodeItem('usd.ScalerNode'),
         NodeItem('usd.AffinerNode'),
+        NodeItem('usd.IdentityNode'),
     ]),
 ]
 
@@ -78,6 +79,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     transformations.RotatorNode,
     transformations.ScalerNode,
     transformations.AffinerNode,
+    transformations.IdentityNode,
 ])
 
 

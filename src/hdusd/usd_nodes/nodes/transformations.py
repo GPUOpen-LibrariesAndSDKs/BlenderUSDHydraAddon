@@ -18,7 +18,8 @@ from pxr import Usd, UsdGeom, Gf
 
 from .base_node import USDNode
 
-EDITABLE_TYPES = ('Mesh', 'SphereLight', 'Camera')
+
+EDITABLE_TYPES = ('Xform',)
 
 
 class TransformNode(USDNode):
@@ -468,6 +469,43 @@ class AffinerNode(USDNode):
                                          self.I, self.J, self.K, 0,
                                          self.D, self.H, self.L, 1)
 
+                    prim.GetAttribute('xformOp:transform').Set(matrix)
+
+        return stage
+
+
+class IdentityNode(USDNode):
+    """Load identity matrix"""
+    bl_idname = 'usd.IdentityNode'
+    bl_label = "Identity"
+
+    def update_data(self, context):
+        self.reset()
+
+    def compute(self, **kwargs):
+        stage = self.get_input_link('Input', **kwargs)
+
+        if stage is not None:
+
+            for prim in stage.TraverseAll():
+                usd_geom = UsdGeom.Xform.Get(stage, prim.GetPath())
+
+                if prim.GetTypeName() in EDITABLE_TYPES:
+
+                    if not prim.HasAttribute('xformOpOrder'):
+                        usd_geom.CreateXformOpOrderAttr()
+
+                    for attr in prim.GetAttribute('xformOpOrder').Get():
+                        prim.RemoveProperty(attr)
+
+                    usd_geom.ClearXformOpOrder()
+
+                    matrix = Gf.Matrix4d(1, 0, 0, 0,
+                                         0, 1, 0, 0,
+                                         0, 0, 1, 0,
+                                         0, 0, 0, 1)
+
+                    usd_geom.AddTransformOp()
                     prim.GetAttribute('xformOp:transform').Set(matrix)
 
         return stage
