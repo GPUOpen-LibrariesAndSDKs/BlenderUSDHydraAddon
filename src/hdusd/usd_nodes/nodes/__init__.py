@@ -47,11 +47,6 @@ node_categories = [
     ]),
     USDNodeCategory('HdUSD_USD_TRANSFORMATIONS', 'Transformations', items=[
         NodeItem('usd.TransformNode'),
-        NodeItem('usd.OffsetterNode'),
-        NodeItem('usd.RotatorNode'),
-        NodeItem('usd.ScalerNode'),
-        NodeItem('usd.AffinerNode'),
-        NodeItem('usd.IdentityNode'),
     ]),
 ]
 
@@ -75,11 +70,6 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     hydra_render.HydraRenderNode,
     rpr_render_settings.RprRenderSettingsNode,
     transformations.TransformNode,
-    transformations.OffsetterNode,
-    transformations.RotatorNode,
-    transformations.ScalerNode,
-    transformations.AffinerNode,
-    transformations.IdentityNode,
 ])
 
 
