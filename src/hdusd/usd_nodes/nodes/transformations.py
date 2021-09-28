@@ -105,35 +105,35 @@ class TransformNode(USDNode):
 
     # region properties
     name: bpy.props.StringProperty(
-        name="Name",
+        name="Xform name",
         description="Name for USD root primitive",
-        default="Root",
+        default="Transform",
         update=update_data
     )
 
     toggle_offset: bpy.props.BoolProperty(update=update_data)
     offset_x: bpy.props.FloatProperty(
-        name="X offset", set=set_offset_x, get=get_offset_x, update=update_data)
+        name="X", set=set_offset_x, get=get_offset_x, update=update_data, subtype='DISTANCE')
     offset_y: bpy.props.FloatProperty(
-        name="Y offset", set=set_offset_y, get=get_offset_y, update=update_data)
+        name="Y", set=set_offset_y, get=get_offset_y, update=update_data, subtype='DISTANCE')
     offset_z: bpy.props.FloatProperty(
-        name="Z offset", set=set_offset_z, get=get_offset_z, update=update_data)
-
-    toggle_scale: bpy.props.BoolProperty(update=update_data)
-    scale_x: bpy.props.FloatProperty(
-        name="X axis", set=set_scale_x, get=get_scale_x, update=update_data)
-    scale_y: bpy.props.FloatProperty(
-        name="Y axis", set=set_scale_y, get=get_scale_y, update=update_data)
-    scale_z: bpy.props.FloatProperty(
-        name="Z axis", set=set_scale_z, get=get_scale_z, update=update_data)
+        name="Z", set=set_offset_z, get=get_offset_z, update=update_data, subtype='DISTANCE')
 
     toggle_rotate: bpy.props.BoolProperty(update=update_data)
     rotate_x: bpy.props.FloatProperty(
-        name="X origin", set=set_rotate_x, get=get_rotate_x, update=update_data)
+        name="X", set=set_rotate_x, get=get_rotate_x, update=update_data, subtype='ANGLE')
     rotate_y: bpy.props.FloatProperty(
-        name="Y origin", set=set_rotate_y, get=get_rotate_y, update=update_data)
+        name="Y", set=set_rotate_y, get=get_rotate_y, update=update_data, subtype='ANGLE')
     rotate_z: bpy.props.FloatProperty(
-        name="Z origin", set=set_rotate_z, get=get_rotate_z, update=update_data)
+        name="Z", set=set_rotate_z, get=get_rotate_z, update=update_data, subtype='ANGLE')
+
+    toggle_scale: bpy.props.BoolProperty(update=update_data)
+    scale_x: bpy.props.FloatProperty(
+        name="X", set=set_scale_x, get=get_scale_x, update=update_data)
+    scale_y: bpy.props.FloatProperty(
+        name="Y", set=set_scale_y, get=get_scale_y, update=update_data)
+    scale_z: bpy.props.FloatProperty(
+        name="Z", set=set_scale_z, get=get_scale_z, update=update_data)
     # endregion
 
     def draw_buttons(self, context, layout):
@@ -141,58 +141,63 @@ class TransformNode(USDNode):
 
         row = layout.split(factor=0.4).row()
         row.alignment = 'LEFT'
-        row.label(text='Offset')
         row.prop(self, 'toggle_offset', text='')
+        row.label(text='Translation')
 
-        row = layout.row()
-        row.prop(self, 'offset_x')
-        row.enabled = self.toggle_offset
+        if self.toggle_offset:
+            split = layout.split()
 
-        row = layout.row()
-        row.prop(self, 'offset_y')
-        row.enabled = self.toggle_offset
+            col = split.column(align=True)
+            row = col.row()
+            row.prop(self, 'offset_x')
 
-        row = layout.row()
-        row.prop(self, 'offset_z')
-        row.enabled = self.toggle_offset
+            row = col.row()
+            row.prop(self, 'offset_y')
 
-        layout.separator()
+            row = col.row()
+            row.prop(self, 'offset_z')
+
+            layout.separator()
 
         row = layout.split(factor=0.4).row()
         row.alignment = 'LEFT'
-        row.label(text='Rotate')
         row.prop(self, 'toggle_rotate', text='')
+        row.label(text='Rotation')
 
-        row = layout.row()
-        row.prop(self, 'rotate_x')
-        row.enabled = self.toggle_rotate
+        if self.toggle_rotate:
+            split = layout.split()
 
-        row = layout.row()
-        row.prop(self, 'rotate_y')
-        row.enabled = self.toggle_rotate
+            col = split.column(align=True)
 
-        row = layout.row()
-        row.prop(self, 'rotate_z')
-        row.enabled = self.toggle_rotate
+            row = col.row()
+            row.prop(self, 'rotate_x')
 
-        layout.separator()
+            row = col.row()
+            row.prop(self, 'rotate_y')
+
+            row = col.row()
+            row.prop(self, 'rotate_z')
+
+            layout.separator()
 
         row = layout.split(factor=0.4).row()
         row.alignment = 'LEFT'
-        row.label(text='Scale')
         row.prop(self, 'toggle_scale', text='')
+        row.label(text='Scale')
 
-        row = layout.row()
-        row.prop(self, 'scale_x')
-        row.enabled = self.toggle_scale
+        if self.toggle_scale:
+            split = layout.split()
 
-        row = layout.row()
-        row.prop(self, 'scale_y')
-        row.enabled = self.toggle_scale
+            col = split.column(align=True)
 
-        row = layout.row()
-        row.prop(self, 'scale_z')
-        row.enabled = self.toggle_scale
+            row = col.row()
+            row.prop(self, 'scale_x')
+
+            row = col.row()
+            row.prop(self, 'scale_y')
+
+            row = col.row()
+            row.prop(self, 'scale_z')
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
