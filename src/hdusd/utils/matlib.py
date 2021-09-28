@@ -23,41 +23,41 @@ from .. import config
 from . import LIBS_DIR
 
 from ..utils import logging
-log = logging.Log(tag='utils.matlib', level="debug")
+log = logging.Log(tag='utils.matlib')
 
 URL = "https://matlibapi.stvcis.online/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
 def download_file(url, path, use_cache):
-    log.debug("Downloading file", f"url: {url}, path: {path}, use_cache: {use_cache}")
+    log("Downloading file", f"url: {url}, path: {path}, use_cache: {use_cache}")
     if use_cache and path.is_file():
-        log.debug("Downloading file", "cached data found")
+        log("Downloading file", "cached data found")
         return path
 
     if not path.parent.is_dir():
         path.parent.mkdir(parents=True)
 
-    log.debug("Downloading file", "no cached data found, requesting from server")
+    log("Downloading file", "no cached data found, requesting from server")
     with requests.get(url, stream=True) as response:
         with open(path, 'wb') as f:
             shutil.copyfileobj(response.raw, f)
-    log.debug("Downloading file", "done")
+    log("Downloading file", "done")
 
     return path
 
 
-def request_json(url, path, use_cache):
-    log.debug("Requesting json", f"url: {url}, path: {path}, use_cache: {use_cache}")
+def request_json(url, path, use_cache, params=None):
+    log("Requesting json", f"url: {url}, path: {path}, use_cache: {use_cache}, params: {params}")
     if use_cache and path.is_file():
-        log.debug("Requesting json", "cached data found")
+        log("Requesting json", "cached data found")
         with open(path) as json_file:
             return json.load(json_file)
 
-    log.debug("Requesting json", "no cached data found, requesting from server")
-    response = requests.get(url)
+    log("Requesting json", "no cached data found, requesting from server")
+    response = requests.get(url, params=params)
     res_json = response.json()
-    log.debug("Requesting json", "done")
+    log("Requesting json", "done")
 
     if not path.parent.is_dir():
         path.parent.mkdir(parents=True)
@@ -65,7 +65,7 @@ def request_json(url, path, use_cache):
     with open(path, 'w') as outfile:
         json.dump(res_json, outfile)
 
-    log.debug("Requesting json", f"data cached, path: {path}")
+    log("Requesting json", f"data cached, path: {path}")
     return res_json
 
 
@@ -199,11 +199,8 @@ class Material:
 
     @classmethod
     def get_materials(cls, limit=10, offset=0):
-        log.debug("Requesting material",
-            f"url: {URL}/materials, params: 'limit': {limit}, 'offset': {offset}")
-        response = requests.get(f"{URL}/materials", params={'limit': limit, 'offset': offset})
-        res_json = response.json()
-        log.debug("Request done")
+        res_json = request_json(f"{URL}/materials", MATLIB_DIR / f"materials_{offset}_{limit}.json",
+                                False, params={'limit': limit, 'offset': offset})
 
         for mat_json in res_json['results']:
             mat = Material(mat_json)
@@ -216,19 +213,14 @@ class Material:
         offset = 0
         limit = 500
 
-        log.debug("Requesting material",
-            f"url: {URL}/materials, params: 'limit': {limit}, 'offset': {offset}")
-        response = requests.get(f"{URL}/materials", params={'limit': limit, 'offset': offset})
-        res_json = response.json()
-        log.debug("Request done")
-
+        res_json = request_json(f"{URL}/materials", MATLIB_DIR / f"all_materials_{offset}_{limit}.json",
+                                False, params={'limit': limit, 'offset': offset})
         results = res_json['results']
 
         while res_json['next'] is not None:
-            log.debug("Requesting material", f"{res_json['next']}")
-            response = requests.get(res_json['next'])
-            res_json = response.json()
-            log.debug("Request done")
+            offset += limit
+            res_json = request_json(res_json['next'], MATLIB_DIR / f"all_materials_{offset}_{limit}.json",
+                                    False)
             results.extend(res_json['results'])
 
         for mat_json in results:
