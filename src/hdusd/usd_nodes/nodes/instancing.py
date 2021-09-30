@@ -28,6 +28,7 @@ from ...export.object import ObjectData
 class HDUSD_USD_NODETREE_MT_instancing_object(bpy.types.Menu):
     bl_idname = "HDUSD_USD_NODETREE_MT_instancing_object"
     bl_label = "Object"
+    bl_description = "Object for scattering instances"
 
     def draw(self, context):
         layout = self.layout
@@ -44,7 +45,7 @@ class HDUSD_USD_NODETREE_MT_instancing_object(bpy.types.Menu):
 
 
 class InstancingNode(USDNode):
-    """Create instance of scene, object"""
+    """Create instances of object"""
     bl_idname = 'usd.InstancingNode'
     bl_label = "Instancing"
 
@@ -63,13 +64,13 @@ class InstancingNode(USDNode):
     object: bpy.props.PointerProperty(
         type=bpy.types.Object,
         name="Object",
-        description="",
+        description="Object for scattering instances",
         update=update_data
     )
 
     method: bpy.props.EnumProperty(
         name="Method",
-        description="Metod of instance distribution",
+        description="Object instancing method",
         items={('vertices', "Vertices", ""),
                ('polygons', "Faces", "")},
         default='vertices',
@@ -150,12 +151,11 @@ class InstancingNode(USDNode):
                     continue
 
                 obj_data = ObjectData.from_object(obj)
-                # checking if object has to be updated
 
                 if not self.object or \
                         ObjectData.from_object(self.object).sdf_name != obj_data.sdf_name:
                     continue
-                # updating object
+
                 object.sync_update(root_prim, obj_data,
                                    update.is_updated_geometry, update.is_updated_transform,
                                    **kwargs)
