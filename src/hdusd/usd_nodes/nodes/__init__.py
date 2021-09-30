@@ -57,9 +57,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     blender_data.HDUSD_USD_NODETREE_OP_blender_data_unlink_object,
     blender_data.HDUSD_USD_NODETREE_MT_blender_data_object,
     blender_data.BlenderDataNode,
-    instancing.HDUSD_USD_NODETREE_MT_blender_object,
-    instancing.HDUSD_USD_NODETREE_OP_blender_object,
-    instancing.HDUSD_USD_NODETREE_OP_blender_unlink_object,
+    instancing.HDUSD_USD_NODETREE_MT_instancing_object,
 
     usd_file.UsdFileNode,
     write_file.WriteFileNode,
