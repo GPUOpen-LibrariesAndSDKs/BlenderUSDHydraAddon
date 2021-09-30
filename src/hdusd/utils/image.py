@@ -28,16 +28,8 @@ def cache_image_file(image: bpy.types.Image):
     if image.packed_file is not None or image.source == 'GENERATED' or \
             Path(image.filepath).suffix.lower() not in SUPPORTED_FORMATS or \
             f".{image.file_format.lower()}" not in SUPPORTED_FORMATS:
-
-        image_settings = bpy.context.scene.render.image_settings
-        old_file_format = image_settings.file_format
-        image_settings.file_format = 'HDR'
-
         temp_path = get_temp_file(DEFAULT_FORMAT)
         image.save_render(str(temp_path))
-
-        image_settings.file_format = old_file_format
-
         return temp_path
 
     return Path(image.filepath_from_user())
