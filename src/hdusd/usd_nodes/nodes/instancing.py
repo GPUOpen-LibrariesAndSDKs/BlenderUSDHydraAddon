@@ -15,11 +15,12 @@
 import bpy
 from mathutils import Matrix
 
-from pxr import Usd, UsdGeom, UsdSkel, Sdf, Tf, Gf
+from pxr import UsdGeom, Tf, Gf
 
 from .base_node import USDNode
 from ...export import object
 from ...export.object import ObjectData
+
 
 class HDUSD_USD_NODETREE_OP_blender_unlink_object(bpy.types.Operator):
     """Unlink object"""
@@ -41,6 +42,7 @@ class HDUSD_USD_NODETREE_OP_blender_object(bpy.types.Operator):
     def execute(self, context):
         context.node.object = bpy.data.objects[self.object_name]
         return {"FINISHED"}
+
 
 class HDUSD_USD_NODETREE_MT_blender_object(bpy.types.Menu):
     bl_idname = "HDUSD_USD_NODETREE_MT_blender_object"
@@ -109,7 +111,6 @@ class InstancingNode(USDNode):
             row.menu(HDUSD_USD_NODETREE_MT_blender_object.bl_idname,
                      text=" ", icon='OBJECT_DATAMODE')
 
-
     def compute(self, **kwargs):
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
@@ -138,11 +139,11 @@ class InstancingNode(USDNode):
 
         for item in distribute_items:
             q = (item.normal.to_track_quat() @ prim_r).to_matrix().to_4x4()
-            t = Matrix.Translation(prim_t + (item.center if self.method == 'vertices' else item.co))
+            t = Matrix.Translation(prim_t + (item.co if self.method == 'vertices' else item.center))
             m = t @ q @ Matrix.Diagonal(prim_s.to_4d())
 
-            override_prim = stage.OverridePrim(
-                root_prim.GetPath().AppendChild(prim.GetName() + "_" + self.name + "_" + str(item.index)))
+            prim_mame = f"{root_prim.GetPath().AppendChild(prim.GetName())}_{self.name}_{item.index}"
+            override_prim = stage.OverridePrim(prim_mame)
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
             override_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(m.transposed()))
 
@@ -181,5 +182,3 @@ class InstancingNode(USDNode):
         if is_updated:
             self.hdusd.usd_list.update_items()
             self._reset_next(True)
-
-
