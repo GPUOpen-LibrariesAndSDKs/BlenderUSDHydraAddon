@@ -13,11 +13,12 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-from mathutils import Matrix, Quaternion
+from mathutils import Matrix
 
 from pxr import Usd, UsdGeom, UsdSkel, Sdf, Tf, Gf
 
 from .base_node import USDNode
+from ...export import object
 from ...export.object import ObjectData
 
 class HDUSD_USD_NODETREE_OP_blender_unlink_object(bpy.types.Operator):
@@ -84,9 +85,9 @@ class InstancingNode(USDNode):
     method: bpy.props.EnumProperty(
         name="Method",
         description="Metod of instance distribution",
-        items={('VERTICES', "Vertices", ""),
-               ('FACES', "Faces", "")},
-        default='VERTICES',
+        items={('vertices', "Vertices", ""),
+               ('polygons', "Faces", "")},
+        default='vertices',
         update=update_data
     )
 
@@ -122,6 +123,10 @@ class InstancingNode(USDNode):
         if not input_stage:
             return
 
+        distribute_items = getattr(self.object.data, self.method, None)
+        if distribute_items is None or not len(distribute_items):
+            return
+
         root_path = f'/{Tf.MakeValidIdentifier(self.name)}'
         root_prim = UsdGeom.Xform.Define(stage, root_path)
 
@@ -129,32 +134,17 @@ class InstancingNode(USDNode):
                  if prim.GetTypeName() in "Xform"))
 
         usd_matrix = prim.GetAttribute('xformOp:transform').Get()
-        prim_trans = usd_matrix.ExtractTranslation()
-        z = Quaternion()
+        prim_t, prim_r, prim_s = Matrix(usd_matrix).transposed().decompose()
 
-        if self.method == 'VERTICES':
-            for vertex in self.object.data.vertices:
-                n = Matrix() @ vertex.normal
-                q = z.rotation_difference(n.to_track_quat())
-                m = Gf.Matrix4d(q.to_matrix().to_4x4())
+        for item in distribute_items:
+            q = (item.normal.to_track_quat() @ prim_r).to_matrix().to_4x4()
+            t = Matrix.Translation(prim_t + (item.center if self.method == 'vertices' else item.co))
+            m = t @ q @ Matrix.Diagonal(prim_s.to_4d())
 
-                override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName() + "_" + self.name + "_" + str(vertex.index)))
-                override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-
-                m.SetTranslateOnly(prim_trans + Gf.Vec3d(tuple(vertex.co)))
-                override_prim.GetAttribute('xformOp:transform').Set(m)
-
-        elif self.method == 'FACES':
-            for face in self.object.data.polygons:
-                n = Matrix() @ face.normal
-                q = z.rotation_difference(n.to_track_quat())
-                m = Gf.Matrix4d(q.to_matrix().to_4x4())
-
-                override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName() + "_" + self.name + "_" + str(face.index)))
-                override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-
-                m.SetTranslateOnly(prim_trans + Gf.Vec3d(tuple(face.center)))
-                override_prim.GetAttribute('xformOp:transform').Set(m)
+            override_prim = stage.OverridePrim(
+                root_prim.GetPath().AppendChild(prim.GetName() + "_" + self.name + "_" + str(item.index)))
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+            override_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(m.transposed()))
 
         return stage
 
