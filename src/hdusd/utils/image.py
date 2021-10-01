@@ -21,6 +21,7 @@ from . import get_temp_file
 
 SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tga", ".bmp"}
 DEFAULT_FORMAT = ".hdr"
+BLENDER_DEFAULT_FORMAT = "HDR"
 
 
 def cache_image_file(image: bpy.types.Image):
@@ -29,14 +30,17 @@ def cache_image_file(image: bpy.types.Image):
             Path(image.filepath).suffix.lower() not in SUPPORTED_FORMATS or \
             f".{image.file_format.lower()}" not in SUPPORTED_FORMATS:
 
-        image_settings = bpy.context.scene.render.image_settings
-        old_file_format = image_settings.file_format
-        image_settings.file_format = 'HDR'
+        old_filepath = image.filepath_raw
+        old_file_format = image.file_format
 
         temp_path = get_temp_file(DEFAULT_FORMAT)
-        image.save_render(str(temp_path))
 
-        image_settings.file_format = old_file_format
+        image.filepath_raw = str(temp_path)
+        image.file_format = BLENDER_DEFAULT_FORMAT
+        image.save()
+
+        image.filepath_raw = old_filepath
+        image.file_format = old_file_format
 
         return temp_path
 
