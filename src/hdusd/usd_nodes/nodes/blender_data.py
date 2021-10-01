@@ -225,6 +225,9 @@ class BlenderDataNode(USDNode):
             if isinstance(update.id, bpy.types.Scene):
                 scene = update.id
                 for prim in root_prim.GetAllChildren():
+                    if prim.GetName() == world.PRIM_NAME:
+                        world.sync_update(root_prim, scene.world)
+
                     vsets = prim.GetVariantSets()
                     if 'delegate' not in vsets.GetNames():
                         continue
