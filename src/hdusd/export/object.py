@@ -65,7 +65,7 @@ class ObjectData:
                           use_scene_lights=True, use_scene_cameras=True):
         for instance in depsgraph.object_instances:
             obj = instance.object
-            if obj.type not in SUPPORTED_TYPES:
+            if obj.type not in SUPPORTED_TYPES or instance.object.hdusd.is_usd:
                 continue
 
             if obj.type == 'LIGHT' and not use_scene_lights:
