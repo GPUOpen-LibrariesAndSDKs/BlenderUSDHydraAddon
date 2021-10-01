@@ -21,9 +21,6 @@ from .base_node import USDNode
 from .blender_data import (
     HDUSD_USD_NODETREE_OP_blender_data_link_object, HDUSD_USD_NODETREE_OP_blender_data_unlink_object)
 
-from ...export import object
-from ...export.object import ObjectData
-
 
 class HDUSD_USD_NODETREE_MT_instancing_object(bpy.types.Menu):
     bl_idname = "HDUSD_USD_NODETREE_MT_instancing_object"
@@ -32,7 +29,7 @@ class HDUSD_USD_NODETREE_MT_instancing_object(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        objects = bpy.data.objects
+        objects = context.scene.objects
 
         for obj in objects:
             if obj.hdusd.is_usd or obj.type not in "MESH":
@@ -48,8 +45,6 @@ class InstancingNode(USDNode):
     """Create instances of object"""
     bl_idname = 'usd.InstancingNode'
     bl_label = "Instancing"
-
-    use_hard_reset = False
 
     def update_data(self, context):
         self.reset(True)
@@ -108,60 +103,38 @@ class InstancingNode(USDNode):
         if not input_stage:
             return
 
+        if not len(list(input_stage.TraverseAll())):
+            return
+
         distribute_items = getattr(self.object.data, self.method, None)
         if distribute_items is None or not len(distribute_items):
             return
 
-        root_path = f'/{Tf.MakeValidIdentifier(self.name)}'
-        root_prim = UsdGeom.Xform.Define(stage, root_path)
-
-        prim = next((prim for prim in input_stage.GetPseudoRoot().GetAllChildren()
-                 if prim.GetTypeName() in "Xform"))
-
-        usd_matrix = prim.GetAttribute('xformOp:transform').Get()
-        prim_t, prim_r, prim_s = Matrix(usd_matrix).transposed().decompose()
+        matrix_world = self.object.matrix_world
 
         for item in distribute_items:
-            q = (item.normal.to_track_quat() @ prim_r).to_matrix().to_4x4()
-            t = Matrix.Translation(prim_t + (item.co if self.method == 'vertices' else item.center))
-            m = t @ q @ Matrix.Diagonal(prim_s.to_4d())
+            prim_mame = f"/{self.name}_{item.index}"
+            root_xform = UsdGeom.Xform.Define(stage, prim_mame)
+            for prim in input_stage.GetPseudoRoot().GetAllChildren():
+                override_prim = stage.OverridePrim(root_xform.GetPath().AppendChild(prim.GetName()))
+                override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+                UsdGeom.Xform.Get(stage, override_prim.GetPath()).ClearXformOpOrder()
 
-            prim_mame = f"{root_prim.GetPath().AppendChild(prim.GetName())}_{self.name}_{item.index}"
-            override_prim = stage.OverridePrim(prim_mame)
-            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-            override_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(m.transposed()))
+            t = Matrix.Translation(matrix_world @ (item.co if self.method == 'vertices' else item.center))
+            q = (matrix_world.inverted_safe().transposed().to_3x3() @ item.normal).to_track_quat().to_matrix().to_4x4()
+            m = t @ q
+
+            UsdGeom.Xform.Get(stage, root_xform.GetPath()).MakeMatrixXform()
+            root_xform.GetPrim().GetAttribute('xformOp:transform').Set(Gf.Matrix4d(m.transposed()))
 
         return stage
 
     def depsgraph_update(self, depsgraph):
-        stage = self.cached_stage()
-        if not stage:
-            self.final_compute()
-            return
-
-        is_updated = False
-
-        root_prim = stage.GetPseudoRoot()
-        kwargs = {'scene': depsgraph.scene}
-
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Object):
                 obj = update.id
                 if obj.hdusd.is_usd:
                     continue
 
-                obj_data = ObjectData.from_object(obj)
-
-                if not self.object or \
-                        ObjectData.from_object(self.object).sdf_name != obj_data.sdf_name:
-                    continue
-
-                object.sync_update(root_prim, obj_data,
-                                   update.is_updated_geometry, update.is_updated_transform,
-                                   **kwargs)
-                is_updated = True
-                continue
-
-        if is_updated:
-            self.hdusd.usd_list.update_items()
-            self._reset_next(True)
+                if obj.name == self.object.name:
+                    self.update_data(None)
