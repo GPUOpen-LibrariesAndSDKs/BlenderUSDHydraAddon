@@ -165,7 +165,7 @@ def sync_update(root_prim, world: bpy.types.World):
 
     world_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
 
-    if world is None:
+    if not world:
         world_prim.SetActive(False)
 
         return
