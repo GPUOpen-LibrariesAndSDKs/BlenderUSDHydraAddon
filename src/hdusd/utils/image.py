@@ -37,10 +37,12 @@ def cache_image_file(image: bpy.types.Image):
 
         image.filepath_raw = str(temp_path)
         image.file_format = BLENDER_DEFAULT_FORMAT
-        image.save()
 
-        image.filepath_raw = old_filepath
-        image.file_format = old_file_format
+        try:
+            image.save()
+        finally:
+            image.filepath_raw = old_filepath
+            image.file_format = old_file_format
 
         return temp_path
 
