@@ -118,7 +118,6 @@ class InstancingNode(USDNode):
             for prim in input_stage.GetPseudoRoot().GetAllChildren():
                 override_prim = stage.OverridePrim(root_xform.GetPath().AppendChild(prim.GetName()))
                 override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-                UsdGeom.Xform.Get(stage, override_prim.GetPath()).ClearXformOpOrder()
 
             t = Matrix.Translation(matrix_world @ (item.co if self.method == 'vertices' else item.center))
             q = (matrix_world.inverted_safe().transposed().to_3x3() @ item.normal).to_track_quat().to_matrix().to_4x4()
@@ -137,4 +136,4 @@ class InstancingNode(USDNode):
                     continue
 
                 if obj.name == self.object.name:
-                    self.update_data(None)
+                    self.reset(True)
