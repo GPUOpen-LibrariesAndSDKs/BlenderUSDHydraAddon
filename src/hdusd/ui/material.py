@@ -282,11 +282,14 @@ class HDUSD_MATERIAL_PT_export_mx(HdUSD_Panel):
 def depsgraph_update(depsgraph):
     context = bpy.context
     mx_node_tree = None
-    if context.object and context.object.active_material:
+    if hasattr(context, 'object') and context.object and context.object.active_material:
         mx_node_tree = context.object.active_material.hdusd.mx_node_tree
 
     # trying to show MaterialX area with node tree or Shader area
     screen = context.screen
+    if not hasattr(screen, 'areas'):
+        return
+
     if mx_node_tree:
         for area in screen.areas:
             if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
