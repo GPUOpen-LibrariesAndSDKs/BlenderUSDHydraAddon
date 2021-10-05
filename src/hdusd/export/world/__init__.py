@@ -167,7 +167,6 @@ def sync_update(root_prim, world: bpy.types.World):
 
     if not world:
         world_prim.SetActive(False)
-
         return
 
     if not world_prim.IsActive():
