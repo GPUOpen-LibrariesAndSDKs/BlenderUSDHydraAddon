@@ -188,6 +188,28 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         layout.label(text=f"Material: {context.material.name}")
 
 
+class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
+    bl_label = "Surfaceshader"
+    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.material.hdusd.mx_node_tree)
+
+    def draw(self, context):
+        layout = self.layout
+        mx_node_tree = context.material.hdusd.mx_node_tree
+
+        node = mx_node_tree.nodes.active
+        if not node:
+            layout.label(text="No active node")
+            return
+
+        for socket in node.inputs:
+            if socket.name == 'surfaceshader':
+                layout.template_node_view(mx_node_tree, node, socket)
+
+
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
     bl_label = ""
     bl_parent_id = 'HDUSD_MATERIAL_PT_material'
