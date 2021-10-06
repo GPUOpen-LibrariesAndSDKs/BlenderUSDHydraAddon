@@ -78,12 +78,6 @@ class InstancingNode(USDNode):
         description="Apply object transform to instances",
     )
 
-    instance_transform: bpy.props.BoolProperty(
-        default=True,
-        update=update_data,
-        description="Apply keep initial instance transforms",
-    )
-
     def draw_buttons(self, context, layout):
         layout.prop(self, 'name')
 
@@ -135,19 +129,16 @@ class InstancingNode(USDNode):
             for prim in input_stage.GetPseudoRoot().GetAllChildren():
                 override_prim = stage.OverridePrim(root_xform.GetPath().AppendChild(prim.GetName()))
                 override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
-                if not self.instance_transform:
-                    UsdGeom.Xform.Get(stage, override_prim.GetPath()).ClearXformOpOrder()
 
             trans = Matrix.Translation(item.co if self.method == 'VERTICES' else item.center)
             rot = item.normal.to_track_quat().to_matrix().to_4x4()
 
+            transform = trans @ rot
             if self.object_transform:
-                loc = self.object.matrix_world @ trans @ rot
-            else:
-                loc = trans @ rot
+                transform = self.object.matrix_world @ transform
 
             UsdGeom.Xform.Get(stage, root_xform.GetPath()).MakeMatrixXform()
-            root_xform.GetPrim().GetAttribute('xformOp:transform').Set(Gf.Matrix4d(loc.transposed()))
+            root_xform.GetPrim().GetAttribute('xformOp:transform').Set(Gf.Matrix4d(transform.transposed()))
 
         return stage
 
