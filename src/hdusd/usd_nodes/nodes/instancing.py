@@ -73,6 +73,7 @@ class InstancingNode(USDNode):
     )
 
     object_transform: bpy.props.BoolProperty(
+        name="Use Object Transform",
         default=True,
         update=update_data,
         description="Apply object transform to instances",
@@ -98,11 +99,7 @@ class InstancingNode(USDNode):
 
         row = layout.row()
         row.alignment = 'LEFT'
-        row.prop(self, 'object_transform', text='Use Object Transform')
-
-        row = layout.row()
-        row.alignment = 'LEFT'
-        row.prop(self, 'instance_transform', text='Use Instance Transform')
+        row.prop(self, 'object_transform')
 
     def compute(self, **kwargs):
         stage = self.cached_stage.create()
