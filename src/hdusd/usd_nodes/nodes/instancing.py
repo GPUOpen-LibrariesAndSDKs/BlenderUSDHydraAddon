@@ -42,7 +42,7 @@ class HDUSD_USD_NODETREE_MT_instancing_object(bpy.types.Menu):
 
 
 class InstancingNode(USDNode):
-    """Create instances of object"""
+    """Create and distribute instances of primitives"""
     bl_idname = 'usd.InstancingNode'
     bl_label = "Instancing"
 
@@ -66,10 +66,22 @@ class InstancingNode(USDNode):
     method: bpy.props.EnumProperty(
         name="Method",
         description="Object instancing method",
-        items={('vertices', "Vertices", ""),
-               ('polygons', "Faces", "")},
-        default='vertices',
+        items=(('VERTICES', "Vertices", "Instancing by vertices"),
+               ('POLYGONS', "Faces", "Instancing by faces")),
+        default='VERTICES',
         update=update_data
+    )
+
+    object_transform: bpy.props.BoolProperty(
+        default=True,
+        update=update_data,
+        description="Apply object transform to instances",
+    )
+
+    instance_transform: bpy.props.BoolProperty(
+        default=True,
+        update=update_data,
+        description="Apply keep initial instance transforms",
     )
 
     def draw_buttons(self, context, layout):
@@ -90,50 +102,63 @@ class InstancingNode(USDNode):
             row.menu(HDUSD_USD_NODETREE_MT_instancing_object.bl_idname,
                      text=" ", icon='OBJECT_DATAMODE')
 
+        row = layout.row()
+        row.alignment = 'LEFT'
+        row.prop(self, 'object_transform', text='Use Object Transform')
+
+        row = layout.row()
+        row.alignment = 'LEFT'
+        row.prop(self, 'instance_transform', text='Use Instance Transform')
+
     def compute(self, **kwargs):
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         if not self.object:
-            return
+            return None
 
         input_stage = self.get_input_link('Input', **kwargs)
 
         if not input_stage:
-            return
+            return None
 
-        if not len(list(input_stage.TraverseAll())):
-            return
+        if not input_stage.GetPseudoRoot().GetChildren():
+            return None
 
-        distribute_items = getattr(self.object.data, self.method, None)
-        if distribute_items is None or not len(distribute_items):
-            return
+        distribute_items = self.object.data.vertices if self.method == 'VERTICES' else self.object.data.polygons
+        if not distribute_items:
+            return None
 
-        matrix_world = self.object.matrix_world
-
-        for item in distribute_items:
-            prim_mame = f"/{self.name}_{item.index}"
-            root_xform = UsdGeom.Xform.Define(stage, prim_mame)
+        for i, item in enumerate(distribute_items):
+            root_xform = UsdGeom.Xform.Define(stage, f'/{Tf.MakeValidIdentifier(f"{self.name}_{i}")}')
             for prim in input_stage.GetPseudoRoot().GetAllChildren():
                 override_prim = stage.OverridePrim(root_xform.GetPath().AppendChild(prim.GetName()))
                 override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+                if not self.instance_transform:
+                    UsdGeom.Xform.Get(stage, override_prim.GetPath()).ClearXformOpOrder()
 
-            t = Matrix.Translation(matrix_world @ (item.co if self.method == 'vertices' else item.center))
-            q = (matrix_world.inverted_safe().transposed().to_3x3() @ item.normal).to_track_quat().to_matrix().to_4x4()
-            m = t @ q
+            trans = Matrix.Translation(item.co if self.method == 'VERTICES' else item.center)
+            rot = item.normal.to_track_quat().to_matrix().to_4x4()
+
+            if self.object_transform:
+                loc = self.object.matrix_world @ trans @ rot
+            else:
+                loc = trans @ rot
 
             UsdGeom.Xform.Get(stage, root_xform.GetPath()).MakeMatrixXform()
-            root_xform.GetPrim().GetAttribute('xformOp:transform').Set(Gf.Matrix4d(m.transposed()))
+            root_xform.GetPrim().GetAttribute('xformOp:transform').Set(Gf.Matrix4d(loc.transposed()))
 
         return stage
 
     def depsgraph_update(self, depsgraph):
         for update in depsgraph.updates:
-            if isinstance(update.id, bpy.types.Object):
-                obj = update.id
-                if obj.hdusd.is_usd:
-                    continue
+            if not isinstance(update.id, bpy.types.Object):
+                continue
 
-                if obj.name == self.object.name:
-                    self.reset(True)
+            obj = update.id
+            if obj.hdusd.is_usd:
+                continue
+
+            if obj.name == self.object.name:
+                self.reset(True)
