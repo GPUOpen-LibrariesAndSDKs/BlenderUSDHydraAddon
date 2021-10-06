@@ -123,7 +123,7 @@ class InstancingNode(USDNode):
         if not input_stage:
             return None
 
-        if not input_stage.GetPseudoRoot().GetChildren():
+        if not input_stage.GetPseudoRoot().GetAllChildren():
             return None
 
         distribute_items = self.object.data.vertices if self.method == 'VERTICES' else self.object.data.polygons
