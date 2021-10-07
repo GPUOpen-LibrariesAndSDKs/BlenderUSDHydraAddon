@@ -36,7 +36,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
             self.pcoll.materials[mat.id] = mat
 
     def get_materials(self, context):
-        if self.pcoll.materials is None:
+        if not self.pcoll.materials:
             self._set_materials()
 
         materials = []
@@ -51,14 +51,18 @@ class MatlibProperties(bpy.types.PropertyGroup):
                 description += f"\nCategory: {mat.category.title}"
             description += f"\nAuthor: {mat.author}"
 
-            materials.append((mat.id, mat.title, description,mat.renders[0].thumbnail_icon_id, i))
+            materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
 
         return materials
 
     def _set_categories(self):
         self.pcoll.categories = {}
-        for mat in matlib.Material.get_all_materials():
-            cat = mat.category
+
+        if not self.pcoll.materials:
+            self._set_materials()
+
+        for mat in self.pcoll.materials:
+            cat = self.pcoll.materials[mat].category
             if not cat or cat.id in self.pcoll.categories:
                 continue
 
@@ -77,6 +81,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
     def update_category(self, context):
         materials = self.get_materials(context)
         self.material = materials[0][0]
+        self.package_id = self.pcoll.materials[self.material].packages[0].id
 
     material: bpy.props.EnumProperty(
         name="Material",
@@ -88,6 +93,10 @@ class MatlibProperties(bpy.types.PropertyGroup):
         description="Select materials category",
         items=get_categories,
         update=update_category,
+    )
+    package_id: bpy.props.StringProperty(
+        name="Package id",
+        description="Selected material package"
     )
 
     @classmethod
