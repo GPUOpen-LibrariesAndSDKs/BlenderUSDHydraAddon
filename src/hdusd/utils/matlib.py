@@ -138,13 +138,13 @@ class Package:
 
     def unzip(self, path=None, use_cache=True):
         if not path:
-            path = self.file_path.parent
+            path = self.file_path.parent / "material"
 
         if not (use_cache and (path / self.file_path.stem).is_dir()):
             with zipfile.ZipFile(self.file_path) as z:
                 z.extractall(path=path)
 
-        mtlx_file = next(path.glob("*/*.mtlx"))
+        mtlx_file = next(path.glob("**/*.mtlx"))
         return mtlx_file
 
 
