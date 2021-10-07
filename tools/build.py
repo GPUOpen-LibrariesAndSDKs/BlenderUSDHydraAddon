@@ -92,7 +92,7 @@ def materialx(bin_dir, compiler, jobs, clean):
         '-DMATERIALX_BUILD_PYTHON=ON',
         f'-DMATERIALX_PYTHON_EXECUTABLE={sys.executable}',
         '-DMATERIALX_INSTALL_PYTHON=OFF',
-        # '-DMATERIALX_BUILD_VIEWER=ON',
+        '-DMATERIALX_BUILD_VIEWER=ON',
     ])
 
 

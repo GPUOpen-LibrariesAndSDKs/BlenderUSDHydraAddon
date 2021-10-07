@@ -42,6 +42,7 @@ if OS == 'Windows':
 
 os.environ['PXR_PLUGINPATH_NAME'] = str(LIBS_DIR / 'plugins')
 os.environ['RPR'] = str(LIBS_DIR / 'hdrpr')
+os.environ['MATERIALX_SEARCH_PATH'] = str(LIBS_DIR / 'libraries')
 
 sys.path.append(str(LIBS_DIR / 'usd/python'))
 sys.path.append(str(LIBS_DIR / 'hdrpr/lib/python'))

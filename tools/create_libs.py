@@ -80,8 +80,8 @@ def iterate_copied_files(repo_dir, usd_dir, hdrpr_dir, mx_dir):
                            ignore_suffix=(".lib",)):
         yield f, f.relative_to(mx_dir)
 
-    # for f in iterate_files(mx_dir / "bin", "*"):
-    #     yield f, Path("materialx") / f.relative_to(mx_dir)
+    for f in iterate_files(mx_dir / "bin", "*"):
+        yield f, Path("materialx") / f.relative_to(mx_dir)
 
     deps_mx_libs = repo_dir / "deps/mx_libs"
     for f in iterate_files(deps_mx_libs, "**/*"):
