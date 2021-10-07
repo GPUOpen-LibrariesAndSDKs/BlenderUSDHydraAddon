@@ -162,13 +162,6 @@ class MxNode(bpy.types.ShaderNode):
                     r = col.row(align=True)
                 r.prop(self, self._folder_prop_name(f), toggle=True)
 
-        for mx_input in mx_utils.get_nodedef_inputs(nodedef, True):
-            f = mx_input.getAttribute('uifolder')
-            if f and not getattr(self, self._folder_prop_name(f)):
-                continue
-
-            layout.prop(self, self._input_prop_name(mx_input.getName()))
-
         for mx_param in nodedef.getParameters():
             f = mx_param.getAttribute('uifolder')
             if f and not getattr(self, self._folder_prop_name(f)):
