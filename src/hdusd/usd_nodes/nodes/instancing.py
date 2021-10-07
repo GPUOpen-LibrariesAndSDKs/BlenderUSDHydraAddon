@@ -102,10 +102,6 @@ class InstancingNode(USDNode):
         row.prop(self, 'object_transform')
 
     def compute(self, **kwargs):
-        stage = self.cached_stage.create()
-        UsdGeom.SetStageMetersPerUnit(stage, 1)
-        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-
         if not self.object:
             return None
 
@@ -120,6 +116,10 @@ class InstancingNode(USDNode):
         distribute_items = self.object.data.vertices if self.method == 'VERTICES' else self.object.data.polygons
         if not distribute_items:
             return None
+
+        stage = self.cached_stage.create()
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         for i, item in enumerate(distribute_items):
             root_xform = UsdGeom.Xform.Define(stage, f'/{Tf.MakeValidIdentifier(f"{self.name}_{i}")}')
