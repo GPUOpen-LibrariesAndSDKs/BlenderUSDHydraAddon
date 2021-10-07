@@ -141,7 +141,7 @@ class InstancingNode(USDNode):
 
     def depsgraph_update(self, depsgraph):
         for update in depsgraph.updates:
-            if not isinstance(update.id, bpy.types.Object):
+            if not isinstance(update.id, bpy.types.Object) or not self.object:
                 continue
 
             obj = update.id
