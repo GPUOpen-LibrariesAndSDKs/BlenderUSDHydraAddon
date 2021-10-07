@@ -180,6 +180,16 @@ class MxNode(bpy.types.ShaderNode):
             else:
                 layout.prop(self, self._param_prop_name(name))
 
+    def draw_inputs(self, context, layout):
+        for socket_in in self.inputs:
+            mx_input = self.nodedef.getInput(socket_in.name)
+            f = mx_input.getAttribute('uifolder')
+            if f:
+                if getattr(self, self._folder_prop_name(f)):
+                    socket_in.draw(context, layout, self, '')
+            else:
+                socket_in.draw(context, layout, self, '')
+
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
         log("compute", self, out_key)
