@@ -213,8 +213,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
             return
 
         node = link.from_node
-        node.draw_buttons(context, layout)
-        node.draw_inputs(context, layout)
+        node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
