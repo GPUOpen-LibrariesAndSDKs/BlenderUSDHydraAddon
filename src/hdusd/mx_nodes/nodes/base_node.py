@@ -42,11 +42,14 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             uiname = f"{uifolder} {uiname}"
 
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
-            uitype = text if text else title_str(nd_type)
+            uitype = title_str(nd_type)
             if uiname.lower() == uitype.lower():
                 layout.label(text=uitype)
             else:
-                layout.label(text=f"{uiname}: {uitype}")
+                link = next((link for link in self.links if link.is_valid), None)
+                from_node = link.from_node if link else None
+                label_text = from_node.name if from_node else uitype
+                layout.label(text=f"{uiname}: {label_text}")
         else:
             layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
@@ -184,7 +187,6 @@ class MxNode(bpy.types.ShaderNode):
         node_tree = context.material.hdusd.mx_node_tree
         self.draw_buttons(context, layout)
         for socket_in in self.inputs:
-            socket_in.show_expanded = True
             if socket_in.is_linked:
                 link = next((link for link in socket_in.links if link.is_valid), None)
                 if not link:
@@ -192,10 +194,17 @@ class MxNode(bpy.types.ShaderNode):
 
                 node = link.from_node
 
-                row = layout.row()
+                row = layout.row()              
+                row.prop(socket_in, "show_expanded",
+                         icon="TRIA_DOWN" if socket_in.show_expanded else "TRIA_RIGHT",
+                         icon_only=True, emboss=False
+                         )
+                
                 socket_in.draw(context, row, self, node.name)
 
-                node.draw_node_view(context, layout)
+                if socket_in.show_expanded:
+                    node.draw_node_view(context, layout)
+
                 continue
 
             else:
@@ -204,6 +213,8 @@ class MxNode(bpy.types.ShaderNode):
                 if f:
                     if getattr(self, self._folder_prop_name(f)):
                         row = layout.row()
+                        #row.template_node_socket()
+                        #row.template_node_link(node_tree, self, socket_in)
                         socket_in.draw(context, row, self, '')
                 else:
                     row = layout.row()
