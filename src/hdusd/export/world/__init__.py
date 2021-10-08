@@ -163,8 +163,22 @@ def sync(root_prim, world: bpy.types.World):
 def sync_update(root_prim, world: bpy.types.World):
     stage = root_prim.GetStage()
 
+    world_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
+
+    if not world:
+        world_prim.SetActive(False)
+        return
+
+    if not world_prim.IsActive():
+        world_prim.ClearActive()
+
+    for child in world_prim.GetChildren():
+        if child.GetName() != Tf.MakeValidIdentifier(world.name):
+            child.SetActive(False)
+
     usd_light = UsdLux.DomeLight.Define(stage,
         Sdf.Path(f"/{PRIM_NAME}").AppendChild(Tf.MakeValidIdentifier(world.name)))
+    usd_light.GetPrim().SetActive(True)
 
     # removing prev settings
     usd_light.CreateColorAttr().Clear()

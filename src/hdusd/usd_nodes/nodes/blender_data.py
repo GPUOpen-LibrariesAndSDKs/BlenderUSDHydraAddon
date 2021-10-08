@@ -224,6 +224,7 @@ class BlenderDataNode(USDNode):
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Scene):
                 scene = update.id
+                world.sync_update(root_prim, scene.world)
                 for prim in root_prim.GetAllChildren():
                     vsets = prim.GetVariantSets()
                     if 'delegate' not in vsets.GetNames():
@@ -302,6 +303,9 @@ class BlenderDataNode(USDNode):
 
                 if keys_to_remove:
                     for key in keys_to_remove:
+                        if key == world.PRIM_NAME:
+                            continue
+                            
                         root_prim.GetStage().RemovePrim(root_prim.GetPath().AppendChild(key))
 
                     is_updated = True

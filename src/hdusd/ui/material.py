@@ -73,7 +73,7 @@ class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
         split = layout.split(factor=0.65)
 
         if object:
-            split.template_ID(object, "active_material", new="material.new")
+            split.template_ID(object, "active_material", new="hdusd.material_duplicate_mat_mx_node_tree")
             row = split.row()
 
             if slot:
@@ -110,6 +110,32 @@ class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
             'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
 
         mat.hdusd.mx_node_tree = mx_node_tree
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_OP_duplicate_mat_mx_node_tree(bpy.types.Operator):
+    """Create duplicates of Material and MaterialX node tree for selected material"""
+    bl_idname = "hdusd.material_duplicate_mat_mx_node_tree"
+    bl_label = ""
+
+    def execute(self, context):
+        bpy.ops.material.new()
+        bpy.ops.hdusd.material_duplicate_mx_node_tree()
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_OP_duplicate_mx_node_tree(bpy.types.Operator):
+    """Create duplicate of MaterialX node tree for selected material"""
+    bl_idname = "hdusd.material_duplicate_mx_node_tree"
+    bl_label = ""
+
+    def execute(self, context):
+        mat = context.object.active_material
+        mx_node_tree = mat.hdusd.mx_node_tree
+
+        if mx_node_tree:
+            mat.hdusd.mx_node_tree = mx_node_tree.copy()
+
         return {"FINISHED"}
 
 
@@ -178,6 +204,7 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
 
         if mat_hdusd.mx_node_tree:
             row.prop(mat_hdusd.mx_node_tree, 'name', text="")
+            row.operator(HDUSD_MATERIAL_OP_duplicate_mx_node_tree.bl_idname, icon='DUPLICATE')
             row.operator(HDUSD_MATERIAL_OP_unlink_mx_node_tree.bl_idname, icon='X')
 
         else:
@@ -282,11 +309,14 @@ class HDUSD_MATERIAL_PT_export_mx(HdUSD_Panel):
 def depsgraph_update(depsgraph):
     context = bpy.context
     mx_node_tree = None
-    if context.object and context.object.active_material:
+    if hasattr(context, 'object') and context.object and context.object.active_material:
         mx_node_tree = context.object.active_material.hdusd.mx_node_tree
 
     # trying to show MaterialX area with node tree or Shader area
     screen = context.screen
+    if not hasattr(screen, 'areas'):
+        return
+
     if mx_node_tree:
         for area in screen.areas:
             if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):

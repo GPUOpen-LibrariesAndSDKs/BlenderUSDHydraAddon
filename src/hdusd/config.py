@@ -14,7 +14,7 @@
 #********************************************************************
 from .utils import logging
 
-logging.limit_log('', level_show_min=logging.INFO)
+logging.limit_log('default', logging.INFO)
 
 matlib_enabled = False
 engine_use_preview = True

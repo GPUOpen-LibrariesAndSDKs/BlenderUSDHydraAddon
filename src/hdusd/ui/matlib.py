@@ -1,4 +1,4 @@
-#**********************************************************************
+# **********************************************************************
 # Copyright 2020 Advanced Micro Devices, Inc
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,10 +37,14 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         material = matlib_prop.pcoll.materials[matlib_prop.material]
 
         # unzipping package
-        package = material.packages[0]
-        package.get_info()
-        package.get_file()
-        mtlx_file = package.unzip()
+        package = next(package for package in material.packages
+                       if package.id == matlib_prop.package_id)
+
+        if package.file_path is None or not package.file_path.is_file():
+            package.get_info(use_cache=True)
+            package.get_file(use_cache=True)
+
+        mtlx_file = package.unzip(use_cache=True)
 
         # getting/creating MxNodeTree
         bl_material = context.material
@@ -65,6 +69,27 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
+    """Reload Material"""
+    bl_idname = "hdusd.matlib_load_package"
+    bl_label = "Load package"
+
+    def execute(self, context):
+        matlib_prop = context.window_manager.hdusd.matlib
+        material = matlib_prop.pcoll.materials[matlib_prop.material]
+
+        # unzipping package
+        package = next(package for package in material.packages
+                       if package.id == matlib_prop.package_id)
+
+        package.get_info(use_cache=False)
+        package.get_file(use_cache=False)
+
+        package.unzip(use_cache=False)
+
+        return {"FINISHED"}
+
+
 class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
     bl_label = "Material Library"
     bl_context = "material"
@@ -81,7 +106,107 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout.prop(matlib_prop, "category")
         layout.template_icon_view(matlib_prop, "material")
 
-        row = layout.row()
-        row.enabled = bool(context.material)
-        row.operator(HDUSD_MATLIB_OP_import_material.bl_idname)
+        renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
 
+        if len(renders) > 1:
+            grid = layout.grid_flow(align=True)
+            row = None
+            for i, render in enumerate(renders):
+                if render.thumbnail_icon_id is None:
+                    render.get_info()
+                    render.get_thumbnail()
+                    render.thumbnail_load(matlib_prop.pcoll)
+
+                if i % 6 == 0:
+                    row = grid.row()
+                    row.alignment = "CENTER"
+
+                row.template_icon(render.thumbnail_icon_id, scale=5)
+
+        if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
+            material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
+
+            for line in material_description.splitlines():
+                row = layout.row()
+                row.label(text=line)
+
+        split = layout.split(factor=0.25)
+
+        row = split.row()
+        row.alignment = 'LEFT'
+        row.label(text="Package")
+
+        split = split.split(align=True, factor=0.9)
+        if matlib_prop.material:
+            packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
+            package = None
+
+            if matlib_prop.package_id:
+                # TODO maybe need to find a better way than try/except but it's too late now
+                try:
+                    package = next(package for package in packages
+                                   if package.id == matlib_prop.package_id)
+                except:
+                    package = packages[0]
+            else:
+                package = packages[0]
+
+            if package is not None:
+
+                if package.file is None:
+                    package.get_info()
+
+                matlib_prop.package_id = package.id
+
+                split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
+                                 text=f"{package.label} ({package.size})" if package is not None else None,
+                                 icon='DOCUMENTS')
+
+        material = matlib_prop.pcoll.materials[matlib_prop.material]
+        package = next(package for package in material.packages
+                       if package.id == matlib_prop.package_id)
+
+        icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
+
+        row = split.row()
+        row.alignment = 'RIGHT'
+        row.enabled = bool(context.material)
+        row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon=icon)
+
+        col = layout.row()
+        col.enabled = bool(context.material)
+        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
+                     icon="IMPORT")
+
+
+class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
+    bl_label = "Package"
+    bl_idname = "HDUSD_MATLIB_MT_package_menu"
+
+    def draw(self, context):
+        layout = self.layout
+        op_idname = HDUSD_MATLIB_OP_select_package.bl_idname
+
+        matlib_prop = context.window_manager.hdusd.matlib
+        packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
+
+        for package in packages:
+            if package.file is None:
+                package.get_info()
+
+            row = layout.row()
+            op = row.operator(op_idname, text=f"{package.label} ({package.size})",
+                              icon='DOCUMENTS')
+            op.matlib_package_id = package.id
+
+
+class HDUSD_MATLIB_OP_select_package(bpy.types.Operator):
+    """Select Package"""
+    bl_label = "Select Package"
+    bl_idname = "hdusd.matlib_select_package"
+
+    matlib_package_id: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        context.window_manager.hdusd.matlib.package_id = self.matlib_package_id
+        return {"FINISHED"}
