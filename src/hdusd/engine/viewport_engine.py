@@ -20,7 +20,7 @@ from bpy_extras import view3d_utils
 import weakref
 import time
 
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, Tf
 from pxr import UsdImagingGL
 
 from .engine import Engine
@@ -291,7 +291,11 @@ class ViewportEngine(Engine):
         if self.renderer.GetRenderStats().get('percentDone', 0.0) == 0.0:
             self.time_begin = time.perf_counter()
 
-        self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
+        try:
+            self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
+        except Tf.ErrorException as e:
+            pass
+            # print(type(e), e)
 
         self.render_engine.unbind_display_space_shader()
         elapsed_time = time_str(time.perf_counter() - self.time_begin)

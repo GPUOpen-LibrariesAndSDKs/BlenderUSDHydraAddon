@@ -27,65 +27,44 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
     assert path.is_dir(), f"Directory {path} not exists"
 
     for f in path.glob(glob):
-        if f.is_dir() or f.suffix in ignore_suffix or any(p in f.parts for p in ignore_parts):
+        if f.is_dir(): # or f.suffix in ignore_suffix or any(p in f.parts for p in ignore_parts):
             continue
 
         yield f
 
 
-def iterate_copied_files(repo_dir, usd_dir, hdrpr_dir, mx_dir):
-    # USD libraries
+def iterate_copied_files(repo_dir, usd_dir):
+    # USD, HdRPR libraries
     for f in iterate_files(usd_dir / "lib", "**/*",
                            ignore_parts=("__pycache__",),
                            ignore_suffix=(".cmake", ".pdb", ".lib", ".def")):
-        if "cmake" in f.name or "cmake" in f.relative_to(usd_dir / "lib").parts:
-            continue
-        yield f, Path("usd") / f.relative_to(usd_dir / "lib")
-
-    for f in iterate_files(usd_dir / "bin", "*",
-                           ignore_suffix=('.pdb',)):
-        yield f, Path("usd") / f.relative_to(usd_dir / "bin")
+        # if "cmake" in f.name or "cmake" in f.relative_to(usd_dir / "lib").parts:
+        #     continue
+        yield f, Path("usd") / f.relative_to(usd_dir)
 
     if OS == 'Windows':
         yield usd_dir.parent / "build/openexr-2.3.0/OpenEXR/IlmImf/RelWithDebInfo/IlmImf-2_3.dll",\
-              Path("usd") / "IlmImf-2_3.dll"
+              Path("usd") / "lib/IlmImf-2_3.dll"
 
-    # copy RPR Hydra delegate libraries
-    for f in iterate_files(hdrpr_dir / "lib", "**/*",
-                           ignore_parts=("__pycache__",),
-                           ignore_suffix=(".lib",)):
-        yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
+    for f in iterate_files(usd_dir / "bin", "**/*",
+                           ignore_suffix=('.pdb',)):
+        yield f, Path("usd") / f.relative_to(usd_dir)
 
-    # for f in iterate_files(hdrpr_dir / "libraries", "**/*"):
-    #     yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
-
-    # for f in iterate_files(hdrpr_dir / "materials", "**/*"):
-    #     yield f, Path("hdrpr") / f.relative_to(hdrpr_dir)
-
-    # put all the plugins in the same folder so USD would load them all
     for f in iterate_files(usd_dir / "plugin", "**/*",
                            ignore_suffix=(".lib",)):
-        yield f, Path("plugins") / f.relative_to(usd_dir / "./plugin")
-
-    for f in iterate_files(hdrpr_dir / "plugin", "**/*",
-                           ignore_suffix=(".lib",)):
-        yield f, Path("plugins") / f.relative_to(hdrpr_dir / "./plugin")
+        yield f, Path("usd") / f.relative_to(usd_dir)
 
     # MaterialX libraries
-    for f in iterate_files(mx_dir / "python/MaterialX", "*",
+    for f in iterate_files(usd_dir / "python", "**/*",
                            ignore_suffix=(".lib",)):
-        yield f, Path("materialx") / f.relative_to(mx_dir)
+        yield f, Path("usd") / f.relative_to(usd_dir)
 
-    for f in iterate_files(mx_dir / "libraries", "**/*",
-                           ignore_suffix=(".lib",)):
-        yield f, f.relative_to(mx_dir)
-
-    for f in iterate_files(mx_dir / "bin", "*"):
-        yield f, Path("materialx") / f.relative_to(mx_dir)
+    for f in iterate_files(usd_dir / "libraries", "**/*"):
+        yield f, Path("usd") / f.relative_to(usd_dir)
 
     deps_mx_libs = repo_dir / "deps/mx_libs"
     for f in iterate_files(deps_mx_libs, "**/*"):
-        yield f, Path("libraries") / f.relative_to(deps_mx_libs)
+        yield f, Path("usd/libraries") / f.relative_to(deps_mx_libs)
 
 
 def main(bin_dir):
@@ -96,10 +75,7 @@ def main(bin_dir):
 
     print(f"Copying libs to: {libs_dir}")
 
-    for f, relative in iterate_copied_files(repo_dir,
-                                            bin_dir / "USD/install",
-                                            bin_dir / "HdRPR/install",
-                                            bin_dir / "MaterialX/install"):
+    for f, relative in iterate_copied_files(repo_dir, bin_dir / "USD/install"):
         print(f, '->', relative)
 
         f_copy = libs_dir / relative
@@ -121,8 +97,8 @@ def main(bin_dir):
                 print(patchelf_args)
                 subprocess.check_call(patchelf_args)
 
-    # Clear hdrpr/lib/python/rpr/RprUsd/__init__.py
-    rpr_usd_init_py = libs_dir / "hdrpr/lib/python/rpr/RprUsd/__init__.py"
+    # Clear usd/lib/python/rpr/RprUsd/__init__.py
+    rpr_usd_init_py = libs_dir / "usd/lib/python/rpr/RprUsd/__init__.py"
     print(f"Clearing {rpr_usd_init_py}")
     rpr_usd_init_py.write_text("")
 

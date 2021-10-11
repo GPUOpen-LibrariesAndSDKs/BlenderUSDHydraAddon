@@ -21,7 +21,7 @@ from collections import defaultdict
 
 repo_dir = Path(__file__).parent.parent
 libs_dir = repo_dir / "libs"
-mx_libs_dir = libs_dir / "libraries"
+mx_libs_dir = libs_dir / "usd/libraries"
 
 
 sys.path.append(str(libs_dir / "materialx/python"))
@@ -348,7 +348,6 @@ mx_node_classes = [{', '.join(mx_node_class_names)}]
 
 def main():
     gen_code_dir = repo_dir / "src/hdusd/mx_nodes/nodes"
-    hdrpr_mat_dir = libs_dir / "hdrpr/materials"
 
     for f in gen_code_dir.glob("gen_*.py"):
         f.unlink()
@@ -360,15 +359,6 @@ def main():
         ('PBR', "PBR", mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),
         ('ALG', "Algorithm", mx_libs_dir / "alglib/alglib_defs.mtlx"),
     ]
-
-    for f in (hdrpr_mat_dir / "Shaders").glob("rpr_*.mtlx"):
-        files.append(('RPR', "RPR Shaders", f))
-
-    for f in (hdrpr_mat_dir / "Utilities").glob("rpr_*.mtlx"):
-        files.append(('RPR', "RPR Utilities", f))
-
-    for f in (hdrpr_mat_dir / "Patterns").glob("rpr_*.mtlx"):
-        files.append(('RPR', "RPR Patterns", f))
 
     for prefix, category, file_path in files:
 

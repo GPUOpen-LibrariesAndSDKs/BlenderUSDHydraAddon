@@ -19,9 +19,6 @@ from . import HdUSD_Panel, HdUSD_Operator
 
 from hdusd import bl_info
 
-from pxr import UsdAppUtils, Tf
-
-from rpr import RprUsd
 
 class HDUSD_OP_open_web_page(HdUSD_Operator):
     """

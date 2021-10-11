@@ -26,7 +26,7 @@ from . import logging
 log = logging.Log(tag='utils.mx')
 
 
-MX_LIBS_DIR = LIBS_DIR / "libraries"
+MX_LIBS_DIR = LIBS_DIR / "usd/libraries"
 
 os.environ['MATERIALX_SEARCH_PATH'] = str(MX_LIBS_DIR)
 
@@ -194,20 +194,3 @@ def get_nodegraph_by_node_path(doc, node_path, do_create=False):
 
 def get_node_name_by_node_path(node_path):
     return code_str(node_path.split('/')[-1])
-
-
-def add_xi_includes(doc: mx.Document):
-    doc.setAttribute('xmlns:xi', "http://www.w3.org/2001/XInclude")
-    for i, loc_path in enumerate((
-        "stdlib/stdlib_defs.mtlx",
-        "stdlib/stdlib_ng.mtlx",
-        "pbrlib/pbrlib_defs.mtlx",
-        "pbrlib/pbrlib_ng.mtlx",
-        "bxdf/standard_surface.mtlx",
-        "bxdf/usd_preview_surface.mtlx",
-        "alglib/alglib_defs.mtlx",
-        "alglib/alglib_ng.mtlx",
-    )):
-        include = doc.addChildOfCategory('xi:include')
-        include.setAttribute('href', (MX_LIBS_DIR / loc_path).as_posix())
-        include.setName(f"ref{i}")

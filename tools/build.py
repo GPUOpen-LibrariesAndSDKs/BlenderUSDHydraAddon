@@ -71,28 +71,11 @@ def hdrpr(bin_dir, compiler, jobs, clean):
 
     if clean:
         rm_dir(hdrpr_dir / "build")
-        rm_dir(bin_dir / "HdRPR")
 
     _cmake(hdrpr_dir, compiler, jobs, [
         f'-Dpxr_DIR={bin_dir / "USD/install"}',
-        f'-DCMAKE_INSTALL_PREFIX={bin_dir / "HdRPR/install"}',
+        f'-DCMAKE_INSTALL_PREFIX={bin_dir / "USD/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
-    ])
-
-
-def materialx(bin_dir, compiler, jobs, clean):
-    mx_dir = bin_dir / "USD/deps/MaterialX-1.38.0"
-
-    if clean:
-        rm_dir(mx_dir / "build")
-        rm_dir(bin_dir / "MaterialX")
-
-    _cmake(mx_dir, compiler, jobs, [
-        f'-DCMAKE_INSTALL_PREFIX={bin_dir / "MaterialX/install"}',
-        '-DMATERIALX_BUILD_PYTHON=ON',
-        f'-DMATERIALX_PYTHON_EXECUTABLE={sys.executable}',
-        '-DMATERIALX_INSTALL_PYTHON=OFF',
-        '-DMATERIALX_BUILD_VIEWER=ON',
     ])
 
 
@@ -126,8 +109,6 @@ def main():
                     help="Build USD")
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
-    ap.add_argument("-mx", required=False, action="store_true",
-                    help="Build MaterialX")
     ap.add_argument("-bin-dir", required=False, type=str, default="",
                     help="Path to binary directory")
     ap.add_argument("-libs", required=False, action="store_true",
@@ -136,7 +117,7 @@ def main():
                     help="Generate MaterialX classes")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
-    ap.add_argument("-G", required=False, type=str, default="",
+    ap.add_argument("-G", required=False, type=str, default="Visual Studio 15 2017 Win64",
                     help="Compiler for HdRPR and MaterialX in cmake. "
                          'For example: -G "Visual Studio 15 2017 Win64"')
     ap.add_argument("-j", required=False, type=int, default=0,
@@ -148,7 +129,7 @@ def main():
 
     args = ap.parse_args()
 
-    if OS == 'Windows' and (args.all or args.hdrpr or args.mx) and not args.G:
+    if OS == 'Windows' and (args.all or args.hdrpr) and not args.G:
         print('Please select compiler. For example: -G "Visual Studio 15 2017 Win64"')
         return
 
@@ -159,9 +140,6 @@ def main():
 
     if args.all or args.hdrpr:
         hdrpr(bin_dir, args.G, args.j, args.clean)
-
-    if args.all or args.mx:
-        materialx(bin_dir, args.G, args.j, args.clean)
 
     if args.all or args.libs:
         libs(bin_dir)
