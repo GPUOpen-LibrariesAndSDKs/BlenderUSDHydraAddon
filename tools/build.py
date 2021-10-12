@@ -33,6 +33,15 @@ def rm_dir(d: Path):
     shutil.rmtree(str(d))
 
 
+def copy(src: Path, dest, ignore=()):
+    print(f"Copying: {src} -> {dest}")
+    if src.is_dir():
+        shutil.copytree(str(src), str(dest), dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns(*ignore))
+    else:
+        shutil.copy(str(src), str(dest))
+
+
 def usd(bin_dir, jobs, clean):
     import build_usd
     args = []

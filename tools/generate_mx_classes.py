@@ -21,10 +21,10 @@ from collections import defaultdict
 
 repo_dir = Path(__file__).parent.parent
 libs_dir = repo_dir / "libs"
-mx_libs_dir = libs_dir / "usd/libraries"
+mx_libs_dir = libs_dir / "libraries"
 
 
-sys.path.append(str(libs_dir / "materialx/python"))
+sys.path.append(str(libs_dir / "python"))
 import MaterialX as mx
 
 

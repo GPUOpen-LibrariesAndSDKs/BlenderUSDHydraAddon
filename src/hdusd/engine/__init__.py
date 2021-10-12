@@ -22,18 +22,18 @@ from .. import utils
 
 if utils.IS_WIN:
     path_str = ""
-    for loc_path in ('usd/lib', 'usd/bin', 'usd/plugin/usd'):
+    for loc_path in ('lib', 'bin', 'plugin/usd'):
         path = utils.LIBS_DIR / loc_path
         os.add_dll_directory(str(path))
         path_str += f"{path};"
 
     os.environ['PATH'] = path_str + os.environ['PATH']
 
-os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'usd/plugin')
+os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugin')
 os.environ['RPR'] = str(utils.LIBS_DIR / 'usd')
 
-sys.path.append(str(utils.LIBS_DIR / 'usd/lib/python'))
-sys.path.append(str(utils.LIBS_DIR / 'usd/python'))
+sys.path.append(str(utils.LIBS_DIR / 'lib/python'))
+sys.path.append(str(utils.LIBS_DIR / 'python'))
 
 
 from . import engine, handlers

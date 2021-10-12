@@ -17,7 +17,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from build import rm_dir
+from build import rm_dir, copy
 
 
 OS = platform.system()
@@ -27,44 +27,10 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
     assert path.is_dir(), f"Directory {path} not exists"
 
     for f in path.glob(glob):
-        if f.is_dir(): # or f.suffix in ignore_suffix or any(p in f.parts for p in ignore_parts):
+        if f.is_dir() or f.suffix in ignore_suffix or any(p in f.parts for p in ignore_parts):
             continue
 
         yield f
-
-
-def iterate_copied_files(repo_dir, usd_dir):
-    # USD, HdRPR libraries
-    for f in iterate_files(usd_dir / "lib", "**/*",
-                           ignore_parts=("__pycache__",),
-                           ignore_suffix=(".cmake", ".pdb", ".lib", ".def")):
-        # if "cmake" in f.name or "cmake" in f.relative_to(usd_dir / "lib").parts:
-        #     continue
-        yield f, Path("usd") / f.relative_to(usd_dir)
-
-    if OS == 'Windows':
-        yield usd_dir.parent / "build/openexr-2.3.0/OpenEXR/IlmImf/RelWithDebInfo/IlmImf-2_3.dll",\
-              Path("usd") / "lib/IlmImf-2_3.dll"
-
-    for f in iterate_files(usd_dir / "bin", "**/*",
-                           ignore_suffix=('.pdb',)):
-        yield f, Path("usd") / f.relative_to(usd_dir)
-
-    for f in iterate_files(usd_dir / "plugin", "**/*",
-                           ignore_suffix=(".lib",)):
-        yield f, Path("usd") / f.relative_to(usd_dir)
-
-    # MaterialX libraries
-    for f in iterate_files(usd_dir / "python", "**/*",
-                           ignore_suffix=(".lib",)):
-        yield f, Path("usd") / f.relative_to(usd_dir)
-
-    for f in iterate_files(usd_dir / "libraries", "**/*"):
-        yield f, Path("usd") / f.relative_to(usd_dir)
-
-    deps_mx_libs = repo_dir / "deps/mx_libs"
-    for f in iterate_files(deps_mx_libs, "**/*"):
-        yield f, Path("usd/libraries") / f.relative_to(deps_mx_libs)
 
 
 def main(bin_dir):
@@ -75,14 +41,19 @@ def main(bin_dir):
 
     print(f"Copying libs to: {libs_dir}")
 
-    for f, relative in iterate_copied_files(repo_dir, bin_dir / "USD/install"):
-        print(f, '->', relative)
+    usd_dir = bin_dir / "USD/install"
+    libs_dir.mkdir(parents=True)
 
-        f_copy = libs_dir / relative
-        if not f_copy.parent.is_dir():
-            f_copy.parent.mkdir(parents=True)
+    copy(usd_dir / "bin", libs_dir / "bin", ('*.pdb',))
+    copy(usd_dir / "lib", libs_dir / "lib", ("*.pdb", "*.lib", "*.def", "cmake", "__pycache__"))
+    copy(usd_dir / "plugin", libs_dir / "plugin", ("*.pdb", "*.lib"))
+    copy(usd_dir / "python", libs_dir / "python", ("*.lib", "build"))
+    copy(usd_dir / "libraries", libs_dir / "libraries")
+    copy(repo_dir / "deps/mx_libs", libs_dir / "libraries")
 
-        shutil.copy(str(f), str(f_copy), follow_symlinks=False)
+    if OS == 'Windows':
+        copy(bin_dir / "USD/build/openexr-2.3.0/OpenEXR/IlmImf/RelWithDebInfo/"
+             "IlmImf-2_3.dll", libs_dir / "lib/IlmImf-2_3.dll")
 
     if OS == 'Linux':
         print("Configuring rpath")
@@ -97,8 +68,8 @@ def main(bin_dir):
                 print(patchelf_args)
                 subprocess.check_call(patchelf_args)
 
-    # Clear usd/lib/python/rpr/RprUsd/__init__.py
-    rpr_usd_init_py = libs_dir / "usd/lib/python/rpr/RprUsd/__init__.py"
+    # Clear lib/python/rpr/RprUsd/__init__.py
+    rpr_usd_init_py = libs_dir / "lib/python/rpr/RprUsd/__init__.py"
     print(f"Clearing {rpr_usd_init_py}")
     rpr_usd_init_py.write_text("")
 
