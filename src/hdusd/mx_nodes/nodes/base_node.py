@@ -184,9 +184,11 @@ class MxNode(bpy.types.ShaderNode):
                 layout.prop(self, self._param_prop_name(name))
 
     def draw_node_view(self, context, layout):
-        node_tree = context.material.hdusd.mx_node_tree
+        from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
+
         self.draw_buttons(context, layout)
-        for socket_in in self.inputs:
+
+        for i, socket_in in enumerate(self.inputs):
             if socket_in.is_linked:
                 link = next((link for link in socket_in.links if link.is_valid), None)
                 if not link:
@@ -213,8 +215,9 @@ class MxNode(bpy.types.ShaderNode):
                 if f:
                     if getattr(self, self._folder_prop_name(f)):
                         row = layout.row()
-                        #row.template_node_socket()
-                        #row.template_node_link(node_tree, self, socket_in)
+                        op = row.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname)
+                        op.input_num = i
+
                         socket_in.draw(context, row, self, '')
                 else:
                     row = layout.row()

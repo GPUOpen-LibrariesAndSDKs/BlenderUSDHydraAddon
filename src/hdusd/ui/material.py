@@ -18,7 +18,7 @@ import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
-from ..mx_nodes.node_tree import MxNodeTree
+from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 
 
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
@@ -188,6 +188,75 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         layout.label(text=f"Material: {context.material.name}")
 
 
+class HDUSD_MATERIAL_OP_link_mx_node(bpy.types.Operator):
+    """Link MaterialX node"""
+    bl_idname = "hdusd.material_link_mx_node"
+    bl_label = ""
+
+    mx_node: bpy.props.StringProperty(default="")
+    input_num: bpy.props.IntProperty()
+
+    def execute(self, context):
+        layout = self.layout
+
+        node_tree = context.material.hdusd.mx_node_tree
+        output_node = node_tree.output_node
+        if not output_node:
+            layout.label(text="No output node")
+            node_tree.interface_update(context=context)
+            return
+
+        input = output_node.inputs[HDUSD_MATERIAL_PT_material_settings_surface.bl_label]
+        link = next((link for link in input.links if link.is_valid), None)
+        if not link:
+            layout.label(text="No input node")
+            node_tree.interface_update(context=context)
+            return
+
+        node = link.from_node
+
+        input_node = node_tree.nodes.new(self.mx_node)
+        input_node.location = (node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                         node.location[1])
+        node_tree.links.new(input_node.outputs[0], node.inputs[self.input_num])
+
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
+    """Open modal panel"""
+    bl_idname = "hdusd.material_invoke_popup_input_nodes"
+    bl_label = ""
+
+    input_num: bpy.props.IntProperty()
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_popup(self, width=1000)
+
+    def draw(self, context):
+        from ..mx_nodes.nodes import mx_node_classes
+
+        node_groups = bpy.data.node_groups
+
+        row = self.layout.split().row()
+        col = row.column()
+
+        categories = sorted(set(node.category for node in mx_node_classes))
+        for i, category in enumerate(categories):
+            if i % 4 == 0:
+                col = row.column()
+            col.label(text=category)
+            for node in mx_node_classes:
+                if node.category == category:
+                    op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+                                      text=node.bl_label)
+                    op.mx_node = node.bl_idname
+                    op.input_num = self.input_num
+
+
 class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
     bl_label = "surfaceshader"
     bl_parent_id = 'HDUSD_MATERIAL_PT_material'
@@ -200,7 +269,6 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         layout = self.layout
 
         node_tree = context.material.hdusd.mx_node_tree
-
         output_node = node_tree.output_node
         if not output_node:
             layout.label(text="No output node")
@@ -218,6 +286,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         node.draw_node_view(context, layout)
 
         node_tree.interface_update(context=context)
+
 
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
     bl_label = ""
