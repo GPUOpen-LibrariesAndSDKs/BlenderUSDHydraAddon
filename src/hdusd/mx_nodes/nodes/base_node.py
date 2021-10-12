@@ -225,7 +225,7 @@ class MxNode(bpy.types.ShaderNode):
                     op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
                                       icon='HANDLETYPE_AUTO_CLAMP_VEC')
                     op.input_num = i
-                    op.new_node_name = self.name
+                    op.current_node_name = self.name
 
                     row = split.row()
                     socket_in.draw(context, row, self, '')

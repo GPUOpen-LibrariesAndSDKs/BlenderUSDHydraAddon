@@ -21,6 +21,9 @@ from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 
 
+NODE_SHADER_CATEGORIES = set(['PBR', 'RPR Shaders'])
+
+
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
@@ -193,20 +196,20 @@ class HDUSD_MATERIAL_OP_link_mx_node(bpy.types.Operator):
     bl_idname = "hdusd.material_link_mx_node"
     bl_label = ""
 
-    input_node: bpy.props.StringProperty()
-    input_num: bpy.props.IntProperty()
     new_node_name: bpy.props.StringProperty()
+    input_num: bpy.props.IntProperty()
+    current_node_name: bpy.props.StringProperty()
 
     def execute(self, context):
         layout = self.layout
 
         node_tree = context.material.hdusd.mx_node_tree
-        new_node = context.material.hdusd.mx_node_tree.nodes[self.new_node_name]
+        current_node = context.material.hdusd.mx_node_tree.nodes[self.current_node_name]
 
-        input_node = node_tree.nodes.new(self.input_node)
-        input_node.location = (new_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                         new_node.location[1])
-        node_tree.links.new(input_node.outputs[0], new_node.inputs[self.input_num])
+        new_node = node_tree.nodes.new(self.new_node_name)
+        new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                         current_node.location[1])
+        node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
 
         return {"FINISHED"}
 
@@ -217,7 +220,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
     bl_label = ""
 
     input_num: bpy.props.IntProperty()
-    new_node_name: bpy.props.StringProperty()
+    current_node_name: bpy.props.StringProperty()
 
     def execute(self, context):
         return {'FINISHED'}
@@ -231,7 +234,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
         row = self.layout.split().row()
         col = row.column()
 
-        categories = sorted(set(node.category for node in mx_node_classes))
+        categories = sorted(set(node.category for node in mx_node_classes) - NODE_SHADER_CATEGORIES)
         for i, category in enumerate(categories):
             if i % 4 == 0:
                 col = row.column()
@@ -241,9 +244,42 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
                 if node.category == category:
                     op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
                                       text=node.bl_label)
-                    op.input_node = node.bl_idname
+                    op.new_node_name = node.bl_idname
                     op.input_num = self.input_num
-                    op.new_node_name = self.new_node_name
+                    op.current_node_name = self.current_node_name
+
+
+class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
+    """Open modal panel"""
+    bl_idname = "hdusd.material_invoke_popup_shader_nodes"
+    bl_label = ""
+
+    input_num: bpy.props.IntProperty()
+    new_node_name: bpy.props.StringProperty()
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_popup(self, width=400)
+
+    def draw(self, context):
+        from ..mx_nodes.nodes import mx_node_classes
+
+        row = self.layout.split().row()
+
+        categories = sorted(NODE_SHADER_CATEGORIES)
+        for category in categories:
+            col = row.column()
+            col.emboss = 'PULLDOWN_MENU'
+            col.label(text=category)
+            for node in mx_node_classes:
+                if node.category == category:
+                    op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+                                      text=node.bl_label)
+                    op.new_node_name = node.bl_idname
+                    op.input_num = self.input_num
+                    op.current_node_name = context.material.hdusd.mx_node_tree.output_node.name
 
 
 class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
@@ -270,6 +306,19 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
             layout.label(text="No input node")
             node_tree.interface_update(context=context)
             return
+
+        split = layout.split(factor=0.25)
+        col = split.column()
+
+        row = split.row()
+        row.label(text=self.bl_label)
+
+        col = row.column()
+        col.scale_x = 4
+        op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
+                          icon='HANDLETYPE_AUTO_CLAMP_VEC')
+
+        col.separator()
 
         node = link.from_node
         node.draw_node_view(context, layout)
