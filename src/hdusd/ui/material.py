@@ -239,8 +239,6 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
     def draw(self, context):
         from ..mx_nodes.nodes import mx_node_classes
 
-        node_groups = bpy.data.node_groups
-
         row = self.layout.split().row()
         col = row.column()
 
@@ -248,6 +246,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
         for i, category in enumerate(categories):
             if i % 4 == 0:
                 col = row.column()
+            col.emboss = 'PULLDOWN_MENU'
             col.label(text=category)
             for node in mx_node_classes:
                 if node.category == category:

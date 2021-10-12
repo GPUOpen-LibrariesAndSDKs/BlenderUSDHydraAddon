@@ -214,11 +214,15 @@ class MxNode(bpy.types.ShaderNode):
                 f = mx_input.getAttribute('uifolder')
                 if f:
                     if getattr(self, self._folder_prop_name(f)):
-                        row = layout.row()
-                        op = row.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname)
+                        split = layout.split(factor=0.075)
+                        col = split.column()
+                        col.emboss = 'PULLDOWN_MENU'
+
+                        op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
                         op.input_num = i
 
-                        socket_in.draw(context, row, self, '')
+                        col = split.column()
+                        socket_in.draw(context, col, self, '')
                 else:
                     row = layout.row()
                     socket_in.draw(context, row, self, '')
