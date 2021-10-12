@@ -21,14 +21,51 @@ from ...utils import mx as mx_utils
 from . import log
 
 
+SOCKET_COLORS = {
+    'bsdf': (0.39, 0.78, 0.39, 1.0),
+    'surfaceshader': (0.39, 0.78, 0.39, 1.0),
+    'volumeshader': (0.39, 0.78, 0.39, 1.0),
+    'lightshader': (0.39, 0.78, 0.39, 1.0),
+    'bsdfc': (0.39, 0.78, 0.39, 1.0),
+    'bsdff': (0.39, 0.78, 0.39, 1.0),
+    'material': (0.39, 0.78, 0.39, 1.0),
+    'edf': (0.39, 0.78, 0.39, 1.0),
+    'vdf': (0.39, 0.78, 0.39, 1.0),
+
+    'color': (0.78, 0.78, 0.16, 1.0),
+    'color2': (0.78, 0.78, 0.16, 1.0),
+    'color3': (0.78, 0.78, 0.16, 1.0),
+    'color4': (0.78, 0.78, 0.16, 1.0),
+
+    'string': (0.16, 0.45, 1.0, 1.0),
+
+    'gray': (0.7, 0.7, 0.7, 1.0),
+    'ior':  (0.7, 0.7, 0.7, 1.0),
+    'integer':  (0.7, 0.7, 0.7, 1.0),
+    'float':  (0.7, 0.7, 0.7, 1.0),
+    'boolean':  (0.7, 0.7, 0.7, 1.0),
+    'angle':  (0.7, 0.7, 0.7, 1.0),
+
+    'normal': (0.61, 0.50, 1.0, 1.0),
+    'displacementshader': (0.61, 0.50, 1.0, 1.0),
+    'vector2': (0.61, 0.50, 1.0, 1.0),
+    'vector3': (0.61, 0.50, 1.0, 1.0),
+    'vector4': (0.61, 0.50, 1.0, 1.0),
+    'vector2M3': (0.61, 0.50, 1.0, 1.0),
+    'vector3M4': (0.61, 0.50, 1.0, 1.0),
+    'link': (0.61, 0.50, 1.0, 1.0),
+
+    'default': (1.0, 0.0, 0.0, 1.0),
+}
+
+
 class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_idname = 'hdusd.MxNodeInputSocket'
     bl_label = "MX Input Socket"
 
     @staticmethod
     def get_color(type_name):
-        return (0.78, 0.78, 0.16, 1.0) if mx_utils.is_shader_type(type_name) else \
-               (0.16, 0.78, 0.16, 1.0)
+        return SOCKET_COLORS[type_name] if type_name in SOCKET_COLORS.keys() else SOCKET_COLORS['default']
 
     def draw(self, context, layout, node, text):
         nd = node.nodedef
@@ -51,7 +88,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
     def draw_color(self, context, node):
-        return self.get_color(node.nodedef.getInput(self.name).getType())
+        return self.get_color(node.nodedef.getInput(self.name).getType().lower())
 
 
 class MxNodeOutputSocket(bpy.types.NodeSocket):
@@ -69,7 +106,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
             layout.label(text=f"{uiname}: {uitype}")
 
     def draw_color(self, context, node):
-        return MxNodeInputSocket.get_color(node.nodedef.getOutput(self.name).getType())
+        return MxNodeInputSocket.get_color(node.nodedef.getOutput(self.name).getType().lower())
 
 
 class MxNode(bpy.types.ShaderNode):
