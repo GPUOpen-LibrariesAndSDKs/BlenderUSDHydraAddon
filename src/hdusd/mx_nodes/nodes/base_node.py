@@ -196,13 +196,16 @@ class MxNode(bpy.types.ShaderNode):
 
                 node = link.from_node
 
-                row = layout.row()              
+                split = layout.split(factor=0.1)
+                split.column()
+
+                row = split.row()
                 row.prop(socket_in, "show_expanded",
                          icon="TRIA_DOWN" if socket_in.show_expanded else "TRIA_RIGHT",
                          icon_only=True, emboss=False
                          )
-                
-                socket_in.draw(context, row, self, node.name)
+
+                socket_in.draw(context, row, self, '')
 
                 if socket_in.show_expanded:
                     node.draw_node_view(context, layout)
@@ -218,7 +221,9 @@ class MxNode(bpy.types.ShaderNode):
                         is_draw = False
 
                 if is_draw:
-                    split = layout.split(factor=0.075)
+                    split = layout.split(factor=0.1)
+                    split.column()
+                    split = split.split(factor=0.075)
                     col = split.column()
                     col.emboss = 'PULLDOWN_MENU'
 

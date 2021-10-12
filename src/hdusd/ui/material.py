@@ -22,6 +22,8 @@ from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 
 
 NODE_SHADER_CATEGORIES = set(['PBR', 'RPR Shaders'])
+NODE_EXCLUDE_CATEGORIES = set(['material'])
+NODE_LINK_CATEGORY = 'Link'
 
 
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
@@ -234,7 +236,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
         row = self.layout.split().row()
         col = row.column()
 
-        categories = sorted(set(node.category for node in mx_node_classes) - NODE_SHADER_CATEGORIES)
+        categories = sorted(set(node.category for node in mx_node_classes) - NODE_SHADER_CATEGORIES - NODE_EXCLUDE_CATEGORIES)
         for i, category in enumerate(categories):
             if i % 4 == 0:
                 col = row.column()
@@ -248,6 +250,15 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
                     op.input_num = self.input_num
                     op.current_node_name = self.current_node_name
 
+        node_tree = context.material.hdusd.mx_node_tree
+        if node_tree.nodes[self.current_node_name].inputs[self.input_num].is_linked:
+            col = row.column()
+            col.emboss = 'PULLDOWN_MENU'
+            col.label(text=NODE_LINK_CATEGORY)
+            op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
+                              text=HDUSD_MATERIAL_OP_remove_node.bl_label)
+            op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
+                              text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
 
 class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
     """Open modal panel with shaders"""
@@ -282,6 +293,42 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
                     op.current_node_name = context.material.hdusd.mx_node_tree.output_node.name
 
 
+class HDUSD_MATERIAL_OP_remove_node(bpy.types.Operator):
+    """Remove linked node"""
+    bl_idname = "hdusd.material_remove_node"
+    bl_label = "Remove"
+
+    input_node_name: bpy.props.StringProperty()
+    output_node_name: bpy.props.StringProperty()
+    input_num: bpy.props.IntProperty()
+
+    def execute(self, context):
+        node_tree = context.material.hdusd.mx_node_tree
+
+        input_node = context.material.hdusd.mx_node_tree.nodes[self.input_node_name]
+        output_node = context.material.hdusd.mx_node_tree.nodes[self.output_node_name]
+
+        return {'FINISHED'}
+
+
+class HDUSD_MATERIAL_OP_disconnect_node(bpy.types.Operator):
+    """Disconnect linked node"""
+    bl_idname = "hdusd.material_disconnect_node"
+    bl_label = "Disconnect"
+
+    input_node_name: bpy.props.StringProperty()
+    output_node_name: bpy.props.StringProperty()
+    input_num: bpy.props.IntProperty()
+
+    def execute(self, context):
+        node_tree = context.material.hdusd.mx_node_tree
+
+        input_node = context.material.hdusd.mx_node_tree.nodes[self.input_node_name]
+        output_node = context.material.hdusd.mx_node_tree.nodes[self.output_node_name]
+
+        return {'FINISHED'}
+
+
 class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
     bl_label = "surfaceshader"
     bl_parent_id = 'HDUSD_MATERIAL_PT_material'
@@ -309,14 +356,14 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
 
         node = link.from_node
 
-        split = layout.split(factor=0.01)
+        split = layout.split(factor=0.2)
         col = split.column()
 
         row = split.row()
-        row.label(text=self.bl_label)
+        row.label(text='Surface')
 
         col = row.column()
-        col.scale_x = 1.6
+        col.scale_x = 2
         op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
                           icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
 
