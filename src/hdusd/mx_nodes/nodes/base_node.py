@@ -212,19 +212,22 @@ class MxNode(bpy.types.ShaderNode):
             else:
                 mx_input = self.nodedef.getInput(socket_in.name)
                 f = mx_input.getAttribute('uifolder')
+                is_draw = True
                 if f:
-                    if getattr(self, self._folder_prop_name(f)):
-                        split = layout.split(factor=0.075)
-                        col = split.column()
-                        col.emboss = 'PULLDOWN_MENU'
+                    if not getattr(self, self._folder_prop_name(f)):
+                        is_draw = False
 
-                        op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
-                        op.input_num = i
+                if is_draw:
+                    split = layout.split(factor=0.075)
+                    col = split.column()
+                    col.emboss = 'PULLDOWN_MENU'
 
-                        col = split.column()
-                        socket_in.draw(context, col, self, '')
-                else:
-                    row = layout.row()
+                    op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                                      icon='HANDLETYPE_AUTO_CLAMP_VEC')
+                    op.input_num = i
+                    op.new_node_name = self.name
+
+                    row = split.row()
                     socket_in.draw(context, row, self, '')
 
     # COMPUTE FUNCTION

@@ -193,32 +193,20 @@ class HDUSD_MATERIAL_OP_link_mx_node(bpy.types.Operator):
     bl_idname = "hdusd.material_link_mx_node"
     bl_label = ""
 
-    mx_node: bpy.props.StringProperty(default="")
+    input_node: bpy.props.StringProperty()
     input_num: bpy.props.IntProperty()
+    new_node_name: bpy.props.StringProperty()
 
     def execute(self, context):
         layout = self.layout
 
         node_tree = context.material.hdusd.mx_node_tree
-        output_node = node_tree.output_node
-        if not output_node:
-            layout.label(text="No output node")
-            node_tree.interface_update(context=context)
-            return
+        new_node = context.material.hdusd.mx_node_tree.nodes[self.new_node_name]
 
-        input = output_node.inputs[HDUSD_MATERIAL_PT_material_settings_surface.bl_label]
-        link = next((link for link in input.links if link.is_valid), None)
-        if not link:
-            layout.label(text="No input node")
-            node_tree.interface_update(context=context)
-            return
-
-        node = link.from_node
-
-        input_node = node_tree.nodes.new(self.mx_node)
-        input_node.location = (node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                         node.location[1])
-        node_tree.links.new(input_node.outputs[0], node.inputs[self.input_num])
+        input_node = node_tree.nodes.new(self.input_node)
+        input_node.location = (new_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                         new_node.location[1])
+        node_tree.links.new(input_node.outputs[0], new_node.inputs[self.input_num])
 
         return {"FINISHED"}
 
@@ -229,6 +217,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
     bl_label = ""
 
     input_num: bpy.props.IntProperty()
+    new_node_name: bpy.props.StringProperty()
 
     def execute(self, context):
         return {'FINISHED'}
@@ -252,8 +241,9 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
                 if node.category == category:
                     op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
                                       text=node.bl_label)
-                    op.mx_node = node.bl_idname
+                    op.input_node = node.bl_idname
                     op.input_num = self.input_num
+                    op.new_node_name = self.new_node_name
 
 
 class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
