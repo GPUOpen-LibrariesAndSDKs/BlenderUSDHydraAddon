@@ -250,7 +250,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
 
 
 class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
-    """Open modal panel"""
+    """Open modal panel with shaders"""
     bl_idname = "hdusd.material_invoke_popup_shader_nodes"
     bl_label = ""
 
@@ -307,20 +307,21 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
             node_tree.interface_update(context=context)
             return
 
-        split = layout.split(factor=0.25)
+        node = link.from_node
+
+        split = layout.split(factor=0.01)
         col = split.column()
 
         row = split.row()
         row.label(text=self.bl_label)
 
         col = row.column()
-        col.scale_x = 4
+        col.scale_x = 1.6
         op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
-                          icon='HANDLETYPE_AUTO_CLAMP_VEC')
+                          icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
 
         col.separator()
 
-        node = link.from_node
         node.draw_node_view(context, layout)
 
         node_tree.interface_update(context=context)
