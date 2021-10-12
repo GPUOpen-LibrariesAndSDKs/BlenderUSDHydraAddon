@@ -255,10 +255,20 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
             col = row.column()
             col.emboss = 'PULLDOWN_MENU'
             col.label(text=NODE_LINK_CATEGORY)
-            op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
-                              text=HDUSD_MATERIAL_OP_remove_node.bl_label)
-            op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
-                              text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
+
+            link = next((link for link in node_tree.nodes[self.current_node_name].inputs[self.input_num].links), None)
+            
+            if link:
+                op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
+                                  text=HDUSD_MATERIAL_OP_remove_node.bl_label)
+                op.input_node_name = link.from_node.name
+                op.input_num = self.input_num
+                
+                op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
+                                  text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
+                op.output_node_name = link.to_node.name
+                op.input_num = self.input_num
+
 
 class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
     """Open modal panel with shaders"""
@@ -299,14 +309,21 @@ class HDUSD_MATERIAL_OP_remove_node(bpy.types.Operator):
     bl_label = "Remove"
 
     input_node_name: bpy.props.StringProperty()
-    output_node_name: bpy.props.StringProperty()
     input_num: bpy.props.IntProperty()
+
+    def remove_nodes(self, context, node):
+        for input in node.inputs:
+            if input.is_linked:
+                for link in input.links:
+                    self.remove_nodes(context, link.from_node)
+
+        context.material.hdusd.mx_node_tree.nodes.remove(node)
 
     def execute(self, context):
         node_tree = context.material.hdusd.mx_node_tree
+        input_node = node_tree.nodes[self.input_node_name]
 
-        input_node = context.material.hdusd.mx_node_tree.nodes[self.input_node_name]
-        output_node = context.material.hdusd.mx_node_tree.nodes[self.output_node_name]
+        self.remove_nodes(context, input_node)
 
         return {'FINISHED'}
 
@@ -316,15 +333,17 @@ class HDUSD_MATERIAL_OP_disconnect_node(bpy.types.Operator):
     bl_idname = "hdusd.material_disconnect_node"
     bl_label = "Disconnect"
 
-    input_node_name: bpy.props.StringProperty()
     output_node_name: bpy.props.StringProperty()
     input_num: bpy.props.IntProperty()
 
     def execute(self, context):
         node_tree = context.material.hdusd.mx_node_tree
+        output_node = node_tree.nodes[self.output_node_name]
 
-        input_node = context.material.hdusd.mx_node_tree.nodes[self.input_node_name]
-        output_node = context.material.hdusd.mx_node_tree.nodes[self.output_node_name]
+        links = output_node.inputs[self.input_num].links
+        link = next((link for link in links), None)
+        if link:
+            node_tree.links.remove(link)
 
         return {'FINISHED'}
 

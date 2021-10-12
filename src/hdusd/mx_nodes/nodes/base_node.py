@@ -42,14 +42,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             uiname = f"{uifolder} {uiname}"
 
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
-            uitype = title_str(nd_type)
-            if uiname.lower() == uitype.lower():
-                layout.label(text=uitype)
-            else:
-                link = next((link for link in self.links if link.is_valid), None)
-                from_node = link.from_node if link else None
-                label_text = from_node.name if from_node else uitype
-                layout.label(text=f"{uiname}: {label_text}")
+            layout.label(text=uiname)
         else:
             layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
@@ -207,6 +200,16 @@ class MxNode(bpy.types.ShaderNode):
 
                 socket_in.draw(context, row, self, '')
 
+                box = row.box()
+                box.scale_x = 1.025
+                box.scale_y = 0.5
+                box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+
+                op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                                  icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
+                op.input_num = i
+                op.current_node_name = self.name
+
                 if socket_in.show_expanded:
                     node.draw_node_view(context, layout)
 
@@ -223,11 +226,13 @@ class MxNode(bpy.types.ShaderNode):
                 if is_draw:
                     split = layout.split(factor=0.1)
                     split.column()
-                    split = split.split(factor=0.075)
-                    col = split.column()
-                    col.emboss = 'PULLDOWN_MENU'
+                    split = split.split(factor=0.085)
 
-                    op = col.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                    box = split.box()
+                    box.scale_y = 0.5
+                    box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+
+                    op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
                                       icon='HANDLETYPE_AUTO_CLAMP_VEC')
                     op.input_num = i
                     op.current_node_name = self.name
