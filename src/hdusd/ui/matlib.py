@@ -104,6 +104,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         matlib_prop = context.window_manager.hdusd.matlib
 
         layout.prop(matlib_prop, "category")
+        layout.prop(matlib_prop, "filter", text="Filter", icon="FILTER")
         layout.template_icon_view(matlib_prop, "material")
 
         renders = matlib_prop.pcoll.materials[matlib_prop.material].renders

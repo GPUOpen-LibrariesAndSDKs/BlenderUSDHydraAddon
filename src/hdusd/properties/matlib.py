@@ -53,6 +53,14 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
             materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
 
+        if self.filter:
+            filter_string = self.filter.lower()
+            filtered_materials = [mat for mat in materials if filter_string in mat[1].lower()]
+            if not filtered_materials:
+                self.filter = ''
+            else:
+                materials = filtered_materials
+
         return materials
 
     def _set_categories(self):
@@ -78,7 +86,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
                        for cat in self.pcoll.categories.values())
         return categories
 
-    def update_category(self, context):
+    def update_material(self, context):
         materials = self.get_materials(context)
         self.material = materials[0][0]
         self.package_id = self.pcoll.materials[self.material].packages[0].id
@@ -92,7 +100,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
         name="Category",
         description="Select materials category",
         items=get_categories,
-        update=update_category,
+        update=update_material,
+    )
+    filter: bpy.props.StringProperty(
+        name="Filter",
+        description="Filter materials by title",
+        update=update_material,
     )
     package_id: bpy.props.StringProperty(
         name="Package id",
