@@ -237,15 +237,18 @@ class HDUSD_MATERIAL_OP_link_mx_node(bpy.types.Operator):
 
         input = current_node.inputs[self.input_num]
         link = next((link for link in input.links), None) if input.is_linked else None
-        linked_node_name = link.from_node.bl_idname if link else self.new_node_name
+        linked_node_name = link.from_node.bl_idname if link else None
 
-        if linked_node_name != self.new_node_name:
-            bpy.ops.hdusd.material_remove_node(input_node_name=link.from_node.name)
+        if linked_node_name:
+            if linked_node_name != self.new_node_name:
+                bpy.ops.hdusd.material_remove_node(input_node_name=link.from_node.name)
+            else:
+                return {"FINISHED"}
 
-            new_node = node_tree.nodes.new(self.new_node_name)
-            new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                             current_node.location[1])
-            node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
+        new_node = node_tree.nodes.new(self.new_node_name)
+        new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                            current_node.location[1])
+        node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
 
         return {"FINISHED"}
 
