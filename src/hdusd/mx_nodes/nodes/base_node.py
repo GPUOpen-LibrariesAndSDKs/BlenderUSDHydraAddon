@@ -42,7 +42,11 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             uiname = f"{uifolder} {uiname}"
 
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
-            layout.label(text=uiname)
+            uitype = title_str(nd_type)
+            if uiname.lower() == uitype.lower():
+                layout.label(text=uitype)
+            else:
+                layout.label(text=f"{uiname}: {uitype}")
         else:
             layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
