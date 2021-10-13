@@ -235,10 +235,17 @@ class HDUSD_MATERIAL_OP_link_mx_node(bpy.types.Operator):
         node_tree = context.material.hdusd.mx_node_tree
         current_node = context.material.hdusd.mx_node_tree.nodes[self.current_node_name]
 
-        new_node = node_tree.nodes.new(self.new_node_name)
-        new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
-                         current_node.location[1])
-        node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
+        input = current_node.inputs[self.input_num]
+        link = next((link for link in input.links), None) if input.is_linked else None
+        linked_node_name = link.from_node.bl_idname if link else self.new_node_name
+
+        if linked_node_name != self.new_node_name:
+            bpy.ops.hdusd.material_remove_node(input_node_name=link.from_node.name)
+
+            new_node = node_tree.nodes.new(self.new_node_name)
+            new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                             current_node.location[1])
+            node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
 
         return {"FINISHED"}
 
@@ -291,8 +298,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
                 op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_remove_node.bl_label)
                 op.input_node_name = link.from_node.name
-                op.input_num = self.input_num
-                
+
                 op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
                 op.output_node_name = link.to_node.name
@@ -343,7 +349,6 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
                 op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_remove_node.bl_label)
                 op.input_node_name = link.from_node.name
-                op.input_num = self.input_num
 
                 op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
@@ -357,7 +362,6 @@ class HDUSD_MATERIAL_OP_remove_node(bpy.types.Operator):
     bl_label = "Remove"
 
     input_node_name: bpy.props.StringProperty()
-    input_num: bpy.props.IntProperty()
 
     def remove_nodes(self, context, node):
         for input in node.inputs:
