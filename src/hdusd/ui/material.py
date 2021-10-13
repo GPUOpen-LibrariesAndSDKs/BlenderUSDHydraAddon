@@ -440,6 +440,50 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         node.draw_node_view(context, layout)
 
 
+class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
+    bl_label = "displacementshader"
+    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.material.hdusd.mx_node_tree)
+
+    def draw(self, context):
+        layout = self.layout
+
+        node_tree = context.material.hdusd.mx_node_tree
+        output_node = node_tree.output_node
+        if not output_node:
+            layout.label(text="No output node")
+            return
+
+        input = output_node.inputs[self.bl_label]
+        link = next((link for link in input.links if link.is_valid), None)
+
+        split = layout.split(factor=0.09)
+        col = split.column()
+
+        row = split.row()
+        row.label(text='Displacement')
+
+        box = row.column().box()
+        box.scale_x = 1.53
+        box.scale_y = 0.5
+
+        box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
+                          icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name if link else 'None')
+
+        if not link:
+            layout.label(text="No input node")
+            return
+
+        layout.separator()
+
+        node = link.from_node
+        node.draw_node_view(context, layout)
+
+
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
     bl_label = ""
     bl_parent_id = 'HDUSD_MATERIAL_PT_material'

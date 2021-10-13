@@ -92,6 +92,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_OP_invoke_popup_shader_nodes,
     material.HDUSD_MATERIAL_OP_remove_node,
     material.HDUSD_MATERIAL_OP_disconnect_node,
+    material.HDUSD_MATERIAL_PT_material_settings_displacement,
     material.HDUSD_MATERIAL_PT_output_surface,
     material.HDUSD_MATERIAL_PT_output_displacement,
     material.HDUSD_MATERIAL_PT_output_volume,
