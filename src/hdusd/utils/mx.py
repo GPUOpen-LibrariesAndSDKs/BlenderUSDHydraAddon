@@ -187,3 +187,20 @@ def get_nodegraph_by_node_path(doc, node_path, do_create=False):
 
 def get_node_name_by_node_path(node_path):
     return code_str(node_path.split('/')[-1])
+
+
+def get_socket_color(socket_type):
+    shader = (('bsdf', 'surfaceshader', 'volumeshader', 'lightshader', 'bsdfc', 'bsdff', 'material', 'edf', 'vdf'),
+              (0.39, 0.78, 0.39, 1.0))
+    rgba = (('color', 'color2', 'color3', 'color4'),
+            (0.78, 0.78, 0.16, 1.0))
+    value = (('ior', 'integer', 'float', 'boolean', 'angle'),
+             (0.7, 0.7, 0.7, 1.0))
+    normal = (('normal', 'displacementshader', 'vector2', 'vector3',
+               'vector4', 'vector2M3', 'vector3M4', 'link', 'xyz'),
+              (0.61, 0.50, 1.0, 1.0))
+    attribute = (('string',),
+                 (0.16, 0.45, 1.0, 1.0))
+
+    return next((color[1] for color in (shader, rgba, value, normal, attribute) if socket_type in color[0]),
+                (1.0, 0.0, 0.0, 1.0))
