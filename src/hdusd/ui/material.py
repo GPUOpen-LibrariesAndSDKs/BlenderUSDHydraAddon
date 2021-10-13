@@ -21,7 +21,7 @@ from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 
 
-NODE_SHADER_CATEGORIES = sorted(set(['PBR', 'RPR Shaders']))
+NODE_SHADER_CATEGORIES = set(['PBR', 'RPR Shaders'])
 NODE_EXCLUDE_CATEGORIES = set(['material'])
 NODE_LINK_CATEGORY = 'Link'
 
@@ -319,7 +319,7 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
         row = self.layout.split().row()
 
         output_node = context.material.hdusd.mx_node_tree.output_node
-        for category in NODE_SHADER_CATEGORIES:
+        for category in sorted(NODE_SHADER_CATEGORIES):
             col = row.column()
             col.emboss = 'PULLDOWN_MENU'
             col.label(text=category)
