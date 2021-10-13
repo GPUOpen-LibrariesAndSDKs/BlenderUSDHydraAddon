@@ -49,7 +49,7 @@ def main(bin_dir):
     copy(usd_dir / "plugin", libs_dir / "plugin", ("*.pdb", "*.lib"))
     copy(usd_dir / "python", libs_dir / "python", ("*.lib", "build"))
     copy(usd_dir / "libraries", libs_dir / "libraries")
-    copy(repo_dir / "deps/mx_libs", libs_dir / "libraries")
+    copy(repo_dir / "deps/mx_libs/alglib", libs_dir / "libraries/alglib")
 
     if OS == 'Windows':
         copy(bin_dir / "USD/build/openexr-2.3.0/OpenEXR/IlmImf/RelWithDebInfo/"
