@@ -30,7 +30,7 @@ if utils.IS_WIN:
     os.environ['PATH'] = path_str + os.environ['PATH']
 
 os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugin')
-os.environ['RPR'] = str(utils.LIBS_DIR / 'usd')
+os.environ['RPR'] = str(utils.LIBS_DIR)
 
 sys.path.append(str(utils.LIBS_DIR / 'lib/python'))
 sys.path.append(str(utils.LIBS_DIR / 'python'))

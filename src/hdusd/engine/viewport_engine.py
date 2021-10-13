@@ -293,9 +293,12 @@ class ViewportEngine(Engine):
 
         try:
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
-        except Tf.ErrorException as e:
-            pass
-            # print(type(e), e)
+
+        except Exception as e:
+            if isinstance(e, Tf.ErrorException) and "GL error: invalid operation" in str(e):
+                pass    # we won't log error "GL error: invalid operation"
+            else:
+                log.error(e)
 
         self.render_engine.unbind_display_space_shader()
         elapsed_time = time_str(time.perf_counter() - self.time_begin)

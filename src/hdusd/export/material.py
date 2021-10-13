@@ -55,19 +55,8 @@ def sync(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
 
     usd_mat = UsdShade.Material.Define(stage, override_prim.GetPath().AppendChild('Materials').
                                        AppendChild(surfacematerial.getName()))
-    # shader = UsdShade.Shader.Define(stage, usd_mat.GetPath().AppendChild("rpr_materialx_node"))
-    # shader.CreateIdAttr("rpr_materialx_node")
-    #
-    # shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
-    # shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(surfacematerial.getName())
-    #
-    # out_mat = usd_mat.CreateSurfaceOutput("rpr")
-    # out_shader = shader.CreateOutput('surface', Sdf.ValueTypeNames.Token)
-    # out_mat.ConnectToSource(out_shader)
-    # # shader.CreateInput("stPrimvarName", Sdf.ValueTypeNames.String).Set("UVMap")
 
     return usd_mat
-    # return None
 
 
 def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):

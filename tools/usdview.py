@@ -32,16 +32,16 @@ OS = platform.system()
 LIBS_DIR = Path(__file__).parent.parent / 'libs'
 
 if OS == 'Windows':
-    os.environ['PATH'] = f"{LIBS_DIR / 'usd'};{LIBS_DIR / 'plugins/usd'};" \
-                         f"{LIBS_DIR / 'hdrpr/lib'};{os.environ['PATH']}"
+    path_str = ""
+    for loc_path in ('lib', 'bin', 'plugin/usd'):
+        path = LIBS_DIR / loc_path
+        os.add_dll_directory(str(path))
+        path_str += f"{path};"
 
-    if hasattr(os, 'add_dll_directory'):
-        os.add_dll_directory(str(LIBS_DIR / 'usd'))
-        os.add_dll_directory(str(LIBS_DIR / 'plugins/usd'))
-        os.add_dll_directory(str(LIBS_DIR / 'hdrpr/lib'))
+    os.environ['PATH'] = path_str + os.environ['PATH']
 
 os.environ['PXR_PLUGINPATH_NAME'] = str(LIBS_DIR / 'plugins')
-os.environ['RPR'] = str(LIBS_DIR / 'hdrpr')
+os.environ['RPR'] = str(LIBS_DIR)
 os.environ['MATERIALX_SEARCH_PATH'] = str(LIBS_DIR / 'libraries')
 
 sys.path.append(str(LIBS_DIR / 'usd/python'))
