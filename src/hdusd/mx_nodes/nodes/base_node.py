@@ -217,8 +217,6 @@ class MxNode(bpy.types.ShaderNode):
                 if socket_in.show_expanded:
                     node.draw_node_view(context, layout)
 
-                continue
-
             else:
                 mx_input = self.nodedef.getInput(socket_in.name)
                 f = mx_input.getAttribute('uifolder')
