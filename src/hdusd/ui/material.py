@@ -363,14 +363,12 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         output_node = node_tree.output_node
         if not output_node:
             layout.label(text="No output node")
-            node_tree.interface_update(context=context)
             return
 
         input = output_node.inputs[self.bl_label]
         link = next((link for link in input.links if link.is_valid), None)
         if not link:
             layout.label(text="No input node")
-            node_tree.interface_update(context=context)
             return
 
         node = link.from_node
@@ -389,8 +387,6 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         col.separator()
 
         node.draw_node_view(context, layout)
-
-        node_tree.interface_update(context=context)
 
 
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
