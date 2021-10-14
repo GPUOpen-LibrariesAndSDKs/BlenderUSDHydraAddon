@@ -115,11 +115,11 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
         layout.prop(matlib_prop, "category")
         row = layout.row(align=True)
-        row.prop(matlib_prop, "search", text="Search", icon="VIEWZOOM")
+        row.prop(matlib_prop, "search", text="", icon="VIEWZOOM")
         if matlib_prop.search:
             row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
 
-        if not matlib_prop.material:
+        if not matlib_prop.preview_materials:
             layout.label(text="No Materials Found")
 
         else:

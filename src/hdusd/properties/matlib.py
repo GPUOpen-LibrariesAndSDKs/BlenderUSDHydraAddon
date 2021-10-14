@@ -40,8 +40,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
             self._set_materials()
 
         materials = []
+        self.preview_materials = True
+        search_string = self.search.strip().lower()
         for i, mat in enumerate(self.pcoll.materials.values()):
             if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
+                continue
+            if search_string and not search_string in mat.title.lower():
                 continue
 
             description = f"{mat.title}"
@@ -53,9 +57,8 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
             materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
 
-        if self.search:
-            search_string = self.search.strip().lower()
-            materials = [mat for mat in materials if search_string in mat[1].lower()]
+        if not materials:
+            self.preview_materials = False
 
         return materials
 
@@ -84,9 +87,13 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
     def update_material(self, context):
         materials = self.get_materials(context)
-        if materials:
+        if self.preview_materials:
             self.material = materials[0][0]
             self.package_id = self.pcoll.materials[self.material].packages[0].id
+
+    preview_materials: bpy.props.BoolProperty(
+        default=True
+    )
 
     material: bpy.props.EnumProperty(
         name="Material",
