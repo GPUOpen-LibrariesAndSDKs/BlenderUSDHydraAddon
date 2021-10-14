@@ -53,13 +53,9 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
             materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
 
-        if self.filter:
-            filter_string = self.filter.lower()
-            filtered_materials = [mat for mat in materials if filter_string in mat[1].lower()]
-            if not filtered_materials:
-                self.filter = ''
-            else:
-                materials = filtered_materials
+        if self.search:
+            search_string = self.search.strip().lower()
+            materials = [mat for mat in materials if search_string in mat[1].lower()]
 
         return materials
 
@@ -88,8 +84,9 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
     def update_material(self, context):
         materials = self.get_materials(context)
-        self.material = materials[0][0]
-        self.package_id = self.pcoll.materials[self.material].packages[0].id
+        if materials:
+            self.material = materials[0][0]
+            self.package_id = self.pcoll.materials[self.material].packages[0].id
 
     material: bpy.props.EnumProperty(
         name="Material",
@@ -102,9 +99,9 @@ class MatlibProperties(bpy.types.PropertyGroup):
         items=get_categories,
         update=update_material,
     )
-    filter: bpy.props.StringProperty(
-        name="Filter",
-        description="Filter materials by title",
+    search: bpy.props.StringProperty(
+        name="Search",
+        description="Search materials by title",
         update=update_material,
     )
     package_id: bpy.props.StringProperty(

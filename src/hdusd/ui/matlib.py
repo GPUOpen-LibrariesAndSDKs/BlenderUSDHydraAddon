@@ -27,6 +27,16 @@ from ..utils import logging
 log = logging.Log(tag='ui.matlib')
 
 
+class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
+    """Create new MaterialX node tree for selected material"""
+    bl_idname = "hdusd.matlib_clear_search"
+    bl_label = ""
+
+    def execute(self, context):
+        bpy.data.window_managers["WinMan"].hdusd.matlib.search = ''
+        return {"FINISHED"}
+
+
 class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
     """Import Material"""
     bl_idname = "hdusd.matlib_import_material"
@@ -104,41 +114,49 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         matlib_prop = context.window_manager.hdusd.matlib
 
         layout.prop(matlib_prop, "category")
-        layout.prop(matlib_prop, "filter", text="Filter", icon="FILTER")
-        layout.template_icon_view(matlib_prop, "material", show_labels=True)
+        row = layout.row(align=True)
+        row.prop(matlib_prop, "search", text="Search", icon="VIEWZOOM")
+        if matlib_prop.search:
+            row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
 
-        renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
+        if not matlib_prop.material:
+            layout.label(text="No Materials Found")
 
-        if len(renders) > 1:
-            grid = layout.grid_flow(align=True)
-            row = None
-            for i, render in enumerate(renders):
-                if render.thumbnail_icon_id is None:
-                    render.get_info()
-                    render.get_thumbnail()
-                    render.thumbnail_load(matlib_prop.pcoll)
+        else:
+            layout.template_icon_view(matlib_prop, "material", show_labels=True)
 
-                if i % 6 == 0:
-                    row = grid.row()
-                    row.alignment = "CENTER"
+            renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
 
-                row.template_icon(render.thumbnail_icon_id, scale=5)
+            if len(renders) > 1:
+                grid = layout.grid_flow(align=True)
+                row = None
+                for i, render in enumerate(renders):
+                    if render.thumbnail_icon_id is None:
+                        render.get_info()
+                        render.get_thumbnail()
+                        render.thumbnail_load(matlib_prop.pcoll)
 
-        if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
-            material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
+                    if i % 6 == 0:
+                        row = grid.row()
+                        row.alignment = "CENTER"
 
-            for line in material_description.splitlines():
-                row = layout.row()
-                row.label(text=line)
+                    row.template_icon(render.thumbnail_icon_id, scale=5)
 
-        split = layout.split(factor=0.25)
+            if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
+                material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
 
-        row = split.row()
-        row.alignment = 'LEFT'
-        row.label(text="Package")
+                for line in material_description.splitlines():
+                    row = layout.row()
+                    row.label(text=line)
 
-        split = split.split(align=True, factor=0.9)
-        if matlib_prop.material:
+            split = layout.split(factor=0.25)
+
+            row = split.row()
+            row.alignment = 'LEFT'
+            row.label(text="Package")
+
+            split = split.split(align=True, factor=0.9)
+
             packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
             package = None
 
@@ -163,21 +181,21 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                                  text=f"{package.label} ({package.size})" if package is not None else None,
                                  icon='DOCUMENTS')
 
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
-        package = next(package for package in material.packages
-                       if package.id == matlib_prop.package_id)
+            material = matlib_prop.pcoll.materials[matlib_prop.material]
+            package = next(package for package in material.packages
+                           if package.id == matlib_prop.package_id)
 
-        icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
+            icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
 
-        row = split.row()
-        row.alignment = 'RIGHT'
-        row.enabled = bool(context.material)
-        row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon=icon)
+            row = split.row()
+            row.alignment = 'RIGHT'
+            row.enabled = bool(context.material)
+            row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon=icon)
 
-        col = layout.row()
-        col.enabled = bool(context.material)
-        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
-                     icon="IMPORT")
+            col = layout.row()
+            col.enabled = bool(context.material)
+            col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
+                         icon="IMPORT")
 
 
 class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
