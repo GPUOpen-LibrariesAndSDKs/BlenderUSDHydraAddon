@@ -24,7 +24,7 @@ class RootNode(USDNode):
     """Create root primitive and make it parent for USD primitives"""
     bl_idname = 'usd.RootNode'
     bl_label = "Root"
-    bl_icon = "PARTICLES"
+    bl_icon = "COLLECTION_NEW"
 
     def update_data(self, context):
         self.reset()
