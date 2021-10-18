@@ -50,7 +50,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
             if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
                 continue
 
-            if search_string and not search_string in mat.title.lower():
+            if search_string and not search_string in mat.title.strip().lower():
                 continue
 
             description = f"{mat.title}"
@@ -93,8 +93,9 @@ class MatlibProperties(bpy.types.PropertyGroup):
     def update_material(self, context):
         materials = self.get_materials(context)
         if self.preview_materials:
-            self.material = materials[0][0]
-            self.package_id = self.pcoll.materials[self.material].packages[0].id
+            if not self.material in [mat[0] for mat in materials]:
+                self.material = materials[0][0]
+                self.package_id = self.pcoll.materials[self.material].packages[0].id
 
     preview_materials: bpy.props.BoolProperty(
         default=True
