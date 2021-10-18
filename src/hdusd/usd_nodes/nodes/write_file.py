@@ -20,6 +20,7 @@ class WriteFileNode(USDNode):
     """Writes stream out to USD file"""
     bl_idname = 'usd.WriteFileNode'
     bl_label = "Write USD File"
+    bl_icon = "FILE_TICK"
 
     file_path: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
 

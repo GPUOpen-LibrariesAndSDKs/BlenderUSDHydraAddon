@@ -25,6 +25,7 @@ class UsdFileNode(USDNode):
     ''' read USD file '''
     bl_idname = 'usd.UsdFileNode'
     bl_label = "USD File"
+    bl_icon = "FILE"
 
     input_names = ()
     use_hard_reset = False

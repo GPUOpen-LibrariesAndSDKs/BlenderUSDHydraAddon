@@ -24,6 +24,7 @@ class FilterNode(USDNode):
     """Takes in USD and filters out matching path or names"""
     bl_idname = 'usd.FilterNode'
     bl_label = "Filter"
+    bl_icon = "FILTER"
 
     def update_data(self, context):
         self.reset()

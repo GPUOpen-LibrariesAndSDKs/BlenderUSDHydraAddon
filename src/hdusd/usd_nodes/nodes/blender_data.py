@@ -111,6 +111,7 @@ class BlenderDataNode(USDNode):
     """Blender data to USD can export whole scene, one collection or object"""
     bl_idname = 'usd.BlenderDataNode'
     bl_label = "Blender Data"
+    bl_icon = "SCENE_DATA"
 
     input_names = ()
     use_hard_reset = False
