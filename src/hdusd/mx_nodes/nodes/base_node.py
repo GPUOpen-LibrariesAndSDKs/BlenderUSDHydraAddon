@@ -46,7 +46,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
     def draw_color(self, context, node):
-        return mx_utils.get_socket_color(node.nodedef.getInput(self.name).getType().lower())
+        return mx_utils.get_socket_color(node.nodedef.getInput(self.name).getType())
 
 
 class MxNodeOutputSocket(bpy.types.NodeSocket):
@@ -64,7 +64,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
             layout.label(text=f"{uiname}: {uitype}")
 
     def draw_color(self, context, node):
-        return mx_utils.get_socket_color(node.nodedef.getOutput(self.name).getType().lower())
+        return mx_utils.get_socket_color(node.nodedef.getOutput(self.name).getType())
 
 
 class MxNode(bpy.types.ShaderNode):
