@@ -40,11 +40,16 @@ class MatlibProperties(bpy.types.PropertyGroup):
             self._set_materials()
 
         materials = []
+        if not self.pcoll.materials:
+            self.preview_materials = False
+            return materials
+
         self.preview_materials = True
         search_string = self.search.strip().lower()
         for i, mat in enumerate(self.pcoll.materials.values()):
             if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
                 continue
+
             if search_string and not search_string in mat.title.lower():
                 continue
 
