@@ -231,9 +231,11 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
                 
         return
 
-    for child in stage.GetPrimAtPath(f"/{sdf_name(obj.original)}").GetChildren():
-        if len(child.GetAuthoredPropertyNames()) > 0:
-            return
+    original_prim = stage.GetPrimAtPath(f"/{sdf_name(obj.original)}")
+    if original_prim and original_prim.IsValid():
+        for child in original_prim.GetChildren():
+            if len(child.GetAuthoredPropertyNames()) > 0:
+                return
 
     usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
         Tf.MakeValidIdentifier(mesh.name)))
