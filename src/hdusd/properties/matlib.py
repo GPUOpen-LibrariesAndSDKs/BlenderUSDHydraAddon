@@ -41,10 +41,8 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
         materials = []
         if not self.pcoll.materials:
-            self.preview_materials = False
             return materials
 
-        self.preview_materials = True
         search_string = self.search.strip().lower()
         for i, mat in enumerate(self.pcoll.materials.values()):
             if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
@@ -61,9 +59,6 @@ class MatlibProperties(bpy.types.PropertyGroup):
             description += f"\nAuthor: {mat.author}"
 
             materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
-
-        if not materials:
-            self.preview_materials = False
 
         return materials
 
@@ -92,14 +87,9 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
     def update_material(self, context):
         materials = self.get_materials(context)
-        if self.preview_materials:
-            if not self.material in [mat[0] for mat in materials]:
-                self.material = materials[0][0]
-                self.package_id = self.pcoll.materials[self.material].packages[0].id
-
-    preview_materials: bpy.props.BoolProperty(
-        default=True
-    )
+        if materials and not self.material in [mat[0] for mat in materials]:
+            self.material = materials[0][0]
+            self.package_id = self.pcoll.materials[self.material].packages[0].id
 
     material: bpy.props.EnumProperty(
         name="Material",

@@ -33,7 +33,7 @@ class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
     bl_label = ""
 
     def execute(self, context):
-        bpy.data.window_managers["WinMan"].hdusd.matlib.search = ''
+        context.window_manager.hdusd.matlib.search = ''
         return {"FINISHED"}
 
 
@@ -119,83 +119,83 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         if matlib_prop.search:
             row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
 
-        if not matlib_prop.preview_materials or not matlib_prop.material:
+        if not matlib_prop.get_materials(context):
             layout.label(text="No Materials Found")
+            return
 
-        else:
-            layout.template_icon_view(matlib_prop, "material", show_labels=True)
+        layout.template_icon_view(matlib_prop, "material", show_labels=True)
 
-            renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
+        renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
 
-            if len(renders) > 1:
-                grid = layout.grid_flow(align=True)
-                row = None
-                for i, render in enumerate(renders):
-                    if render.thumbnail_icon_id is None:
-                        render.get_info()
-                        render.get_thumbnail()
-                        render.thumbnail_load(matlib_prop.pcoll)
+        if len(renders) > 1:
+            grid = layout.grid_flow(align=True)
+            row = None
+            for i, render in enumerate(renders):
+                if render.thumbnail_icon_id is None:
+                    render.get_info()
+                    render.get_thumbnail()
+                    render.thumbnail_load(matlib_prop.pcoll)
 
-                    if i % 6 == 0:
-                        row = grid.row()
-                        row.alignment = "CENTER"
+                if i % 6 == 0:
+                    row = grid.row()
+                    row.alignment = "CENTER"
 
-                    row.template_icon(render.thumbnail_icon_id, scale=5)
+                row.template_icon(render.thumbnail_icon_id, scale=5)
 
-            if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
-                material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
+        if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
+            material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
 
-                for line in material_description.splitlines():
-                    row = layout.row()
-                    row.label(text=line)
+            for line in material_description.splitlines():
+                row = layout.row()
+                row.label(text=line)
 
-            split = layout.split(factor=0.25)
+        split = layout.split(factor=0.25)
 
-            row = split.row()
-            row.alignment = 'LEFT'
-            row.label(text="Package")
+        row = split.row()
+        row.alignment = 'LEFT'
+        row.label(text="Package")
 
-            split = split.split(align=True, factor=0.9)
+        split = split.split(align=True, factor=0.9)
 
-            packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
-            package = None
+        packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
+        package = None
 
-            if matlib_prop.package_id:
-                # TODO maybe need to find a better way than try/except but it's too late now
-                try:
-                    package = next(package for package in packages
-                                   if package.id == matlib_prop.package_id)
-                except:
-                    package = packages[0]
-            else:
+        if matlib_prop.package_id:
+            # TODO maybe need to find a better way than try/except but it's too late now
+            try:
+                package = next(package for package in packages
+                               if package.id == matlib_prop.package_id)
+            except:
                 package = packages[0]
+        else:
+            package = packages[0]
 
-            if package is not None:
+        if package is not None:
 
-                if package.file is None:
-                    package.get_info()
+            if package.file is None:
+                package.get_info()
 
-                matlib_prop.package_id = package.id
+            matlib_prop.package_id = package.id
 
-                split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                                 text=f"{package.label} ({package.size})" if package is not None else None,
-                                 icon='DOCUMENTS')
+            split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
+                             text=f"{package.label} ({package.size})" if package is not None else None,
+                             icon='DOCUMENTS')
 
-            material = matlib_prop.pcoll.materials[matlib_prop.material]
-            package = next(package for package in material.packages
-                           if package.id == matlib_prop.package_id)
+        material = matlib_prop.pcoll.materials[matlib_prop.material]
+        package = next(package for package in material.packages
+                       if package.id == matlib_prop.package_id)
 
-            icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
+        icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
 
-            row = split.row()
-            row.alignment = 'RIGHT'
-            row.enabled = bool(context.material)
-            row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon=icon)
+        row = split.row()
+        row.alignment = 'RIGHT'
+        row.enabled = bool(context.material)
+        row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon=icon)
 
-            col = layout.row()
-            col.enabled = bool(context.material)
-            col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
-                         icon="IMPORT")
+        col = layout.row()
+        col.enabled = bool(context.material)
+        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
+                     icon="IMPORT")
 
 
 class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
