@@ -174,6 +174,68 @@ class MxNode(bpy.types.ShaderNode):
             else:
                 layout.prop(self, self._input_prop_name(name))
 
+    def draw_node_view(self, context, layout):
+        from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
+
+        self.draw_buttons(context, layout)
+
+        for i, socket_in in enumerate(self.inputs):
+            if socket_in.is_linked:
+                link = next((link for link in socket_in.links if link.is_valid), None)
+                if not link:
+                    continue
+
+                node = link.from_node
+
+                split = layout.split(factor=0.1)
+                split.column()
+
+                row = split.row()
+                row.prop(socket_in, "show_expanded",
+                         icon="TRIA_DOWN" if socket_in.show_expanded else "TRIA_RIGHT",
+                         icon_only=True, emboss=False
+                         )
+
+                socket_in.draw(context, row, self, '')
+
+                box = row.box()
+                box.scale_x = 1.025
+                box.scale_y = 0.5
+                box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+
+                op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                                  icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
+                op.input_num = i
+                op.current_node_name = self.name
+
+                if socket_in.show_expanded:
+                    node.draw_node_view(context, layout)
+
+            else:
+                mx_input = self.nodedef.getInput(socket_in.name)
+                f = mx_input.getAttribute('uifolder')
+                is_draw = True
+                if f:
+                    if not getattr(self, self._folder_prop_name(f)):
+                        is_draw = False
+
+                if is_draw:
+                    split = layout.split(factor=0.1)
+                    split.column()
+                    split = split.split(factor=0.085)
+
+                    box = split.box()
+                    box.scale_y = 0.5
+                    box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+
+                    op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                                      icon='HANDLETYPE_AUTO_CLAMP_VEC')
+                    op.input_num = i
+                    op.current_node_name = self.name
+
+                    row = split.row()
+                    socket_in.draw(context, row, self, '')
+
     # COMPUTE FUNCTION
     def compute(self, out_key, **kwargs):
         log("compute", self, out_key)
