@@ -121,7 +121,6 @@ def parse_value(node, mx_val, mx_type, file_prefix=None):
 
             return None
 
-
         return mx_val
 
     return tuple(mx_val)
