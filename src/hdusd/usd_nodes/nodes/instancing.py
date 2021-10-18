@@ -45,6 +45,7 @@ class InstancingNode(USDNode):
     """Create and distribute instances of primitives"""
     bl_idname = 'usd.InstancingNode'
     bl_label = "Instancing"
+    bl_icon = "STICKY_UVS_DISABLE"
 
     def update_data(self, context):
         self.reset(True)

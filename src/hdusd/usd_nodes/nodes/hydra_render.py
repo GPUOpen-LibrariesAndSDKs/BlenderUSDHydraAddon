@@ -22,6 +22,7 @@ class HydraRenderNode(USDNode):
     
     bl_idname = 'usd.HydraRenderNode'
     bl_label = "Render USD via Hydra"
+    bl_icon = "RESTRICT_RENDER_OFF"
 
     output_name = ""
 
