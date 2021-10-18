@@ -74,8 +74,6 @@ class HDUSD_RENDER_PT_hdrpr_settings_quality_final(HdUSD_Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        layout.prop(hdrpr, "render_quality")
-
         col = layout.column(align=True)
         col.prop(quality, "max_ray_depth")
         col.prop(quality, "max_ray_depth_diffuse")
@@ -172,7 +170,6 @@ class HDUSD_RENDER_PT_hdrpr_settings_quality_viewport(HdUSD_Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        layout.prop(hdrpr, "render_quality")
         layout.prop(quality, "max_ray_depth")
         # layout.prop(quality, "enable_downscale")
         # layout.prop(quality, "resolution_downscale")
