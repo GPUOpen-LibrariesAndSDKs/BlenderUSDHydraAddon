@@ -174,3 +174,22 @@ def get_nodegraph_by_node_path(doc, node_path, do_create=False):
 
 def get_node_name_by_node_path(node_path):
     return code_str(node_path.split('/')[-1])
+
+
+def get_socket_color(mx_type):
+    if mx_type.startswith('color'):
+        return (0.78, 0.78, 0.16, 1.0)
+
+    if mx_type in ('integer', 'float', 'boolean'):
+        return (0.63, 0.63, 0.63, 1.0)
+
+    if mx_type.startswith(('vector', 'matrix')) or mx_type in ('displacementshader'):
+        return (0.39, 0.39, 0.78, 1.0)
+
+    if mx_type in ('string', 'filename'):
+        return (0.44, 0.7, 1.0, 1.0)
+
+    if mx_type.endswith(('shader', 'material')) or mx_type in ('BSDF', 'EDF', 'VDF'):
+        return (0.39, 0.78, 0.39, 1.0)
+
+    return (0.63, 0.63, 0.63, 1.0)

@@ -25,11 +25,6 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_idname = 'hdusd.MxNodeInputSocket'
     bl_label = "MX Input Socket"
 
-    @staticmethod
-    def get_color(type_name):
-        return (0.78, 0.78, 0.16, 1.0) if mx_utils.is_shader_type(type_name) else \
-               (0.16, 0.78, 0.16, 1.0)
-
     def draw(self, context, layout, node, text):
         nd = node.nodedef
         nd_input = nd.getInput(self.name)
@@ -51,7 +46,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
     def draw_color(self, context, node):
-        return self.get_color(node.nodedef.getInput(self.name).getType())
+        return mx_utils.get_socket_color(node.nodedef.getInput(self.name).getType())
 
 
 class MxNodeOutputSocket(bpy.types.NodeSocket):
@@ -69,7 +64,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
             layout.label(text=f"{uiname}: {uitype}")
 
     def draw_color(self, context, node):
-        return MxNodeInputSocket.get_color(node.nodedef.getOutput(self.name).getType())
+        return mx_utils.get_socket_color(node.nodedef.getOutput(self.name).getType())
 
 
 class MxNode(bpy.types.ShaderNode):
