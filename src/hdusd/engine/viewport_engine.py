@@ -20,7 +20,7 @@ from bpy_extras import view3d_utils
 import weakref
 import time
 
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, Tf
 from pxr import UsdImagingGL
 
 from .engine import Engine
@@ -293,8 +293,12 @@ class ViewportEngine(Engine):
 
         try:
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
+
         except Exception as e:
-            log.error(e)
+            if isinstance(e, Tf.ErrorException) and "GL error: invalid operation" in str(e):
+                pass    # we won't log error "GL error: invalid operation"
+            else:
+                log.error(e)
 
         self.render_engine.unbind_display_space_shader()
         elapsed_time = time_str(time.perf_counter() - self.time_begin)

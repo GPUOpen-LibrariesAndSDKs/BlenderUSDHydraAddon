@@ -59,7 +59,6 @@ def get_mx_node_cls(mx_node):
 
     def params_set(node, out_type):
         return {f"in_{p.getName()}:{p.getType()}" for p in node.getInputs()} | \
-               {f"p_{p.getName()}:{p.getType()}" for p in node.getParameters()} | \
                {out_type}
 
     node_params_set = params_set(mx_node, mx_node.getType())

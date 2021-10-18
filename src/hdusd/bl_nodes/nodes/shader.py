@@ -37,6 +37,8 @@ def enabled(val):
 
 
 class ShaderNodeBsdfPrincipled(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         # GETTING REQUIRED INPUTS
         # Note: if some inputs are not needed they won't be taken
@@ -302,6 +304,8 @@ class ShaderNodeBsdfPrincipled(NodeParser):
 
 
 class ShaderNodeBsdfDiffuse(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         color = self.get_input_value('Color')
         roughness = self.get_input_value('Roughness')
@@ -342,6 +346,8 @@ class ShaderNodeBsdfGlass(NodeParser):
 
 
 class ShaderNodeEmission(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         result = self.create_node('standard_surface', 'surfaceshader')
 

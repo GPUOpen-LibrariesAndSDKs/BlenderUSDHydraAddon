@@ -43,9 +43,6 @@ in USD repository.
     os.chdir(str(usd_dir))
 
     try:
-        # applying patch data/USD.path
-        subprocess.check_call(('git', 'apply', str(repo_dir / "tools/data/USD.patch")))
-
         # modifying pxr/usdImaging/CMakeLists.txt
         usd_imaging_lite_path = repo_dir / "deps/UsdImagingLite/pxr/usdImaging/usdImagingLite"
 
@@ -60,7 +57,10 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
         call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
                      '--build', str(bin_usd_dir / "build"),
                      '--src', str(bin_usd_dir / "deps"),
+                     '--materialx',
                      '--openvdb',
+                     '--build-args', 'MATERIALX,"-DMATERIALX_BUILD_PYTHON=ON -DMATERIALX_INSTALL_PYTHON=OFF"',
+                     '--python',
                      str(bin_usd_dir / "install"),
                      *args)
 

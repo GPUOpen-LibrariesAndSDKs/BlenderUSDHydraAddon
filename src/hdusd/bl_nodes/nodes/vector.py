@@ -38,8 +38,7 @@ class ShaderNodeNormalMap(NodeParser):
         result = self.create_node('normalmap', 'vector3', {
             'in': color ,
             'scale': strength,
+            'space': space.lower(),
         })
-
-        result.set_parameter('space', space.lower())
 
         return result
