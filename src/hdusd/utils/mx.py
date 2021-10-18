@@ -144,19 +144,6 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
     return val_str
 
 
-def get_nodedef_inputs(nodedef, uniform=None):
-    for input in nodedef.getInputs():
-        if uniform is None:
-            yield input
-
-        elif input.getAttribute('uniform') == 'true':
-            if uniform:
-                yield input
-        else:
-            if not uniform:
-                yield input
-
-
 def get_file_prefix(mx_node, file_path):
     file_prefix = file_path.parent
     n = mx_node

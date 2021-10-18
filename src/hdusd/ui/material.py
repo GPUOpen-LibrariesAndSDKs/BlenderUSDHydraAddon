@@ -18,7 +18,12 @@ import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
-from ..mx_nodes.node_tree import MxNodeTree
+from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
+
+
+NODE_SHADER_CATEGORIES = set(['PBR', 'RPR Shaders'])
+NODE_EXCLUDE_CATEGORIES = set(['material'])
+NODE_LINK_CATEGORY = 'Link'
 
 
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
@@ -213,6 +218,277 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
     def draw_header(self, context):
         layout = self.layout
         layout.label(text=f"Material: {context.material.name}")
+
+
+class HDUSD_MATERIAL_OP_link_mx_node(bpy.types.Operator):
+    """Link MaterialX node"""
+    bl_idname = "hdusd.material_link_mx_node"
+    bl_label = ""
+
+    new_node_name: bpy.props.StringProperty()
+    input_num: bpy.props.IntProperty()
+    current_node_name: bpy.props.StringProperty()
+
+    def execute(self, context):
+        layout = self.layout
+
+        node_tree = context.material.hdusd.mx_node_tree
+        current_node = context.material.hdusd.mx_node_tree.nodes[self.current_node_name]
+
+        input = current_node.inputs[self.input_num]
+        link = next((link for link in input.links), None) if input.is_linked else None
+        linked_node_name = link.from_node.bl_idname if link else None
+
+        if linked_node_name:
+            if linked_node_name != self.new_node_name:
+                bpy.ops.hdusd.material_remove_node(input_node_name=link.from_node.name)
+            else:
+                return {"FINISHED"}
+
+        new_node = node_tree.nodes.new(self.new_node_name)
+        new_node.location = (current_node.location[0] - NODE_LAYER_SEPARATION_WIDTH,
+                            current_node.location[1])
+        node_tree.links.new(new_node.outputs[0], current_node.inputs[self.input_num])
+
+        return {"FINISHED"}
+
+
+class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
+    """Open panel with nodes to link"""
+    bl_idname = "hdusd.material_invoke_popup_input_nodes"
+    bl_label = ""
+
+    input_num: bpy.props.IntProperty()
+    current_node_name: bpy.props.StringProperty()
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_popup(self, width=1000)
+
+    def draw(self, context):
+        from ..mx_nodes.nodes import mx_node_classes
+
+        row = self.layout.split().row()
+        col = row.column()
+
+        categories = sorted(set(node.category for node in mx_node_classes)
+                            - NODE_SHADER_CATEGORIES - NODE_EXCLUDE_CATEGORIES)
+        for i, category in enumerate(categories):
+            if i % 4 == 0:
+                col = row.column()
+            col.emboss = 'PULLDOWN_MENU'
+            col.label(text=category, icon='NODE')
+            for node in mx_node_classes:
+                if node.category == category:
+                    op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+                                      text=node.bl_label)
+                    op.new_node_name = node.bl_idname
+                    op.input_num = self.input_num
+                    op.current_node_name = self.current_node_name
+
+        node_tree = context.material.hdusd.mx_node_tree
+        node_inputs = node_tree.nodes[self.current_node_name].inputs
+        if node_inputs[self.input_num].is_linked:
+            col = row.column()
+            col.emboss = 'PULLDOWN_MENU'
+            col.label(text=NODE_LINK_CATEGORY)
+
+            link = next((link for link in node_inputs[self.input_num].links), None)
+            
+            if link:
+                op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
+                                  text=HDUSD_MATERIAL_OP_remove_node.bl_label)
+                op.input_node_name = link.from_node.name
+
+                op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
+                                  text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
+                op.output_node_name = link.to_node.name
+                op.input_num = self.input_num
+
+
+class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
+    """Open panel with shader nodes to link"""
+    bl_idname = "hdusd.material_invoke_popup_shader_nodes"
+    bl_label = ""
+
+    input_num: bpy.props.IntProperty()
+    new_node_name: bpy.props.StringProperty()
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_popup(self, width=400)
+
+    def draw(self, context):
+        from ..mx_nodes.nodes import mx_node_classes
+
+        row = self.layout.split().row()
+
+        output_node = context.material.hdusd.mx_node_tree.output_node
+        for category in sorted(NODE_SHADER_CATEGORIES):
+            col = row.column()
+            col.emboss = 'PULLDOWN_MENU'
+            col.label(text=category)
+            for node in mx_node_classes:
+                if node.category == category:
+                    op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+                                      text=node.bl_label)
+                    op.new_node_name = node.bl_idname
+                    op.input_num = self.input_num
+                    op.current_node_name = output_node.name
+
+        node_inputs = output_node.inputs
+        if node_inputs[self.input_num].is_linked:
+            col = row.column()
+            col.emboss = 'PULLDOWN_MENU'
+            col.label(text=NODE_LINK_CATEGORY)
+
+            link = next((link for link in node_inputs[self.input_num].links), None)
+
+            if link:
+                op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
+                                  text=HDUSD_MATERIAL_OP_remove_node.bl_label)
+                op.input_node_name = link.from_node.name
+
+                op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
+                                  text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
+                op.output_node_name = link.to_node.name
+                op.input_num = self.input_num
+
+
+class HDUSD_MATERIAL_OP_remove_node(bpy.types.Operator):
+    """Remove linked node"""
+    bl_idname = "hdusd.material_remove_node"
+    bl_label = "Remove"
+
+    input_node_name: bpy.props.StringProperty()
+
+    def remove_nodes(self, context, node):
+        for input in node.inputs:
+            if input.is_linked:
+                for link in input.links:
+                    self.remove_nodes(context, link.from_node)
+
+        context.material.hdusd.mx_node_tree.nodes.remove(node)
+
+    def execute(self, context):
+        node_tree = context.material.hdusd.mx_node_tree
+        input_node = node_tree.nodes[self.input_node_name]
+
+        self.remove_nodes(context, input_node)
+
+        return {'FINISHED'}
+
+
+class HDUSD_MATERIAL_OP_disconnect_node(bpy.types.Operator):
+    """Disconnect linked node"""
+    bl_idname = "hdusd.material_disconnect_node"
+    bl_label = "Disconnect"
+
+    output_node_name: bpy.props.StringProperty()
+    input_num: bpy.props.IntProperty()
+
+    def execute(self, context):
+        node_tree = context.material.hdusd.mx_node_tree
+        output_node = node_tree.nodes[self.output_node_name]
+
+        links = output_node.inputs[self.input_num].links
+        link = next((link for link in links), None)
+        if link:
+            node_tree.links.remove(link)
+
+        return {'FINISHED'}
+
+
+class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
+    bl_label = "surfaceshader"
+    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.material.hdusd.mx_node_tree)
+
+    def draw(self, context):
+        layout = self.layout
+
+        node_tree = context.material.hdusd.mx_node_tree
+        output_node = node_tree.output_node
+        if not output_node:
+            layout.label(text="No output node")
+            return
+
+        input = output_node.inputs[self.bl_label]
+        link = next((link for link in input.links if link.is_valid), None)
+
+        split = layout.split(factor=0.2)
+        col = split.column()
+
+        row = split.row()
+        row.label(text='Surface')
+
+        box = row.column().box()
+        box.scale_x = 2
+        box.scale_y = 0.5
+
+        box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
+                          icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name if link else 'None')
+
+        if not link:
+            layout.label(text="No input node")
+            return
+
+        layout.separator()
+
+        node = link.from_node
+        node.draw_node_view(context, layout)
+
+
+class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
+    bl_label = "displacementshader"
+    bl_parent_id = 'HDUSD_MATERIAL_PT_material'
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.material.hdusd.mx_node_tree)
+
+    def draw(self, context):
+        layout = self.layout
+
+        node_tree = context.material.hdusd.mx_node_tree
+        output_node = node_tree.output_node
+        if not output_node:
+            layout.label(text="No output node")
+            return
+
+        input = output_node.inputs[self.bl_label]
+        link = next((link for link in input.links if link.is_valid), None)
+
+        split = layout.split(factor=0.09)
+        col = split.column()
+
+        row = split.row()
+        row.label(text='Displacement')
+
+        box = row.column().box()
+        box.scale_x = 1.53
+        box.scale_y = 0.5
+
+        box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
+                          icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name if link else 'None')
+
+        if not link:
+            layout.label(text="No input node")
+            return
+
+        layout.separator()
+
+        node = link.from_node
+        node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
