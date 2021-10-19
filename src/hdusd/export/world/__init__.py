@@ -18,7 +18,7 @@ import bpy
 
 from pxr import Sdf, UsdLux, Tf
 
-from ...utils.image import cache_image_file
+from ...utils.image import cache_image_file, cache_image_file_path
 from ...utils import BLENDER_DATA_DIR
 
 from ...utils import logging
@@ -37,6 +37,7 @@ class WorldData:
     intensity: float = 1.0
     rotation: tuple = (0.0, 0.0, 0.0)
     transparency: float = 1.0
+    name: str = "World"
 
     @property
     def clear_color(self):
@@ -51,6 +52,8 @@ class WorldData:
 
         if not world:
             return data
+
+        data.name = world.name
 
         if not world.use_nodes:
             data.color = tuple(world.color)
@@ -117,9 +120,10 @@ class WorldData:
     @staticmethod
     def init_from_shading(shading):
         data = WorldData()
-        data.intensity = shading.studio_light_intensity
-        data.rotation = (0.0, 0.0, shading.studio_light_rotate_z)
-        data.image = BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light
+        data.intensity = shading.studiolight_intensity
+        data.rotation = (0.0, 0.0, shading.studiolight_rotate_z)
+        data.image = cache_image_file_path(BLENDER_DATA_DIR / "studiolights/world" /
+                                           shading.studio_light)
         return data
 
     @staticmethod
@@ -136,14 +140,12 @@ class WorldData:
         return data
 
 
-def sync(root_prim, world: bpy.types.World):
-    data = WorldData.init_from_world(world)
-
+def sync(root_prim, data: WorldData):
     stage = root_prim.GetStage()
 
     obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
     usd_light = UsdLux.DomeLight.Define(stage,
-        obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(world.name)))
+        obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(data.name)))
     usd_light.OrientToStageUpAxis()
 
     if data.image:
@@ -192,9 +194,9 @@ def sync_update(root_prim, world: bpy.types.World):
     sync(root_prim, world)
 
 
-def get_clear_color(root_prim, world: bpy.types.World):
-    light_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME).
-                                                    AppendChild(Tf.MakeValidIdentifier(world.name)))
+def get_clear_color(root_prim, world_name):
+    light_prim = root_prim.GetStage().GetPrimAtPath(
+        root_prim.GetPath().AppendChild(PRIM_NAME).AppendChild(Tf.MakeValidIdentifier(world_name)))
     color = light_prim.GetAttribute('inputs:color').Get()
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
     transparency = light_prim.GetAttribute('inputs:transparency').Get()

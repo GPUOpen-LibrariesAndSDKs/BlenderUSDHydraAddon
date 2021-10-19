@@ -222,13 +222,6 @@ class ViewportEngine(Engine):
 
         self._sync(context, depsgraph)
 
-        if scene.hdusd.final.data_source:
-            world_data = world.WorldData.init_from_stage(self.stage)
-        else:
-            world_data = world.WorldData.init_from_world(scene.world)
-
-        self.render_params.clearColor = world_data.clear_color
-
         usd_utils.set_variant_delegate(self.stage, self.is_gl_delegate)
 
         self.is_synced = True
@@ -370,9 +363,17 @@ class ViewportEngineScene(ViewportEngine):
                 space_data=self.space_data, use_scene_cameras=False):
             object.sync(root_prim, obj_data)
 
-        if depsgraph.scene.world is not None:
-            world.sync(root_prim, depsgraph.scene.world)
-            self.render_params.clearColor = world.get_clear_color(root_prim, depsgraph.scene.world)
+        shading = context.area.spaces.active.shading
+        if shading.type == 'RENDERED':
+            if depsgraph.scene.world is not None:
+                world_data = world.WorldData.init_from_world(depsgraph.scene.world)
+                world.sync(root_prim, world_data)
+                self.render_params.clearColor = world.get_clear_color(root_prim, world_data.name)
+
+        elif shading.type == 'MATERIAL':
+            world_data = world.WorldData.init_from_shading(shading)
+            world.sync(root_prim, world_data)
+            self.render_params.clearColor = world.get_clear_color(root_prim, world_data.name)
 
     def _sync_update(self, context, depsgraph):
         super()._sync_update(context, depsgraph)
@@ -459,6 +460,9 @@ class ViewportEngineNodetree(ViewportEngine):
         nodetree = bpy.data.node_groups[self.data_source]
         output_node = nodetree.get_output_node()
         self.nodetree_stage_changed(output_node.cached_stage() if output_node else None)
+
+        world_data = world.WorldData.init_from_stage(self.stage)
+        self.render_params.clearColor = world_data.clear_color
 
     def nodetree_stage_changed(self, stage):
         engine_stage = self.stage
