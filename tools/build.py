@@ -125,9 +125,10 @@ def main():
                     help="Generate MaterialX classes")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
-    ap.add_argument("-G", required=False, type=str, default="Visual Studio 15 2017 Win64",
+    ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
-                         'For example: -G "Visual Studio 15 2017 Win64"')
+                         'For example: -G "Visual Studio 15 2017 Win64"',
+                    default="Visual Studio 15 2017 Win64" if OS == 'Windows' else "")
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
     ap.add_argument("-usd-debug-libs", required=False, action="store_true",
