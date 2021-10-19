@@ -24,6 +24,7 @@ class TransformNode(USDNode):
     """Transforms input data"""
     bl_idname = 'usd.TransformNode'
     bl_label = "Transform"
+    bl_icon = "OBJECT_ORIGIN"
 
     def update_data(self, context):
         self.reset()

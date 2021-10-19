@@ -26,6 +26,7 @@ class MergeNode(USDNode):
     """Merges two USD streams"""
     bl_idname = 'usd.MergeNode'
     bl_label = "Merge"
+    bl_icon = "SELECT_EXTEND"
 
     input_names = tuple(f"Input {i + 1}" for i in range(MAX_INPUTS_NUMBER))
 

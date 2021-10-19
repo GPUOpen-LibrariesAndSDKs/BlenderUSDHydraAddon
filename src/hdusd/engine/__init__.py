@@ -21,19 +21,19 @@ from .. import utils
 
 
 if utils.IS_WIN:
-    os.environ['PATH'] = f"{utils.LIBS_DIR / 'usd'};{utils.LIBS_DIR / 'plugins/usd'};" \
-                         f"{utils.LIBS_DIR / 'hdrpr/lib'};{os.environ['PATH']}"
+    path_str = ""
+    for loc_path in ('lib', 'bin', 'plugin/usd'):
+        path = utils.LIBS_DIR / loc_path
+        os.add_dll_directory(str(path))
+        path_str += f"{path};"
 
-    os.add_dll_directory(str(utils.LIBS_DIR / 'usd'))
-    os.add_dll_directory(str(utils.LIBS_DIR / 'plugins/usd'))
-    os.add_dll_directory(str(utils.LIBS_DIR / 'hdrpr/lib'))
+    os.environ['PATH'] = path_str + os.environ['PATH']
 
-os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugins')
-os.environ['RPR'] = str(utils.LIBS_DIR / 'hdrpr')
+os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugin')
+os.environ['RPR'] = str(utils.LIBS_DIR)
 
-sys.path.append(str(utils.LIBS_DIR / 'usd/python'))
-sys.path.append(str(utils.LIBS_DIR / 'hdrpr/lib/python'))
-sys.path.append(str(utils.LIBS_DIR / 'materialx/python'))
+sys.path.append(str(utils.LIBS_DIR / 'lib/python'))
+sys.path.append(str(utils.LIBS_DIR / 'python'))
 
 
 from . import engine, handlers

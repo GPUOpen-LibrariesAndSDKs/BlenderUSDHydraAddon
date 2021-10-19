@@ -203,11 +203,14 @@ class RenderSettings(bpy.types.PropertyGroup):
     render_quality: EnumProperty(
         name="Render Quality",
         description="Render Quality",
-        items=(('Northstar', "Full", "Full render quality"),
-               ('Full', "Legacy", "Legacy render quality"),
-               ('High', "High", "High render quality"),
-               ('Medium', "Medium", "Medium render quality"),
-               ('Low', "Low", "Low render quality")),
+        items=(
+            ('Northstar', "Full", "Full render quality"),
+            ('Full', "Legacy", "Legacy render quality"),
+            ('HybridPro', "HybridPro", "HybridPro render quality"),
+            ('High', "High", "High render quality"),
+            ('Medium', "Medium", "Medium render quality"),
+            ('Low', "Low", "Low render quality")
+        ),
         default='Northstar',
     )
     render_mode: EnumProperty(

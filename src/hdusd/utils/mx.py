@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import os
+from pathlib import Path
+
 import MaterialX as mx
 import bpy
 
 from .image import cache_image_file
-
-from pathlib import Path
 
 from . import LIBS_DIR, title_str, code_str
 
@@ -25,7 +26,9 @@ from . import logging
 log = logging.Log(tag='utils.mx')
 
 
-MX_LIBS_DIR = LIBS_DIR / "materialx/libraries"
+MX_LIBS_DIR = LIBS_DIR / "libraries"
+
+os.environ['MATERIALX_SEARCH_PATH'] = str(MX_LIBS_DIR)
 
 
 def set_param_value(mx_param, val, nd_type, nd_output=None):
@@ -78,6 +81,9 @@ def set_param_value(mx_param, val, nd_type, nd_output=None):
 
 def is_value_equal(mx_val, val, nd_type):
     if nd_type in ('string', 'float', 'integer', 'boolean', 'angle'):
+        if nd_type == 'filename' and val is None:
+            val = ""
+
         return mx_val == val
 
     if nd_type == 'filename':
@@ -115,7 +121,6 @@ def parse_value(node, mx_val, mx_type, file_prefix=None):
 
             return None
 
-
         return mx_val
 
     return tuple(mx_val)
@@ -145,16 +150,12 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
 
 
 def get_nodedef_inputs(nodedef, uniform=None):
-    for input in nodedef.getInputs():
-        if uniform is None:
-            yield input
+    for nd_input in nodedef.getInputs():
+        if (uniform is True and nd_input.getAttribute('uniform') != 'true') or \
+                (uniform is False and nd_input.getAttribute('uniform') == 'true'):
+            continue
 
-        elif input.getAttribute('uniform') == 'true':
-            if uniform:
-                yield input
-        else:
-            if not uniform:
-                yield input
+        yield nd_input
 
 
 def get_file_prefix(mx_node, file_path):
@@ -169,8 +170,8 @@ def get_file_prefix(mx_node, file_path):
     return file_prefix.resolve()
 
 
-def get_nodegraph_by_node_path(doc, node_path, do_create=False):
-    nodegraph_names = code_str(node_path).split('/')[:-1]
+def get_nodegraph_by_path(doc, ng_path, do_create=False):
+    nodegraph_names = code_str(ng_path).split('/') if ng_path else ()
     mx_nodegraph = doc
     for nodegraph_name in nodegraph_names:
         next_mx_nodegraph = mx_nodegraph.getNodeGraph(nodegraph_name)
@@ -185,5 +186,29 @@ def get_nodegraph_by_node_path(doc, node_path, do_create=False):
     return mx_nodegraph
 
 
+def get_nodegraph_by_node_path(doc, node_path, do_create=False):
+    nodegraph_names = code_str(node_path).split('/')[:-1]
+    return get_nodegraph_by_path(doc, '/'.join(nodegraph_names), do_create)
+
+
 def get_node_name_by_node_path(node_path):
     return code_str(node_path.split('/')[-1])
+
+
+def get_socket_color(mx_type):
+    if mx_type.startswith('color'):
+        return (0.78, 0.78, 0.16, 1.0)
+
+    if mx_type in ('integer', 'float', 'boolean'):
+        return (0.63, 0.63, 0.63, 1.0)
+
+    if mx_type.startswith(('vector', 'matrix')) or mx_type in ('displacementshader'):
+        return (0.39, 0.39, 0.78, 1.0)
+
+    if mx_type in ('string', 'filename'):
+        return (0.44, 0.7, 1.0, 1.0)
+
+    if mx_type.endswith(('shader', 'material')) or mx_type in ('BSDF', 'EDF', 'VDF'):
+        return (0.39, 0.78, 0.39, 1.0)
+
+    return (0.63, 0.63, 0.63, 1.0)

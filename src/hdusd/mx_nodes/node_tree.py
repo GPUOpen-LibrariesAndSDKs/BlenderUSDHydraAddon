@@ -26,6 +26,8 @@ from . import log
 NODE_LAYER_SEPARATION_WIDTH = 280
 NODE_LAYER_SHIFT_X = 30
 NODE_LAYER_SHIFT_Y = 100
+AREA_TO_UPDATE = 'PROPERTIES'
+REGION_TO_UPDATE = 'WINDOW'
 
 
 class MxNodeTree(bpy.types.ShaderNodeTree):
@@ -142,16 +144,18 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                 node = self.nodes.new(MxNode_cls.bl_idname)
                 node.name = node_path
-                layers[node_path] = layer
-
                 node.data_type = data_type
-                for mx_param in mx_node.getParameters():
-                    node.set_param_value(
-                        mx_param.getName(),
-                        mx_utils.parse_value(node, mx_param.getValue(), mx_param.getType(), file_prefix))
+                nodedef = node.nodedef
+                layers[node_path] = layer
 
                 for mx_input in mx_node.getInputs():
                     input_name = mx_input.getName()
+                    nd_input = nodedef.getInput(input_name)
+                    if nd_input.getAttribute('uniform') == 'true':
+                        node.set_param_value(input_name,mx_utils.parse_value(
+                            node, mx_input.getValue(), mx_input.getType(), file_prefix))
+                        continue
+
                     if input_name not in node.inputs:
                         log.error(f"Incorrect input name '{input_name}' for node {node}")
                         continue
@@ -249,3 +253,12 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         for material in bpy.data.materials:
             if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
                 material.hdusd.update()
+
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == AREA_TO_UPDATE:
+                    for region in area.regions:
+                        if region.type == REGION_TO_UPDATE:
+                            region.tag_redraw()
+                            break
+                    break

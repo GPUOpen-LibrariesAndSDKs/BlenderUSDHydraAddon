@@ -21,9 +21,10 @@ from collections import defaultdict
 
 repo_dir = Path(__file__).parent.parent
 libs_dir = repo_dir / "libs"
+mx_libs_dir = libs_dir / "libraries"
 
 
-sys.path.append(str(libs_dir / "materialx/python"))
+sys.path.append(str(libs_dir / "python"))
 import MaterialX as mx
 
 
@@ -187,10 +188,6 @@ def generate_data_type(nodedef):
     return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
 
-def param_prop_name(nd_type, name):
-    return f'nd_{nd_type}_p_{name}'
-
-
 def input_prop_name(nd_type, name):
     return f'nd_{nd_type}_in_{name}'
 
@@ -271,10 +268,6 @@ class {class_name}(MxNode):
         nd_type = nodedef_data_type(nd)
         code_strings.append("")
 
-        for param in nd.getParameters():
-            prop_code = generate_property_code(param, category)
-            code_strings.append(f"    {param_prop_name(nd_type, param.getName())}: {prop_code}")
-
         for input in nd.getInputs():
             prop_code = generate_property_code(input, category)
             code_strings.append(f"    {input_prop_name(nd_type, input.getName())}: {prop_code}")
@@ -323,7 +316,7 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
 """)
 
     doc = mx.createDocument()
-    search_path = mx.FileSearchPath(str(libs_dir / "materialx/libraries"))
+    search_path = mx.FileSearchPath(str(mx_libs_dir))
     mx.readFromXmlFile(doc, str(file_path), searchPath=search_path)
     nodedefs = doc.getNodeDefs()
 
@@ -354,9 +347,7 @@ mx_node_classes = [{', '.join(mx_node_class_names)}]
 
 
 def main():
-    mx_libs_dir = libs_dir / "materialx/libraries"
     gen_code_dir = repo_dir / "src/hdusd/mx_nodes/nodes"
-    hdrpr_mat_dir = libs_dir / "hdrpr/materials"
 
     for f in gen_code_dir.glob("gen_*.py"):
         f.unlink()
@@ -368,15 +359,6 @@ def main():
         ('PBR', "PBR", mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),
         ('ALG', "Algorithm", mx_libs_dir / "alglib/alglib_defs.mtlx"),
     ]
-
-    for f in (hdrpr_mat_dir / "Shaders").glob("rpr_*.mtlx"):
-        files.append(('RPR', "RPR Shaders", f))
-
-    for f in (hdrpr_mat_dir / "Utilities").glob("rpr_*.mtlx"):
-        files.append(('RPR', "RPR Utilities", f))
-
-    for f in (hdrpr_mat_dir / "Patterns").glob("rpr_*.mtlx"):
-        files.append(('RPR', "RPR Patterns", f))
 
     for prefix, category, file_path in files:
 
