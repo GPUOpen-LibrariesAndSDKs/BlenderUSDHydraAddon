@@ -143,6 +143,7 @@ def main():
         return
 
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
+    bin_dir.mkdir(parents=True, exist_ok=True)
 
     if args.all or args.usd:
         usd(bin_dir, args.j, args.clean)
