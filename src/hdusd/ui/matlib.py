@@ -27,6 +27,16 @@ from ..utils import logging
 log = logging.Log(tag='ui.matlib')
 
 
+class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
+    """Create new MaterialX node tree for selected material"""
+    bl_idname = "hdusd.matlib_clear_search"
+    bl_label = ""
+
+    def execute(self, context):
+        context.window_manager.hdusd.matlib.search = ''
+        return {"FINISHED"}
+
+
 class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
     """Import Material"""
     bl_idname = "hdusd.matlib_import_material"
@@ -104,7 +114,16 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         matlib_prop = context.window_manager.hdusd.matlib
 
         layout.prop(matlib_prop, "category")
-        layout.template_icon_view(matlib_prop, "material")
+        row = layout.row(align=True)
+        row.prop(matlib_prop, "search", text="", icon="VIEWZOOM")
+        if matlib_prop.search:
+            row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
+
+        if not matlib_prop.get_materials(context):
+            layout.label(text="No Materials Found")
+            return
+
+        layout.template_icon_view(matlib_prop, "material", show_labels=True)
 
         renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
 
@@ -137,30 +156,30 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         row.label(text="Package")
 
         split = split.split(align=True, factor=0.9)
-        if matlib_prop.material:
-            packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
-            package = None
 
-            if matlib_prop.package_id:
-                # TODO maybe need to find a better way than try/except but it's too late now
-                try:
-                    package = next(package for package in packages
-                                   if package.id == matlib_prop.package_id)
-                except:
-                    package = packages[0]
-            else:
+        packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
+        package = None
+
+        if matlib_prop.package_id:
+            # TODO maybe need to find a better way than try/except but it's too late now
+            try:
+                package = next(package for package in packages
+                               if package.id == matlib_prop.package_id)
+            except:
                 package = packages[0]
+        else:
+            package = packages[0]
 
-            if package is not None:
+        if package is not None:
 
-                if package.file is None:
-                    package.get_info()
+            if package.file is None:
+                package.get_info()
 
-                matlib_prop.package_id = package.id
+            matlib_prop.package_id = package.id
 
-                split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                                 text=f"{package.label} ({package.size})" if package is not None else None,
-                                 icon='DOCUMENTS')
+            split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
+                             text=f"{package.label} ({package.size})" if package is not None else None,
+                             icon='DOCUMENTS')
 
         material = matlib_prop.pcoll.materials[matlib_prop.material]
         package = next(package for package in material.packages

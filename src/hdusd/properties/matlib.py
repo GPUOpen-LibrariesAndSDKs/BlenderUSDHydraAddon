@@ -40,8 +40,15 @@ class MatlibProperties(bpy.types.PropertyGroup):
             self._set_materials()
 
         materials = []
+        if not self.pcoll.materials:
+            return materials
+
+        search_string = self.search.strip().lower()
         for i, mat in enumerate(self.pcoll.materials.values()):
             if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
+                continue
+
+            if search_string and not search_string in mat.title.strip().lower():
                 continue
 
             description = f"{mat.title}"
@@ -78,10 +85,11 @@ class MatlibProperties(bpy.types.PropertyGroup):
                        for cat in self.pcoll.categories.values())
         return categories
 
-    def update_category(self, context):
+    def update_material(self, context):
         materials = self.get_materials(context)
-        self.material = materials[0][0]
-        self.package_id = self.pcoll.materials[self.material].packages[0].id
+        if materials and not self.material in [mat[0] for mat in materials]:
+            self.material = materials[0][0]
+            self.package_id = self.pcoll.materials[self.material].packages[0].id
 
     material: bpy.props.EnumProperty(
         name="Material",
@@ -92,7 +100,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
         name="Category",
         description="Select materials category",
         items=get_categories,
-        update=update_category,
+        update=update_material,
+    )
+    search: bpy.props.StringProperty(
+        name="Search",
+        description="Search materials by title",
+        update=update_material,
     )
     package_id: bpy.props.StringProperty(
         name="Package id",

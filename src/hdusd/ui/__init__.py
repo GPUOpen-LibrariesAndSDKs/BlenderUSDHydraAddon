@@ -100,6 +100,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_OP_export_mx_console,
     material.HDUSD_MATERIAL_PT_export_mx,
 
+    matlib.HDUSD_MATERIAL_OP_matlib_clear_search,
     matlib.HDUSD_MATLIB_OP_import_material,
     matlib.HDUSD_MATLIB_OP_load_package,
     matlib.HDUSD_MATLIB_OP_select_package,
