@@ -120,37 +120,6 @@ class ViewSettings:
              (self.border[1][0] / self.screen_width, self.border[1][1] / self.screen_height)))
 
 
-@dataclass(init=False, eq=True)
-class ShadingData:
-    type: str
-    use_scene_lights: bool = True
-    use_scene_world: bool = True
-    studio_light: str = None
-    studio_light_rotate_z: float = 0.0
-    studio_light_background_alpha: float = 0.0
-    studio_light_intensity: float = 1.0
-
-    def __init__(self, context: bpy.types.Context):
-        shading = context.area.spaces.active.shading
-
-        self.type = shading.type
-        if self.type == 'RENDERED':
-            self.use_scene_lights = shading.use_scene_lights_render
-            self.use_scene_world = shading.use_scene_world_render
-        else:
-            self.use_scene_lights = shading.use_scene_lights
-            self.use_scene_world = shading.use_scene_world
-
-        if not self.use_scene_world:
-            self.studio_light = shading.selected_studio_light.path
-            if not self.studio_light:
-                self.studio_light = str(utils.BLENDER_DATA_DIR / "datafiles/studiolights/world" /
-                                        shading.studio_light)
-            self.studio_light_rotate_z = shading.studiolight_rotate_z
-            self.studio_light_background_alpha = shading.studiolight_background_alpha
-            self.studio_light_intensity = shading.studiolight_intensity
-
-
 class ViewportEngine(Engine):
     """ Basic Viewport render engine """
 
@@ -213,7 +182,7 @@ class ViewportEngine(Engine):
         self.is_gl_delegate = settings.is_gl_delegate
 
         self.space_data = context.space_data
-        self.shading_data = ShadingData(context)
+        self.shading_data = None
 
         self.render_params = UsdImagingGL.RenderParams()
         self.render_params.frame = Usd.TimeCode.Default()
@@ -359,26 +328,24 @@ class ViewportEngineScene(ViewportEngine):
 
         root_prim = stage.GetPseudoRoot()
 
-        for obj_data in object.ObjectData.depsgraph_objects(depsgraph,
-                space_data=self.space_data, use_scene_cameras=False):
+        self.shading_data = world.ShadingData(context)
+
+        for obj_data in object.ObjectData.depsgraph_objects(
+                depsgraph,
+                space_data=self.space_data, use_scene_cameras=False,
+                use_scene_lights=self.shading_data.use_scene_lights):
             object.sync(root_prim, obj_data)
 
-        shading = context.area.spaces.active.shading
-        if shading.type == 'RENDERED':
-            if depsgraph.scene.world is not None:
-                world_data = world.WorldData.init_from_world(depsgraph.scene.world)
-                world.sync(root_prim, world_data)
-                self.render_params.clearColor = world.get_clear_color(root_prim, world_data.name)
-
-        elif shading.type == 'MATERIAL':
-            world_data = world.WorldData.init_from_shading(shading)
-            world.sync(root_prim, world_data)
-            self.render_params.clearColor = world.get_clear_color(root_prim, world_data.name)
+        world.sync(root_prim, depsgraph.scene.world, self.shading_data)
+        self.render_params.clearColor = world.get_clear_color(root_prim)
 
     def _sync_update(self, context, depsgraph):
         super()._sync_update(context, depsgraph)
 
         root_prim = self.stage.GetPseudoRoot()
+
+        shading_data = world.ShadingData(context)
+        update_world = self.shading_data != shading_data
 
         for update in depsgraph.updates:
             log("sync_update", update.id, type(update.id))
@@ -402,10 +369,13 @@ class ViewportEngineScene(ViewportEngine):
                 continue
 
             if isinstance(update.id, bpy.types.World):
-                wld = update.id
-                world.sync_update(root_prim, wld)
-                self.render_params.clearColor = world.get_clear_color(root_prim, wld)
+                update_world = True
                 continue
+
+        if update_world:
+            self.shading_data = shading_data
+            world.sync_update(root_prim, depsgraph.scene.world, self.shading_data)
+            self.render_params.clearColor = world.get_clear_color(root_prim)
 
     def _sync_objects_collection(self, depsgraph):
         root_prim = self.stage.GetPseudoRoot()

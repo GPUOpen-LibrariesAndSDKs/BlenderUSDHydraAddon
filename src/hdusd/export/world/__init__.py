@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 from dataclasses import dataclass
+from pathlib import Path
 
 import bpy
 
@@ -26,6 +27,38 @@ log = logging.Log(tag='export.world')
 
 
 PRIM_NAME = "World"
+
+
+@dataclass(init=False, eq=True)
+class ShadingData:
+    type: str
+    use_scene_lights: bool = True
+    use_scene_world: bool = True
+    studiolight: Path = None
+    studiolight_rotate_z: float = 0.0
+    studiolight_background_alpha: float = 0.0
+    studiolight_intensity: float = 1.0
+
+    def __init__(self, context: bpy.types.Context):
+        shading = context.area.spaces.active.shading
+
+        self.type = shading.type
+        if self.type == 'RENDERED':
+            self.use_scene_lights = shading.use_scene_lights_render
+            self.use_scene_world = shading.use_scene_world_render
+        else:
+            self.use_scene_lights = shading.use_scene_lights
+            self.use_scene_world = shading.use_scene_world
+
+        if not self.use_scene_world:
+            if shading.selected_studio_light.path:
+                self.studiolight = Path(shading.selected_studio_light.path)
+            else:
+                self.studiolight = BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light
+
+            self.studiolight_rotate_z = shading.studiolight_rotate_z
+            self.studiolight_background_alpha = shading.studiolight_background_alpha
+            self.studiolight_intensity = shading.studiolight_intensity
 
 
 @dataclass(init=False, eq=True, repr=True)
@@ -48,11 +81,10 @@ class WorldData:
     @staticmethod
     def init_from_world(world: bpy.types.World):
         """ Returns WorldData from bpy.types.World """
-        data = WorldData()
-
         if not world:
-            return data
+            return None
 
+        data = WorldData()
         data.name = world.name
 
         if not world.use_nodes:
@@ -118,12 +150,14 @@ class WorldData:
         return data
 
     @staticmethod
-    def init_from_shading(shading):
+    def init_from_shading(shading: ShadingData, world):
+        if shading.use_scene_world:
+            return WorldData.init_from_world(world)
+
         data = WorldData()
         data.intensity = shading.studiolight_intensity
         data.rotation = (0.0, 0.0, shading.studiolight_rotate_z)
-        data.image = cache_image_file_path(BLENDER_DATA_DIR / "studiolights/world" /
-                                           shading.studio_light)
+        data.image = cache_image_file_path(shading.studiolight)
         return data
 
     @staticmethod
@@ -140,7 +174,15 @@ class WorldData:
         return data
 
 
-def sync(root_prim, data: WorldData):
+def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
+    if shading:
+        data = WorldData.init_from_shading(shading, world)
+    else:
+        data = WorldData.init_from_world(world)
+
+    if not data:
+        return
+
     stage = root_prim.GetStage()
 
     obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
@@ -162,7 +204,7 @@ def sync(root_prim, data: WorldData):
     # TODO: enable rotation angles
 
 
-def sync_update(root_prim, world: bpy.types.World):
+def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
     stage = root_prim.GetStage()
 
     world_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
@@ -194,9 +236,9 @@ def sync_update(root_prim, world: bpy.types.World):
     sync(root_prim, world)
 
 
-def get_clear_color(root_prim, world_name):
-    light_prim = root_prim.GetStage().GetPrimAtPath(
-        root_prim.GetPath().AppendChild(PRIM_NAME).AppendChild(Tf.MakeValidIdentifier(world_name)))
+def get_clear_color(root_prim):
+    world_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME))
+    light_prim = world_prim.GetChildren()[0]
     color = light_prim.GetAttribute('inputs:color').Get()
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
     transparency = light_prim.GetAttribute('inputs:transparency').Get()
