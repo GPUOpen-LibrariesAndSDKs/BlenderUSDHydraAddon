@@ -36,9 +36,9 @@ def rm_dir(d: Path):
 def copy(src: Path, dest, ignore=()):
     print(f"Copying: {src} -> {dest}")
     if src.is_dir():
-        shutil.copytree(str(src), str(dest), ignore=shutil.ignore_patterns(*ignore))
+        shutil.copytree(str(src), str(dest), ignore=shutil.ignore_patterns(*ignore), symlinks=True)
     else:
-        shutil.copy(str(src), str(dest))
+        shutil.copy(str(src), str(dest), follow_symlinks=False)
 
 
 def usd(bin_dir, jobs, clean):
