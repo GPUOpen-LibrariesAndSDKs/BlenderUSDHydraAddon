@@ -205,24 +205,26 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
 
 def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
+    if shading:
+        data = WorldData.init_from_shading(shading, world)
+    else:
+        data = WorldData.init_from_world(world)
+
     stage = root_prim.GetStage()
 
-    world_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
+    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
 
-    if not world:
-        world_prim.SetActive(False)
+    if not data:
+        stage.RemovePrim(obj_prim.GetPath())
         return
 
-    if not world_prim.IsActive():
-        world_prim.ClearActive()
+    light_prim = stage.DefinePrim(obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(data.name)))
+    if not light_prim:
+        # removing child prims
+        for child in obj_prim.GetChildren():
+            stage.RemovePrim(child.GetPath())
 
-    for child in world_prim.GetChildren():
-        if child.GetName() != Tf.MakeValidIdentifier(world.name):
-            child.SetActive(False)
-
-    usd_light = UsdLux.DomeLight.Define(stage,
-        Sdf.Path(f"/{PRIM_NAME}").AppendChild(Tf.MakeValidIdentifier(world.name)))
-    usd_light.GetPrim().SetActive(True)
+    usd_light = UsdLux.DomeLight.Define(stage, light_prim.GetPath())
 
     # removing prev settings
     usd_light.CreateColorAttr().Clear()
@@ -233,12 +235,15 @@ def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
     usd_light.ClearXformOpOrder()
 
-    sync(root_prim, world)
+    sync(root_prim, world, shading)
 
 
 def get_clear_color(root_prim):
-    world_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME))
-    light_prim = world_prim.GetChildren()[0]
+    obj_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME))
+    if not obj_prim:
+        return (0.0, 0.0, 0.0, 1.0)
+
+    light_prim = obj_prim.GetChildren()[0]
     color = light_prim.GetAttribute('inputs:color').Get()
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
     transparency = light_prim.GetAttribute('inputs:transparency').Get()
