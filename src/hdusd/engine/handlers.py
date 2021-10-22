@@ -45,6 +45,15 @@ def on_depsgraph_update_post(scene, depsgraph):
     material_ui.depsgraph_update(depsgraph)
 
 @bpy.app.handlers.persistent
+def on_frame_change_post(*args):
+    """ Handler on loading a blend file (after) """
+    log("on_frame_change_post", args)
+    from ..usd_nodes import node_tree
+    utils.clear_temp_dir()
+    node_tree.frame_change()
+
+
+@bpy.app.handlers.persistent
 def on_save_pre(*args):
     log("on_save_pre", args)
     from ..viewport import usd_collection

@@ -135,7 +135,7 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
     elif obj.type == 'CAMERA':
         camera.sync(obj_prim, obj, **kwargs)
 
-    elif obj.type == 'EMPTY':
+    elif obj.type in ('EMPTY', 'ARMATURE'):
         pass
 
     else:
@@ -172,7 +172,7 @@ def sync_update(root_prim, obj_data: ObjectData, is_updated_geometry, is_updated
         elif obj.type == 'CAMERA':
             camera.sync_update(obj_prim, obj, **kwargs)
 
-        elif obj.type == 'EMPTY':
+        elif obj.type in ('EMPTY', 'ARMATURE'):
             pass
 
         else:
