@@ -24,7 +24,7 @@ DEFAULT_FORMAT = ".hdr"
 BLENDER_DEFAULT_FORMAT = "HDR"
 
 
-def cache_image_file(image: bpy.types.Image):
+def cache_image_file(image: bpy.types.Image, cache_check=True):
     if not image.packed_file and image.source != 'GENERATED' and \
             Path(image.filepath).suffix.lower() in SUPPORTED_FORMATS and \
             f".{image.file_format.lower()}" in SUPPORTED_FORMATS:
@@ -34,7 +34,9 @@ def cache_image_file(image: bpy.types.Image):
     old_filepath = image.filepath_raw
     old_file_format = image.file_format
 
-    temp_path = get_temp_file(DEFAULT_FORMAT)
+    temp_path = get_temp_file(DEFAULT_FORMAT, image.name)
+    if cache_check and image.source != 'GENERATED' and temp_path.is_file():
+        return temp_path
 
     image.filepath_raw = str(temp_path)
     image.file_format = BLENDER_DEFAULT_FORMAT
@@ -48,13 +50,18 @@ def cache_image_file(image: bpy.types.Image):
     return temp_path
 
 
-def cache_image_file_path(image_path):
+def cache_image_file_path(image_path, cache_check=True):
     if image_path.suffix.lower() in SUPPORTED_FORMATS:
         return image_path
 
+    if cache_check:
+        temp_path = get_temp_file(DEFAULT_FORMAT, image_path.name)
+        if temp_path.is_file():
+            return temp_path
+
     image = bpy.data.images.load(str(image_path))
     try:
-        return cache_image_file(image)
+        return cache_image_file(image, cache_check)
 
     finally:
         bpy.data.images.remove(image)
