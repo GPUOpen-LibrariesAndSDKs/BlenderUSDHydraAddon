@@ -61,6 +61,7 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
                      '--openvdb',
                      '--build-args', 'MATERIALX,"-DMATERIALX_BUILD_PYTHON=ON -DMATERIALX_INSTALL_PYTHON=OFF"',
                      '--python',
+                     '--build-release',
                      str(bin_usd_dir / "install"),
                      *args)
 

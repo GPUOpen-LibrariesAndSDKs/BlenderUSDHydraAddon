@@ -56,14 +56,20 @@ def main(bin_dir):
              "IlmImf-2_3.dll", libs_dir / "lib/IlmImf-2_3.dll")
 
     if OS == 'Linux':
+        for f in iterate_files(repo_dir / "deps/HdRPR/deps/RIF/Ubuntu20/Dynamic", "libRadeonML.so*"):
+            copy(f, libs_dir / "lib")
+
         print("Configuring rpath")
-        patchelf_args = ['patchelf', '--set-rpath', "$ORIGIN/../../usd:$ORIGIN/../../hdrpr/lib",
-                         str(libs_dir / 'plugins/usd/hdRpr.so')]
+        patchelf_args = ['patchelf', '--remove-rpath', str(libs_dir / 'plugin/usd/hdRpr.so')]
         print(patchelf_args)
         subprocess.check_call(patchelf_args)
 
+        patchelf_args = ['patchelf', '--force-rpath', '--set-rpath', "$ORIGIN/../../lib",
+                         str(libs_dir / 'plugin/usd/hdRpr.so')]
+        print(patchelf_args)
+        subprocess.check_call(patchelf_args)
         for glob in ("libIlm*.so", "libIex*.so", "libhio*.so", "libHalf*.so"):
-            for f in iterate_files(libs_dir / "usd", glob):
+            for f in iterate_files(libs_dir / "lib", glob):
                 patchelf_args = ['patchelf', '--set-rpath', "$ORIGIN/.", str(f)]
                 print(patchelf_args)
                 subprocess.check_call(patchelf_args)
