@@ -328,7 +328,7 @@ class ViewportEngineScene(ViewportEngine):
 
         root_prim = stage.GetPseudoRoot()
 
-        self.shading_data = world.ShadingData(context)
+        self.shading_data = world.ShadingData(context, depsgraph.scene.world)
 
         for obj_data in object.ObjectData.depsgraph_objects(
                 depsgraph,
@@ -344,14 +344,16 @@ class ViewportEngineScene(ViewportEngine):
 
         root_prim = self.stage.GetPseudoRoot()
 
-        shading_data = world.ShadingData(context)
+        shading_data = world.ShadingData(context, depsgraph.scene.world)
         update_world = self.shading_data != shading_data
+        update_collection = self.shading_data.use_scene_lights != shading_data.use_scene_lights
+        self.shading_data = shading_data
 
         for update in depsgraph.updates:
             log("sync_update", update.id, type(update.id))
 
             if isinstance(update.id, (bpy.types.Collection, bpy.types.Scene)):
-                self._sync_objects_collection(depsgraph)
+                update_collection = True
                 continue
 
             if isinstance(update.id, bpy.types.Object):
@@ -372,8 +374,10 @@ class ViewportEngineScene(ViewportEngine):
                 update_world = True
                 continue
 
+        if update_collection:
+            self._sync_objects_collection(depsgraph)
+
         if update_world:
-            self.shading_data = shading_data
             world.sync_update(root_prim, depsgraph.scene.world, self.shading_data)
             self.render_params.clearColor = world.get_clear_color(root_prim)
 
@@ -388,7 +392,7 @@ class ViewportEngineScene(ViewportEngine):
 
         depsgraph_keys = set(obj_data.sdf_name for obj_data in dg_objects())
         usd_object_keys = set(prim.GetName() for prim in root_prim.GetAllChildren()
-                              if prim.GetName() != world.PRIM_NAME)
+                              if prim.GetName() != world.OBJ_PRIM_NAME)
         keys_to_remove = usd_object_keys - depsgraph_keys
         keys_to_add = depsgraph_keys - usd_object_keys
 

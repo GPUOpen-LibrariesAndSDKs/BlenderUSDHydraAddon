@@ -26,7 +26,8 @@ from ...utils import logging
 log = logging.Log(tag='export.world')
 
 
-PRIM_NAME = "World"
+OBJ_PRIM_NAME = "World"
+LIGHT_PRIM_NAME = "World"
 
 
 @dataclass(init=False, eq=True)
@@ -34,12 +35,13 @@ class ShadingData:
     type: str
     use_scene_lights: bool = True
     use_scene_world: bool = True
+    has_world: bool = False
     studiolight: Path = None
     studiolight_rotate_z: float = 0.0
     studiolight_background_alpha: float = 0.0
     studiolight_intensity: float = 1.0
 
-    def __init__(self, context: bpy.types.Context):
+    def __init__(self, context: bpy.types.Context, world: bpy.types.World):
         shading = context.area.spaces.active.shading
 
         self.type = shading.type
@@ -50,7 +52,10 @@ class ShadingData:
             self.use_scene_lights = shading.use_scene_lights
             self.use_scene_world = shading.use_scene_world
 
-        if not self.use_scene_world:
+        if self.use_scene_world:
+            self.has_world = bool(world)
+
+        else:
             if shading.selected_studio_light.path:
                 self.studiolight = Path(shading.selected_studio_light.path)
             else:
@@ -70,7 +75,6 @@ class WorldData:
     intensity: float = 1.0
     rotation: tuple = (0.0, 0.0, 0.0)
     transparency: float = 1.0
-    name: str = "World"
 
     @property
     def clear_color(self):
@@ -81,11 +85,10 @@ class WorldData:
     @staticmethod
     def init_from_world(world: bpy.types.World):
         """ Returns WorldData from bpy.types.World """
-        if not world:
-            return None
-
         data = WorldData()
-        data.name = world.name
+
+        if not world:
+            return data
 
         if not world.use_nodes:
             data.color = tuple(world.color)
@@ -180,14 +183,10 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
     else:
         data = WorldData.init_from_world(world)
 
-    if not data:
-        return
-
     stage = root_prim.GetStage()
 
-    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
-    usd_light = UsdLux.DomeLight.Define(stage,
-        obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(data.name)))
+    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(OBJ_PRIM_NAME))
+    usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild(LIGHT_PRIM_NAME))
     usd_light.OrientToStageUpAxis()
 
     if data.image:
@@ -205,26 +204,9 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
 
 def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
-    if shading:
-        data = WorldData.init_from_shading(shading, world)
-    else:
-        data = WorldData.init_from_world(world)
-
     stage = root_prim.GetStage()
-
-    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
-
-    if not data:
-        stage.RemovePrim(obj_prim.GetPath())
-        return
-
-    light_prim = stage.DefinePrim(obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(data.name)))
-    if not light_prim:
-        # removing child prims
-        for child in obj_prim.GetChildren():
-            stage.RemovePrim(child.GetPath())
-
-    usd_light = UsdLux.DomeLight.Define(stage, light_prim.GetPath())
+    usd_light = UsdLux.DomeLight.Define(
+        stage, root_prim.GetPath().AppendChild(OBJ_PRIM_NAME).AppendChild(LIGHT_PRIM_NAME))
 
     # removing prev settings
     usd_light.CreateColorAttr().Clear()
@@ -239,11 +221,11 @@ def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
 
 def get_clear_color(root_prim):
-    obj_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME))
-    if not obj_prim:
+    obj_prim = root_prim.GetChild(OBJ_PRIM_NAME)
+    if not obj_prim or not obj_prim.IsActive():
         return (0.0, 0.0, 0.0, 1.0)
 
-    light_prim = obj_prim.GetChildren()[0]
+    light_prim = obj_prim.GetChild(LIGHT_PRIM_NAME)
     color = light_prim.GetAttribute('inputs:color').Get()
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
     transparency = light_prim.GetAttribute('inputs:transparency').Get()
