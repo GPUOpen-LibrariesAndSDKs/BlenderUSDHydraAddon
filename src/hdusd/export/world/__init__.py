@@ -221,11 +221,7 @@ def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
 
 def get_clear_color(root_prim):
-    obj_prim = root_prim.GetChild(OBJ_PRIM_NAME)
-    if not obj_prim or not obj_prim.IsActive():
-        return (0.0, 0.0, 0.0, 1.0)
-
-    light_prim = obj_prim.GetChild(LIGHT_PRIM_NAME)
+    light_prim = root_prim.GetChild(OBJ_PRIM_NAME).GetChild(LIGHT_PRIM_NAME)
     color = light_prim.GetAttribute('inputs:color').Get()
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
     transparency = light_prim.GetAttribute('inputs:transparency').Get()
