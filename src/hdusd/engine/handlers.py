@@ -35,6 +35,7 @@ def on_load_post(*args):
 
 @bpy.app.handlers.persistent
 def on_depsgraph_update_post(scene, depsgraph):
+    log("on_depsgraph_update", depsgraph)
     from ..properties import object, material
     from ..usd_nodes import node_tree
     from ..ui import material as material_ui
@@ -44,13 +45,14 @@ def on_depsgraph_update_post(scene, depsgraph):
     node_tree.depsgraph_update(depsgraph)
     material_ui.depsgraph_update(depsgraph)
 
+
 @bpy.app.handlers.persistent
-def on_frame_change_post(*args):
+def on_frame_change_post(scene, depsgraph):
     """ Handler on frame change a blend file (after) """
-    log("on_frame_change_post", args)
+    log("on_frame_change", depsgraph)
     from ..usd_nodes import node_tree
-    utils.clear_temp_dir()
-    node_tree.frame_change()
+
+    node_tree.frame_change(depsgraph)
 
 
 @bpy.app.handlers.persistent
