@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+from concurrent import futures
+
 import bpy
 
 from . import HdUSDProperties
@@ -24,16 +26,22 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
     def _set_materials(self):
         self.pcoll.materials = {}
-        for mat in matlib.Material.get_all_materials():
+        materials = list(matlib.Material.get_all_materials())
+        for mat in materials:
+            if mat.category:
+                mat.category.get_info()
+
+        def render_load(mat):
             render = mat.renders[0]
             render.get_info()
             render.get_thumbnail()
             render.thumbnail_load(self.pcoll)
 
-            if mat.category:
-                mat.category.get_info()
-
-            self.pcoll.materials[mat.id] = mat
+        with futures.ThreadPoolExecutor(max_workers=5) as executor:
+            fs = {executor.submit(render_load, mat): mat for mat in materials}
+            for f in futures.as_completed(fs):
+                mat = fs[f]
+                self.pcoll.materials[mat.id] = mat
 
     def get_materials(self, context):
         if not self.pcoll.materials:

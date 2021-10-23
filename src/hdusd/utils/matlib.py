@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import requests
+from concurrent import futures
 from dataclasses import dataclass, field
 import shutil
 from pathlib import Path
@@ -47,7 +48,7 @@ def download_file(url, path, use_cache):
     return path
 
 
-def request_json(url, path, use_cache, params=None):
+def request_json(url, path, params=None, *, use_cache=True):
     log("Requesting json", f"url: {url}, path: {path}, use_cache: {use_cache}, params: {params}")
     if use_cache and path.is_file():
         log("Requesting json", "cached data found")
@@ -87,10 +88,11 @@ class Render:
     thumbnail_url: str = field(init=False, default=None)
     thumbnail_path: Path = field(init=False, default=None)
     thumbnail_icon_id: int = field(init=False, default=None)
+    future: futures.Future = field(init=False, default=None)
 
     def get_info(self, use_cache=True):
-        json_data = request_json(f"{URL}/renders/{self.id}", (MATLIB_DIR / self.id).with_suffix(".json"),
-                             use_cache)
+        json_data = request_json(f"{URL}/renders/{self.id}",
+                                 (MATLIB_DIR / self.id).with_suffix(".json"), use_cache)
 
         self.author = json_data['author']
         self.image = json_data['image']
@@ -154,7 +156,8 @@ class Category:
     title: str = field(init=False, default=None)
 
     def get_info(self, use_cache=True):
-        json_data = request_json(f"{URL}/categories/{self.id}", MATLIB_DIR / self.id / "Category.json",
+        json_data = request_json(f"{URL}/categories/{self.id}",
+                                 MATLIB_DIR / "categories/"Category.json",
                              use_cache)
 
         self.title = json_data['title']
