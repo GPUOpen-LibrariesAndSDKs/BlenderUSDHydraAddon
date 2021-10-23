@@ -46,7 +46,7 @@ def on_depsgraph_update_post(scene, depsgraph):
 
 @bpy.app.handlers.persistent
 def on_frame_change_post(*args):
-    """ Handler on loading a blend file (after) """
+    """ Handler on frame change a blend file (after) """
     log("on_frame_change_post", args)
     from ..usd_nodes import node_tree
     utils.clear_temp_dir()
