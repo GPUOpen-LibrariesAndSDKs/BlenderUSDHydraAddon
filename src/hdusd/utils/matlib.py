@@ -13,14 +13,13 @@
 # limitations under the License.
 #********************************************************************
 import requests
-from concurrent import futures
+import weakref
 from dataclasses import dataclass, field
 import shutil
 from pathlib import Path
 import zipfile
 import json
 
-from .. import config
 from . import LIBS_DIR
 
 from ..utils import logging
@@ -30,54 +29,42 @@ URL = "https://matlibapi.stvcis.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
-def download_file(url, path, use_cache):
-    log("Downloading file", f"url: {url}, path: {path}, use_cache: {use_cache}")
-    if use_cache and path.is_file():
-        log("Downloading file", "cached data found")
+
+def download_file(url, path, cache_check=True):
+    if cache_check and path.is_file():
         return path
 
-    if not path.parent.is_dir():
-        path.parent.mkdir(parents=True)
+    log("download_file", f"{url=}, {path=}")
 
-    log("Downloading file", "no cached data found, requesting from server")
+    path.parent.mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True) as response:
         with open(path, 'wb') as f:
             shutil.copyfileobj(response.raw, f)
-    log("Downloading file", "done")
 
+    log("download_file", "done")
     return path
 
 
-def request_json(url, path, params=None, *, use_cache=True):
-    log("Requesting json", f"url: {url}, path: {path}, use_cache: {use_cache}, params: {params}")
-    if use_cache and path.is_file():
-        log("Requesting json", "cached data found")
+def request_json(url, params, path, cache_check=True):
+    if cache_check and path and path.is_file():
         with open(path) as json_file:
             return json.load(json_file)
 
-    log("Requesting json", "no cached data found, requesting from server")
+    log("request_json", f"{url=}, {params=}, {path=}")
+
     response = requests.get(url, params=params)
     res_json = response.json()
-    log("Requesting json", "done")
 
-    if not path.parent.is_dir():
-        path.parent.mkdir(parents=True)
+    if path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'w') as outfile:
+            json.dump(res_json, outfile)
 
-    with open(path, 'w') as outfile:
-        json.dump(res_json, outfile)
-
-    log("Requesting json", f"data cached, path: {path}")
+    log("request_json", "done")
     return res_json
 
 
-def get_cached_path(path):
-    if path.is_file():
-        return path
-
-    return None
-
-
-@dataclass
+@dataclass(init=False)
 class Render:
     id: str
     author: str = field(init=False, default=None)
@@ -88,11 +75,18 @@ class Render:
     thumbnail_url: str = field(init=False, default=None)
     thumbnail_path: Path = field(init=False, default=None)
     thumbnail_icon_id: int = field(init=False, default=None)
-    future: futures.Future = field(init=False, default=None)
 
-    def get_info(self, use_cache=True):
-        json_data = request_json(f"{URL}/renders/{self.id}",
-                                 (MATLIB_DIR / self.id).with_suffix(".json"), use_cache)
+    def __init__(self, id, material):
+        self.id = id
+        self.material = weakref.ref(material)
+
+    @property
+    def cache_dir(self):
+        return self.material().cache_dir / f"R-{self.id}"
+
+    def get_info(self, cache_chek=True):
+        json_data = request_json(f"{URL}/renders/{self.id}", None, self.cache_dir / "info.json",
+                                 cache_chek)
 
         self.author = json_data['author']
         self.image = json_data['image']
@@ -100,20 +94,20 @@ class Render:
         self.thumbnail = json_data['thumbnail']
         self.thumbnail_url = json_data['thumbnail_url']
 
-    def get_image(self, use_cache=True):
-        self.image_path = download_file(self.image_url, MATLIB_DIR / self.image,
-                                        use_cache)
+    def get_image(self, cache_check=True):
+        self.image_path = download_file(self.image_url, self.cache_dir / self.image,
+                                        cache_check)
 
-    def get_thumbnail(self, use_cache=True):
-        self.thumbnail_path = download_file(self.thumbnail_url, MATLIB_DIR / self.thumbnail,
-                                            use_cache)
+    def get_thumbnail(self, cache_check=True):
+        self.thumbnail_path = download_file(self.thumbnail_url, self.cache_dir / self.thumbnail,
+                                            cache_check)
 
     def thumbnail_load(self, pcoll):
         thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
         self.thumbnail_icon_id = thumb.icon_id
 
 
-@dataclass
+@dataclass(init=False)
 class Package:
     id: str
     author: str = field(init=False, default=None)
@@ -123,26 +117,36 @@ class Package:
     size: str = field(init=False, default=None)
     file_path: Path = field(init=False, default=None)
 
-    def get_info(self, use_cache=True):
-        json_data = request_json(f"{URL}/packages/{self.id}", MATLIB_DIR / self.id / "Package.json",
-                             use_cache)
+    def __init__(self, id, material):
+        self.id = id
+        self.material = weakref.ref(material)
+
+    @property
+    def cache_dir(self):
+        return self.material().cache_dir / f"P-{self.id}"
+
+    def get_info(self, cache_check=True):
+        json_data = request_json(f"{URL}/packages/{self.id}", None, self.cache_dir / "info.json",
+                                 cache_check)
 
         self.author = json_data['author']
         self.file = json_data['file']
         self.file_url = json_data['file_url']
         self.label = json_data['label']
         self.size = json_data['size']
-        self.file_path = get_cached_path(MATLIB_DIR / self.id / self.file)
 
-    def get_file(self, use_cache=True):
-        self.file_path = download_file(self.file_url, MATLIB_DIR / self.id / self.file,
-                                       use_cache)
+    def get_file(self, cache_check=True):
+        self.file_path = download_file(self.file_url, self.cache_dir / self.file,
+                                       cache_check)
 
-    def unzip(self, path=None, use_cache=True):
+    def unzip(self, path=None, cache_check=True):
         if not path:
-            path = self.file_path.parent / "material"
+            path = self.cache_dir / "package"
 
-        if not (use_cache and (path / self.file_path.stem).is_dir()):
+        if path.is_dir() and not cache_check:
+            shutil.rmtree(path, ignore_errors=True)
+
+        if not path.is_dir():
             with zipfile.ZipFile(self.file_path) as z:
                 z.extractall(path=path)
 
@@ -155,10 +159,13 @@ class Category:
     id: str
     title: str = field(init=False, default=None)
 
+    @property
+    def cache_dir(self):
+        return MATLIB_DIR / "categories"
+
     def get_info(self, use_cache=True):
-        json_data = request_json(f"{URL}/categories/{self.id}",
-                                 MATLIB_DIR / "categories/"Category.json",
-                             use_cache)
+        json_data = request_json(f"{URL}/categories/{self.id}", None,
+                                 self.cache_dir / f"{self.id}.json", use_cache)
 
         self.title = json_data['title']
 
@@ -184,31 +191,36 @@ class Material:
 
         self.renders = []
         for id in mat_json['renders_order']:
-            self.renders.append(Render(id))
+            self.renders.append(Render(id, self))
 
         self.packages = []
         for id in mat_json['packages']:
-            self.packages.append(Package(id))
+            self.packages.append(Package(id, self))
 
-    def get_description(self):
-        description = f"{self.title}"
+    @property
+    def cache_dir(self):
+        return MATLIB_DIR / "materials" / self.id
+
+    @property
+    def full_description(self):
+        text = self.title
         if self.description:
-            description += f"\n{self.description}"
+            text += f"\n{self.description}"
         if self.category:
-            description += f"\nCategory: {self.category.title}"
-        description += f"\nAuthor: {self.author}"
+            text += f"\nCategory: {self.category.title}"
+        text += f"\nAuthor: {self.author}"
 
-        return description
+        return text
 
     @classmethod
     def get_materials(cls, limit=10, offset=0):
-        res_json = request_json(f"{URL}/materials", MATLIB_DIR / f"materials_{offset}_{limit}.json",
-                                False, params={'limit': limit, 'offset': offset})
+        res_json = request_json(f"{URL}/materials", {'limit': limit, 'offset': offset}, None)
 
         for mat_json in res_json['results']:
             mat = Material(mat_json)
             if not mat.packages:
                 continue
+
             yield mat
 
     @classmethod
@@ -216,19 +228,12 @@ class Material:
         offset = 0
         limit = 500
 
-        res_json = request_json(f"{URL}/materials", MATLIB_DIR / f"all_materials_{offset}_{limit}.json",
-                                False, params={'limit': limit, 'offset': offset})
-        results = res_json['results']
+        while True:
+            mat = None
+            for mat in cls.get_materials(limit, offset):
+                yield mat
 
-        while res_json['next'] is not None:
+            if not mat:
+                break
+
             offset += limit
-            res_json = request_json(res_json['next'], MATLIB_DIR / f"all_materials_{offset}_{limit}.json",
-                                    False)
-            results.extend(res_json['results'])
-
-        for mat_json in results:
-            mat = Material(mat_json)
-            if not mat.packages:
-                continue
-
-            yield mat

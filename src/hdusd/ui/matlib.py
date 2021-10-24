@@ -125,12 +125,10 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
         layout.template_icon_view(matlib_prop, "material", show_labels=True)
 
-        renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
-
-        if len(renders) > 1:
+        material = matlib_prop.pcoll.materials[matlib_prop.material]
+        if len(material.renders) > 1:
             grid = layout.grid_flow(align=True)
-            row = None
-            for i, render in enumerate(renders):
+            for i, render in enumerate(material.renders):
                 if render.thumbnail_icon_id is None:
                     render.get_info()
                     render.get_thumbnail()
@@ -142,12 +140,9 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
                 row.template_icon(render.thumbnail_icon_id, scale=5)
 
-        if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
-            material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
-
-            for line in material_description.splitlines():
-                row = layout.row()
-                row.label(text=line)
+        for line in material.full_description.splitlines():
+            row = layout.row()
+            row.label(text=line)
 
         split = layout.split(factor=0.25)
 
@@ -157,7 +152,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
         split = split.split(align=True, factor=0.9)
 
-        packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
+        packages = material.packages
         package = None
 
         if matlib_prop.package_id:
@@ -181,7 +176,6 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                              text=f"{package.label} ({package.size})" if package is not None else None,
                              icon='DOCUMENTS')
 
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
         package = next(package for package in material.packages
                        if package.id == matlib_prop.package_id)
 
