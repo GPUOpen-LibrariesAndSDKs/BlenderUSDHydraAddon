@@ -50,11 +50,9 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
         package = next(package for package in material.packages
                        if package.id == matlib_prop.package_id)
 
-        if package.file_path is None or not package.file_path.is_file():
-            package.get_info(use_cache=True)
-            package.get_file(use_cache=True)
-
-        mtlx_file = package.unzip(use_cache=True)
+        package.get_info()
+        package.get_file()
+        mtlx_file = package.unzip()
 
         # getting/creating MxNodeTree
         bl_material = context.material
@@ -92,10 +90,9 @@ class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
         package = next(package for package in material.packages
                        if package.id == matlib_prop.package_id)
 
-        package.get_info(use_cache=False)
-        package.get_file(use_cache=False)
-
-        package.unzip(use_cache=False)
+        package.get_info(False)
+        package.get_file(False)
+        package.unzip(False)
 
         return {"FINISHED"}
 
@@ -179,7 +176,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         package = next(package for package in material.packages
                        if package.id == matlib_prop.package_id)
 
-        icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
+        icon = "FILE_REFRESH" if package.has_file else "IMPORT"
 
         row = split.row()
         row.alignment = 'RIGHT'

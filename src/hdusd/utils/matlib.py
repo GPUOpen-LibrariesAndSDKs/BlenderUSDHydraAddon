@@ -82,11 +82,11 @@ class Render:
 
     @property
     def cache_dir(self):
-        return self.material().cache_dir / f"R-{self.id}"
+        return self.material().cache_dir
 
     def get_info(self, cache_chek=True):
-        json_data = request_json(f"{URL}/renders/{self.id}", None, self.cache_dir / "info.json",
-                                 cache_chek)
+        json_data = request_json(f"{URL}/renders/{self.id}", None,
+                                 self.cache_dir / f"R-{self.id[:8]}.json", cache_chek)
 
         self.author = json_data['author']
         self.image = json_data['image']
@@ -95,12 +95,12 @@ class Render:
         self.thumbnail_url = json_data['thumbnail_url']
 
     def get_image(self, cache_check=True):
-        self.image_path = download_file(self.image_url, self.cache_dir / self.image,
-                                        cache_check)
+        self.image_path = download_file(self.image_url,
+                                        self.cache_dir / self.image, cache_check)
 
     def get_thumbnail(self, cache_check=True):
-        self.thumbnail_path = download_file(self.thumbnail_url, self.cache_dir / self.thumbnail,
-                                            cache_check)
+        self.thumbnail_path = download_file(self.thumbnail_url,
+                                            self.cache_dir / self.thumbnail, cache_check)
 
     def thumbnail_load(self, pcoll):
         thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
@@ -123,11 +123,15 @@ class Package:
 
     @property
     def cache_dir(self):
-        return self.material().cache_dir / f"P-{self.id}"
+        return self.material().cache_dir / f"P-{self.id[:8]}"
+
+    @property
+    def has_file(self):
+        return bool(self.file_path)
 
     def get_info(self, cache_check=True):
-        json_data = request_json(f"{URL}/packages/{self.id}", None, self.cache_dir / "info.json",
-                                 cache_check)
+        json_data = request_json(f"{URL}/packages/{self.id}", None,
+                                 self.cache_dir / "info.json", cache_check)
 
         self.author = json_data['author']
         self.file = json_data['file']
@@ -136,8 +140,8 @@ class Package:
         self.size = json_data['size']
 
     def get_file(self, cache_check=True):
-        self.file_path = download_file(self.file_url, self.cache_dir / self.file,
-                                       cache_check)
+        self.file_path = download_file(self.file_url,
+                                       self.cache_dir / self.file, cache_check)
 
     def unzip(self, path=None, cache_check=True):
         if not path:
@@ -161,11 +165,11 @@ class Category:
 
     @property
     def cache_dir(self):
-        return MATLIB_DIR / "categories"
+        return MATLIB_DIR
 
     def get_info(self, use_cache=True):
         json_data = request_json(f"{URL}/categories/{self.id}", None,
-                                 self.cache_dir / f"{self.id}.json", use_cache)
+                                 self.cache_dir / f"C-{self.id[:8]}.json", use_cache)
 
         self.title = json_data['title']
 
@@ -199,7 +203,7 @@ class Material:
 
     @property
     def cache_dir(self):
-        return MATLIB_DIR / "materials" / self.id
+        return MATLIB_DIR / f"M-{self.id[:8]}"
 
     @property
     def full_description(self):

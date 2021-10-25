@@ -37,7 +37,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
             render.get_thumbnail()
             render.thumbnail_load(self.pcoll)
 
-        with futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with futures.ThreadPoolExecutor() as executor:
             fs = {executor.submit(render_load, mat): mat for mat in materials}
             for f in futures.as_completed(fs):
                 mat = fs[f]
