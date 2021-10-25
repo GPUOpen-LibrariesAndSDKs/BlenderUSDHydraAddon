@@ -13,12 +13,17 @@
 # limitations under the License.
 #********************************************************************
 from concurrent import futures
+import threading
 
 import bpy
 
 from . import HdUSDProperties
 
 from ..utils import matlib
+
+
+thread_pool = futures.ThreadPoolExecutor()
+mutex = threading.Lock()
 
 
 class MatlibProperties(bpy.types.PropertyGroup):
@@ -37,38 +42,31 @@ class MatlibProperties(bpy.types.PropertyGroup):
             render.get_thumbnail()
             render.thumbnail_load(self.pcoll)
 
-        with futures.ThreadPoolExecutor() as executor:
-            fs = {executor.submit(render_load, mat): mat for mat in materials}
-            for f in futures.as_completed(fs):
-                mat = fs[f]
-                self.pcoll.materials[mat.id] = mat
+        fs = {thread_pool.submit(render_load, mat): mat for mat in materials}
+        for f in futures.as_completed(fs):
+            mat = fs[f]
+            self.pcoll.materials[mat.id] = mat
 
-    def get_materials(self, context):
-        if not self.pcoll.materials:
-            self._set_materials()
-
+    def get_materials(self):
         materials = []
-        if not self.pcoll.materials:
-            return materials
-
-        search_string = self.search.strip().lower()
-        for i, mat in enumerate(self.pcoll.materials.values()):
+        search_str = self.search.strip().lower()
+        for mat in self.pcoll.materials.values():
             if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
                 continue
 
-            if search_string and not search_string in mat.title.strip().lower():
+            if search_str and not search_str in mat.title.strip().lower():
                 continue
 
-            description = f"{mat.title}"
-            if mat.description:
-                description += f"\n{mat.description}"
-            if mat.category:
-                description += f"\nCategory: {mat.category.title}"
-            description += f"\nAuthor: {mat.author}"
-
-            materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
+            materials.append(mat)
 
         return materials
+
+    def get_materials_prop(self, context):
+        if not self.pcoll.materials:
+            self._set_materials()
+
+        return [(mat.id, mat.title, mat.full_description, mat.renders[0].thumbnail_icon_id, i)
+                for i, mat in enumerate(self.get_materials())]
 
     def _set_categories(self):
         self.pcoll.categories = {}
@@ -84,7 +82,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
             cat.get_info()
             self.pcoll.categories[cat.id] = cat
 
-    def get_categories(self, context):
+    def get_categories_prop(self, context):
         if self.pcoll.categories is None:
             self._set_categories()
 
@@ -94,20 +92,20 @@ class MatlibProperties(bpy.types.PropertyGroup):
         return categories
 
     def update_material(self, context):
-        materials = self.get_materials(context)
-        if materials and not self.material in [mat[0] for mat in materials]:
-            self.material = materials[0][0]
+        materials = self.get_materials()
+        if materials and self.material not in materials:
+            self.material = materials[0].id
             self.package_id = self.pcoll.materials[self.material].packages[0].id
 
     material: bpy.props.EnumProperty(
         name="Material",
         description="Select material",
-        items=get_materials,
+        items=get_materials_prop,
     )
     category: bpy.props.EnumProperty(
         name="Category",
         description="Select materials category",
-        items=get_categories,
+        items=get_categories_prop,
         update=update_material,
     )
     search: bpy.props.StringProperty(
@@ -126,10 +124,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
         cls.pcoll = bpy.utils.previews.new()
         cls.pcoll.materials = None
         cls.pcoll.categories = None
+        print(cls)
 
     @classmethod
     def unregister(cls):
         bpy.utils.previews.remove(cls.pcoll)
+        print(cls)
 
 
 class WindowManagerProperties(HdUSDProperties):

@@ -29,7 +29,6 @@ URL = "https://matlibapi.stvcis.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
-
 def download_file(url, path, cache_check=True):
     if cache_check and path.is_file():
         return path
@@ -56,12 +55,16 @@ def request_json(url, params, path, cache_check=True):
     res_json = response.json()
 
     if path:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'w') as outfile:
-            json.dump(res_json, outfile)
+        save_json(res_json, path)
 
     log("request_json", "done")
     return res_json
+
+
+def save_json(json_obj, path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'w') as outfile:
+        json.dump(json_obj, outfile)
 
 
 @dataclass(init=False)
@@ -200,6 +203,8 @@ class Material:
         self.packages = []
         for id in mat_json['packages']:
             self.packages.append(Package(id, self))
+
+        save_json(mat_json, self.cache_dir / "info.json")
 
     @property
     def cache_dir(self):

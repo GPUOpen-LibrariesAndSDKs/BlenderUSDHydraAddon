@@ -116,7 +116,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         if matlib_prop.search:
             row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
 
-        if not matlib_prop.get_materials(context):
+        if not matlib_prop.get_materials():
             layout.label(text="No Materials Found")
             return
 
