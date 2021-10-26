@@ -91,12 +91,7 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
 
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
-    surfacematerial = next(node for node in doc.getNodes()
-                           if node.getCategory() == 'surfacematerial')
 
-    stage = root_prim.GetStage()
     for mat_prim in mat_prims:
-        shader = UsdShade.Shader.Define(stage, mat_prim.GetPath().AppendChild("rpr_materialx_node"))
-        shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(f"./{mx_file.name}")
-        shader.CreateInput("surfaceElement", Sdf.ValueTypeNames.String).Set(
-            surfacematerial.getName())
+        mat_prim.GetReferences().ClearReferences()
+        mat_prim.GetReferences().AddReference(f"./{mx_file.name}", "/MaterialX")
