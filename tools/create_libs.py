@@ -52,7 +52,7 @@ def main(bin_dir):
     copy(repo_dir / "deps/mx_libs/alglib", libs_dir / "libraries/alglib")
 
     if OS == 'Windows':
-        copy(bin_dir / "USD/build/openexr-2.3.0/OpenEXR/IlmImf/RelWithDebInfo/"
+        copy(bin_dir / "USD/build/openexr-2.3.0/OpenEXR/IlmImf/Release/"
              "IlmImf-2_3.dll", libs_dir / "lib/IlmImf-2_3.dll")
 
     if OS == 'Linux':
