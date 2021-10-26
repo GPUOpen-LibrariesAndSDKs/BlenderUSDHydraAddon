@@ -14,6 +14,7 @@
 #********************************************************************
 from dataclasses import dataclass
 from pathlib import Path
+import math
 
 import bpy
 
@@ -197,10 +198,9 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
     usd_light.CreateIntensityAttr(data.intensity)
     usd_light.CreateInput("transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
 
-    # # set correct Dome light rotation
+    # set correct Dome light rotation
     usd_light.AddRotateXOp().Set(180.0)
-    usd_light.AddRotateYOp().Set(-90.0)
-    # TODO: enable rotation angles
+    usd_light.AddRotateYOp().Set(-90.0 + math.degrees(data.rotation[2]))
 
 
 def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
