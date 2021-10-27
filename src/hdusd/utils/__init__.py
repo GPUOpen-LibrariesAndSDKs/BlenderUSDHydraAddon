@@ -35,7 +35,7 @@ IS_LINUX = OS == 'Linux'
 BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
 
 PLUGIN_ROOT_DIR = Path(hdusd.__file__).parent
-BLENDER_DATA_DIR = Path(bpy.utils.resource_path('LOCAL'))
+BLENDER_DATA_DIR = Path(bpy.utils.resource_path('LOCAL')) / 'datafiles'
 
 DEBUG_MODE = bool(int(os.environ.get('HDUSD_BLENDER_DEBUG', 0)))
 LIBS_DIR = PLUGIN_ROOT_DIR.parent.parent / 'libs' if DEBUG_MODE else \
@@ -66,8 +66,13 @@ def temp_pid_dir():
     return d
 
 
-def get_temp_file(suffix):
-    return Path(tempfile.mktemp(suffix, "tmp", temp_pid_dir()))
+def get_temp_file(suffix, name=None):
+    if not name:
+        return Path(tempfile.mktemp(suffix, "tmp", temp_pid_dir()))
+
+    if suffix:
+        name += suffix
+    return temp_pid_dir() / name
 
 
 def clear_temp_dir():
