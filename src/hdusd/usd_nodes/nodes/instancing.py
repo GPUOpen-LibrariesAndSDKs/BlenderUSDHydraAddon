@@ -114,7 +114,9 @@ class InstancingNode(USDNode):
         if not input_stage.GetPseudoRoot().GetAllChildren():
             return None
 
-        distribute_items = self.object.data.vertices if self.method == 'VERTICES' else self.object.data.polygons
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        obj = self.object.evaluated_get(depsgraph)
+        distribute_items = obj.data.vertices if self.method == 'VERTICES' else obj.data.polygons
         if not distribute_items:
             return None
 
@@ -133,7 +135,7 @@ class InstancingNode(USDNode):
 
             transform = trans @ rot
             if self.object_transform:
-                transform = self.object.matrix_world @ transform
+                transform = obj.matrix_world @ transform
 
             UsdGeom.Xform.Get(stage, root_xform.GetPath()).MakeMatrixXform()
             root_xform.GetPrim().GetAttribute('xformOp:transform').Set(Gf.Matrix4d(transform.transposed()))
@@ -147,4 +149,4 @@ class InstancingNode(USDNode):
         obj = next((update.id for update in depsgraph.updates if isinstance(update.id, bpy.types.Object)
                     and not update.id.hdusd.is_usd and update.id.name == self.object.name), None)
         if obj:
-            self.reset(True)
+            self.reset()
