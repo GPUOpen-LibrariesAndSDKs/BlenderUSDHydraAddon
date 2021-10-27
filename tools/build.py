@@ -36,9 +36,9 @@ def rm_dir(d: Path):
 def copy(src: Path, dest, ignore=()):
     print(f"Copying: {src} -> {dest}")
     if src.is_dir():
-        shutil.copytree(str(src), str(dest), ignore=shutil.ignore_patterns(*ignore))
+        shutil.copytree(str(src), str(dest), ignore=shutil.ignore_patterns(*ignore), symlinks=True)
     else:
-        shutil.copy(str(src), str(dest))
+        shutil.copy(str(src), str(dest), follow_symlinks=False)
 
 
 def usd(bin_dir, jobs, clean):
@@ -125,9 +125,10 @@ def main():
                     help="Generate MaterialX classes")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
-    ap.add_argument("-G", required=False, type=str, default="Visual Studio 15 2017 Win64",
+    ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
-                         'For example: -G "Visual Studio 15 2017 Win64"')
+                         'For example: -G "Visual Studio 15 2017 Win64"',
+                    default="Visual Studio 15 2017 Win64" if OS == 'Windows' else "")
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
     ap.add_argument("-usd-debug-libs", required=False, action="store_true",
@@ -142,6 +143,7 @@ def main():
         return
 
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
+    bin_dir.mkdir(parents=True, exist_ok=True)
 
     if args.all or args.usd:
         usd(bin_dir, args.j, args.clean)
