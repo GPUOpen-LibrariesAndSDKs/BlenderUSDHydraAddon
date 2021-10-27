@@ -41,6 +41,8 @@ class ShaderNodeTexImage(NodeParser):
 
         # TODO support UDIM Tilesets and SEQUENCE
         if not image or image.source in ('TILED', 'SEQUENCE'):
+            if not image.has_data:
+                log.warn("Image is missing", image, image.filepath)
             return image_error_result
 
         # there were scenes in Linux that have 0x0x0 image packed
