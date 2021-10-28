@@ -89,9 +89,21 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
         # removing rpr_materialx_node in all material_prims
         return None
 
+    surfacematerial = next(node for node in doc.getNodes()
+                           if node.getCategory() == 'surfacematerial')
+
+    stage = root_prim.GetStage()
+
+
     mx_file = utils.get_temp_file(".mtlx")
     mx.writeToXmlFile(doc, str(mx_file))
 
     for mat_prim in mat_prims:
+        mesh_prim = next((prim for prim in mat_prim.GetParent().GetChildren() if prim.GetTypeName() == 'Mesh'), None)
+        bindings = UsdShade.MaterialBindingAPI(mesh_prim)
+        bindings.UnbindAllBindings()
         mat_prim.GetReferences().ClearReferences()
         mat_prim.GetReferences().AddReference(f"./{mx_file.name}", "/MaterialX")
+        usd_mat = UsdShade.Material.Define(stage, mat_prim.GetPath().AppendChild('Materials').
+                                           AppendChild(surfacematerial.getName()))
+        bindings.Bind(usd_mat)
