@@ -108,7 +108,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
             return []
 
         return [(p.id, f"{p.label} ({p.size})", "")
-                for p in mat.packages]
+                for p in sorted(mat.packages)]
 
     def update_filter(self, context):
         materials = self.get_materials()

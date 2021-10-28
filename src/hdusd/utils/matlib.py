@@ -160,6 +160,20 @@ class Package:
         mtlx_file = next(path.glob("**/*.mtlx"))
         return mtlx_file
 
+    @property
+    def size_bytes(self):
+        n, b = self.size.split(" ")
+        size = float(n)
+        if b == "MB":
+            size *= 2 ^ 20
+        elif b == "KB":
+            size *= 2 ^ 10
+
+        return int(size)
+
+    def __lt__(self, other):
+        return self.size_bytes < other.size_bytes
+
 
 @dataclass
 class Category:
