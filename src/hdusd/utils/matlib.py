@@ -258,3 +258,11 @@ class Material:
             offset += limit
             if offset >= count:
                 break
+
+    @classmethod
+    def get_materials_cache(cls):
+        for f in MATLIB_DIR.glob("M-*/info.json"):
+            with open(f) as json_file:
+                mat_json = json.load(json_file)
+
+            yield Material(mat_json)

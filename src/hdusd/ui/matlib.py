@@ -165,9 +165,12 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         col.label(text=f"Author: {mat.author}")
 
         # packages
+        package = next((p for p in mat.packages if p.id == matlib_prop.package_id), None)
+        if not package:
+            return
+
         row = layout.row(align=True)
         row.prop(matlib_prop, 'package_id', icon='DOCUMENTS')
-        package = next(p for p in mat.packages if p.id == matlib_prop.package_id)
         row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="",
                      icon='FILE_REFRESH' if package.has_file else 'IMPORT')
 

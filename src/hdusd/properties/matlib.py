@@ -30,49 +30,80 @@ mutex = threading.Lock()
 
 
 class MatlibProperties(bpy.types.PropertyGroup):
-    def load_data(self):
-        log("load")
-        self.pcoll.materials = {}
-        self.pcoll.categories = {}
+    @classmethod
+    def load_data(cls):
+        cls.pcoll.materials = {}
+        cls.pcoll.categories = {}
 
         def category_load(cat):
             cat.get_info()
-            self.pcoll.categories[cat.id] = cat
+            cls.pcoll.categories[cat.id] = cat
 
         def material_load(mat):
             for render in mat.renders:
                 render.get_info()
                 render.get_thumbnail()
-                render.thumbnail_load(self.pcoll)
+                render.thumbnail_load(cls.pcoll)
 
             for package in mat.packages:
                 package.get_info()
 
-            self.pcoll.materials[mat.id] = mat
+            cls.pcoll.materials[mat.id] = mat
 
         def load():
-            materials = list(matlib.Material.get_materials())
-            categories = {mat.category.id: mat.category for mat in materials}
+            with futures.ThreadPoolExecutor() as executor:
+                # getting cached materials
+                materials = {mat.id: mat for mat in matlib.Material.get_materials_cache()}
+                categories = {mat.category.id: mat.category for mat in materials.values()}
 
-            category_loaders = [self.thread_pool.submit(category_load, cat)
-                                for cat in categories.values()]
-            for _ in futures.as_completed(category_loaders):
-                pass
+                category_loaders = [executor.submit(category_load, cat)
+                                    for cat in categories.values()]
+                for _ in futures.as_completed(category_loaders):
+                    pass
 
-            for mat in materials:
-                mat.category.get_info()
+                for mat in materials.values():
+                    mat.category.get_info()
 
-            material_loaders = [self.thread_pool.submit(material_load, mat) for mat in materials]
-            for _ in futures.as_completed(material_loaders):
-                pass
+                material_loaders = [executor.submit(material_load, mat)
+                                    for mat in materials.values()]
+                for _ in futures.as_completed(material_loaders):
+                    pass
 
-        self.load_thread = threading.Thread(target=load)
-        self.load_thread.start()
+                # getting and syncing with online materials
+                online_materials = {mat.id: mat for mat in matlib.Material.get_materials()}
+                new_material_ids = online_materials.keys() - materials.keys()
+                new_materials = {mat_id: online_materials[mat_id] for mat_id in new_material_ids}
+
+                new_categories = {}
+                for mat in new_materials.values():
+                    cat = mat.category
+                    if cat.id not in categories and cat.id not in new_categories:
+                        new_categories[cat.id] = cat
+
+                category_loaders = [executor.submit(category_load, cat)
+                                    for cat in new_categories.values()]
+                for _ in futures.as_completed(category_loaders):
+                    pass
+
+                for mat in new_materials.values():
+                    mat.category.get_info()
+
+                material_loaders = [executor.submit(material_load, mat)
+                                    for mat in new_materials.values()]
+                for _ in futures.as_completed(material_loaders):
+                    pass
+
+        cls.load_thread = threading.Thread(target=load)
+        cls.load_thread.start()
 
     def get_materials(self) -> dict:
         materials = {}
         search_str = self.search.strip().lower()
-        for mat in self.pcoll.materials.values():
+
+        # converting to list in thread safe purposes
+        materials_list = list(self.pcoll.materials.values())
+
+        for mat in materials_list:
             if search_str not in mat.title.lower():
                 continue
 
@@ -98,8 +129,11 @@ class MatlibProperties(bpy.types.PropertyGroup):
         if '' in self.pcoll.categories:
             categories += [('NONE', "No Category", "Show materials without category")]
 
+        # converting to list in thread safe purposes
+        categories_list = list(self.pcoll.categories.values())
+
         categories += ((cat.id, cat.title, f"Show materials with category {cat.title}")
-                       for cat in self.pcoll.categories.values())
+                       for cat in categories_list)
         return categories
 
     def get_packages_prop(self, context):
@@ -146,7 +180,6 @@ class MatlibProperties(bpy.types.PropertyGroup):
         cls.pcoll.categories = None
 
         # threading fields
-        cls.thread_pool = futures.ThreadPoolExecutor()
         cls.load_thread = None
         cls.status = ""
 
