@@ -50,17 +50,20 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
                 self.pcoll.materials[mat.id] = mat
 
-            category_loaders = [thread_pool.submit(category_load, cat) for cat in categories.values()]
+            category_loaders = [self.thread_pool.submit(category_load, cat)
+                                for cat in categories.values()]
             for _ in futures.as_completed(category_loaders):
                 pass
 
             for mat in materials:
                 mat.category.get_info()
 
-            material_loaders = [thread_pool.submit(material_load, mat) for mat in materials]
+            material_loaders = [self.thread_pool.submit(material_load, mat) for mat in materials]
+            for _ in futures.as_completed(material_loaders):
+                pass
 
-        load_thread = threading.Thread(target=load)
-        load_thread.start()
+        self.load_thread = threading.Thread(target=load)
+        self.load_thread.start()
 
     def get_materials(self) -> dict:
         materials = {}
@@ -140,7 +143,11 @@ class MatlibProperties(bpy.types.PropertyGroup):
         cls.pcoll = bpy.utils.previews.new()
         cls.pcoll.materials = None
         cls.pcoll.categories = None
-        cls.executor = futures.ThreadPoolExecutor()
+
+        # threading fields
+        cls.thread_pool = futures.ThreadPoolExecutor()
+        cls.load_thread = None
+        cls.status = ""
 
     @classmethod
     def unregister(cls):
