@@ -13,19 +13,58 @@
 # limitations under the License.
 #********************************************************************
 from dataclasses import dataclass
+from pathlib import Path
+import math
 
 import bpy
 
 from pxr import Sdf, UsdLux, Tf
 
-from ...utils.image import cache_image_file
+from ...utils.image import cache_image_file, cache_image_file_path
 from ...utils import BLENDER_DATA_DIR
 
 from ...utils import logging
 log = logging.Log(tag='export.world')
 
 
-PRIM_NAME = "World"
+OBJ_PRIM_NAME = "World"
+LIGHT_PRIM_NAME = "World"
+
+
+@dataclass(init=False, eq=True)
+class ShadingData:
+    type: str
+    use_scene_lights: bool = True
+    use_scene_world: bool = True
+    has_world: bool = False
+    studiolight: Path = None
+    studiolight_rotate_z: float = 0.0
+    studiolight_background_alpha: float = 0.0
+    studiolight_intensity: float = 1.0
+
+    def __init__(self, context: bpy.types.Context, world: bpy.types.World):
+        shading = context.area.spaces.active.shading
+
+        self.type = shading.type
+        if self.type == 'RENDERED':
+            self.use_scene_lights = shading.use_scene_lights_render
+            self.use_scene_world = shading.use_scene_world_render
+        else:
+            self.use_scene_lights = shading.use_scene_lights
+            self.use_scene_world = shading.use_scene_world
+
+        if self.use_scene_world:
+            self.has_world = bool(world)
+
+        else:
+            if shading.selected_studio_light.path:
+                self.studiolight = Path(shading.selected_studio_light.path)
+            else:
+                self.studiolight = BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light
+
+            self.studiolight_rotate_z = shading.studiolight_rotate_z
+            self.studiolight_background_alpha = shading.studiolight_background_alpha
+            self.studiolight_intensity = shading.studiolight_intensity
 
 
 @dataclass(init=False, eq=True, repr=True)
@@ -119,11 +158,14 @@ class WorldData:
         return data
 
     @staticmethod
-    def init_from_shading(shading):
+    def init_from_shading(shading: ShadingData, world):
+        if shading.use_scene_world:
+            return WorldData.init_from_world(world)
+
         data = WorldData()
-        data.intensity = shading.studio_light_intensity
-        data.rotation = (0.0, 0.0, shading.studio_light_rotate_z)
-        data.image = BLENDER_DATA_DIR / "studiolights/world" / shading.studio_light
+        data.intensity = shading.studiolight_intensity
+        data.rotation = (0.0, 0.0, shading.studiolight_rotate_z)
+        data.image = cache_image_file_path(shading.studiolight)
         return data
 
     @staticmethod
@@ -140,14 +182,16 @@ class WorldData:
         return data
 
 
-def sync(root_prim, world: bpy.types.World):
-    data = WorldData.init_from_world(world)
+def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
+    if shading:
+        data = WorldData.init_from_shading(shading, world)
+    else:
+        data = WorldData.init_from_world(world)
 
     stage = root_prim.GetStage()
 
-    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
-    usd_light = UsdLux.DomeLight.Define(stage,
-        obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(world.name)))
+    obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(OBJ_PRIM_NAME))
+    usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild(LIGHT_PRIM_NAME))
     usd_light.OrientToStageUpAxis()
 
     if data.image:
@@ -158,31 +202,15 @@ def sync(root_prim, world: bpy.types.World):
     usd_light.CreateIntensityAttr(data.intensity)
     usd_light.CreateInput("transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
 
-    # # set correct Dome light rotation
+    # set correct Dome light rotation
     usd_light.AddRotateXOp().Set(180.0)
-    usd_light.AddRotateYOp().Set(-90.0)
-    # TODO: enable rotation angles
+    usd_light.AddRotateYOp().Set(-90.0 + math.degrees(data.rotation[2]))
 
 
-def sync_update(root_prim, world: bpy.types.World):
+def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
     stage = root_prim.GetStage()
-
-    world_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(PRIM_NAME))
-
-    if not world:
-        world_prim.SetActive(False)
-        return
-
-    if not world_prim.IsActive():
-        world_prim.ClearActive()
-
-    for child in world_prim.GetChildren():
-        if child.GetName() != Tf.MakeValidIdentifier(world.name):
-            child.SetActive(False)
-
-    usd_light = UsdLux.DomeLight.Define(stage,
-        Sdf.Path(f"/{PRIM_NAME}").AppendChild(Tf.MakeValidIdentifier(world.name)))
-    usd_light.GetPrim().SetActive(True)
+    usd_light = UsdLux.DomeLight.Define(
+        stage, root_prim.GetPath().AppendChild(OBJ_PRIM_NAME).AppendChild(LIGHT_PRIM_NAME))
 
     # removing prev settings
     usd_light.CreateColorAttr().Clear()
@@ -193,12 +221,11 @@ def sync_update(root_prim, world: bpy.types.World):
 
     usd_light.ClearXformOpOrder()
 
-    sync(root_prim, world)
+    sync(root_prim, world, shading)
 
 
-def get_clear_color(root_prim, world: bpy.types.World):
-    light_prim = root_prim.GetStage().GetPrimAtPath(root_prim.GetPath().AppendChild(PRIM_NAME).
-                                                    AppendChild(Tf.MakeValidIdentifier(world.name)))
+def get_clear_color(root_prim):
+    light_prim = root_prim.GetChild(OBJ_PRIM_NAME).GetChild(LIGHT_PRIM_NAME)
     color = light_prim.GetAttribute('inputs:color').Get()
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
     transparency = light_prim.GetAttribute('inputs:transparency').Get()

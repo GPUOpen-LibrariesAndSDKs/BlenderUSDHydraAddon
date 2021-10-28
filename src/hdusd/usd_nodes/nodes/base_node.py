@@ -135,5 +135,8 @@ class USDNode(bpy.types.Node):
     def depsgraph_update(self, depsgraph):
         pass
 
+    def frame_change (self, depsgraph):
+        self.depsgraph_update(depsgraph)
+
     def material_update(self, material):
         pass
