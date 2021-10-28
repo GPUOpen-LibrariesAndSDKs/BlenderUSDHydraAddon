@@ -31,32 +31,36 @@ class MatlibProperties(bpy.types.PropertyGroup):
         self.pcoll.materials = {}
         self.pcoll.categories = {}
 
-        materials = list(matlib.Material.get_all_materials())
-        categories = {mat.category.id: mat.category for mat in materials}
+        def load():
+            materials = list(matlib.Material.get_all_materials())
+            categories = {mat.category.id: mat.category for mat in materials}
 
-        def category_load(cat):
-            cat.get_info()
-            self.pcoll.categories[cat.id] = cat
+            def category_load(cat):
+                cat.get_info()
+                self.pcoll.categories[cat.id] = cat
 
-        def material_load(mat):
-            for render in mat.renders:
-                render.get_info()
-                render.get_thumbnail()
-                render.thumbnail_load(self.pcoll)
+            def material_load(mat):
+                for render in mat.renders:
+                    render.get_info()
+                    render.get_thumbnail()
+                    render.thumbnail_load(self.pcoll)
 
-            for package in mat.packages:
-                package.get_info()
+                for package in mat.packages:
+                    package.get_info()
 
-            self.pcoll.materials[mat.id] = mat
+                self.pcoll.materials[mat.id] = mat
 
-        category_loaders = [thread_pool.submit(category_load, cat) for cat in categories.values()]
-        for _ in futures.as_completed(category_loaders):
-            pass
+            category_loaders = [thread_pool.submit(category_load, cat) for cat in categories.values()]
+            for _ in futures.as_completed(category_loaders):
+                pass
 
-        for mat in materials:
-            mat.category.get_info()
+            for mat in materials:
+                mat.category.get_info()
 
-        material_loaders = [thread_pool.submit(material_load, mat) for mat in materials]
+            material_loaders = [thread_pool.submit(material_load, mat) for mat in materials]
+
+        load_thread = threading.Thread(target=load)
+        load_thread.start()
 
     def get_materials(self) -> dict:
         materials = {}
