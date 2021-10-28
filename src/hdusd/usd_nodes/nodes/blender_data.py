@@ -304,7 +304,7 @@ class BlenderDataNode(USDNode):
 
                 if keys_to_remove:
                     for key in keys_to_remove:
-                        if key == world.PRIM_NAME:
+                        if key == world.OBJ_PRIM_NAME:
                             continue
                             
                         root_prim.GetStage().RemovePrim(root_prim.GetPath().AppendChild(key))

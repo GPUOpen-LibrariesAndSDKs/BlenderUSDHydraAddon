@@ -106,16 +106,15 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
     obj = obj_data.object
 
     if obj_data.is_particle:
+        orig_obj_path = objects_prim.GetPath().AppendChild(sdf_name(obj.original))
         usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
             sdf_name(obj.original)))
-        mesh_prim = stage.DefinePrim(f"/{sdf_name(obj.original)}"
-                                         f"/{sdf_name(obj.data)}", 'Mesh')
+        mesh_prim = stage.DefinePrim(orig_obj_path.AppendChild(sdf_name(obj.data)), 'Mesh')
         usd_mesh.GetPrim().GetReferences().AddInternalReference(mesh_prim.GetPath())
 
-        if obj.active_material is not None:
-            material_prim = stage.DefinePrim(
-                f"/{sdf_name(obj.original)}"
-                f"/{material.sdf_name(obj.active_material)}", 'Material')
+        if obj.active_material:
+            material_prim = stage.DefinePrim(orig_obj_path.AppendChild(
+                material.sdf_name(obj.active_material)), 'Material')
 
             usd_material = UsdShade.Material.Get(stage, material_prim.GetPath())
             UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
@@ -135,7 +134,7 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
     elif obj.type == 'CAMERA':
         camera.sync(obj_prim, obj, **kwargs)
 
-    elif obj.type == 'EMPTY':
+    elif obj.type in ('EMPTY', 'ARMATURE'):
         pass
 
     else:
@@ -172,7 +171,7 @@ def sync_update(root_prim, obj_data: ObjectData, is_updated_geometry, is_updated
         elif obj.type == 'CAMERA':
             camera.sync_update(obj_prim, obj, **kwargs)
 
-        elif obj.type == 'EMPTY':
+        elif obj.type in ('EMPTY', 'ARMATURE'):
             pass
 
         else:

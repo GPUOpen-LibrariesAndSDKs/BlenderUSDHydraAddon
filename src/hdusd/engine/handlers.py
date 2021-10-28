@@ -20,14 +20,14 @@ from .engine import log
 
 @bpy.app.handlers.persistent
 def on_load_pre(*args):
-    """ Handler on loading a blend file (before) """
+    """Handler on loading a blend file (before)"""
     log("on_load_pre", args)
     utils.clear_temp_dir()
 
 
 @bpy.app.handlers.persistent
 def on_load_post(*args):
-    """ Handler on loading a blend file (after) """
+    """Handler on loading a blend file (after)"""
     log("on_load_post", args)
     from ..usd_nodes import node_tree
     node_tree.reset()
@@ -35,6 +35,7 @@ def on_load_post(*args):
 
 @bpy.app.handlers.persistent
 def on_depsgraph_update_post(scene, depsgraph):
+    log("on_depsgraph_update", depsgraph)
     from ..properties import object, material
     from ..usd_nodes import node_tree
     from ..ui import material as material_ui
@@ -43,6 +44,16 @@ def on_depsgraph_update_post(scene, depsgraph):
     material.depsgraph_update(depsgraph)
     node_tree.depsgraph_update(depsgraph)
     material_ui.depsgraph_update(depsgraph)
+
+
+@bpy.app.handlers.persistent
+def on_frame_change_post(scene, depsgraph):
+    """Handler on frame change a blend file (after)"""
+    log("on_frame_change", depsgraph)
+    from ..usd_nodes import node_tree
+
+    node_tree.frame_change(depsgraph)
+
 
 @bpy.app.handlers.persistent
 def on_save_pre(*args):
