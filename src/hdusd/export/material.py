@@ -101,7 +101,7 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
         mat_prim.GetReferences().ClearReferences()
         mat_prim.GetReferences().AddReference(f"./{mx_file.name}", "/MaterialX")
 
-        # apply new bind if shader switched to MaterialX or vice verse
+        # apply new bind if shader switched to MaterialX or vice versa
         mesh_prim = next((prim for prim in mat_prim.GetParent().GetChildren() if prim.GetTypeName() == 'Mesh'), None)
         if not mesh_prim:
             return
