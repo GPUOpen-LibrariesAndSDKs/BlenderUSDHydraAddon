@@ -27,82 +27,80 @@ mutex = threading.Lock()
 
 
 class MatlibProperties(bpy.types.PropertyGroup):
-    pcoll = None
-
-    def _set_materials(self):
+    def load_data(self):
         self.pcoll.materials = {}
+        self.pcoll.categories = {}
+
         materials = list(matlib.Material.get_all_materials())
-        for mat in materials:
-            if mat.category:
-                mat.category.get_info()
+        categories = {mat.category.id: mat.category for mat in materials}
+
+        def category_load(cat):
+            cat.get_info()
+            self.pcoll.categories[cat.id] = cat
 
         def render_load(mat):
             render = mat.renders[0]
             render.get_info()
             render.get_thumbnail()
             render.thumbnail_load(self.pcoll)
-
-        fs = {thread_pool.submit(render_load, mat): mat for mat in materials}
-        for f in futures.as_completed(fs):
-            mat = fs[f]
             self.pcoll.materials[mat.id] = mat
 
-    def get_materials(self):
-        materials = []
+        cat_loaders = [thread_pool.submit(category_load, cat) for cat in categories.values()]
+        for _ in futures.as_completed(cat_loaders):
+            pass
+
+        for mat in materials:
+            mat.category.get_info()
+
+        render_loaders = [thread_pool.submit(render_load, mat) for mat in materials]
+
+    def get_materials(self) -> dict:
+        materials = {}
+        if self.pcoll.materials is None:
+            self.load_data()
+
         search_str = self.search.strip().lower()
         for mat in self.pcoll.materials.values():
-            if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
+            if search_str not in mat.title.lower():
                 continue
 
-            if search_str and not search_str in mat.title.strip().lower():
+            if not (mat.category.id == self.category_id or self.category_id == 'ALL' or
+                    (self.category_id == 'NONE' and mat.category.id == '')):
                 continue
 
-            materials.append(mat)
+            materials[mat.id] = mat
 
         return materials
 
     def get_materials_prop(self, context):
-        if not self.pcoll.materials:
-            self._set_materials()
-
         return [(mat.id, mat.title, mat.full_description, mat.renders[0].thumbnail_icon_id, i)
-                for i, mat in enumerate(self.get_materials())]
-
-    def _set_categories(self):
-        self.pcoll.categories = {}
-
-        if not self.pcoll.materials:
-            self._set_materials()
-
-        for mat in self.pcoll.materials:
-            cat = self.pcoll.materials[mat].category
-            if not cat or cat.id in self.pcoll.categories:
-                continue
-
-            cat.get_info()
-            self.pcoll.categories[cat.id] = cat
+                for i, mat in enumerate(self.get_materials().values())]
 
     def get_categories_prop(self, context):
+        categories = []
         if self.pcoll.categories is None:
-            self._set_categories()
+            return categories
 
-        categories = [('ALL', "All Categories", "Show materials for all categories")]
-        categories += ((cat.id, cat.title, f"Category: {cat.title}")
+        categories += [('ALL', "All Categories", "Show materials for all categories")]
+        if '' in self.pcoll.categories:
+            categories += [('NONE', "No Category", "Show materials without category")]
+
+        categories += ((cat.id, cat.title, f"Show materials with category {cat.title}")
                        for cat in self.pcoll.categories.values())
         return categories
 
     def update_material(self, context):
         materials = self.get_materials()
-        if materials and self.material not in materials:
-            self.material = materials[0].id
-            self.package_id = self.pcoll.materials[self.material].packages[0].id
+        if materials and self.material_id not in materials:
+            self.material = next(iter(materials))
+            self.package_id = materials[self.material_id].packages[0].id
 
-    material: bpy.props.EnumProperty(
+    material_id: bpy.props.EnumProperty(
         name="Material",
         description="Select material",
         items=get_materials_prop,
     )
-    category: bpy.props.EnumProperty(
+    category_id: bpy.props.EnumProperty(
         name="Category",
         description="Select materials category",
         items=get_categories_prop,
@@ -124,12 +122,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
         cls.pcoll = bpy.utils.previews.new()
         cls.pcoll.materials = None
         cls.pcoll.categories = None
-        print(cls)
+        cls.executor = futures.ThreadPoolExecutor()
+        cls.data_lock = threading.Lock()
 
     @classmethod
     def unregister(cls):
         bpy.utils.previews.remove(cls.pcoll)
-        print(cls)
 
 
 class WindowManagerProperties(HdUSDProperties):

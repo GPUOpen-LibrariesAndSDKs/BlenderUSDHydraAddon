@@ -171,6 +171,9 @@ class Category:
         return MATLIB_DIR
 
     def get_info(self, use_cache=True):
+        if not self.id:
+            return
+
         json_data = request_json(f"{URL}/categories/{self.id}", None,
                                  self.cache_dir / f"C-{self.id[:8]}.json", use_cache)
 
@@ -193,7 +196,7 @@ class Material:
         self.author = mat_json['author']
         self.title = mat_json['title']
         self.description = mat_json['description']
-        self.category = Category(mat_json['category']) if mat_json['category'] else None
+        self.category = Category(mat_json['category'])
         self.status = mat_json['status']
 
         self.renders = []

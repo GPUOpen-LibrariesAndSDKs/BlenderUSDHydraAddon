@@ -109,6 +109,8 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
         matlib_prop = context.window_manager.hdusd.matlib
+        materials = matlib_prop.get_materials()
+        return
 
         layout.prop(matlib_prop, "category")
         row = layout.row(align=True)
