@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import traceback
+import textwrap
 
 import MaterialX as mx
 
@@ -148,14 +149,20 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
                 row.template_icon(render.thumbnail_icon_id, scale=5)
 
-        # material description
+        # material title
         row = col.row()
         row.alignment = 'CENTER'
         row.label(text=mat.title)
 
+        # material description
+        col = layout.column(align=True)
         if mat.description:
-            col.label(text=mat.description)
+            for line in textwrap.wrap(mat.description, 60):
+                col.label(text=line)
+
+        col = layout.column(align=True)
         col.label(text=f"Category: {mat.category.title}")
+        col.label(text=f"Author: {mat.author}")
 
         # packages
         row = layout.row(align=True)
@@ -164,40 +171,8 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="",
                      icon='FILE_REFRESH' if package.has_file else 'IMPORT')
 
+        # import button
         row = layout.row()
         row.enabled = bool(context.material)
         row.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
                      icon='IMPORT')
-
-
-class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
-    bl_label = "Package"
-    bl_idname = "HDUSD_MATLIB_MT_package_menu"
-
-    def draw(self, context):
-        layout = self.layout
-        op_idname = HDUSD_MATLIB_OP_select_package.bl_idname
-
-        matlib_prop = context.window_manager.hdusd.matlib
-        packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
-
-        for package in packages:
-            if package.file is None:
-                package.get_info()
-
-            row = layout.row()
-            op = row.operator(op_idname, text=f"{package.label} ({package.size})",
-                              icon='DOCUMENTS')
-            op.matlib_package_id = package.id
-
-
-class HDUSD_MATLIB_OP_select_package(bpy.types.Operator):
-    """Select Package"""
-    bl_label = "Select Package"
-    bl_idname = "hdusd.matlib_select_package"
-
-    matlib_package_id: bpy.props.StringProperty(default="")
-
-    def execute(self, context):
-        context.window_manager.hdusd.matlib.package_id = self.matlib_package_id
-        return {"FINISHED"}
