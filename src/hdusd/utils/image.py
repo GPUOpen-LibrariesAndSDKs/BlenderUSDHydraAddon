@@ -17,6 +17,7 @@ from pathlib import Path
 import bpy
 
 from . import get_temp_file
+from . import log
 
 
 SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tga", ".bmp"}
@@ -25,6 +26,13 @@ BLENDER_DEFAULT_FORMAT = "HDR"
 
 
 def cache_image_file(image: bpy.types.Image, cache_check=True):
+    # at fist start image.has_data = False even if filepath correct
+    if not image.has_data:
+        temp_path = Path(image.filepath_from_user())
+        if not temp_path.is_file():
+            log.warn("Image is missing", image, image.filepath)
+            return None
+
     if not image.packed_file and image.source != 'GENERATED' and \
             Path(image.filepath).suffix.lower() in SUPPORTED_FORMATS and \
             f".{image.file_format.lower()}" in SUPPORTED_FORMATS:

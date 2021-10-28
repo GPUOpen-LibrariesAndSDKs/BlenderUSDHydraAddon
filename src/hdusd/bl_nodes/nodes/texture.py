@@ -15,7 +15,6 @@
 import os
 
 from ..node_parser import NodeParser
-from ... import utils
 from ...utils.image import cache_image_file
 from . import log
 
@@ -41,8 +40,6 @@ class ShaderNodeTexImage(NodeParser):
 
         # TODO support UDIM Tilesets and SEQUENCE
         if not image or image.source in ('TILED', 'SEQUENCE'):
-            if not image.has_data:
-                log.warn("Image is missing", image, image.filepath)
             return image_error_result
 
         # there were scenes in Linux that have 0x0x0 image packed
@@ -50,6 +47,8 @@ class ShaderNodeTexImage(NodeParser):
             return image_error_result
 
         img_path = cache_image_file(image)
+        if not img_path:
+            return image_error_result
 
         # TODO use Vector input for UV
         uv = self.create_node('texcoord', 'vector2', {})

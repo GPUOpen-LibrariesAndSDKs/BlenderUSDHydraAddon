@@ -131,10 +131,8 @@ class WorldData:
         color = node_data.get('color')
         if color is None:
             image = node_data.get('image')
-            if image and image.has_data:
+            if image:
                 data.image = cache_image_file(image)
-            else:
-                log.warn("Image is missing", image, image.filepath)
 
         elif isinstance(color, float):
             data.color = (color, color, color)
@@ -146,10 +144,8 @@ class WorldData:
 
         else:   # dict
             image = color.get('image')
-            if image and image.has_data:
+            if image:
                 data.image = cache_image_file(image)
-            else:
-                log.warn("Image is missing", image, image.filepath)
 
         rotation = node_data.get('rotation')
         if isinstance(rotation, tuple):
