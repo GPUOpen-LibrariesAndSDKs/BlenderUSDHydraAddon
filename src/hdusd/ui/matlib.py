@@ -109,30 +109,27 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
         matlib_prop = context.window_manager.hdusd.matlib
-        materials = matlib_prop.get_materials()
-        return
 
-        layout.prop(matlib_prop, "category")
+        layout.prop(matlib_prop, "category_id")
         row = layout.row(align=True)
         row.prop(matlib_prop, "search", text="", icon="VIEWZOOM")
         if matlib_prop.search:
             row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
 
-        if not matlib_prop.get_materials():
+        materials = matlib_prop.get_materials()
+        if not materials:
             layout.label(text="No Materials Found")
             return
 
-        layout.template_icon_view(matlib_prop, "material", show_labels=True)
+        layout.template_icon_view(matlib_prop, "material_id", show_labels=True)
 
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
+        material = materials.get(matlib_prop.material_id)
+        if not material:
+            return
+
         if len(material.renders) > 1:
             grid = layout.grid_flow(align=True)
             for i, render in enumerate(material.renders):
-                if render.thumbnail_icon_id is None:
-                    render.get_info()
-                    render.get_thumbnail()
-                    render.thumbnail_load(matlib_prop.pcoll)
-
                 if i % 6 == 0:
                     row = grid.row()
                     row.alignment = "CENTER"
@@ -142,6 +139,8 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         for line in material.full_description.splitlines():
             row = layout.row()
             row.label(text=line)
+
+        return
 
         split = layout.split(factor=0.25)
 
