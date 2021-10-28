@@ -107,8 +107,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
             if search_str not in mat.title.lower():
                 continue
 
-            if not (mat.category.id == self.category_id or self.category_id == 'ALL' or
-                    (self.category_id == 'NONE' and mat.category.id == '')):
+            if not (mat.category.id == self.category_id or self.category_id == 'ALL'):
                 continue
 
             materials[mat.id] = mat
@@ -116,9 +115,17 @@ class MatlibProperties(bpy.types.PropertyGroup):
         return materials
 
     def get_materials_prop(self, context):
-        return [(mat.id, mat.title, mat.full_description,
-                 mat.renders[0].thumbnail_icon_id if mat.renders else 'MATERIAL', i)
-                for i, mat in enumerate(self.get_materials().values())]
+        materials = []
+        for i, mat in enumerate(sorted(self.get_materials().values())):
+            description = mat.title
+            if mat.description:
+                description += f"\n{mat.description}"
+            description += f"\nCategory: {mat.category.title}\nAuthor: {mat.author}"
+
+            icon_id = mat.renders[0].thumbnail_icon_id if mat.renders else 'MATERIAL'
+            materials.append((mat.id, mat.title, description, icon_id, i))
+
+        return materials
 
     def get_categories_prop(self, context):
         categories = []
@@ -126,14 +133,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
             return categories
 
         categories += [('ALL', "All Categories", "Show materials for all categories")]
-        if '' in self.pcoll.categories:
-            categories += [('NONE', "No Category", "Show materials without category")]
 
         # converting to list in thread safe purposes
         categories_list = list(self.pcoll.categories.values())
 
         categories += ((cat.id, cat.title, f"Show materials with category {cat.title}")
-                       for cat in categories_list)
+                       for cat in sorted(categories_list))
         return categories
 
     def get_packages_prop(self, context):

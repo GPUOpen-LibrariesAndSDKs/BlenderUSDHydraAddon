@@ -193,6 +193,9 @@ class Category:
 
         self.title = json_data['title']
 
+    def __lt__(self, other):
+        return self.title < other.title
+
 
 @dataclass(init=False)
 class Material:
@@ -223,20 +226,12 @@ class Material:
 
         save_json(mat_json, self.cache_dir / "info.json")
 
+    def __lt__(self, other):
+        return self.title < other.title
+
     @property
     def cache_dir(self):
         return MATLIB_DIR / f"M-{self.id[:8]}"
-
-    @property
-    def full_description(self):
-        text = self.title
-        if self.description:
-            text += f"\n{self.description}"
-        if self.category:
-            text += f"\nCategory: {self.category.title}"
-        text += f"\nAuthor: {self.author}"
-
-        return text
 
     @classmethod
     def get_materials(cls):
@@ -250,7 +245,7 @@ class Material:
 
             for mat_json in res_json['results']:
                 mat = Material(mat_json)
-                if not mat.packages:
+                if not mat.packages or not mat.category.id:
                     continue
 
                 yield mat
