@@ -110,7 +110,13 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout = self.layout
         matlib_prop = context.window_manager.hdusd.matlib
 
+        if matlib_prop.pcoll.materials is None:
+            layout.label(text="No materials loaded")
+            matlib_prop.load_data()
+            return
+
         layout.prop(matlib_prop, "category_id")
+
         row = layout.row(align=True)
         row.prop(matlib_prop, "search", text="", icon="VIEWZOOM")
         if matlib_prop.search:
@@ -118,7 +124,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
         materials = matlib_prop.get_materials()
         if not materials:
-            layout.label(text="No Materials Found")
+            layout.label(text="No materials found")
             return
 
         layout.template_icon_view(matlib_prop, "material_id", show_labels=True)

@@ -21,6 +21,9 @@ from . import HdUSDProperties
 
 from ..utils import matlib
 
+from ..utils import logging
+log = logging.Log(tag='properties.matlib')
+
 
 thread_pool = futures.ThreadPoolExecutor()
 mutex = threading.Lock()
@@ -28,27 +31,28 @@ mutex = threading.Lock()
 
 class MatlibProperties(bpy.types.PropertyGroup):
     def load_data(self):
+        log("load")
         self.pcoll.materials = {}
         self.pcoll.categories = {}
 
+        def category_load(cat):
+            cat.get_info()
+            self.pcoll.categories[cat.id] = cat
+
+        def material_load(mat):
+            for render in mat.renders:
+                render.get_info()
+                render.get_thumbnail()
+                render.thumbnail_load(self.pcoll)
+
+            for package in mat.packages:
+                package.get_info()
+
+            self.pcoll.materials[mat.id] = mat
+
         def load():
-            materials = list(matlib.Material.get_all_materials())
+            materials = list(matlib.Material.get_materials())
             categories = {mat.category.id: mat.category for mat in materials}
-
-            def category_load(cat):
-                cat.get_info()
-                self.pcoll.categories[cat.id] = cat
-
-            def material_load(mat):
-                for render in mat.renders:
-                    render.get_info()
-                    render.get_thumbnail()
-                    render.thumbnail_load(self.pcoll)
-
-                for package in mat.packages:
-                    package.get_info()
-
-                self.pcoll.materials[mat.id] = mat
 
             category_loaders = [self.thread_pool.submit(category_load, cat)
                                 for cat in categories.values()]
@@ -67,9 +71,6 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
     def get_materials(self) -> dict:
         materials = {}
-        if self.pcoll.materials is None:
-            self.load_data()
-
         search_str = self.search.strip().lower()
         for mat in self.pcoll.materials.values():
             if search_str not in mat.title.lower():

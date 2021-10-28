@@ -225,27 +225,22 @@ class Material:
         return text
 
     @classmethod
-    def get_materials(cls, limit=10, offset=0):
-        res_json = request_json(f"{URL}/materials", {'limit': limit, 'offset': offset}, None)
-
-        for mat_json in res_json['results']:
-            mat = Material(mat_json)
-            if not mat.packages:
-                continue
-
-            yield mat
-
-    @classmethod
-    def get_all_materials(cls):
+    def get_materials(cls):
         offset = 0
         limit = 500
 
         while True:
-            mat = None
-            for mat in cls.get_materials(limit, offset):
+            res_json = request_json(f"{URL}/materials", {'limit': limit, 'offset': offset}, None)
+
+            count = res_json['count']
+
+            for mat_json in res_json['results']:
+                mat = Material(mat_json)
+                if not mat.packages:
+                    continue
+
                 yield mat
 
-            if not mat:
-                break
-
             offset += limit
+            if offset >= count:
+                break
