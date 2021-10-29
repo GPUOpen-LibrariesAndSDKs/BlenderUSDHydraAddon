@@ -38,6 +38,10 @@ def download_file(url, path, cache_check=True):
     path.parent.mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True) as response:
         with open(path, 'wb') as f:
+            # for chunk in response.iter_content(chunk_size=8192):
+            #     print(len(chunk))
+            #     f.write(chunk)
+
             shutil.copyfileobj(response.raw, f)
 
     log("download_file", "done")

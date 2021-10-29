@@ -45,13 +45,8 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
+        package = matlib_prop.package
 
-        # unzipping package
-        package = next(package for package in material.packages
-                       if package.id == matlib_prop.package_id)
-
-        package.get_info()
         package.get_file()
         mtlx_file = package.unzip()
 
@@ -79,17 +74,13 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
 
 
 class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
-    """Reload Material"""
+    """Load / Reload material package"""
     bl_idname = "hdusd.matlib_load_package"
-    bl_label = "Load package"
+    bl_label = "Load / Reload Package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
-
-        # unzipping package
-        package = next(package for package in material.packages
-                       if package.id == matlib_prop.package_id)
+        package = matlib_prop.package
 
         package.get_info(False)
         package.get_file(False)
@@ -133,9 +124,11 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
             col.label(text="No materials found")
             return
 
+        col.label(text=f"Found {len(materials)} materials")
+
         col.template_icon_view(matlib_prop, 'material_id', show_labels=True)
 
-        mat = materials.get(matlib_prop.material_id)
+        mat = matlib_prop.material
         if not mat:
             return
 
@@ -165,7 +158,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         col.label(text=f"Author: {mat.author}")
 
         # packages
-        package = next((p for p in mat.packages if p.id == matlib_prop.package_id), None)
+        package = matlib_prop.package
         if not package:
             return
 

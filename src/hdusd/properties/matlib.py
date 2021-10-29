@@ -142,7 +142,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
         return categories
 
     def get_packages_prop(self, context):
-        mat = self.pcoll.materials.get(self.material_id)
+        mat = self.material
         if not mat:
             return []
 
@@ -176,6 +176,18 @@ class MatlibProperties(bpy.types.PropertyGroup):
         description="Selected material package",
         items=get_packages_prop,
     )
+
+    @property
+    def material(self):
+        return self.pcoll.materials.get(self.material_id)
+
+    @property
+    def package(self):
+        mat = self.material
+        if not mat:
+            return None
+
+        return next((p for p in mat.packages if p.id == self.package_id), None)
 
     @classmethod
     def register(cls):
