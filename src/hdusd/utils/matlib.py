@@ -122,7 +122,6 @@ class Package:
     file: str = field(init=False, default=None)
     file_url: str = field(init=False, default=None)
     size: str = field(init=False, default=None)
-    file_path: Path = field(init=False, default=None)
 
     def __init__(self, id, material):
         self.id = id
@@ -133,8 +132,12 @@ class Package:
         return self.material().cache_dir / f"P-{self.id[:8]}"
 
     @property
+    def file_path(self):
+        return self.cache_dir / self.file
+
+    @property
     def has_file(self):
-        return bool(self.file_path)
+        return self.file_path.is_file()
 
     def get_info(self, cache_check=True):
         json_data = request_json(f"{URL}/packages/{self.id}", None,
@@ -147,8 +150,7 @@ class Package:
         self.size = json_data['size']
 
     def get_file(self, cache_check=True):
-        self.file_path = download_file(self.file_url,
-                                       self.cache_dir / self.file, cache_check)
+        download_file(self.file_url, self.cache_dir / self.file, cache_check)
 
     def unzip(self, path=None, cache_check=True):
         if not path:

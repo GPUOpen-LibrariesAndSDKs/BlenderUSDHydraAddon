@@ -142,18 +142,34 @@ class MatlibProperties(bpy.types.PropertyGroup):
         return categories
 
     def get_packages_prop(self, context):
+        packages = []
         mat = self.material
         if not mat:
-            return []
+            return packages
 
-        return [(p.id, f"{p.label} ({p.size})", "")
-                for p in sorted(mat.packages)]
+        for i, p in enumerate(sorted(mat.packages)):
+            description = f"Package: {p.label} ({p.size})\nAuthor: {p.author}"
+            if p.has_file:
+                description += "\nReady to import"
+            icon_id = 'RADIOBUT_ON' if p.has_file else 'RADIOBUT_OFF'
 
-    def update_filter(self, context):
+            packages.append((p.id, f"{p.label} ({p.size})", description, icon_id, i))
+
+        return packages
+
+    def update_category(self, context):
+        materials = self.get_materials()
+        if materials:
+            mat = min(materials.values())
+            self.material_id = mat.id
+            self.package_id = min(mat.packages).id
+
+    def update_search(self, context):
         materials = self.get_materials()
         if materials and self.material_id not in materials:
-            self.material_id = next(iter(materials))
-            self.package_id = materials[self.material_id].packages[0].id
+            mat = min(materials.values())
+            self.material_id = mat.id
+            self.package_id = min(mat.packages).id
 
     material_id: bpy.props.EnumProperty(
         name="Material",
@@ -164,12 +180,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
         name="Category",
         description="Select materials category",
         items=get_categories_prop,
-        update=update_filter,
+        update=update_category,
     )
     search: bpy.props.StringProperty(
         name="Search",
         description="Search materials by title",
-        update=update_filter,
+        update=update_search,
     )
     package_id: bpy.props.EnumProperty(
         name="Package",

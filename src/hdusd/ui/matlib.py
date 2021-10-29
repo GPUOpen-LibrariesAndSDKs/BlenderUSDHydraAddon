@@ -39,15 +39,14 @@ class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
 
 
 class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
-    """Import Material"""
+    """Import Material Package to material"""
     bl_idname = "hdusd.matlib_import_material"
-    bl_label = "Import Material"
+    bl_label = "Import Material Package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
         package = matlib_prop.package
 
-        package.get_file()
         mtlx_file = package.unzip()
 
         # getting/creating MxNodeTree
@@ -74,18 +73,15 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
 
 
 class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
-    """Load / Reload material package"""
+    """Load material package"""
     bl_idname = "hdusd.matlib_load_package"
-    bl_label = "Load / Reload Package"
+    bl_label = "Load Package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
         package = matlib_prop.package
 
-        package.get_info(False)
-        package.get_file(False)
-        package.unzip(False)
-
+        package.get_file()
         return {"FINISHED"}
 
 
@@ -124,7 +120,9 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
             col.label(text="No materials found")
             return
 
-        col.label(text=f"Found {len(materials)} materials")
+        row = col.row()
+        row.alignment = 'RIGHT'
+        row.label(text=f"{len(materials)} materials")
 
         col.template_icon_view(matlib_prop, 'material_id', show_labels=True)
 
@@ -164,11 +162,12 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
 
         row = layout.row(align=True)
         row.prop(matlib_prop, 'package_id', icon='DOCUMENTS')
-        row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="",
-                     icon='FILE_REFRESH' if package.has_file else 'IMPORT')
+        col1 = row.column()
+        col1.enabled = not package.has_file
+        col1.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon='IMPORT')
 
         # import button
         row = layout.row()
-        row.enabled = bool(context.material)
+        row.enabled = bool(context.material) and package.has_file
         row.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
                      icon='IMPORT')
