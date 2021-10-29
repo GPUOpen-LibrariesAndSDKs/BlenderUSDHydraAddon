@@ -203,9 +203,9 @@ class Package:
         n, b = self.size_str.split(" ")
         size = float(n)
         if b == "MB":
-            size *= 2 ^ 20
+            size *= 2 ** 20
         elif b == "KB":
-            size *= 2 ^ 10
+            size *= 2 ** 10
 
         return int(size)
 
