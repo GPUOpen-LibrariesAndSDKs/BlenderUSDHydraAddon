@@ -347,6 +347,15 @@ class NodeParser:
             log.warn("Invalid link ignored", link, socket_in, self.node, self.material)
             return None
 
+        if isinstance(self.node, bpy.types.NodeReroute):
+            return None
+
+        while isinstance(link.from_node, bpy.types.NodeReroute):
+            try:
+                link = link.from_node.inputs[0].links[0]
+            except:
+                break
+
         return self._export_node(link.from_node, link.from_socket.identifier)
 
     def get_input_value(self, in_key):
