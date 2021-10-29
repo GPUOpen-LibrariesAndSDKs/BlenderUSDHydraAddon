@@ -150,7 +150,7 @@ class Package:
     def __init__(self, id, material):
         self.id = id
         self.material = weakref.ref(material)
-        self.size_load = 0
+        self.size_load = None
         self.load_thread = None
 
     @property
@@ -176,6 +176,8 @@ class Package:
         self.size_str = json_data['size']
 
     def download(self, cache_check=True):
+        self.size_load = 0
+
         def callback(size):
             self.size_load = size
 

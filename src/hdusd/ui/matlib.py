@@ -73,9 +73,9 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
 
 
 class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
-    """Load material package"""
+    """Download material package"""
     bl_idname = "hdusd.matlib_load_package"
-    bl_label = "Load Package"
+    bl_label = "Download Package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
@@ -160,14 +160,16 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         if not package:
             return
 
-        row = layout.row(align=True)
-        row.prop(matlib_prop, 'package_id', icon='DOCUMENTS')
-        col1 = row.column()
-        col1.enabled = not package.has_file
-        col1.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon='IMPORT')
+        layout.prop(matlib_prop, 'package_id', icon='DOCUMENTS')
 
-        # import button
         row = layout.row()
-        row.enabled = bool(context.material) and package.has_file
-        row.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
-                     icon='IMPORT')
+        if package.has_file:
+            row.operator(HDUSD_MATLIB_OP_import_material.bl_idname, icon='IMPORT')
+        else:
+            if package.size_load is None:
+                row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, icon='IMPORT')
+            else:
+                percent = min(100, int(package.size_load * 100 / package.size))
+                row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, icon='IMPORT',
+                             text=f"Downloading Package...{percent}%")
+                row.enabled = False
