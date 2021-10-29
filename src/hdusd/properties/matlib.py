@@ -148,12 +148,12 @@ class MatlibProperties(bpy.types.PropertyGroup):
             return packages
 
         for i, p in enumerate(sorted(mat.packages)):
-            description = f"Package: {p.label} ({p.size})\nAuthor: {p.author}"
+            description = f"Package: {p.label} ({p.size_str})\nAuthor: {p.author}"
             if p.has_file:
                 description += "\nReady to import"
             icon_id = 'RADIOBUT_ON' if p.has_file else 'RADIOBUT_OFF'
 
-            packages.append((p.id, f"{p.label} ({p.size})", description, icon_id, i))
+            packages.append((p.id, f"{p.label} ({p.size_str})", description, icon_id, i))
 
         return packages
 

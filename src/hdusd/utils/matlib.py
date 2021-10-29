@@ -19,6 +19,7 @@ import shutil
 from pathlib import Path
 import zipfile
 import json
+import threading
 
 from . import LIBS_DIR
 
@@ -38,14 +39,37 @@ def download_file(url, path, cache_check=True):
     path.parent.mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True) as response:
         with open(path, 'wb') as f:
-            # for chunk in response.iter_content(chunk_size=8192):
-            #     print(len(chunk))
-            #     f.write(chunk)
-
             shutil.copyfileobj(response.raw, f)
 
     log("download_file", "done")
     return path
+
+
+def download_file_callback(url, path, update_callback, cache_check=True):
+    if cache_check and path.is_file():
+        return None
+
+    def load():
+        log("download_file_callback", f"{url=}, {path=}")
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path_raw = path.with_suffix(".raw")
+
+        size = 0
+        with requests.get(url, stream=True) as response:
+            with open(path_raw, 'wb') as f:
+                if update_callback:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        size += len(chunk)
+                        update_callback(size)
+                        f.write(chunk)
+
+        path_raw.rename(path)
+        log("download_file_callback", "done")
+
+    load_thread = threading.Thread(target=load)
+    load_thread.start()
+    return load_thread
 
 
 def request_json(url, params, path, cache_check=True):
@@ -121,11 +145,13 @@ class Package:
     label: str = field(init=False, default=None)
     file: str = field(init=False, default=None)
     file_url: str = field(init=False, default=None)
-    size: str = field(init=False, default=None)
+    size_str: str = field(init=False, default=None)
 
     def __init__(self, id, material):
         self.id = id
         self.material = weakref.ref(material)
+        self.size_load = 0
+        self.load_thread = None
 
     @property
     def cache_dir(self):
@@ -147,10 +173,14 @@ class Package:
         self.file = json_data['file']
         self.file_url = json_data['file_url']
         self.label = json_data['label']
-        self.size = json_data['size']
+        self.size_str = json_data['size']
 
-    def get_file(self, cache_check=True):
-        download_file(self.file_url, self.cache_dir / self.file, cache_check)
+    def download(self, cache_check=True):
+        def callback(size):
+            self.size_load = size
+
+        self.load_thread = download_file_callback(self.file_url, self.cache_dir / self.file,
+                                                  callback, cache_check)
 
     def unzip(self, path=None, cache_check=True):
         if not path:
@@ -167,8 +197,8 @@ class Package:
         return mtlx_file
 
     @property
-    def size_bytes(self):
-        n, b = self.size.split(" ")
+    def size(self):
+        n, b = self.size_str.split(" ")
         size = float(n)
         if b == "MB":
             size *= 2 ^ 20
@@ -178,7 +208,7 @@ class Package:
         return int(size)
 
     def __lt__(self, other):
-        return self.size_bytes < other.size_bytes
+        return self.size < other.size
 
 
 @dataclass

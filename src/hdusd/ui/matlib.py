@@ -81,7 +81,7 @@ class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
         matlib_prop = context.window_manager.hdusd.matlib
         package = matlib_prop.package
 
-        package.get_file()
+        package.download()
         return {"FINISHED"}
 
 
