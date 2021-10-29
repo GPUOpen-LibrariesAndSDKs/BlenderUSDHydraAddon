@@ -43,7 +43,7 @@ def sync(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
         log.warn("MX export failed", mat)
         return None
 
-    mx_file = utils.get_temp_file(".mtlx", mat.name)
+    mx_file = utils.get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
     mx.writeToXmlFile(doc, str(mx_file))
     surfacematerial = next(node for node in doc.getNodes()
                            if node.getCategory() == 'surfacematerial')
@@ -82,7 +82,7 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
             mat_prims.append(mat_prim)
 
     if not mat_prims:
-        return
+        return None
 
     doc = mat.hdusd.export(None)
     if not doc:
@@ -93,8 +93,7 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
                            if node.getCategory() == 'surfacematerial')
 
     stage = root_prim.GetStage()
-
-    mx_file = utils.get_temp_file(".mtlx", mat.name)
+    mx_file = utils.get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
     mx.writeToXmlFile(doc, str(mx_file))
 
     for mat_prim in mat_prims:
@@ -104,20 +103,17 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
         # apply new bind if shader switched to MaterialX or vice versa
         mesh_prim = next((prim for prim in mat_prim.GetParent().GetChildren() if prim.GetTypeName() == 'Mesh'), None)
         if not mesh_prim:
-            return
+            return None
 
         bindings = UsdShade.MaterialBindingAPI(mesh_prim)
         rel_bind = bindings.GetDirectBindingRel()
 
-        if rel_bind.GetName() != 'material:binding':
-            return
-
         sdf_path = mat_prim.GetPath().AppendChild('Materials').AppendChild(surfacematerial.getName())
-        sdf_path_updated = next((target for target in rel_bind.GetTargets()), None)
+        sdf_path_old = next((target for target in rel_bind.GetTargets()), None)
 
         # check if bind path is changed
-        if not sdf_path_updated or sdf_path == sdf_path_updated:
-            return
+        if not sdf_path_old or sdf_path == sdf_path_old:
+            return None
 
         usd_mat = UsdShade.Material.Define(stage, sdf_path)
         bindings.UnbindAllBindings()
