@@ -330,7 +330,7 @@ class MxNode(bpy.types.ShaderNode):
         if not link.is_valid:
             log.error("Invalid link found", link, socket_in, self)
 
-        if isinstance(self.node, bpy.types.NodeReroute):
+        if isinstance(self, bpy.types.NodeReroute):
             return None
 
         while isinstance(link.from_node, bpy.types.NodeReroute):
