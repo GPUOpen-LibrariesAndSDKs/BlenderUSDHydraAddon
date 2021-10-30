@@ -157,24 +157,34 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
         return packages
 
+    def update_material(self, context):
+        mat = self.material
+        if mat:
+            self.package_id = min(mat.packages).id
+
     def update_category(self, context):
         materials = self.get_materials()
-        if materials:
-            mat = min(materials.values())
-            self.material_id = mat.id
-            self.package_id = min(mat.packages).id
+        if not materials:
+            return
+
+        mat = min(materials.values())
+        self.material_id = mat.id
+        self.package_id = min(mat.packages).id
 
     def update_search(self, context):
         materials = self.get_materials()
-        if materials and self.material_id not in materials:
-            mat = min(materials.values())
-            self.material_id = mat.id
-            self.package_id = min(mat.packages).id
+        if not materials or self.material_id in materials:
+            return
+
+        mat = min(materials.values())
+        self.material_id = mat.id
+        self.package_id = min(mat.packages).id
 
     material_id: bpy.props.EnumProperty(
         name="Material",
         description="Select material",
         items=get_materials_prop,
+        update=update_material,
     )
     category_id: bpy.props.EnumProperty(
         name="Category",

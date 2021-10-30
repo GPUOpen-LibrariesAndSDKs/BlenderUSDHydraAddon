@@ -203,9 +203,11 @@ class Package:
         n, b = self.size_str.split(" ")
         size = float(n)
         if b == "MB":
-            size *= 2 ** 20
+            size *= 1048576 # 2 ** 20
         elif b == "KB":
-            size *= 2 ** 10
+            size *= 1024    # 2 ** 10
+        elif b == "GB":
+            size *= 2 ** 30
 
         return int(size)
 
@@ -265,7 +267,7 @@ class Material:
         save_json(mat_json, self.cache_dir / "info.json")
 
     def __lt__(self, other):
-        return self.title < other.title
+        return self.title.lower() < other.title.lower()
 
     @property
     def cache_dir(self):
