@@ -27,8 +27,8 @@ import bpy.utils.previews
 from . import LIBS_DIR
 
 from ..utils import logging
-log = logging.Log(tag='utils.matlib')
 
+log = logging.Log(tag='utils.matlib')
 
 URL = "https://matlibapi.stvcis.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
@@ -53,27 +53,23 @@ def download_file_callback(url, path, update_callback, cache_check=True):
     if cache_check and path.is_file():
         return None
 
-    def load():
-        log("download_file_callback", f"{url=}, {path=}")
+    log("download_file_callback", f"{url=}, {path=}")
 
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path_raw = path.with_suffix(".raw")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path_raw = path.with_suffix(".raw")
 
-        size = 0
-        with requests.get(url, stream=True) as response:
-            with open(path_raw, 'wb') as f:
-                if update_callback:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        size += len(chunk)
-                        update_callback(size)
-                        f.write(chunk)
+    size = 0
+    with requests.get(url, stream=True) as response:
+        with open(path_raw, 'wb') as f:
+            if update_callback:
+                for chunk in response.iter_content(chunk_size=8192):
+                    size += len(chunk)
+                    update_callback(size)
+                    f.write(chunk)
 
-        path_raw.rename(path)
-        log("download_file_callback", "done")
-
-    load_thread = threading.Thread(target=load)
-    load_thread.start()
-    return load_thread
+    path_raw.rename(path)
+    log("download_file_callback", "done")
+    return path
 
 
 def request_json(url, params, path, cache_check=True):
@@ -155,7 +151,6 @@ class Package:
         self.id = id
         self.material = weakref.ref(material)
         self.size_load = None
-        self.load_thread = None
 
     @property
     def cache_dir(self):
@@ -180,13 +175,10 @@ class Package:
         self.size_str = json_data['size']
 
     def download(self, cache_check=True):
-        self.size_load = 0
-
         def callback(size):
             self.size_load = size
 
-        self.load_thread = download_file_callback(self.file_url, self.cache_dir / self.file,
-                                                  callback, cache_check)
+        download_file_callback(self.file_url, self.file_path, callback, cache_check)
 
     def unzip(self, path=None, cache_check=True):
         if not path:
@@ -313,21 +305,26 @@ class Manager:
         self.categories = None
         self.pcoll = None
         self.load_thread = None
-        log("Manager.init")
+        self.package_executor = None
 
     def __del__(self):
         # bpy.utils.previews.remove(self.pcoll)
+        pass
 
-        log("Manager.del")
+    @property
+    def materials_list(self):
+        # required for thread safe purposes
+        return list(manager.materials.values())
 
-    def check_load_data(self):
+    @property
+    def categories_list(self):
+        # required for thread safe purposes
+        return list(manager.categories.values())
+
+    def check_load_materials(self):
         if self.materials is not None:
             return True
 
-        manager.load_data()
-        return False
-
-    def load_data(self):
         self.materials = {}
         self.categories = {}
         self.pcoll = bpy.utils.previews.new()
@@ -349,30 +346,36 @@ class Manager:
 
         def load():
             with futures.ThreadPoolExecutor() as executor:
+                #
                 # getting cached materials
+                #
                 materials = {mat.id: mat for mat in Material.get_materials_cache()}
                 categories = {mat.category.id: mat.category for mat in materials.values()}
 
+                # loading categories
                 category_loaders = [executor.submit(category_load, cat)
                                     for cat in categories.values()]
                 for _ in futures.as_completed(category_loaders):
                     pass
 
+                # updating category for cached materials
                 for mat in materials.values():
                     mat.category.get_info()
 
+                # loading cached materials
                 material_loaders = [executor.submit(material_load, mat)
                                     for mat in materials.values()]
                 for _ in futures.as_completed(material_loaders):
                     pass
 
+                #
                 # getting and syncing with online materials
+                #
                 online_materials = {mat.id: mat for mat in Material.get_materials()}
-                new_material_ids = online_materials.keys() - materials.keys()
-                new_materials = {mat_id: online_materials[mat_id] for mat_id in new_material_ids}
 
+                # loading new categories
                 new_categories = {}
-                for mat in new_materials.values():
+                for mat in online_materials.values():
                     cat = mat.category
                     if cat.id not in categories and cat.id not in new_categories:
                         new_categories[cat.id] = cat
@@ -382,16 +385,31 @@ class Manager:
                 for _ in futures.as_completed(category_loaders):
                     pass
 
-                for mat in new_materials.values():
+                # updating categories for online materials
+                for mat in online_materials.values():
                     mat.category.get_info()
 
+                # loading online materials
                 material_loaders = [executor.submit(material_load, mat)
-                                    for mat in new_materials.values()]
+                                    for mat in online_materials.values()]
                 for _ in futures.as_completed(material_loaders):
                     pass
 
         self.load_thread = threading.Thread(target=load)
         self.load_thread.start()
+
+        return False
+
+    def load_package(self, package):
+        package.size_load = 0
+
+        def package_load():
+            package.download()
+
+        if not self.package_executor:
+            self.package_executor = futures.ThreadPoolExecutor()
+
+        self.package_executor.submit(package_load)
 
 
 manager = Manager()

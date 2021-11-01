@@ -27,9 +27,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
         materials = {}
         search_str = self.search.strip().lower()
 
-        # converting to list in thread safe purposes
-        materials_list = list(manager.materials.values())
-
+        materials_list = manager.materials_list
         for mat in materials_list:
             if search_str not in mat.title.lower():
                 continue
@@ -61,9 +59,7 @@ class MatlibProperties(bpy.types.PropertyGroup):
 
         categories += [('ALL', "All Categories", "Show materials for all categories")]
 
-        # converting to list in thread safe purposes
-        categories_list = list(manager.categories.values())
-
+        categories_list = manager.categories_list
         categories += ((cat.id, cat.title, f"Show materials with category {cat.title}")
                        for cat in sorted(categories_list))
         return categories

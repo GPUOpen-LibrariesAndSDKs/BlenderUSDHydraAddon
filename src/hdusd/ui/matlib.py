@@ -80,9 +80,8 @@ class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
-        package = matlib_prop.package
+        manager.load_package(matlib_prop.package)
 
-        package.download()
         return {"FINISHED"}
 
 
@@ -99,10 +98,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout = self.layout
         matlib_prop = context.window_manager.hdusd.matlib
 
-        # status
-        if not manager.check_load_data():
-            layout.label(text="No materials loaded")
-            return
+        manager.check_load_materials()
 
         # category
         layout.prop(matlib_prop, 'category_id')
