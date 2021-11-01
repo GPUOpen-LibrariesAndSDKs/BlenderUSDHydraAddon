@@ -26,7 +26,7 @@ BLENDER_DEFAULT_FORMAT = "HDR"
 
 
 def cache_image_file(image: bpy.types.Image, cache_check=True):
-    # at fist start image.has_data = False even if filepath correct
+    # at fist start image.has_data = False even if filepath is correct
     if not image.has_data:
         temp_path = Path(image.filepath_from_user())
         if not temp_path.is_file():
@@ -38,7 +38,6 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
             f".{image.file_format.lower()}" in SUPPORTED_FORMATS:
         return Path(image.filepath_from_user())
 
-    # if image packed in .blend file
     old_filepath = image.filepath_raw
     old_file_format = image.file_format
 
