@@ -42,10 +42,6 @@ class ShaderNodeTexImage(NodeParser):
         if not image or image.source in ('TILED', 'SEQUENCE'):
             return image_error_result
 
-        # there were scenes in Linux that have 0x0x0 image packed
-        if image.size[0] * image.size[1] * image.channels == 0:
-            return image_error_result
-
         img_path = cache_image_file(image)
         if not img_path:
             return image_error_result
