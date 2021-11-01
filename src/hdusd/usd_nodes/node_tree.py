@@ -60,13 +60,16 @@ class USDTree(bpy.types.ShaderNodeTree):
         self._is_resetting = True
 
         try:
-            nodes = tuple(node for node in nodes if is_hard or node.use_hard_reset)
+            nodes = tuple(node for node in nodes if not isinstance(node, bpy.types.NodeReroute)
+                          and (is_hard or node.use_hard_reset))
 
             for node in nodes:
-                node.free()
+                if not isinstance(node, bpy.types.NodeReroute):
+                    node.free()
 
             for node in nodes:
-                node.final_compute()
+                if not isinstance(node, bpy.types.NodeReroute):
+                    node.final_compute()
 
         finally:
             self._is_resetting = False
@@ -86,7 +89,8 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            node.depsgraph_update(depsgraph)
+            if not isinstance(node, bpy.types.NodeReroute):
+                node.depsgraph_update(depsgraph)
 
     def frame_change(self, depsgraph):
         if self._is_resetting:
@@ -100,7 +104,8 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            node.material_update(depsgraph)
+            if not isinstance(node, bpy.types.NodeReroute):
+                node.material_update(depsgraph)
 
     def no_update_call(self, op, *args, **kwargs):
         """This function prevents call of self.update() during calling our function"""

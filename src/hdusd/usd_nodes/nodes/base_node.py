@@ -106,6 +106,15 @@ class USDNode(bpy.types.Node):
         if not link.is_valid:
             log.warn("Invalid link found", link, socket_in, self)
 
+        node = link.from_node
+        while isinstance(node, bpy.types.NodeReroute):
+            if not node.inputs or not node.inputs[0].links:
+                return None
+
+            link = node.inputs[0].links[0]
+            if link.is_valid:
+                node = link.from_node
+
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)
         return self._compute_node(link.from_node, **kwargs)
@@ -128,9 +137,19 @@ class USDNode(bpy.types.Node):
         self._reset_next(is_hard)
 
     def _reset_next(self, is_hard):
-        for output in self.outputs:
-            for link in output.links:
-                link.to_node.reset(is_hard)
+        nodes_to_reset = []
+
+        def get_nodes(node):
+            if not isinstance(node, bpy.types.NodeReroute) and node is not self:
+                nodes_to_reset.append(node)
+                return
+            for output in node.outputs:
+                for link in output.links:
+                    if link.is_valid:
+                        get_nodes(link.to_node)
+        get_nodes(self)
+        for node in nodes_to_reset:
+            node.reset(is_hard)
 
     def depsgraph_update(self, depsgraph):
         pass
