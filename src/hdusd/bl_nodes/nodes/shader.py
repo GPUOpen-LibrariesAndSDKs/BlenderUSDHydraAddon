@@ -311,9 +311,10 @@ class ShaderNodeBsdfDiffuse(NodeParser):
         roughness = self.get_input_value('Roughness')
         normal = self.get_input_link('Normal')
 
-        result = self.create_node('diffuse_brdf', 'BSDF', {
-            'color': color,
-            'roughness': roughness,
+        # CREATING STANDARD SURFACE
+        result = self.create_node('standard_surface', 'surfaceshader', {
+            'base_color': color,
+            'diffuse_roughness': 1.0 - roughness,
             'normal': normal,
         })
 
