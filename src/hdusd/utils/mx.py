@@ -67,7 +67,9 @@ def set_param_value(mx_param, val, nd_type, nd_output=None):
 
     elif nd_type == 'filename':
         if isinstance(val, bpy.types.Image):
-            mx_param.setValueString(str(cache_image_file(val)))
+            image_path = cache_image_file(val)
+            if image_path:
+                mx_param.setValueString(str(image_path))
         else:
             mx_param.setValueString(str(val))
 
