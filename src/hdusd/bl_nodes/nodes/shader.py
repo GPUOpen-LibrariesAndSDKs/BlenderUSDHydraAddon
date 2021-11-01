@@ -311,6 +311,7 @@ class ShaderNodeBsdfDiffuse(NodeParser):
         roughness = self.get_input_value('Roughness')
         normal = self.get_input_link('Normal')
 
+        # Also tried burley_diffuse_bsdf and oren_nayar_diffuse_bsdf here, but Blender crashes with them
         # CREATING STANDARD SURFACE
         result = self.create_node('standard_surface', 'surfaceshader', {
             'base_color': color,
