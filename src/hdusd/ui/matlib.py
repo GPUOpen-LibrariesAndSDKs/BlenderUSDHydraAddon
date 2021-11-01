@@ -22,6 +22,7 @@ import bpy
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
 from ..utils import mx as mx_utils
+from ..utils.matlib import manager
 from .. import config
 
 from ..utils import logging
@@ -99,9 +100,8 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         matlib_prop = context.window_manager.hdusd.matlib
 
         # status
-        if matlib_prop.pcoll.materials is None:
+        if not manager.check_load_data():
             layout.label(text="No materials loaded")
-            matlib_prop.load_data()
             return
 
         # category

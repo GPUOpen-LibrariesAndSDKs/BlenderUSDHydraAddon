@@ -20,11 +20,15 @@ from pathlib import Path
 import zipfile
 import json
 import threading
+from concurrent import futures
+
+import bpy.utils.previews
 
 from . import LIBS_DIR
 
 from ..utils import logging
 log = logging.Log(tag='utils.matlib')
+
 
 URL = "https://matlibapi.stvcis.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
@@ -301,3 +305,93 @@ class Material:
                 mat_json = json.load(json_file)
 
             yield Material(mat_json)
+
+
+class Manager:
+    def __init__(self):
+        self.materials = None
+        self.categories = None
+        self.pcoll = None
+        self.load_thread = None
+        log("Manager.init")
+
+    def __del__(self):
+        # bpy.utils.previews.remove(self.pcoll)
+
+        log("Manager.del")
+
+    def check_load_data(self):
+        if self.materials is not None:
+            return True
+
+        manager.load_data()
+        return False
+
+    def load_data(self):
+        self.materials = {}
+        self.categories = {}
+        self.pcoll = bpy.utils.previews.new()
+
+        def category_load(cat):
+            cat.get_info()
+            self.categories[cat.id] = cat
+
+        def material_load(mat):
+            for render in mat.renders:
+                render.get_info()
+                render.get_thumbnail()
+                render.thumbnail_load(self.pcoll)
+
+            for package in mat.packages:
+                package.get_info()
+
+            self.materials[mat.id] = mat
+
+        def load():
+            with futures.ThreadPoolExecutor() as executor:
+                # getting cached materials
+                materials = {mat.id: mat for mat in Material.get_materials_cache()}
+                categories = {mat.category.id: mat.category for mat in materials.values()}
+
+                category_loaders = [executor.submit(category_load, cat)
+                                    for cat in categories.values()]
+                for _ in futures.as_completed(category_loaders):
+                    pass
+
+                for mat in materials.values():
+                    mat.category.get_info()
+
+                material_loaders = [executor.submit(material_load, mat)
+                                    for mat in materials.values()]
+                for _ in futures.as_completed(material_loaders):
+                    pass
+
+                # getting and syncing with online materials
+                online_materials = {mat.id: mat for mat in Material.get_materials()}
+                new_material_ids = online_materials.keys() - materials.keys()
+                new_materials = {mat_id: online_materials[mat_id] for mat_id in new_material_ids}
+
+                new_categories = {}
+                for mat in new_materials.values():
+                    cat = mat.category
+                    if cat.id not in categories and cat.id not in new_categories:
+                        new_categories[cat.id] = cat
+
+                category_loaders = [executor.submit(category_load, cat)
+                                    for cat in new_categories.values()]
+                for _ in futures.as_completed(category_loaders):
+                    pass
+
+                for mat in new_materials.values():
+                    mat.category.get_info()
+
+                material_loaders = [executor.submit(material_load, mat)
+                                    for mat in new_materials.values()]
+                for _ in futures.as_completed(material_loaders):
+                    pass
+
+        self.load_thread = threading.Thread(target=load)
+        self.load_thread.start()
+
+
+manager = Manager()
