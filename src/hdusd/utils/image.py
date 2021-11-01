@@ -27,21 +27,14 @@ BLENDER_DEFAULT_FORMAT = "HDR"
 
 def cache_image_file(image: bpy.types.Image, cache_check=True):
     image_path = Path(image.filepath_from_user())
-    if not image.packed_file and image.source != 'GENERATED' and \
-            Path(image.filepath).suffix.lower() in SUPPORTED_FORMATS and \
-            f".{image.file_format.lower()}" in SUPPORTED_FORMATS:
-
+    if not image.packed_file and image.source != 'GENERATED':
         if not image_path.is_file():
             log.warn("Image is missing", image, image_path)
             return None
 
-        return image_path
-
-    # at fist start image.has_data is False even if filepath is correct and image if valid
-    if not image.has_data:
-        if not image_path.is_file():
-            log.warn("Image is missing", image, image_path)
-            return None
+        if Path(image.filepath).suffix.lower() in SUPPORTED_FORMATS and \
+                f".{image.file_format.lower()}" in SUPPORTED_FORMATS:
+            return image_path
 
     old_filepath = image.filepath_raw
     old_file_format = image.file_format
