@@ -43,6 +43,7 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
     if cache_check and image.source != 'GENERATED' and temp_path.is_file():
         return temp_path
 
+    image_source = image.source
     image.filepath_raw = str(temp_path)
     image.file_format = BLENDER_DEFAULT_FORMAT
 
@@ -51,6 +52,7 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
     finally:
         image.filepath_raw = old_filepath
         image.file_format = old_file_format
+        image.source = image_source
 
     return temp_path
 
