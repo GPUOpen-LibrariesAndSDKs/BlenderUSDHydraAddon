@@ -446,7 +446,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         node = link.from_node
         while isinstance(node, bpy.types.NodeReroute):
             if not node.inputs[0].links:
-                return None
+                return
 
             link = node.inputs[0].links[0]
             if link.is_valid:
@@ -498,7 +498,7 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         node = link.from_node
         while isinstance(node, bpy.types.NodeReroute):
             if not node.inputs[0].links:
-                return None
+                return
 
             link = node.inputs[0].links[0]
             if link.is_valid:
