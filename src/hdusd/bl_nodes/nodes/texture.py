@@ -12,25 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import os
-
 from ..node_parser import NodeParser
 from ...utils.image import cache_image_file
-from . import log
 
 
 TEXTURE_ERROR_COLOR = (1.0, 0.0, 1.0)  # following Cycles color for wrong Texture nodes
-
-# image format conversion for packed pixel/generated images
-IMAGE_FORMATS = {
-    'OPEN_EXR_MULTILAYER': ('OPEN_EXR', 'exr'),
-    'OPEN_EXR': ('OPEN_EXR', 'exr'),
-    'HDR': ('HDR', 'hdr'),
-    'TARGA': ('TARGA', 'tga'),
-    'TARGA_RAW': ('TARGA', 'tga'),
-    # TIFF and everything else will be stored as PNG
-}
-DEFAULT_FORMAT = ('PNG', 'png')
 
 
 class ShaderNodeTexImage(NodeParser):

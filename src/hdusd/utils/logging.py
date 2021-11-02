@@ -14,7 +14,7 @@
 #********************************************************************
 import sys
 import logging
-from logging import *
+from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 
 from . import PLUGIN_ROOT_DIR
 
@@ -143,6 +143,45 @@ class Log:
 
     def critical(self, *args):
         critical(*args, tag=self.__tag)
+
+
+class LogOnce(Log):
+    def __init__(self, tag: str = 'default', level: str = 'debug'):
+        super().__init__(tag, level)
+
+        self._cached_logs = set()
+
+    def _cache_check(self, args):
+        s = args[0]
+        if s in self._cached_logs:
+            return False
+
+        self._cached_logs.add(s)
+        return True
+
+    def __call__(self, *args):
+        if self._cache_check(args):
+            super().__call__(*args)
+
+    def info(self, *args):
+        if self._cache_check(args):
+            super().info(*args)
+
+    def debug(self, *args):
+        if self._cache_check(args):
+            super().debug(*args)
+
+    def warn(self, *args):
+        if self._cache_check(args):
+            super().warn(*args)
+
+    def error(self, *args):
+        if self._cache_check(args):
+            super().error(*args)
+
+    def critical(self, *args):
+        if self._cache_check(args):
+            super().critical(*args)
 
 
 def dump_args(func):

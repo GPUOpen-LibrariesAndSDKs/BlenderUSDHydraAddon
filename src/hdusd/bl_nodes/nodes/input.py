@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import os
-
 from ..node_parser import NodeParser
-from . import log
 
 
 class ShaderNodeValue(NodeParser):
