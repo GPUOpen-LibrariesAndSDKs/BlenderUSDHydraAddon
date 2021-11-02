@@ -27,7 +27,6 @@ try:
     # config.<parameter> = True
 
     from . import configdev
-    logging.info('Loaded configdev', tag='')
 
 except ImportError:
     pass

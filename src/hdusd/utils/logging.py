@@ -79,75 +79,52 @@ def _log(log_fun, args):
     log_fun(msg)
 
 
-def debug(*args, tag='default'):
-    if is_level_allowed(logging.DEBUG):
-        _log(get_logger(tag).debug, args)
-
-
-def info(*args, tag='default'):
-    if is_level_allowed(logging.INFO):
-        _log(get_logger(tag).info, args)
-
-
-def warn(*args, tag='default'):
-    if is_level_allowed(logging.WARN):
-        _log(get_logger(tag).warning, args)
-
-
-def error(*args, tag='default'):
-    if is_level_allowed(logging.ERROR):
-        _log(get_logger(tag).error, args)
-
-
-def critical(*args, tag='default'):
-    if is_level_allowed(logging.CRITICAL):
-        _log(get_logger(tag).critical, args)
-
-
 class Log:
-    __tag: str = "default"
-    __default_level: int = logging.INFO
-    __default_method_name: str = 'info'
-
-    def __init__(self, tag: str = 'default', level: str = 'debug'):
-        if tag:
-            self.__tag = tag
-
-        level, method = {
-            'info': (logging.INFO, 'info'),
-            'debug': (logging.DEBUG, 'debug'),
-            'warn': (logging.WARN, 'warn'),
-            'error': (logging.ERROR, 'error'),
-            'critical': (logging.CRITICAL, 'critical'),
-        }.get(level, (None, None))
-
-        if method:
-            self.__default_level = level
-            self.__default_method_name = method
+    def __init__(self, tag):
+        self._tag = tag
 
     def __call__(self, *args):
-        if is_level_allowed(self.__default_level):
-            _log(getattr(get_logger(self.__tag), self.__default_method_name), args)
+        self.debug(*args)
 
     def info(self, *args):
-        info(*args, tag=self.__tag)
+        if is_level_allowed(logging.INFO):
+            _log(get_logger(self._tag).info, args)
 
     def debug(self, *args):
-        debug(*args, tag=self.__tag)
+        if is_level_allowed(logging.DEBUG):
+            _log(get_logger(self._tag).debug, args)
 
     def warn(self, *args):
-        warn(*args, tag=self.__tag)
+        if is_level_allowed(logging.WARN):
+            _log(get_logger(self._tag).warning, args)
 
     def error(self, *args):
-        error(*args, tag=self.__tag)
+        if is_level_allowed(logging.ERROR):
+            _log(get_logger(self._tag).error, args)
 
     def critical(self, *args):
-        critical(*args, tag=self.__tag)
+        if is_level_allowed(logging.CRITICAL):
+            _log(get_logger(self._tag).critical, args)
+
+    def dump_args(self, func):
+        """This decorator dumps out the arguments passed to a function before calling it"""
+        arg_names = func.__code__.co_varnames[:func.__code__.co_argcount]
+
+        def echo_func(*args, **kwargs):
+            self.debug("<{}>: {}{}".format(
+                func.__name__,
+                tuple("{}={}".format(name, arg) for name, arg in zip(arg_names, args)),
+                # args if args else "",
+                " {}".format(kwargs.items()) if kwargs else "",
+            ))
+            return func(*args, **kwargs)
+
+        return echo_func
 
 
 class LogOnce(Log):
-    def __init__(self, tag: str = 'default', level: str = 'debug'):
-        super().__init__(tag, level)
+    def __init__(self, tag):
+        super().__init__(tag)
 
         self._cached_logs = set()
 
@@ -158,10 +135,6 @@ class LogOnce(Log):
 
         self._cached_logs.add(s)
         return True
-
-    def __call__(self, *args):
-        if self._cache_check(args):
-            super().__call__(*args)
 
     def info(self, *args):
         if self._cache_check(args):
@@ -182,19 +155,3 @@ class LogOnce(Log):
     def critical(self, *args):
         if self._cache_check(args):
             super().critical(*args)
-
-
-def dump_args(func):
-    """This decorator dumps out the arguments passed to a function before calling it"""
-    arg_names = func.__code__.co_varnames[:func.__code__.co_argcount]
-
-    def echo_func(*args, **kwargs):
-        debug("<{}>: {}{}".format(
-            func.__name__,
-            tuple("{}={}".format(name, arg) for name, arg in zip(arg_names, args)),
-            # args if args else "",
-            " {}".format(kwargs.items()) if kwargs else "",
-        ))
-        return func(*args, **kwargs)
-    return echo_func
-
