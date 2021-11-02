@@ -349,7 +349,7 @@ class NodeParser:
 
         node = link.from_node
         while isinstance(node, bpy.types.NodeReroute):
-            if not node.inputs or not node.inputs[0].links:
+            if not node.inputs[0].links:
                 return None
 
             link = node.inputs[0].links[0]

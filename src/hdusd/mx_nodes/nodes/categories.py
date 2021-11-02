@@ -40,7 +40,7 @@ def get_node_categories():
                                   for MxNode_cls in category_classes]))
 
     categories.append(MxNodeCategory('HdUSD_MX_NG_' + 'Layout', 'Layout',
-                           items=(NodeItem("NodeReroute"),
-                                  NodeItem("NodeFrame"))))
+                           items=[NodeItem("NodeReroute"),
+                                  NodeItem("NodeFrame")]))
 
     return categories

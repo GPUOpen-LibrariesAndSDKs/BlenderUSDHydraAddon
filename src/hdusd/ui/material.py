@@ -444,8 +444,15 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         layout.separator()
 
         node = link.from_node
-        if not isinstance(node, bpy.types.NodeReroute):
-            node.draw_node_view(context, layout)
+        while isinstance(node, bpy.types.NodeReroute):
+            if not node.inputs[0].links:
+                return None
+
+            link = node.inputs[0].links[0]
+            if link.is_valid:
+                node = link.from_node
+
+        node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
@@ -489,8 +496,15 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         layout.separator()
 
         node = link.from_node
-        if not isinstance(node, bpy.types.NodeReroute):
-            node.draw_node_view(context, layout)
+        while isinstance(node, bpy.types.NodeReroute):
+            if not node.inputs[0].links:
+                return None
+
+            link = node.inputs[0].links[0]
+            if link.is_valid:
+                node = link.from_node
+
+        node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):

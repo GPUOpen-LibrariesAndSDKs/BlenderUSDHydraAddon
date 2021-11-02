@@ -179,8 +179,17 @@ class MxNode(bpy.types.ShaderNode):
                 link = next((link for link in socket_in.links if link.is_valid), None)
                 if not link:
                     continue
-
                 node = link.from_node
+                while isinstance(node, bpy.types.NodeReroute):
+                    if not node.inputs[0].links:
+                        break
+
+                    link = node.inputs[0].links[0]
+                    if link.is_valid:
+                        node = link.from_node
+
+                if isinstance(node, bpy.types.NodeReroute):
+                    continue
 
                 split = layout.split(factor=0.1)
                 split.column()
@@ -332,7 +341,7 @@ class MxNode(bpy.types.ShaderNode):
 
         node = link.from_node
         while isinstance(node, bpy.types.NodeReroute):
-            if not node.inputs or not node.inputs[0].links:
+            if not node.inputs[0].links:
                 return None
 
             link = node.inputs[0].links[0]

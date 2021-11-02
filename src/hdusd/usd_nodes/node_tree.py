@@ -64,12 +64,10 @@ class USDTree(bpy.types.ShaderNodeTree):
                           and (is_hard or node.use_hard_reset))
 
             for node in nodes:
-                if not isinstance(node, bpy.types.NodeReroute):
-                    node.free()
+                node.free()
 
             for node in nodes:
-                if not isinstance(node, bpy.types.NodeReroute):
-                    node.final_compute()
+                node.final_compute()
 
         finally:
             self._is_resetting = False
