@@ -13,12 +13,18 @@
 # limitations under the License.
 #********************************************************************
 import MaterialX as mx
+import traceback
 
 import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
+from ..utils import get_temp_file
+from ..utils import mx as mx_utils
+
+from ..utils import logging
+log = logging.Log(tag='ui.mx_nodes')
 
 
 NODE_SHADER_CATEGORIES = set(['PBR', 'RPR Shaders'])
@@ -144,6 +150,43 @@ class HDUSD_MATERIAL_OP_duplicate_mx_node_tree(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MATERIAL_OP_convert_mx_node_tree(bpy.types.Operator):
+    """Converts standard shader node tree to MaterialX node tree for selected material"""
+    bl_idname = "hdusd.material_convert_mx_node_tree"
+    bl_label = ""
+
+    def execute(self, context):
+        mat = context.material
+        mx_node_tree = mat.hdusd.mx_node_tree
+
+        if mx_node_tree:
+            mat.hdusd.mx_node_tree = None
+        else:
+            mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+
+        doc = mat.hdusd.export(context.object)
+        mat.hdusd.mx_node_tree = mx_node_tree
+
+        if not doc:
+            log.warn("Incorrect node tree to export", mx_node_tree)
+            return {'CANCELLED'}
+
+        mtlx_file = get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
+        mx.writeToXmlFile(doc, str(mtlx_file))
+        search_path = mx.FileSearchPath(str(mtlx_file.parent))
+        search_path.append(str(mx_utils.MX_LIBS_DIR))
+
+        try:
+            mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
+            mx_node_tree.import_(doc, mtlx_file)
+
+        except Exception as e:
+            log.error(traceback.format_exc(), mtlx_file)
+            return {'CANCELLED'}
+
+        return {"FINISHED"}
+
+
 class HDUSD_MATERIAL_OP_link_mx_node_tree(bpy.types.Operator):
     """Link MaterialX node tree to selected material"""
     bl_idname = "hdusd.material_link_mx_node_tree"
@@ -210,10 +253,12 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         if mat_hdusd.mx_node_tree:
             row.prop(mat_hdusd.mx_node_tree, 'name', text="")
             row.operator(HDUSD_MATERIAL_OP_duplicate_mx_node_tree.bl_idname, icon='DUPLICATE')
+            row.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK')
             row.operator(HDUSD_MATERIAL_OP_unlink_mx_node_tree.bl_idname, icon='X')
 
         else:
             row.operator(HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname, icon='ADD')
+            row.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK')
 
     def draw_header(self, context):
         layout = self.layout
