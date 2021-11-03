@@ -17,94 +17,51 @@ import logging
 from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 
 from . import PLUGIN_ROOT_DIR
+from .. import config
 
 
-file = logging.FileHandler(filename=str(PLUGIN_ROOT_DIR / 'hdusd.log'),  # TODO: Add creation time to this log name. Could be configurable.
-                           mode='w',
-                           encoding='utf-8')
-file.setFormatter(logging.Formatter('%(asctime)s %(name)s [%(thread)d]: %(levelname)s %(message)s'))
+FORMAT_STR = "%(asctime)s %(levelname)s %(name)s [%(thread)d]:  %(message)s"
+
+# root logger for the addon
+logger = logging.getLogger('hdusd')
+logger.setLevel(config.log_level_show_min)
+
+# TODO: Add creation time to this log name. Could be configurable.
+file_handler = logging.FileHandler(filename=PLUGIN_ROOT_DIR / 'hdusd.log',
+                                   mode='w', encoding='utf-8')
+file_handler.setFormatter(logging.Formatter(FORMAT_STR))
+logger.addHandler(file_handler)
+
+console_handler = logging.StreamHandler(stream=sys.stdout)
+console_handler.setFormatter(logging.Formatter(FORMAT_STR))
+logger.addHandler(console_handler)
 
 
-console = logging.StreamHandler(stream=sys.stdout)
-logger = logging.getLogger('hdusd')  # root logger for the addon
-logger.addHandler(console)
-console.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(name)s [%(thread)d]:  %(message)s'))
-
-logging.basicConfig(level=logging.DEBUG, handlers=[file])
-
-console_filter = None
-
-
-class Filter(logging.Filter):
-
-    level_show_always = logging.ERROR
-
-    def __init__(self, name, level_show_always, level_show_min):
-        super().__init__(name)
-        self.level_show_min = level_show_min
-        self.level_show_always = level_show_always
-
-    def filter(self, record: logging.LogRecord):
-        if self.level_show_always is not None:
-            if record.levelno >= self.level_show_always:
-                return True
-        return super().filter(record)
-
-
-def is_level_allowed(levelno):
-    if not console_filter:
-        return True
-    if console_filter.level_show_min is not None:
-        if levelno < console_filter.level_show_min:
-            return False
-    return True
-
-
-def limit_log(name, level_show_always=logging.INFO, level_show_min=logging.DEBUG):
-    global console_filter
-    if console_filter:
-        console.removeFilter(console_filter)
-        console_filter = None
-    if name is not None:
-        console_filter = Filter('usd.'+name, level_show_always, level_show_min)
-        console.addFilter(console_filter)
-
-
-def get_logger(tag):
-    return logger.getChild(tag) if tag else logger
-
-
-def _log(log_fun, args):
-    msg = ' '.join(str(arg) for arg in args)
-    log_fun(msg)
+def msg(args):
+    return ", ".join(str(arg) for arg in args)
 
 
 class Log:
     def __init__(self, tag):
-        self._tag = tag
+        self.logger = logger.getChild(tag)
 
     def __call__(self, *args):
         self.debug(*args)
 
-    def info(self, *args):
-        if is_level_allowed(logging.INFO):
-            _log(get_logger(self._tag).info, args)
-
     def debug(self, *args):
-        if is_level_allowed(logging.DEBUG):
-            _log(get_logger(self._tag).debug, args)
+        self.logger.debug(msg(args))
+
+    def info(self, *args):
+        self.logger.info(msg(args))
 
     def warn(self, *args):
-        if is_level_allowed(logging.WARN):
-            _log(get_logger(self._tag).warning, args)
+        self.logger.warning(msg(args))
 
     def error(self, *args):
-        if is_level_allowed(logging.ERROR):
-            _log(get_logger(self._tag).error, args)
+        self.logger.error(msg(args))
 
     def critical(self, *args):
-        if is_level_allowed(logging.CRITICAL):
-            _log(get_logger(self._tag).critical, args)
+        self.logger.critical(msg(args))
 
     def dump_args(self, func):
         """This decorator dumps out the arguments passed to a function before calling it"""
@@ -136,13 +93,13 @@ class LogOnce(Log):
         self._cached_logs.add(s)
         return True
 
-    def info(self, *args):
-        if self._cache_check(args):
-            super().info(*args)
-
     def debug(self, *args):
         if self._cache_check(args):
             super().debug(*args)
+
+    def info(self, *args):
+        if self._cache_check(args):
+            super().info(*args)
 
     def warn(self, *args):
         if self._cache_check(args):
