@@ -14,7 +14,7 @@
 #********************************************************************
 import sys
 import logging
-from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
+import logging.handlers
 
 from . import PLUGIN_ROOT_DIR
 from .. import config
@@ -24,11 +24,12 @@ FORMAT_STR = "%(asctime)s %(levelname)s %(name)s [%(thread)d]:  %(message)s"
 
 # root logger for the addon
 logger = logging.getLogger('hdusd')
-logger.setLevel(config.log_level_show_min)
+logger.setLevel(config.logging_level)
 
-# TODO: Add creation time to this log name. Could be configurable.
-file_handler = logging.FileHandler(filename=PLUGIN_ROOT_DIR / 'hdusd.log',
-                                   mode='w', encoding='utf-8')
+file_handler = logging.handlers.RotatingFileHandler(PLUGIN_ROOT_DIR / 'hdusd.log',
+                                                    mode='w', encoding='utf-8', delay=True,
+                                                    backupCount=config.logging_backups)
+file_handler.doRollover()
 file_handler.setFormatter(logging.Formatter(FORMAT_STR))
 logger.addHandler(file_handler)
 
