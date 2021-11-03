@@ -128,7 +128,5 @@ def pass_node_reroute(link):
             return None
 
         link = link.from_node.inputs[0].links[0]
-        if not link.is_valid:
-            return None
 
-    return link
+    return link if link.is_valid else None
