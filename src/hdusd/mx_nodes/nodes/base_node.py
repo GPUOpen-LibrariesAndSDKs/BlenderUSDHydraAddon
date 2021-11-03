@@ -206,7 +206,6 @@ class MxNode(bpy.types.ShaderNode):
                 op.current_node_name = self.name
 
                 if socket_in.show_expanded:
-
                     link.from_node.draw_node_view(context, layout)
 
             else:
