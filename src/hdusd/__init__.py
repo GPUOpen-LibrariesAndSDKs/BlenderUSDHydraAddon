@@ -32,7 +32,7 @@ from . import config
 from .utils import logging
 
 
-log = logging.Log(tag='init')
+log = logging.Log('init')
 log.info(f"Loading USD Hydra addon version={bl_info['version']}, build={version_build}")
 
 

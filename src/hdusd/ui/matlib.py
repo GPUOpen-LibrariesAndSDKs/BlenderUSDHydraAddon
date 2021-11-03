@@ -24,7 +24,7 @@ from ..utils import mx as mx_utils
 from .. import config
 
 from ..utils import logging
-log = logging.Log(tag='ui.matlib')
+log = logging.Log('ui.matlib')
 
 
 class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):

@@ -24,7 +24,7 @@ from ...utils.image import cache_image_file, cache_image_file_path
 from ...utils import BLENDER_DATA_DIR
 
 from ...utils import logging
-log = logging.Log(tag='export.world')
+log = logging.Log('export.world')
 
 
 OBJ_PRIM_NAME = "World"

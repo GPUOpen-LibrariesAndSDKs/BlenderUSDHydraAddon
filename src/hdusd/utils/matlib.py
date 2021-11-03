@@ -19,11 +19,10 @@ from pathlib import Path
 import zipfile
 import json
 
-from .. import config
 from . import LIBS_DIR
 
 from ..utils import logging
-log = logging.Log(tag='utils.matlib')
+log = logging.Log('utils.matlib')
 
 URL = "https://matlibapi.stvcis.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"

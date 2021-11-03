@@ -19,7 +19,7 @@ import MaterialX as mx
 
 from .. import utils
 from ..utils import logging
-log = logging.Log(tag='export.material')
+log = logging.Log('export.material')
 
 
 def sdf_name(mat: bpy.types.Material, input_socket_key='Surface'):

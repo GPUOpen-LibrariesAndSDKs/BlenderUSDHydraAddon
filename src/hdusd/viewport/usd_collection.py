@@ -17,7 +17,7 @@ import bpy
 from pxr import Sdf
 
 from ..utils import logging
-log = logging.Log(tag='usd_collection')
+log = logging.Log('usd_collection')
 
 
 COLLECTION_NAME = "USD NodeTree"

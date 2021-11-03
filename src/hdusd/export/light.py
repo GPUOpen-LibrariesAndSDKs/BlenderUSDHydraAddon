@@ -20,7 +20,7 @@ import bpy
 
 
 from ..utils import logging
-log = logging.Log(tag='export.light')
+log = logging.Log('export.light')
 
 
 def get_radiant_power(light: bpy.types.Light):

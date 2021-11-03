@@ -21,7 +21,7 @@ import mathutils
 from . import mesh, camera, to_mesh, light, material
 
 from ..utils import logging
-log = logging.Log(tag='export.object')
+log = logging.Log('export.object')
 
 
 SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA', 'EMPTY')
