@@ -15,7 +15,6 @@
 import os
 
 from ..node_parser import NodeParser
-from ... import utils
 from ...utils.image import cache_image_file
 from . import log
 
@@ -43,11 +42,9 @@ class ShaderNodeTexImage(NodeParser):
         if not image or image.source in ('TILED', 'SEQUENCE'):
             return image_error_result
 
-        # there were scenes in Linux that have 0x0x0 image packed
-        if image.size[0] * image.size[1] * image.channels == 0:
-            return image_error_result
-
         img_path = cache_image_file(image)
+        if not img_path:
+            return image_error_result
 
         # TODO use Vector input for UV
         uv = self.create_node('texcoord', 'vector2', {})
