@@ -151,7 +151,7 @@ class HDUSD_MATERIAL_OP_duplicate_mx_node_tree(bpy.types.Operator):
 
 
 class HDUSD_MATERIAL_OP_convert_mx_node_tree(bpy.types.Operator):
-    """Converts standart shader node tree to MaterialX node tree for selected material"""
+    """Converts standard shader node tree to MaterialX node tree for selected material"""
     bl_idname = "hdusd.material_convert_mx_node_tree"
     bl_label = ""
 
