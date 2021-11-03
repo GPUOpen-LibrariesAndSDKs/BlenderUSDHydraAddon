@@ -16,112 +16,127 @@ import bpy
 
 from . import HdUSDProperties
 
-from ..utils import matlib
+from ..utils.matlib import manager
+
+from ..utils import logging
+log = logging.Log(tag='properties.matlib')
 
 
 class MatlibProperties(bpy.types.PropertyGroup):
-    pcoll = None
+    def get_materials(self) -> dict:
+        materials = {}
+        search_str = self.search.strip().lower()
 
-    def _set_materials(self):
-        self.pcoll.materials = {}
-        for mat in matlib.Material.get_all_materials():
-            render = mat.renders[0]
-            render.get_info()
-            render.get_thumbnail()
-            render.thumbnail_load(self.pcoll)
-
-            if mat.category:
-                mat.category.get_info()
-
-            self.pcoll.materials[mat.id] = mat
-
-    def get_materials(self, context):
-        if not self.pcoll.materials:
-            self._set_materials()
-
-        materials = []
-        if not self.pcoll.materials:
-            return materials
-
-        search_string = self.search.strip().lower()
-        for i, mat in enumerate(self.pcoll.materials.values()):
-            if self.category != 'ALL' and (not mat.category or mat.category.id != self.category):
+        materials_list = manager.materials_list
+        for mat in materials_list:
+            if search_str not in mat.title.lower():
                 continue
 
-            if search_string and not search_string in mat.title.strip().lower():
+            if not (mat.category.id == self.category_id or self.category_id == 'ALL'):
                 continue
 
-            description = f"{mat.title}"
-            if mat.description:
-                description += f"\n{mat.description}"
-            if mat.category:
-                description += f"\nCategory: {mat.category.title}"
-            description += f"\nAuthor: {mat.author}"
-
-            materials.append((mat.id, mat.title, description, mat.renders[0].thumbnail_icon_id, i))
+            materials[mat.id] = mat
 
         return materials
 
-    def _set_categories(self):
-        self.pcoll.categories = {}
+    def get_materials_prop(self, context):
+        materials = []
+        for i, mat in enumerate(sorted(self.get_materials().values())):
+            description = mat.title
+            if mat.description:
+                description += f"\n{mat.description}"
+            description += f"\nCategory: {mat.category.title}\nAuthor: {mat.author}"
 
-        if not self.pcoll.materials:
-            self._set_materials()
+            icon_id = mat.renders[0].thumbnail_icon_id if mat.renders else 'MATERIAL'
+            materials.append((mat.id, mat.title, description, icon_id, i))
 
-        for mat in self.pcoll.materials:
-            cat = self.pcoll.materials[mat].category
-            if not cat or cat.id in self.pcoll.categories:
-                continue
+        return materials
 
-            cat.get_info()
-            self.pcoll.categories[cat.id] = cat
+    def get_categories_prop(self, context):
+        categories = []
+        if manager.categories is None:
+            return categories
 
-    def get_categories(self, context):
-        if self.pcoll.categories is None:
-            self._set_categories()
+        categories += [('ALL', "All Categories", "Show materials for all categories")]
 
-        categories = [('ALL', "All Categories", "Show materials for all categories")]
-        categories += ((cat.id, cat.title, f"Category: {cat.title}")
-                       for cat in self.pcoll.categories.values())
+        categories_list = manager.categories_list
+        categories += ((cat.id, cat.title, f"Show materials with category {cat.title}")
+                       for cat in sorted(categories_list))
         return categories
 
-    def update_material(self, context):
-        materials = self.get_materials(context)
-        if materials and not self.material in [mat[0] for mat in materials]:
-            self.material = materials[0][0]
-            self.package_id = self.pcoll.materials[self.material].packages[0].id
+    def get_packages_prop(self, context):
+        packages = []
+        mat = self.material
+        if not mat:
+            return packages
 
-    material: bpy.props.EnumProperty(
+        for i, p in enumerate(sorted(mat.packages)):
+            description = f"Package: {p.label} ({p.size_str})\nAuthor: {p.author}"
+            if p.has_file:
+                description += "\nReady to import"
+            icon_id = 'RADIOBUT_ON' if p.has_file else 'RADIOBUT_OFF'
+
+            packages.append((p.id, f"{p.label} ({p.size_str})", description, icon_id, i))
+
+        return packages
+
+    def update_material(self, context):
+        mat = self.material
+        if mat:
+            self.package_id = min(mat.packages).id
+
+    def update_category(self, context):
+        materials = self.get_materials()
+        if not materials:
+            return
+
+        mat = min(materials.values())
+        self.material_id = mat.id
+        self.package_id = min(mat.packages).id
+
+    def update_search(self, context):
+        materials = self.get_materials()
+        if not materials or self.material_id in materials:
+            return
+
+        mat = min(materials.values())
+        self.material_id = mat.id
+        self.package_id = min(mat.packages).id
+
+    material_id: bpy.props.EnumProperty(
         name="Material",
         description="Select material",
-        items=get_materials,
+        items=get_materials_prop,
+        update=update_material,
     )
-    category: bpy.props.EnumProperty(
+    category_id: bpy.props.EnumProperty(
         name="Category",
         description="Select materials category",
-        items=get_categories,
-        update=update_material,
+        items=get_categories_prop,
+        update=update_category,
     )
     search: bpy.props.StringProperty(
         name="Search",
         description="Search materials by title",
-        update=update_material,
+        update=update_search,
     )
-    package_id: bpy.props.StringProperty(
-        name="Package id",
-        description="Selected material package"
+    package_id: bpy.props.EnumProperty(
+        name="Package",
+        description="Selected material package",
+        items=get_packages_prop,
     )
 
-    @classmethod
-    def register(cls):
-        import bpy.utils.previews
-        cls.pcoll = bpy.utils.previews.new()
-        cls.pcoll.materials = None
-        cls.pcoll.categories = None
+    @property
+    def material(self):
+        return manager.materials.get(self.material_id)
 
-    @classmethod
-    def unregister(cls):
-        bpy.utils.previews.remove(cls.pcoll)
+    @property
+    def package(self):
+        mat = self.material
+        if not mat:
+            return None
+
+        return next((p for p in mat.packages if p.id == self.package_id), None)
 
 
 class WindowManagerProperties(HdUSDProperties):
