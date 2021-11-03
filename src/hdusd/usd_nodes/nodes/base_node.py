@@ -15,8 +15,9 @@
 import bpy
 from pxr import Usd
 
-from . import log
+from ...utils import pass_node_reroute
 
+from . import log
 
 class USDNode(bpy.types.Node):
     """Base class for parsing USD nodes"""
@@ -99,21 +100,17 @@ class USDNode(bpy.types.Node):
         """Returns linked parsed node or None if nothing is linked or not link is not valid"""
 
         socket_in = self.inputs[socket_key]
-        if not socket_in.links:
+        if not socket_in.is_linked or not socket_in.links:
             return None
 
         link = socket_in.links[0]
         if not link.is_valid:
             log.warn("Invalid link found", link, socket_in, self)
+            return None
 
-        node = link.from_node
-        while isinstance(node, bpy.types.NodeReroute):
-            if not node.inputs[0].links:
-                return None
-
-            link = node.inputs[0].links[0]
-            if link.is_valid:
-                node = link.from_node
+        link = pass_node_reroute(link)
+        if not link:
+            return None
 
         # removing 'socket_out' from kwargs before transferring to _compute_node
         kwargs.pop('socket_out', None)

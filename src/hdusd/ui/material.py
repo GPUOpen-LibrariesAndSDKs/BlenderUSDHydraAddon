@@ -19,6 +19,7 @@ from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
+from ..utils import pass_node_reroute
 
 
 NODE_SHADER_CATEGORIES = set(['PBR', 'RPR Shaders'])
@@ -443,16 +444,11 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
 
         layout.separator()
 
-        node = link.from_node
-        while isinstance(node, bpy.types.NodeReroute):
-            if not node.inputs[0].links:
-                return
+        link = pass_node_reroute(link)
+        if not link:
+            return
 
-            link = node.inputs[0].links[0]
-            if link.is_valid:
-                node = link.from_node
-
-        node.draw_node_view(context, layout)
+        link.from_node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
@@ -495,16 +491,11 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
 
         layout.separator()
 
-        node = link.from_node
-        while isinstance(node, bpy.types.NodeReroute):
-            if not node.inputs[0].links:
-                return
+        link = pass_node_reroute(link)
+        if not link:
+            return
 
-            link = node.inputs[0].links[0]
-            if link.is_valid:
-                node = link.from_node
-
-        node.draw_node_view(context, layout)
+        link.from_node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):

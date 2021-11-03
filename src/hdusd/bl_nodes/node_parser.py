@@ -18,6 +18,7 @@ import bpy
 import MaterialX as mx
 
 from ..utils import mx as mx_utils
+from ..utils import pass_node_reroute
 from ..mx_nodes.nodes import get_mx_node_cls 
 from . import log
 
@@ -337,24 +338,18 @@ class NodeParser:
         """Returns linked parsed node or None if nothing is linked or not link is not valid"""
 
         socket_in = self.node.inputs[in_key]
-        if not socket_in.is_linked:
+        if not socket_in.links:
             return None
 
         link = socket_in.links[0]
 
-        # # check if linked is correct
         if not link.is_valid:
             log.warn("Invalid link ignored", link, socket_in, self.node, self.material)
             return None
 
-        node = link.from_node
-        while isinstance(node, bpy.types.NodeReroute):
-            if not node.inputs[0].links:
-                return None
-
-            link = node.inputs[0].links[0]
-            if link.is_valid:
-                node = link.from_node
+        link = pass_node_reroute(link)
+        if not link:
+            return None
 
         return self._export_node(link.from_node, link.from_socket.identifier)
 
