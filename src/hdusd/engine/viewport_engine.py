@@ -274,11 +274,17 @@ class ViewportEngine(Engine):
         settings = scene.hdusd.viewport
 
         self.is_gl_delegate = settings.is_gl_delegate
-        self.renderer.SetRendererPlugin(settings.delegate)
+
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
             quality = hdrpr.interactive_quality
             denoise = hdrpr.denoise
+
+            if self.renderer.GetRendererSetting(
+                    'renderQuality') != hdrpr.render_quality:
+                self.renderer = UsdImagingGL.Engine()
+
+            self.renderer.SetRendererPlugin(settings.delegate)
 
             self.renderer.SetRendererSetting('renderMode', 'interactive')
             # self.renderer.SetRendererSetting('rpr:interactive', True)

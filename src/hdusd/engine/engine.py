@@ -91,30 +91,20 @@ class HdUSDEngine(bpy.types.RenderEngine):
     # viewport render
     def view_update(self, context, depsgraph):
         """ Called when data is updated for viewport """
-        def _sync_engine():
+        log('view_update', self.as_pointer())
+
+        try:
+            data_source = depsgraph.scene.hdusd.viewport.data_source
+            if self.engine and self.engine.data_source == data_source:
+                self.engine.sync_update(context, depsgraph)
+                return
+
             if data_source:
                 self.engine = viewport_engine.ViewportEngineNodetree(self)
             else:
                 self.engine = viewport_engine.ViewportEngineScene(self)
 
             self.engine.sync(context, depsgraph)
-
-        log('view_update', self.as_pointer())
-
-        try:
-            data_source = depsgraph.scene.hdusd.viewport.data_source
-            settings = depsgraph.scene.hdusd.viewport
-            if settings.delegate == 'HdRprPlugin':
-                hdrpr = settings.hdrpr
-                if self.engine and self.engine.renderer.GetRendererSetting(
-                        'renderQuality') != hdrpr.render_quality:
-                    _sync_engine()
-
-            if self.engine and self.engine.data_source == data_source:
-                self.engine.sync_update(context, depsgraph)
-                return
-
-            _sync_engine()
 
         except Exception as e:
             log.error(e, 'EXCEPTION:', traceback.format_exc())
