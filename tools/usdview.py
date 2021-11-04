@@ -40,13 +40,11 @@ if OS == 'Windows':
 
     os.environ['PATH'] = path_str + os.environ['PATH']
 
-os.environ['PXR_PLUGINPATH_NAME'] = str(LIBS_DIR / 'plugins')
+os.environ['PXR_PLUGINPATH_NAME'] = str(LIBS_DIR / 'plugin')
 os.environ['RPR'] = str(LIBS_DIR)
-os.environ['MATERIALX_SEARCH_PATH'] = str(LIBS_DIR / 'libraries')
 
-sys.path.append(str(LIBS_DIR / 'usd/python'))
-sys.path.append(str(LIBS_DIR / 'hdrpr/lib/python'))
-sys.path.append(str(LIBS_DIR / 'materialx/python'))
+sys.path.append(str(LIBS_DIR / 'lib/python'))
+sys.path.append(str(LIBS_DIR / 'python'))
 
 from pxr import Usdviewq
 

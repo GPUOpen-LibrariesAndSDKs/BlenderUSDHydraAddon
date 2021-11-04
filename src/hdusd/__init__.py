@@ -16,7 +16,7 @@
 bl_info = {
     "name": "USD Hydra",
     "author": "AMD",
-    "version": (1, 0, 42),
+    "version": (1, 0, 45),
     "blender": (2, 93, 0),
     "location": "Info header, render engine menu",
     "description": "USD Hydra rendering plugin for Blender",
@@ -32,7 +32,7 @@ from . import config
 from .utils import logging
 
 
-log = logging.Log(tag='init')
+log = logging.Log('init')
 log.info(f"Loading USD Hydra addon version={bl_info['version']}, build={version_build}")
 
 

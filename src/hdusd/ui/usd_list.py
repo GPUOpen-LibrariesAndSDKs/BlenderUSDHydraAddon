@@ -20,7 +20,7 @@ from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
 from ..utils import logging
-log = logging.Log(tag='ui.usd_list')
+log = logging.Log('ui.usd_list')
 
 
 class HDUSD_OP_usd_list_item_expand(bpy.types.Operator):

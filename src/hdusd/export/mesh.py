@@ -25,7 +25,7 @@ from . import material
 from ..utils import get_data_from_collection
 
 from ..utils import logging
-log = logging.Log(tag='export.mesh')
+log = logging.Log('export.mesh')
 
 
 @dataclass(init=False)

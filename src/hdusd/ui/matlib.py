@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import traceback
+import textwrap
 
 import MaterialX as mx
 
@@ -21,10 +22,11 @@ import bpy
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
 from ..utils import mx as mx_utils
+from ..utils.matlib import manager
 from .. import config
 
 from ..utils import logging
-log = logging.Log(tag='ui.matlib')
+log = logging.Log('ui.matlib')
 
 
 class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
@@ -38,23 +40,15 @@ class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
 
 
 class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
-    """Import Material"""
+    """Import Material Package to material"""
     bl_idname = "hdusd.matlib_import_material"
-    bl_label = "Import Material"
+    bl_label = "Import Material Package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
+        package = matlib_prop.package
 
-        # unzipping package
-        package = next(package for package in material.packages
-                       if package.id == matlib_prop.package_id)
-
-        if package.file_path is None or not package.file_path.is_file():
-            package.get_info(use_cache=True)
-            package.get_file(use_cache=True)
-
-        mtlx_file = package.unzip(use_cache=True)
+        mtlx_file = package.unzip()
 
         # getting/creating MxNodeTree
         bl_material = context.material
@@ -80,22 +74,13 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
 
 
 class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
-    """Reload Material"""
+    """Download material package"""
     bl_idname = "hdusd.matlib_load_package"
-    bl_label = "Load package"
+    bl_label = "Download Package"
 
     def execute(self, context):
         matlib_prop = context.window_manager.hdusd.matlib
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
-
-        # unzipping package
-        package = next(package for package in material.packages
-                       if package.id == matlib_prop.package_id)
-
-        package.get_info(use_cache=False)
-        package.get_file(use_cache=False)
-
-        package.unzip(use_cache=False)
+        manager.load_package(matlib_prop.package)
 
         return {"FINISHED"}
 
@@ -113,119 +98,74 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         layout = self.layout
         matlib_prop = context.window_manager.hdusd.matlib
 
-        layout.prop(matlib_prop, "category")
+        manager.check_load_materials()
+
+        # category
+        layout.prop(matlib_prop, 'category_id')
+
+        # search
         row = layout.row(align=True)
-        row.prop(matlib_prop, "search", text="", icon="VIEWZOOM")
+        row.prop(matlib_prop, 'search', text="", icon='VIEWZOOM')
         if matlib_prop.search:
             row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
 
-        if not matlib_prop.get_materials(context):
-            layout.label(text="No Materials Found")
+        # materials
+        col = layout.column(align=True)
+        materials = matlib_prop.get_materials()
+        if not materials:
+            col.label(text="No materials found")
             return
 
-        layout.template_icon_view(matlib_prop, "material", show_labels=True)
+        row = col.row()
+        row.alignment = 'RIGHT'
+        row.label(text=f"{len(materials)} materials")
 
-        renders = matlib_prop.pcoll.materials[matlib_prop.material].renders
+        col.template_icon_view(matlib_prop, 'material_id', show_labels=True)
 
-        if len(renders) > 1:
-            grid = layout.grid_flow(align=True)
-            row = None
-            for i, render in enumerate(renders):
-                if render.thumbnail_icon_id is None:
-                    render.get_info()
-                    render.get_thumbnail()
-                    render.thumbnail_load(matlib_prop.pcoll)
+        mat = matlib_prop.material
+        if not mat:
+            return
 
+        # other material renders
+        if len(mat.renders) > 1:
+            grid = col.grid_flow(align=True)
+            for i, render in enumerate(mat.renders):
                 if i % 6 == 0:
                     row = grid.row()
-                    row.alignment = "CENTER"
+                    row.alignment = 'CENTER'
 
                 row.template_icon(render.thumbnail_icon_id, scale=5)
 
-        if matlib_prop.pcoll.materials[matlib_prop.material] is not None:
-            material_description = matlib_prop.pcoll.materials[matlib_prop.material].get_description()
+        # material title
+        row = col.row()
+        row.alignment = 'CENTER'
+        row.label(text=mat.title)
 
-            for line in material_description.splitlines():
-                row = layout.row()
-                row.label(text=line)
+        # material description
+        col = layout.column(align=True)
+        if mat.description:
+            for line in textwrap.wrap(mat.description, 60):
+                col.label(text=line)
 
-        split = layout.split(factor=0.25)
+        col = layout.column(align=True)
+        col.label(text=f"Category: {mat.category.title}")
+        col.label(text=f"Author: {mat.author}")
 
-        row = split.row()
-        row.alignment = 'LEFT'
-        row.label(text="Package")
+        # packages
+        package = matlib_prop.package
+        if not package:
+            return
 
-        split = split.split(align=True, factor=0.9)
+        layout.prop(matlib_prop, 'package_id', icon='DOCUMENTS')
 
-        packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
-        package = None
-
-        if matlib_prop.package_id:
-            # TODO maybe need to find a better way than try/except but it's too late now
-            try:
-                package = next(package for package in packages
-                               if package.id == matlib_prop.package_id)
-            except:
-                package = packages[0]
+        row = layout.row()
+        if package.has_file:
+            row.operator(HDUSD_MATLIB_OP_import_material.bl_idname, icon='IMPORT')
         else:
-            package = packages[0]
-
-        if package is not None:
-
-            if package.file is None:
-                package.get_info()
-
-            matlib_prop.package_id = package.id
-
-            split.row().menu(HDUSD_MATLIB_MT_package_menu.bl_idname,
-                             text=f"{package.label} ({package.size})" if package is not None else None,
-                             icon='DOCUMENTS')
-
-        material = matlib_prop.pcoll.materials[matlib_prop.material]
-        package = next(package for package in material.packages
-                       if package.id == matlib_prop.package_id)
-
-        icon = "IMPORT" if package.file_path is None else "FILE_REFRESH"
-
-        row = split.row()
-        row.alignment = 'RIGHT'
-        row.enabled = bool(context.material)
-        row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, text="", icon=icon)
-
-        col = layout.row()
-        col.enabled = bool(context.material)
-        col.operator(HDUSD_MATLIB_OP_import_material.bl_idname, text="Import Material Package",
-                     icon="IMPORT")
-
-
-class HDUSD_MATLIB_MT_package_menu(bpy.types.Menu):
-    bl_label = "Package"
-    bl_idname = "HDUSD_MATLIB_MT_package_menu"
-
-    def draw(self, context):
-        layout = self.layout
-        op_idname = HDUSD_MATLIB_OP_select_package.bl_idname
-
-        matlib_prop = context.window_manager.hdusd.matlib
-        packages = matlib_prop.pcoll.materials[matlib_prop.material].packages
-
-        for package in packages:
-            if package.file is None:
-                package.get_info()
-
-            row = layout.row()
-            op = row.operator(op_idname, text=f"{package.label} ({package.size})",
-                              icon='DOCUMENTS')
-            op.matlib_package_id = package.id
-
-
-class HDUSD_MATLIB_OP_select_package(bpy.types.Operator):
-    """Select Package"""
-    bl_label = "Select Package"
-    bl_idname = "hdusd.matlib_select_package"
-
-    matlib_package_id: bpy.props.StringProperty(default="")
-
-    def execute(self, context):
-        context.window_manager.hdusd.matlib.package_id = self.matlib_package_id
-        return {"FINISHED"}
+            if package.size_load is None:
+                row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, icon='IMPORT')
+            else:
+                percent = min(100, int(package.size_load * 100 / package.size))
+                row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, icon='IMPORT',
+                             text=f"Downloading Package...{percent}%")
+                row.enabled = False

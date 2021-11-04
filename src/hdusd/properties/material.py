@@ -22,7 +22,7 @@ from ..usd_nodes import node_tree as usd_node_tree
 from ..engine.viewport_engine import ViewportEngineScene
 
 from ..utils import logging
-log = logging.Log(tag='export.material')
+log = logging.Log('properties.material')
 
 
 class MaterialProperties(HdUSDProperties):

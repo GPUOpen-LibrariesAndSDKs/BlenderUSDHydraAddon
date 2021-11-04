@@ -283,7 +283,7 @@ class NodeParser:
         # getting corresponded NodeParser class
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
         if not NodeParser_cls:
-            log.warn("Ignoring unsupported node", node, self.material)
+            log.warn(f"Ignoring unsupported node {node.bl_idname}", node, self.material)
             self.cached_nodes[(node.name, out_key)] = None
             return None
 

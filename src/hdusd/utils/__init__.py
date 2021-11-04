@@ -43,7 +43,7 @@ LIBS_DIR = PLUGIN_ROOT_DIR.parent.parent / 'libs' if DEBUG_MODE else \
 
 
 from . import logging
-log = logging.Log(tag='utils')
+log = logging.Log('utils')
 
 
 def temp_dir():
