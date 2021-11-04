@@ -163,6 +163,9 @@ class ViewportEngine(Engine):
         # removing current engine from _engine_refs
         self._engine_refs.remove(weakref.ref(self))
 
+    def get_settings(self, scene):
+        return scene.hdusd.viewport
+
     def notify_status(self, info, status, redraw=True):
         """ Display export progress status """
         log(f"Status: {status} | {info}")
@@ -176,7 +179,7 @@ class ViewportEngine(Engine):
         log('Start sync')
 
         scene = depsgraph.scene
-        settings = scene.hdusd.viewport
+        settings = self.get_settings(scene)
 
         self.is_gl_delegate = settings.is_gl_delegate
 
@@ -201,10 +204,16 @@ class ViewportEngine(Engine):
         if not self.is_synced:
             return
 
+        settings = self.get_settings(depsgraph.scene)
+
         if self.renderer.IsPauseRendererSupported():
             self.renderer.PauseRenderer()
 
-        gl_delegate_changed = self.is_gl_delegate != depsgraph.scene.hdusd.viewport.is_gl_delegate
+        if self._check_restart_renderer(depsgraph.scene):
+            self.renderer = None
+            self.renderer = UsdImagingGL.Engine()
+
+        gl_delegate_changed = self.is_gl_delegate != settings.is_gl_delegate
 
         self._sync_update(context, depsgraph)
 
@@ -270,7 +279,7 @@ class ViewportEngine(Engine):
             self.notify_status(f"Time: {elapsed_time}", "Rendering Done", False)
 
     def _sync_render_settings(self, scene):
-        settings = scene.hdusd.viewport
+        settings = self.get_settings(scene)
 
         self.is_gl_delegate = settings.is_gl_delegate
         self.renderer.SetRendererPlugin(settings.delegate)
@@ -278,9 +287,6 @@ class ViewportEngine(Engine):
             hdrpr = settings.hdrpr
             quality = hdrpr.interactive_quality
             denoise = hdrpr.denoise
-
-            if self.renderer.GetRendererSetting('renderQuality') != hdrpr.render_quality:
-                self.renderer = UsdImagingGL.Engine()
 
             self.renderer.SetRendererSetting('renderMode', 'interactive')
             # self.renderer.SetRendererSetting('rpr:interactive', True)
@@ -303,6 +309,16 @@ class ViewportEngine(Engine):
             self.renderer.SetRendererSetting('enableDenoising', denoise.enable)
             self.renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
             self.renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
+
+    def _check_restart_renderer(self, scene):
+        restart = False
+
+        settings = self.get_settings(scene)
+        if settings.delegate == 'HdRprPlugin':
+            hdrpr = settings.hdrpr
+            restart = self.renderer.GetRendererSetting('renderQuality') != hdrpr.render_quality
+
+        return restart
 
 
 class ViewportEngineScene(ViewportEngine):
@@ -427,7 +443,7 @@ class ViewportEngineNodetree(ViewportEngine):
     def _sync(self, context, depsgraph):
         super()._sync(context, depsgraph)
 
-        self.data_source = depsgraph.scene.hdusd.viewport.data_source
+        self.data_source = self.get_settings(depsgraph.scene).data_source
 
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
