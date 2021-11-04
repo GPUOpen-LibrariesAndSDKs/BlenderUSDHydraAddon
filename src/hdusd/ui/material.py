@@ -153,7 +153,7 @@ class HDUSD_MATERIAL_OP_duplicate_mx_node_tree(bpy.types.Operator):
 class HDUSD_MATERIAL_OP_convert_mx_node_tree(bpy.types.Operator):
     """Converts standard shader node tree to MaterialX node tree for selected material"""
     bl_idname = "hdusd.material_convert_mx_node_tree"
-    bl_label = ""
+    bl_label = "Convert"
 
     def execute(self, context):
         mat = context.material
@@ -253,12 +253,12 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         if mat_hdusd.mx_node_tree:
             row.prop(mat_hdusd.mx_node_tree, 'name', text="")
             row.operator(HDUSD_MATERIAL_OP_duplicate_mx_node_tree.bl_idname, icon='DUPLICATE')
-            row.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK')
+            row.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK', text="")
             row.operator(HDUSD_MATERIAL_OP_unlink_mx_node_tree.bl_idname, icon='X')
 
         else:
-            row.operator(HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname, icon='ADD')
             row.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK')
+            row.operator(HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname, icon='ADD', text="")
 
     def draw_header(self, context):
         layout = self.layout
