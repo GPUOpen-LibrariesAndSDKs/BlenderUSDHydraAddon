@@ -21,7 +21,7 @@ from .engine import Engine
 from ..export import object, world
 
 from ..utils import logging
-log = logging.Log(tag='preview_engine')
+log = logging.Log('preview_engine')
 
 
 class PreviewEngine(Engine):

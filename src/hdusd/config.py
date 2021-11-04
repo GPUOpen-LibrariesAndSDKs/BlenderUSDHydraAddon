@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from .utils import logging
 
-logging.limit_log('default', logging.INFO)
+# logging
+logging_level = 'INFO'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
+logging_backups = 5
 
+# other settings
 matlib_enabled = False
 engine_use_preview = True
 
 try:
-    # configdev.py example for logging setup:
-    # from .utils import logging
-    # logging.limit_log('default', logging.DEBUG)
-    # from . import config
-    # config.<parameter> = True
+    # Trying to load configdev.py if it exist
+    # example for logging setup:
+    #   from . import config
+    #   config.<parameter> = <value>
 
     from . import configdev
-    logging.info('Loaded configdev', tag='')
 
 except ImportError:
     pass

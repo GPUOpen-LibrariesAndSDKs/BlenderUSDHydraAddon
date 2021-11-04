@@ -18,10 +18,8 @@ import numpy as np
 from pxr import UsdGeom, Gf, Tf
 import bpy
 
-from . import object
-
 from ..utils import logging
-log = logging.Log(tag='export.camera')
+log = logging.Log('export.camera')
 
 
 # Core has issues with drawing faces in orthographic camera view with big

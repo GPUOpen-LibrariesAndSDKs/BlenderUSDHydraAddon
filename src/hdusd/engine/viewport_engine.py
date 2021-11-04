@@ -25,11 +25,10 @@ from pxr import UsdImagingGL
 
 from .engine import Engine
 from ..export import camera, material, object, world
-from .. import utils
 from ..utils import usd as usd_utils
 from ..utils import time_str
 from ..utils import logging
-log = logging.Log(tag='viewport_engine')
+log = logging.Log('viewport_engine')
 
 
 @dataclass(init=False, eq=True)

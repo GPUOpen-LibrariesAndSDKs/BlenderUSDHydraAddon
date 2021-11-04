@@ -23,7 +23,7 @@ from .image import cache_image_file
 from . import LIBS_DIR, title_str, code_str
 
 from . import logging
-log = logging.Log(tag='utils.mx')
+log = logging.Log('utils.mx')
 
 
 MX_LIBS_DIR = LIBS_DIR / "libraries"
