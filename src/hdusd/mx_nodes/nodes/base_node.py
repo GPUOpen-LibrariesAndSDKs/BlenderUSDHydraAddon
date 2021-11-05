@@ -103,6 +103,14 @@ class MxNode(bpy.types.ShaderNode):
     def nodedef(self):
         return self.get_nodedef(self.data_type)
 
+    @property
+    def mx_node_path(self):
+        nd = self.nodedef
+        if '/' in self.name or mx_utils.is_shader_type(nd.getOutputs()[0].getType()):
+            return self.name
+
+        return f"NG/{self.name}"
+
     def _folder_prop_name(self, name):
         return f"f_{code_str(name.lower())}"
 
@@ -238,10 +246,7 @@ class MxNode(bpy.types.ShaderNode):
         doc = kwargs['doc']
         nodedef = self.nodedef
         nd_output = self.get_nodedef_output(out_key)
-        node_path = self.name
-        if nodedef.getNodeString() not in ('surfacematerial', 'standard_surface', 'rpr_uberv2') \
-                and '/' not in node_path:
-            node_path = f"NG/{node_path}"
+        node_path = self.mx_node_path
 
         values = []
         for in_key in range(len(self.inputs)):
@@ -305,9 +310,10 @@ class MxNode(bpy.types.ShaderNode):
         # checking if node is already in nodegraph
 
         doc = kwargs['doc']
-        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node.name)
+        node_path = node.mx_node_path
+        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node_path)
         if mx_nodegraph:
-            node_name = mx_utils.get_node_name_by_node_path(node.name)
+            node_name = mx_utils.get_node_name_by_node_path(node_path)
             mx_node = mx_nodegraph.getNode(node_name)
             if mx_node:
                 if mx_node.getType() == 'multioutput':
