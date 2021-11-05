@@ -39,7 +39,7 @@ def get_node_categories():
                            items=[NodeItem(MxNode_cls.bl_idname)
                                   for MxNode_cls in category_classes]))
 
-    categories.append(MxNodeCategory('HdUSD_MX_NG_' + 'Layout', 'Layout',
+    categories.append(MxNodeCategory('HdUSD_MX_NG_LAYOUT', 'Layout',
                            items=[NodeItem("NodeReroute"),
                                   NodeItem("NodeFrame")]))
 
