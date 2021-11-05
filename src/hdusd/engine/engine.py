@@ -21,7 +21,7 @@ from .. import config
 from ..utils.stage_cache import CachedStage
 
 from ..utils import logging
-log = logging.Log(tag='engine')
+log = logging.Log('engine')
 
 
 class Engine:

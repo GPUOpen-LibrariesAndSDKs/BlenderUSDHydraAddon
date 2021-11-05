@@ -17,7 +17,7 @@ import bpy
 from ..utils import stage_cache
 
 from ..utils import logging
-log = logging.Log(tag='properties')
+log = logging.Log('properties')
 
 
 class HdUSDProperties(bpy.types.PropertyGroup):

@@ -23,7 +23,7 @@ from nodeitems_builtins import (
 )
 
 from ..utils import logging
-log = logging.Log("bl_nodes")
+log = logging.LogOnce("bl_nodes")
 
 
 class HdUSD_CompatibleShaderNodeCategory(NodeCategory):
@@ -35,10 +35,6 @@ class HdUSD_CompatibleShaderNodeCategory(NodeCategory):
 
 
 # add nodes here once they are supported
-# TODO support Textures
-# TODO support Vector operations and Bumb/Normal
-# TODO support Converter->Math and other values-operations
-# TODO support reroute
 node_categories = [
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_INPUT', "Input", items=[
         NodeItem('ShaderNodeRGB'),

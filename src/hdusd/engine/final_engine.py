@@ -27,7 +27,7 @@ from ..utils import usd as usd_utils
 from ..export import object, world
 
 from ..utils import logging
-log = logging.Log(tag='final_engine')
+log = logging.Log('final_engine')
 
 
 class FinalEngine(Engine):

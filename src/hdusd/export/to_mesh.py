@@ -22,7 +22,7 @@ import bpy
 from . import mesh
 
 from ..utils import logging
-log = logging.Log(tag='export.to_mesh')
+log = logging.Log('export.to_mesh')
 
 
 def sync(obj_prim, obj: bpy.types.Object, **kwargs):
