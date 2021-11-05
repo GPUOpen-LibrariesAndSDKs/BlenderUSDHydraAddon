@@ -16,6 +16,8 @@ import math
 
 import bpy
 
+from ...utils import pass_node_reroute
+
 from . import log
 
 
@@ -249,7 +251,7 @@ class NodeParser:
         """Returns linked parsed node or None if nothing is linked or not link is not valid"""
 
         socket_in = self.node.inputs[in_key]
-        if not socket_in.is_linked:
+        if not socket_in.links:
             return None
 
         link = socket_in.links[0]
@@ -257,6 +259,10 @@ class NodeParser:
         # # check if linked is correct
         if not link.is_valid:
             log.warn("Invalid link ignored", link, socket_in, self.node, self.world)
+            return None
+
+        link = pass_node_reroute(link)
+        if not link:
             return None
 
         return self._export_node(link.from_node, link.from_socket.identifier)

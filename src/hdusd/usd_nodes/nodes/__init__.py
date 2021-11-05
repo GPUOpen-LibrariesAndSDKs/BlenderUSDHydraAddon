@@ -49,6 +49,10 @@ node_categories = [
     USDNodeCategory('HdUSD_USD_TRANSFORMATIONS', 'Transformations', items=[
         NodeItem('usd.TransformNode'),
     ]),
+    USDNodeCategory('HdUSD_USD_LAYOUT', 'Layout', items=[
+        NodeItem('NodeReroute'),
+        NodeItem('NodeFrame'),
+    ]),
 ]
 
 # nodes to register

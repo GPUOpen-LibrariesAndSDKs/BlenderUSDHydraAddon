@@ -16,7 +16,7 @@ import MaterialX as mx
 
 import bpy
 
-from ...utils import title_str, code_str, LIBS_DIR
+from ...utils import title_str, code_str, LIBS_DIR, pass_node_reroute
 from ...utils import mx as mx_utils
 from . import log
 
@@ -180,7 +180,9 @@ class MxNode(bpy.types.ShaderNode):
                 if not link:
                     continue
 
-                node = link.from_node
+                link = pass_node_reroute(link)
+                if not link or isinstance(link.from_node, bpy.types.NodeReroute):
+                    continue
 
                 split = layout.split(factor=0.1)
                 split.column()
@@ -199,12 +201,12 @@ class MxNode(bpy.types.ShaderNode):
                 box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
 
                 op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
-                                  icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
+                                  icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name)
                 op.input_num = i
                 op.current_node_name = self.name
 
                 if socket_in.show_expanded:
-                    node.draw_node_view(context, layout)
+                    link.from_node.draw_node_view(context, layout)
 
             else:
                 mx_input = self.nodedef.getInput(socket_in.name)
@@ -326,8 +328,13 @@ class MxNode(bpy.types.ShaderNode):
             return None
 
         link = socket_in.links[0]
+
         if not link.is_valid:
             log.error("Invalid link found", link, socket_in, self)
+
+        link = pass_node_reroute(link)
+        if not link:
+            return None
 
         return self._compute_node(link.from_node, link.from_socket.name, **kwargs)
 

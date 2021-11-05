@@ -20,7 +20,7 @@ from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
-from ..utils import get_temp_file
+from ..utils import get_temp_file, pass_node_reroute
 from ..utils import mx as mx_utils
 
 from ..utils import logging
@@ -488,8 +488,11 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
 
         layout.separator()
 
-        node = link.from_node
-        node.draw_node_view(context, layout)
+        link = pass_node_reroute(link)
+        if not link:
+            return
+
+        link.from_node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
@@ -532,8 +535,11 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
 
         layout.separator()
 
-        node = link.from_node
-        node.draw_node_view(context, layout)
+        link = pass_node_reroute(link)
+        if not link:
+            return
+
+        link.from_node.draw_node_view(context, layout)
 
 
 class HDUSD_MATERIAL_PT_output_node(HdUSD_ChildPanel):
