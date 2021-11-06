@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from pxr import UsdGeom
+import math
+
 import mathutils
 
 
@@ -30,3 +31,11 @@ def set_variant_delegate(stage, is_gl_delegate):
 
         vset = vsets.GetVariantSet('delegate')
         vset.SetVariantSelection(name)
+
+
+def renderer_percent_done(renderer):
+    percent = renderer.GetRenderStats().get('percentDone', 0.0)
+    if math.isnan(percent):
+        percent = 0.0
+
+    return percent

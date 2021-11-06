@@ -120,8 +120,10 @@ class FinalEngine(Engine):
             if self.render_engine.test_break():
                 break
 
-            percent_done = renderer.GetRenderStats()['percentDone']
-            self.notify_status(percent_done / 100, f"Render Time: {time_str(time.perf_counter() - time_begin)} | Done: {round(percent_done)}%")
+            percent_done = usd_utils.renderer_percent_done(renderer)
+            self.notify_status(percent_done / 100,
+                               f"Render Time: {time_str(time.perf_counter() - time_begin)} | "
+                               f"Done: {int(percent_done)}%")
 
             if renderer.IsConverged():
                 break
@@ -132,7 +134,7 @@ class FinalEngine(Engine):
         renderer.GetRendererAov('color', render_images['Combined'].ctypes.data)
         self.update_render_result(render_images)
 
-        # its important to clear data explicitly
+        # explicit renderer deletion
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
