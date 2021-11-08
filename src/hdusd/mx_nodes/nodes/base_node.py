@@ -26,7 +26,6 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_label = "MX Input Socket"
 
     def draw(self, context, layout, node, text):
-        from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
         nd = node.nodedef
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
@@ -39,12 +38,16 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
 
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
             uitype = title_str(nd_type)
-            if uiname.lower() == uitype.lower():
-                layout.label(text='')
+
+            if uiname.lower() == uitype.lower() or bpy.context.area.type:
+                layout.label(text=uitype)
             else:
                 layout.label(text='')
         else:
-            layout.prop(node, node._input_prop_name(self.name), text='')
+            if bpy.context.area.type == 'PROPERTIES':
+                layout.prop(node, node._input_prop_name(self.name), text='')
+            else:
+                layout.prop(node, node._input_prop_name(self.name), text=uiname)
 
     def draw_color(self, context, node):
         return mx_utils.get_socket_color(node.nodedef.getInput(self.name).getType())
@@ -170,10 +173,9 @@ class MxNode(bpy.types.ShaderNode):
             else:
                 layout.prop(self, self._input_prop_name(name))
 
-    def draw_node_view(self, context, layout, subview=False):
+    def draw_node_view(self, context, layout):
         from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
-        #if not subview:
-        split = layout.split(factor=0.4)
+        split = layout.split(factor=0.38)
         col = split.column()
         col = split.column()
         self.draw_buttons(context, col)
@@ -188,36 +190,31 @@ class MxNode(bpy.types.ShaderNode):
                     continue
 
                 node = link.from_node
-                split_m = layout.split(factor=0.4)
-                split = split_m.split().row()
-                row = split.row()
+
+                split = layout.split(factor=0.38)
+                split_1 = split.split(factor=0.4)
+                row = split_1.row()
                 row.alignment = 'LEFT'
                 row.prop(socket_in, "show_expanded",
                          icon="DISCLOSURE_TRI_DOWN" if socket_in.show_expanded else "DISCLOSURE_TRI_RIGHT", icon_only=True, emboss=False)
-                row = split.row()
+                row = split_1.row()
                 row.alignment = 'RIGHT'
                 row.label(text=uiname)
-                row = split_m.row(align=True)
+                row = split.row()
+                box = row.box()
+                box.scale_x = 0.7
+                box.scale_y = 0.5
 
+                box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
 
+                op=box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                                icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
 
+                op.input_num = i
+                op.current_node_name = self.name
 
-                #split.column()
-                socket_in.draw(context, split, self, '')
-
-                box = row.template_node_link(self.id_data, self, socket_in)
-                # box = row.box()
-                # box.scale_x = 1.025
-                # box.scale_y = 0.5
-                # box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
-                #
-                # op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
-                #                   icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
-                # op.input_num = i
-                # op.current_node_name = self.name
-                #split = row.split(factor=0.6)
                 if socket_in.show_expanded:
-                    node.draw_node_view(context, layout, subview = True)
+                    node.draw_node_view(context, layout)
 
             else:
                 mx_input = self.nodedef.getInput(socket_in.name)
@@ -230,24 +227,20 @@ class MxNode(bpy.types.ShaderNode):
 
                 if is_draw:
                     uiname = mx_utils.get_attr(nd.getInput(socket_in.name), 'uiname', title_str(nd.getInput(socket_in.name).getName()))
-                    split = layout.split(factor=0.4)
+                    split = layout.split(factor=0.38)
                     row = split.row(align=True)
                     row.alignment = 'RIGHT'
-                    row.label(text = uiname)
+                    row.label(text=uiname)
                     row = split.row(align=True)
-                    #row.alignment = 'RIGHT'
-                    #split = row.split(factor=0.085)
+                    box = row.box()
+                    box.scale_x = 0.7
+                    box.scale_y = 0.5
 
-                    box = row.template_node_link(self.id_data, self, socket_in)
-                    #box.scale_y = 0.5
-                    #box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+                    op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                                      icon='HANDLETYPE_AUTO_CLAMP_VEC')
+                    op.input_num = i
+                    op.current_node_name = self.name
 
-                    #op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
-                    #                  icon='HANDLETYPE_AUTO_CLAMP_VEC')
-                    #op.input_num = i
-                    #op.current_node_name = self.name
-
-                    #row = split.row()
                     socket_in.draw(context, row, self, '')
 
     # COMPUTE FUNCTION

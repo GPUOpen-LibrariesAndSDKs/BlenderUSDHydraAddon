@@ -468,14 +468,14 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         input = output_node.inputs[self.bl_label]
         link = next((link for link in input.links if link.is_valid), None)
 
-        split = layout.split(factor=0.2)
-        col = split.column()
-
-        row = split.row()
+        split = layout.split(factor=0.4)
+        row = split.row(align=True)
+        row.alignment = 'RIGHT'
         row.label(text='Surface')
 
-        box = row.column().box()
-        box.scale_x = 2
+        row = split.row(align=True)
+        box = row.box()
+        box.scale_x = 0.7
         box.scale_y = 0.5
 
         box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
@@ -512,14 +512,14 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         input = output_node.inputs[self.bl_label]
         link = next((link for link in input.links if link.is_valid), None)
 
-        split = layout.split(factor=0.09)
-        col = split.column()
-
-        row = split.row()
+        split = layout.split(factor=0.4)
+        row = split.row(align=True)
+        row.alignment = 'RIGHT'
         row.label(text='Displacement')
 
-        box = row.column().box()
-        box.scale_x = 1.53
+        row = split.row(align=True)
+        box = row.box()
+        box.scale_x = 0.7
         box.scale_y = 0.5
 
         box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
