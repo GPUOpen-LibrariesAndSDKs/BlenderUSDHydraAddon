@@ -156,9 +156,11 @@ class MxNode(bpy.types.ShaderNode):
         nodedef = self.nodedef
 
         if self._ui_folders:
-            split = layout.split(factor=0.38)
-            col = split.column()
-            col = split.column(align=True)
+            new_layout = layout
+            if context.area.type == "PROPERTIES":
+                new_layout = layout.split(factor=0.38)
+            col = new_layout.column()
+            col = new_layout.column(align=True)
             r = None
             for i, f in enumerate(self._ui_folders):
                 if i % 3 == 0:  # putting 3 buttons per row
