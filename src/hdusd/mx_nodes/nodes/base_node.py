@@ -148,11 +148,17 @@ class MxNode(bpy.types.ShaderNode):
         nodedef = self.nodedef
 
         if self._ui_folders:
-            col = layout.column(align=True)
+            split = layout.split(factor=0.38)
+            col = split.column()
+            col = split.column(align=True)
             r = None
             for i, f in enumerate(self._ui_folders):
                 if i % 3 == 0:  # putting 3 buttons per row
+                    col.use_property_split = False
+                    col.use_property_decorate = False
                     r = col.row(align=True)
+                col.use_property_split = True
+                col.use_property_decorate = True
                 r.prop(self, self._folder_prop_name(f), toggle=True)
 
         for nd_input in mx_utils.get_nodedef_inputs(nodedef, True):
@@ -175,12 +181,12 @@ class MxNode(bpy.types.ShaderNode):
 
     def draw_node_view(self, context, layout):
         from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
-        split = layout.split(factor=0.38)
-        col = split.column()
-        col = split.column()
-        self.draw_buttons(context, col)
+        layout.use_property_split = True
+        layout.use_property_decorate = True
+        self.draw_buttons(context, layout)
 
         for i, socket_in in enumerate(self.inputs):
+            nd = self.nodedef
             if socket_in.is_linked:
                 uiname = mx_utils.get_attr(nd.getInput(socket_in.name), 'uiname',
                                            title_str(nd.getInput(socket_in.name).getName()))
@@ -194,13 +200,15 @@ class MxNode(bpy.types.ShaderNode):
                 split = layout.split(factor=0.38)
                 split_1 = split.split(factor=0.4)
                 row = split_1.row()
+                row.use_property_split = False
+                row.use_property_decorate = False
                 row.alignment = 'LEFT'
                 row.prop(socket_in, "show_expanded",
                          icon="DISCLOSURE_TRI_DOWN" if socket_in.show_expanded else "DISCLOSURE_TRI_RIGHT", icon_only=True, emboss=False)
                 row = split_1.row()
                 row.alignment = 'RIGHT'
                 row.label(text=uiname)
-                row = split.row()
+                row = split.row(align=True)
                 box = row.box()
                 box.scale_x = 0.7
                 box.scale_y = 0.5
@@ -212,6 +220,7 @@ class MxNode(bpy.types.ShaderNode):
 
                 op.input_num = i
                 op.current_node_name = self.name
+                row.label(icon='SMALL_TRI_RIGHT_VEC')
 
                 if socket_in.show_expanded:
                     node.draw_node_view(context, layout)
@@ -219,7 +228,6 @@ class MxNode(bpy.types.ShaderNode):
             else:
                 mx_input = self.nodedef.getInput(socket_in.name)
                 f = mx_input.getAttribute('uifolder')
-                nd = self.nodedef
                 is_draw = True
                 if f:
                     if not getattr(self, self._folder_prop_name(f)):
