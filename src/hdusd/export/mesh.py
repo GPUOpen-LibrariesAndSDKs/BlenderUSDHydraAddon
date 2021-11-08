@@ -191,7 +191,7 @@ def sync_visibility(rpr_context, obj: bpy.types.Object, rpr_shape, indirect_only
         rpr_shape.set_portal_light(False)
 
 
-def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs):
+def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, is_instanceable = False, **kwargs):
     """ Creates pyrpr.Shape from obj.data:bpy.types.Mesh """
     from .object import sdf_name
 
@@ -207,6 +207,37 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
     stage = obj_prim.GetStage()
     parent_prim = None
     parent_object = None
+    #
+    # if obj.parent is not None and obj_prim.GetName() != sdf_name(obj.original):
+    #     parent_object = obj.original
+    #     parent_prim = stage.GetPrimAtPath(f"/{sdf_name(obj.original)}")
+    #
+    # if parent_prim is not None and not parent_prim.IsValid():
+    #     xform = UsdGeom.Xform.Define(stage, f"/{sdf_name(obj.original)}")
+    #     parent_prim = xform.GetPrim()
+    #     xform.MakeMatrixXform().Set(Gf.Matrix4d(parent_object.matrix_world.transposed()))
+    #     sync(parent_prim, parent_object, is_instanceable=True)
+    #
+    # if parent_prim is not None and parent_prim.IsValid() and parent_prim.GetChildren():
+    #     obj_prim.GetReferences().AddInternalReference(parent_prim.GetPath())
+    #     for child in parent_prim.GetChildren():
+    #         if child.GetTypeName() == 'Mesh':
+    #             pass
+    #             #usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(sdf_name(obj)))
+    #             #usd_mesh.GetPrim().GetReferences().AddInternalReference(child.GetPath())
+    #
+    #         if child.GetTypeName() == 'Material':
+    #             usd_mesh = UsdGeom.Mesh.Get(stage, obj_prim.GetPath().AppendChild(sdf_name(obj)))
+    #             usd_material = UsdShade.Material.Get(stage, child.GetPath())
+    #             UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
+    #
+    #     return
+    #
+    # original_prim = stage.GetPrimAtPath(f"/{sdf_name(obj.original)}")
+    # if original_prim and original_prim.IsValid():
+    #     for child in original_prim.GetChildren():
+    #         if len(child.GetAuthoredPropertyNames()) > 0:
+    #             return
 
     if obj.parent is not None and obj_prim.GetName() != sdf_name(obj.original):
         parent_object = obj.original
@@ -216,49 +247,38 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         xform = UsdGeom.Xform.Define(stage, f"/{sdf_name(obj.original)}")
         parent_prim = xform.GetPrim()
         xform.MakeMatrixXform().Set(Gf.Matrix4d(parent_object.matrix_world.transposed()))
-        sync(parent_prim, parent_object)
+        sync(parent_prim, parent_object, is_instanceable=True)
+        parent_prim = stage.GetPrimAtPath(f"/{sdf_name(obj.original)}")
 
-    if parent_prim is not None and parent_prim.IsValid() and parent_prim.GetChildren():
-        for child in parent_prim.GetChildren():
-            if child.GetTypeName() == 'Mesh':
-                usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(sdf_name(obj)))
-                usd_mesh.GetPrim().GetReferences().AddInternalReference(child.GetPath())
+    if is_instanceable:
+        obj_prim.SetInstanceable(is_instanceable)
 
-            if child.GetTypeName() == 'Material':
-                usd_mesh = UsdGeom.Mesh.Get(stage, obj_prim.GetPath().AppendChild(sdf_name(obj)))
-                usd_material = UsdShade.Material.Get(stage, child.GetPath())
-                UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
-                
-        return
+    if parent_prim and parent_prim.IsValid():
+        obj_prim.GetReferences().AddInternalReference(parent_prim.GetPath())
+    else:
 
-    original_prim = stage.GetPrimAtPath(f"/{sdf_name(obj.original)}")
-    if original_prim and original_prim.IsValid():
-        for child in original_prim.GetChildren():
-            if len(child.GetAuthoredPropertyNames()) > 0:
-                return
-
-    usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
+        usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(
         Tf.MakeValidIdentifier(mesh.name)))
 
-    usd_mesh.CreateDoubleSidedAttr(True)
-    usd_mesh.CreatePointsAttr(data.vertices)
-    usd_mesh.CreateFaceVertexIndicesAttr(data.vertex_indices)
-    usd_mesh.CreateFaceVertexCountsAttr(data.num_face_vertices)
+        usd_mesh.CreateDoubleSidedAttr(True)
+        usd_mesh.CreatePointsAttr(data.vertices)
+        usd_mesh.CreateFaceVertexIndicesAttr(data.vertex_indices)
+        usd_mesh.CreateFaceVertexCountsAttr(data.num_face_vertices)
 
-    usd_mesh.CreateSubdivisionSchemeAttr(UsdGeom.Tokens.none)
-    usd_mesh.CreateNormalsAttr(data.normals)
-    usd_mesh.SetNormalsInterpolation(UsdGeom.Tokens.faceVarying)
+        usd_mesh.CreateSubdivisionSchemeAttr(UsdGeom.Tokens.none)
+        usd_mesh.CreateNormalsAttr(data.normals)
+        usd_mesh.SetNormalsInterpolation(UsdGeom.Tokens.faceVarying)
 
-    for name, uv_layer in data.uv_layers.items():
-        uv_primvar = usd_mesh.CreatePrimvar("st",   # default name, later we'll use sdf_path(name)
-                                            Sdf.ValueTypeNames.TexCoord2fArray,
-                                            UsdGeom.Tokens.faceVarying)
-        uv_primvar.Set(uv_layer[0])
-        uv_primvar.SetIndices(Vt.IntArray.FromNumpy(uv_layer[1]))
+        for name, uv_layer in data.uv_layers.items():
+            uv_primvar = usd_mesh.CreatePrimvar("st",   # default name, later we'll use sdf_path(name)
+                                                Sdf.ValueTypeNames.TexCoord2fArray,
+                                                UsdGeom.Tokens.faceVarying)
+            uv_primvar.Set(uv_layer[0])
+            uv_primvar.SetIndices(Vt.IntArray.FromNumpy(uv_layer[1]))
 
-        break   # currently we use only first UV layer
+            break   # currently we use only first UV layer
 
-    _assign_materials(obj_prim, obj.original, usd_mesh)
+        _assign_materials(obj_prim, obj.original, usd_mesh)
 
 
 def _assign_materials(obj_prim, obj, usd_mesh):

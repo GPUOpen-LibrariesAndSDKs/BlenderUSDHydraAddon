@@ -78,6 +78,15 @@ class ObjectData:
                 continue
 
             yield ObjectData.from_instance(instance)
+            
+    @staticmethod            
+    def parent_objects(depsgraph):
+        for instance in depsgraph.object_instances:
+            obj = instance.object
+
+            if obj.original.is_instancer:
+                yield ObjectData.from_object(obj.original)
+
 
 
 def sdf_name(obj: bpy.types.Object):
