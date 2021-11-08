@@ -16,7 +16,7 @@ import MaterialX as mx
 
 import bpy
 
-from ...utils import title_str, code_str, LIBS_DIR
+from ...utils import title_str, code_str, LIBS_DIR, pass_node_reroute
 from ...utils import mx as mx_utils
 from . import log
 
@@ -107,6 +107,14 @@ class MxNode(bpy.types.ShaderNode):
     def nodedef(self):
         return self.get_nodedef(self.data_type)
 
+    @property
+    def mx_node_path(self):
+        nd = self.nodedef
+        if '/' in self.name or mx_utils.is_shader_type(nd.getOutputs()[0].getType()):
+            return self.name
+
+        return f"NG/{self.name}"
+
     def _folder_prop_name(self, name):
         return f"f_{code_str(name.lower())}"
 
@@ -195,7 +203,9 @@ class MxNode(bpy.types.ShaderNode):
                 if not link:
                     continue
 
-                node = link.from_node
+                link = pass_node_reroute(link)
+                if not link or isinstance(link.from_node, bpy.types.NodeReroute):
+                    continue
 
                 split = layout.split(factor=0.38)
                 split_1 = split.split(factor=0.4)
@@ -212,18 +222,16 @@ class MxNode(bpy.types.ShaderNode):
                 box = row.box()
                 box.scale_x = 0.7
                 box.scale_y = 0.5
-
                 box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
 
                 op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
-                                icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
-
+                                icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name)
                 op.input_num = i
                 op.current_node_name = self.name
                 row.label(icon='SMALL_TRI_RIGHT_VEC')
 
                 if socket_in.show_expanded:
-                    node.draw_node_view(context, layout)
+                    link.from_node.draw_node_view(context, layout)
 
             else:
                 mx_input = self.nodedef.getInput(socket_in.name)
@@ -258,10 +266,7 @@ class MxNode(bpy.types.ShaderNode):
         doc = kwargs['doc']
         nodedef = self.nodedef
         nd_output = self.get_nodedef_output(out_key)
-        node_path = self.name
-        if nodedef.getNodeString() not in ('surfacematerial', 'standard_surface', 'rpr_uberv2') \
-                and '/' not in node_path:
-            node_path = f"NG/{node_path}"
+        node_path = self.mx_node_path
 
         values = []
         for in_key in range(len(self.inputs)):
@@ -325,9 +330,10 @@ class MxNode(bpy.types.ShaderNode):
         # checking if node is already in nodegraph
 
         doc = kwargs['doc']
-        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node.name)
+        node_path = node.mx_node_path
+        mx_nodegraph = mx_utils.get_nodegraph_by_node_path(doc, node_path)
         if mx_nodegraph:
-            node_name = mx_utils.get_node_name_by_node_path(node.name)
+            node_name = mx_utils.get_node_name_by_node_path(node_path)
             mx_node = mx_nodegraph.getNode(node_name)
             if mx_node:
                 if mx_node.getType() == 'multioutput':
@@ -348,6 +354,10 @@ class MxNode(bpy.types.ShaderNode):
         link = socket_in.links[0]
         if not link.is_valid:
             log.error("Invalid link found", link, socket_in, self)
+
+        link = pass_node_reroute(link)
+        if not link:
+            return None
 
         return self._compute_node(link.from_node, link.from_socket.name, **kwargs)
 

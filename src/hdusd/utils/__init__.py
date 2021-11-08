@@ -120,3 +120,13 @@ def title_str(str):
 
 def code_str(str):
     return str.replace(' ', '_').replace('.', '_')
+
+
+def pass_node_reroute(link):
+    while isinstance(link.from_node, bpy.types.NodeReroute):
+        if not link.from_node.inputs[0].links:
+            return None
+
+        link = link.from_node.inputs[0].links[0]
+
+    return link if link.is_valid else None
