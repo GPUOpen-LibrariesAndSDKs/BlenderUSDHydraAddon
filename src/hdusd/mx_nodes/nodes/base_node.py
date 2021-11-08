@@ -215,7 +215,7 @@ class MxNode(bpy.types.ShaderNode):
 
                 box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
 
-                op=box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
                                 icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
 
                 op.input_num = i
