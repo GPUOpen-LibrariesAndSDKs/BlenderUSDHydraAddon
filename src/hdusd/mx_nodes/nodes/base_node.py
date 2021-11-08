@@ -26,6 +26,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_label = "MX Input Socket"
 
     def draw(self, context, layout, node, text):
+        from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
         nd = node.nodedef
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
@@ -39,11 +40,11 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
             uitype = title_str(nd_type)
             if uiname.lower() == uitype.lower():
-                layout.label(text=uitype)
+                layout.label(text='')
             else:
-                layout.label(text=f"{uiname}: {uitype}")
+                layout.label(text='')
         else:
-            layout.prop(node, node._input_prop_name(self.name), text=uiname)
+            layout.prop(node, node._input_prop_name(self.name), text='')
 
     def draw_color(self, context, node):
         return mx_utils.get_socket_color(node.nodedef.getInput(self.name).getType())
@@ -169,66 +170,84 @@ class MxNode(bpy.types.ShaderNode):
             else:
                 layout.prop(self, self._input_prop_name(name))
 
-    def draw_node_view(self, context, layout):
+    def draw_node_view(self, context, layout, subview=False):
         from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
-
-        self.draw_buttons(context, layout)
+        #if not subview:
+        split = layout.split(factor=0.4)
+        col = split.column()
+        col = split.column()
+        self.draw_buttons(context, col)
 
         for i, socket_in in enumerate(self.inputs):
             if socket_in.is_linked:
+                uiname = mx_utils.get_attr(nd.getInput(socket_in.name), 'uiname',
+                                           title_str(nd.getInput(socket_in.name).getName()))
+
                 link = next((link for link in socket_in.links if link.is_valid), None)
                 if not link:
                     continue
 
                 node = link.from_node
-
-                split = layout.split(factor=0.1)
-                split.column()
-
+                split_m = layout.split(factor=0.4)
+                split = split_m.split().row()
                 row = split.row()
+                row.alignment = 'LEFT'
                 row.prop(socket_in, "show_expanded",
-                         icon="TRIA_DOWN" if socket_in.show_expanded else "TRIA_RIGHT",
-                         icon_only=True, emboss=False
-                         )
+                         icon="DISCLOSURE_TRI_DOWN" if socket_in.show_expanded else "DISCLOSURE_TRI_RIGHT", icon_only=True, emboss=False)
+                row = split.row()
+                row.alignment = 'RIGHT'
+                row.label(text=uiname)
+                row = split_m.row(align=True)
 
-                socket_in.draw(context, row, self, '')
 
-                box = row.box()
-                box.scale_x = 1.025
-                box.scale_y = 0.5
-                box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
 
-                op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
-                                  icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
-                op.input_num = i
-                op.current_node_name = self.name
 
+                #split.column()
+                socket_in.draw(context, split, self, '')
+
+                box = row.template_node_link(self.id_data, self, socket_in)
+                # box = row.box()
+                # box.scale_x = 1.025
+                # box.scale_y = 0.5
+                # box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+                #
+                # op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                #                   icon='HANDLETYPE_AUTO_CLAMP_VEC', text=node.name)
+                # op.input_num = i
+                # op.current_node_name = self.name
+                #split = row.split(factor=0.6)
                 if socket_in.show_expanded:
-                    node.draw_node_view(context, layout)
+                    node.draw_node_view(context, layout, subview = True)
 
             else:
                 mx_input = self.nodedef.getInput(socket_in.name)
                 f = mx_input.getAttribute('uifolder')
+                nd = self.nodedef
                 is_draw = True
                 if f:
                     if not getattr(self, self._folder_prop_name(f)):
                         is_draw = False
 
                 if is_draw:
-                    split = layout.split(factor=0.1)
-                    split.column()
-                    split = split.split(factor=0.085)
+                    uiname = mx_utils.get_attr(nd.getInput(socket_in.name), 'uiname', title_str(nd.getInput(socket_in.name).getName()))
+                    split = layout.split(factor=0.4)
+                    row = split.row(align=True)
+                    row.alignment = 'RIGHT'
+                    row.label(text = uiname)
+                    row = split.row(align=True)
+                    #row.alignment = 'RIGHT'
+                    #split = row.split(factor=0.085)
 
-                    box = split.box()
-                    box.scale_y = 0.5
-                    box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+                    box = row.template_node_link(self.id_data, self, socket_in)
+                    #box.scale_y = 0.5
+                    #box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
 
-                    op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
-                                      icon='HANDLETYPE_AUTO_CLAMP_VEC')
-                    op.input_num = i
-                    op.current_node_name = self.name
+                    #op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
+                    #                  icon='HANDLETYPE_AUTO_CLAMP_VEC')
+                    #op.input_num = i
+                    #op.current_node_name = self.name
 
-                    row = split.row()
+                    #row = split.row()
                     socket_in.draw(context, row, self, '')
 
     # COMPUTE FUNCTION
