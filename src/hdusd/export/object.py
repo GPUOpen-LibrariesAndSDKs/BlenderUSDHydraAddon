@@ -35,6 +35,9 @@ class ObjectData:
     parent: bpy.types.Object
     is_particle: bool
 
+    def __hash__(self):
+        return hash(self.sdf_name)
+
     @staticmethod
     def from_object(obj):
         data = ObjectData()
@@ -84,9 +87,8 @@ class ObjectData:
         for instance in depsgraph.object_instances:
             obj = instance.object
 
-            if obj.original.is_instancer:
-                yield ObjectData.from_object(obj.original)
-
+            if obj.parent:
+                yield ObjectData.from_object(obj)
 
 
 def sdf_name(obj: bpy.types.Object):
@@ -127,6 +129,19 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
 
             usd_material = UsdShade.Material.Get(stage, material_prim.GetPath())
             UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
+
+        return
+
+    if obj.parent and obj_data.sdf_name != sdf_name(obj):
+        parent_prim = stage.GetPrimAtPath(f"/{sdf_name(obj)}")
+
+        if not parent_prim or not parent_prim.IsValid():
+            return
+
+        if not parent_prim.IsInstanceable():
+            parent_prim.SetInstanceable(True)
+
+        obj_prim.GetReferences().AddInternalReference(parent_prim.GetPath())
 
         return
 

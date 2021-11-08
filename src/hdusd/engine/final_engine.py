@@ -269,6 +269,15 @@ class FinalEngineScene(FinalEngine):
 
         objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(
                           depsgraph, use_scene_cameras=False))
+
+        for i, obj_data in enumerate(set(object.ObjectData.parent_objects(depsgraph))):
+            if self.render_engine.test_break():
+                return
+
+            self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
+
+            object.sync(root_prim, obj_data)
+
         for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
                                      depsgraph, use_scene_cameras=False)):
             if self.render_engine.test_break():
