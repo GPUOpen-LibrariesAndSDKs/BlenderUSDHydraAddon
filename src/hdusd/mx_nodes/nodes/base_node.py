@@ -40,7 +40,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             uitype = title_str(nd_type)
 
             if uiname.lower() == uitype.lower() or bpy.context.area.type != 'PROPERTIES':
-                layout.label(text=uitype)
+                layout.label(text=f"{uiname}: {uitype}")
             else:
                 layout.label(text='')
         else:
