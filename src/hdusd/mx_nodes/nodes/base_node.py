@@ -39,7 +39,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
             uitype = title_str(nd_type)
 
-            if uiname.lower() == uitype.lower() or bpy.context.area.type:
+            if uiname.lower() == uitype.lower() or bpy.context.area.type != 'PROPERTIES':
                 layout.label(text=uitype)
             else:
                 layout.label(text='')
@@ -197,10 +197,9 @@ class MxNode(bpy.types.ShaderNode):
 
         for i, socket_in in enumerate(self.inputs):
             nd = self.nodedef
+            uiname = mx_utils.get_attr(nd.getInput(socket_in.name), 'uiname',
+                                       title_str(nd.getInput(socket_in.name).getName()))
             if socket_in.is_linked:
-                uiname = mx_utils.get_attr(nd.getInput(socket_in.name), 'uiname',
-                                           title_str(nd.getInput(socket_in.name).getName()))
-
                 link = next((link for link in socket_in.links if link.is_valid), None)
                 if not link:
                     continue
@@ -211,16 +210,19 @@ class MxNode(bpy.types.ShaderNode):
 
                 split = layout.split(factor=0.38)
                 split_1 = split.split(factor=0.4)
+
                 row = split_1.row()
                 row.use_property_split = False
                 row.use_property_decorate = False
                 row.alignment = 'LEFT'
                 row.prop(socket_in, "show_expanded",
-                         icon="DISCLOSURE_TRI_DOWN" if socket_in.show_expanded else "DISCLOSURE_TRI_RIGHT", icon_only=True, emboss=False)
+                         icon="DISCLOSURE_TRI_DOWN" if socket_in.show_expanded else "DISCLOSURE_TRI_RIGHT",
+                         icon_only=True, emboss=False)
                 row = split_1.row()
                 row.alignment = 'RIGHT'
                 row.label(text=uiname)
                 row = split.row(align=True)
+
                 box = row.box()
                 box.scale_x = 0.7
                 box.scale_y = 0.5
@@ -244,12 +246,13 @@ class MxNode(bpy.types.ShaderNode):
                         is_draw = False
 
                 if is_draw:
-                    uiname = mx_utils.get_attr(nd.getInput(socket_in.name), 'uiname', title_str(nd.getInput(socket_in.name).getName()))
                     split = layout.split(factor=0.38)
+
                     row = split.row(align=True)
                     row.alignment = 'RIGHT'
                     row.label(text=uiname)
                     row = split.row(align=True)
+
                     box = row.box()
                     box.scale_x = 0.7
                     box.scale_y = 0.5

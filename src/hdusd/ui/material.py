@@ -481,7 +481,6 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         box = row.box()
         box.scale_x = 0.7
         box.scale_y = 0.5
-
         box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
                           icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name if link else 'None')
@@ -530,7 +529,6 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         box = row.box()
         box.scale_x = 0.7
         box.scale_y = 0.5
-
         box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
                           icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name if link else 'None')
