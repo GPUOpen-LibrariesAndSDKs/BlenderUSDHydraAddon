@@ -1,4 +1,4 @@
-#**********************************************************************
+# **********************************************************************
 # Copyright 2020 Advanced Micro Devices, Inc
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,22 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#********************************************************************
+# ********************************************************************
 import time
 import numpy as np
+import threading
+import math
 
 from pxr import Usd, UsdAppUtils, Glf, Tf, UsdGeom
 from pxr import UsdImagingGL, UsdImagingLite
+from concurrent import futures
 
 import bpy
 import bgl
 
 from .engine import Engine
-from ..utils import gl, time_str
+from ..utils import gl, time_str, get_temp_file
 from ..utils import usd as usd_utils
 from ..export import object, world
 
 from ..utils import logging
+
 log = logging.Log('final_engine')
 
 
@@ -121,7 +125,8 @@ class FinalEngine(Engine):
                 break
 
             percent_done = renderer.GetRenderStats()['percentDone']
-            self.notify_status(percent_done / 100, f"Render Time: {time_str(time.perf_counter() - time_begin)} | Done: {round(percent_done)}%")
+            self.notify_status(percent_done / 100,
+                               f"Render Time: {time_str(time.perf_counter() - time_begin)} | Done: {round(percent_done)}%")
 
             if renderer.IsConverged():
                 break
@@ -139,8 +144,9 @@ class FinalEngine(Engine):
         if scene.hdusd.final.nodetree_camera != '' and scene.hdusd.final.data_source:
             usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, scene.hdusd.final.nodetree_camera)
         else:
-            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
-       
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage,
+                                                     Tf.MakeValidIdentifier(scene.camera.data.name))
+
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
@@ -268,7 +274,11 @@ class FinalEngineScene(FinalEngine):
         root_prim = stage.GetPseudoRoot()
 
         objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(
-                          depsgraph, use_scene_cameras=False))
+            depsgraph, use_scene_cameras=False))
+
+        parent_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
+        parent_root_prim = parent_stage.GetPseudoRoot()
+
 
         for i, obj_data in enumerate(set(object.ObjectData.parent_objects(depsgraph))):
             if self.render_engine.test_break():
@@ -276,16 +286,104 @@ class FinalEngineScene(FinalEngine):
 
             self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
 
-            object.sync(root_prim, obj_data)
+            object.sync(parent_root_prim, obj_data)
+            def_prim = parent_stage.GetPrimAtPath(f"/{obj_data.sdf_name}")
+            parent_stage.SetDefaultPrim(def_prim)
 
-        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
-                                     depsgraph, use_scene_cameras=False)):
-            if self.render_engine.test_break():
-                return
+        #stage_parents_prim = stage.OverridePrim('/parents')
+        #stage_parents_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath)
+        #stage.GetRootLayer().Save()
 
-            self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
+        children = [obj for obj in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False)]
+        
+        arr_length = 10
+        chunks = math.ceil(len(children) / arr_length)
+        new_arr = []
+        chunks_data = {}
 
-            object.sync(root_prim, obj_data)
+        for i in range(chunks):
+            new_arr.append(children[i*arr_length:(i+1)*arr_length])
+            chunk_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
+            chunk_prim = stage.OverridePrim(f'/chunk_{i}')
+            val = {'stage': chunk_stage, 'prim': chunk_prim, 'objs': children[i*arr_length:(i+1)*arr_length]}
+            chunks_data[i] = val
+            
+        #for i, chunk in enumerate(new_arr):
+        #    child_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
+        #    #child_root_prim = child_stage.GetPseudoRoot()
+        #    xform = UsdGeom.Xform.Define(child_stage, child_stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{i}'))
+        #    obj_prim = xform.GetPrim()
+        #    for obj in chunk:
+        #        object.sync(obj_prim, obj, parent_stage)
+        
+        #    child_stage.SetDefaultPrim(obj_prim)
+        #    chunk_prim = stage.OverridePrim(f'/chunk_{i}')
+        #    chunk_prim.GetReferences().AddReference(child_stage.GetRootLayer().realPath)
+
+        # def _load():
+        #     def sync_chunk(idx):
+        #         chunk = new_arr[idx]
+        #         #child_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
+        #         child_stage = chunks_stage[idx]['stage']
+        #         xform = UsdGeom.Xform.Define(child_stage, child_stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
+        #         obj_prim = xform.GetPrim()
+        #         for obj in chunk:
+        #             object.sync(obj_prim, obj, parent_stage)
+        #
+        #         child_stage.SetDefaultPrim(obj_prim)
+        #         #chunk_prim = stage.OverridePrim(f'/chunk_{idx}')
+        #         chunk_prim = chunks_stage[idx]['prim']
+        #         print(f"{chunk_prim}____{f'/chunk_{idx}'}")
+        #         chunk_prim.GetReferences().AddReference(child_stage.GetRootLayer().realPath)
+        #
+        #     with futures.ThreadPoolExecutor() as executor:
+        #         chunk_sync = [executor.submit(sync_chunk, idx) for idx in range(chunks)]
+        #
+        #         for future in futures.as_completed(chunk_sync):
+        #             #if future._exception:
+        #             #    print(future.result())
+        #             pass
+        #
+        def _load(main_stage, test):
+            def sync_chunk(idx, stage, prim, objs):
+                xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
+                obj_prim = xform.GetPrim()
+                for obj in objs:
+                    object.sync(obj_prim, obj, parent_stage)
+
+                stage.SetDefaultPrim(obj_prim)
+                #prim.GetReferences().AddReference(stage.GetRootLayer().realPath)
+
+            with futures.ThreadPoolExecutor() as executor:
+                chunk_sync = [executor.submit(sync_chunk, idx, chunks_data[idx]["stage"]) for idx in chunks_data]
+
+                chunk_sync = []
+
+                for idx in chunks_data:
+                    chunk_sync.append(executor.submit(sync_chunk, idx,
+                                                     chunks_data[idx]['stage'], 
+                                                     chunks_data[idx]["prim"], 
+                                                     chunks_data[idx]["objs"]))
+
+                for idx, future in enumerate(futures.wait(chunk_sync)):
+                    if idx == 0:
+                        for i in chunks_data:
+                            chunk_prim = test.stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
+                            chunk_prim.GetReferences().AddReference(chunks_data[i]['stage'].GetRootLayer().realPath)
+                        test.stage.Save()
+                    pass
+
+        load_thread = threading.Thread(target=_load, args=(stage,self))
+        load_thread.start()
+
+        # for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
+        #         depsgraph, use_scene_cameras=False)):
+        #     if self.render_engine.test_break():
+        #         return
+        #
+        #     self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
+        #
+        #     object.sync(root_prim, obj_data)
 
         if depsgraph.scene.world is not None:
             world.sync(root_prim, depsgraph.scene.world)

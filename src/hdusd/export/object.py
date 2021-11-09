@@ -103,7 +103,7 @@ def get_transform_local(obj: bpy.types.Object):
     return obj.matrix_local.transposed()
 
 
-def sync(objects_prim, obj_data: ObjectData, **kwargs):
+def sync(objects_prim, obj_data: ObjectData, parent_stage = None, **kwargs):
     """ sync the object and any data attached """
     log("sync", obj_data.object, obj_data.instance_id)
 
@@ -132,14 +132,17 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
 
         return
 
-    if obj.parent and obj_data.sdf_name != sdf_name(obj):
-        parent_prim = stage.GetPrimAtPath(f"/{sdf_name(obj)}")
+    if obj.parent and obj_data.sdf_name != sdf_name(obj) and parent_stage:
+        #parent_prim = stage.GetPrimAtPath(f"/{sdf_name(obj)}")
+        parent_prim = stage.OverridePrim('/parents')
+        parent_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath)
+        #parent_prim = parent_stage.GetPrimAtPath(f"/{sdf_name(obj)}")
 
         if not parent_prim or not parent_prim.IsValid():
-            return
+           return
 
         if not parent_prim.IsInstanceable():
-            parent_prim.SetInstanceable(True)
+           parent_prim.SetInstanceable(True)
 
         obj_prim.GetReferences().AddInternalReference(parent_prim.GetPath())
 
