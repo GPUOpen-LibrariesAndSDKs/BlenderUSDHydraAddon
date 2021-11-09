@@ -120,7 +120,7 @@ class FinalEngine(Engine):
             if self.render_engine.test_break():
                 break
 
-            percent_done = usd_utils.renderer_percent_done(renderer)
+            percent_done = usd_utils.get_renderer_percent_done(renderer)
             self.notify_status(percent_done / 100,
                                f"Render Time: {time_str(time.perf_counter() - time_begin)} | "
                                f"Done: {int(percent_done)}%")

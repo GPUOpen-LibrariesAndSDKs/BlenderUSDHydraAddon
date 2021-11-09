@@ -258,7 +258,7 @@ class ViewportEngine(Engine):
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
         self.render_engine.bind_display_space_shader(context.scene)
 
-        if usd_utils.renderer_percent_done(self.renderer) == 0.0:
+        if usd_utils.get_renderer_percent_done(self.renderer) == 0.0:
             self.time_begin = time.perf_counter()
 
         try:
@@ -274,7 +274,7 @@ class ViewportEngine(Engine):
         elapsed_time = time_str(time.perf_counter() - self.time_begin)
         if not self.renderer.IsConverged():
             self.notify_status(f"Time: {elapsed_time} | "
-                               f"Done: {int(usd_utils.renderer_percent_done(self.renderer))}%",
+                               f"Done: {int(usd_utils.get_renderer_percent_done(self.renderer))}%",
                                "Render")
         else:
             self.notify_status(f"Time: {elapsed_time}", "Rendering Done", False)

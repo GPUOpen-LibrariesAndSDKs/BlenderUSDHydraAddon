@@ -33,7 +33,7 @@ def set_variant_delegate(stage, is_gl_delegate):
         vset.SetVariantSelection(name)
 
 
-def renderer_percent_done(renderer):
+def get_renderer_percent_done(renderer):
     percent = renderer.GetRenderStats().get('percentDone', 0.0)
     if math.isnan(percent):
         percent = 0.0
