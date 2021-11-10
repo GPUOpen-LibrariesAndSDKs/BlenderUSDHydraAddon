@@ -191,7 +191,7 @@ def sync_visibility(rpr_context, obj: bpy.types.Object, rpr_shape, indirect_only
         rpr_shape.set_portal_light(False)
 
 
-def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, is_instanceable = False, **kwargs):
+def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs):
     """ Creates pyrpr.Shape from obj.data:bpy.types.Mesh """
     from .object import sdf_name
 

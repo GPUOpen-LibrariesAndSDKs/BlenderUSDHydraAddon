@@ -18,7 +18,7 @@ from pxr import UsdGeom
 
 from .base_node import USDNode
 from ...export import object, material, world
-from ...export.object import ObjectData, SUPPORTED_TYPES
+from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
 
 
 #
@@ -276,8 +276,9 @@ class BlenderDataNode(USDNode):
 
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
-                depsgraph_keys = set(obj_data.sdf_name for obj_data in
+                depsgraph_objs = set((obj_data.sdf_name, obj_data) for obj_data in
                                      ObjectData.depsgraph_objects(depsgraph))
+                depsgraph_keys = (v[0] for v in depsgraph_objs)
                 parent_keys = set(obj_data.sdf_name for obj_data in
                                      ObjectData.parent_objects(depsgraph))
 
@@ -292,7 +293,11 @@ class BlenderDataNode(USDNode):
                         continue
 
                     required_keys = set(object.sdf_name(obj) for obj in coll.objects)
+                    instances_objs_data = (v[1] for v in depsgraph_objs if v[1].parent)
+                    instances_keys = set(data.sdf_name for data in instances_objs_data if sdf_name(data.parent) in required_keys)
+
                     required_keys.intersection_update(depsgraph_keys)
+                    required_keys = required_keys | instances_keys
 
                 elif self.data == 'OBJECT':
                     if not self.object:
