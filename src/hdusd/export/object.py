@@ -86,6 +86,8 @@ class ObjectData:
     def parent_objects(depsgraph):
         for instance in depsgraph.object_instances:
             obj = instance.object
+            if obj.type not in SUPPORTED_TYPES or instance.object.hdusd.is_usd:
+                continue
 
             if obj.parent:
                 yield ObjectData.from_object(obj)
