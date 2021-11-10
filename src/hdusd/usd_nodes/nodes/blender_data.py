@@ -278,7 +278,7 @@ class BlenderDataNode(USDNode):
                 required_keys = set()
                 depsgraph_objs = set((obj_data.sdf_name, obj_data) for obj_data in
                                      ObjectData.depsgraph_objects(depsgraph))
-                depsgraph_keys = (v[0] for v in depsgraph_objs)
+                depsgraph_keys = set(v[0] for v in depsgraph_objs)
                 parent_keys = set(obj_data.sdf_name for obj_data in
                                      ObjectData.parent_objects(depsgraph))
 
