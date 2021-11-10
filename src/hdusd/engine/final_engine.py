@@ -34,6 +34,9 @@ from ..utils import logging
 log = logging.Log('final_engine')
 
 
+CHUNK_COUNT = 500
+
+
 class FinalEngine(Engine):
     """ Final render engine """
 
@@ -279,7 +282,6 @@ class FinalEngineScene(FinalEngine):
         parent_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
         parent_root_prim = parent_stage.GetPseudoRoot()
 
-
         for i, obj_data in enumerate(set(object.ObjectData.parent_objects(depsgraph))):
             if self.render_engine.test_break():
                 return
@@ -290,61 +292,21 @@ class FinalEngineScene(FinalEngine):
             def_prim = parent_stage.GetPrimAtPath(f"/{obj_data.sdf_name}")
             parent_stage.SetDefaultPrim(def_prim)
 
-        #stage_parents_prim = stage.OverridePrim('/parents')
-        #stage_parents_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath)
-        #stage.GetRootLayer().Save()
-
         children = [obj for obj in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False)]
-        
-        arr_length = 10
-        chunks = math.ceil(len(children) / arr_length)
+
+        chunks = math.ceil(len(children) / CHUNK_COUNT)
         new_arr = []
         chunks_data = {}
 
         for i in range(chunks):
-            new_arr.append(children[i*arr_length:(i+1)*arr_length])
+            new_arr.append(children[i * CHUNK_COUNT:(i + 1) * CHUNK_COUNT])
             chunk_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
             chunk_prim = stage.OverridePrim(f'/chunk_{i}')
-            val = {'stage': chunk_stage, 'prim': chunk_prim, 'objs': children[i*arr_length:(i+1)*arr_length]}
+            val = {'stage': chunk_stage, 'prim': chunk_prim,
+                   'objs': children[i * CHUNK_COUNT:(i + 1) * CHUNK_COUNT]}
             chunks_data[i] = val
-            
-        #for i, chunk in enumerate(new_arr):
-        #    child_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
-        #    #child_root_prim = child_stage.GetPseudoRoot()
-        #    xform = UsdGeom.Xform.Define(child_stage, child_stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{i}'))
-        #    obj_prim = xform.GetPrim()
-        #    for obj in chunk:
-        #        object.sync(obj_prim, obj, parent_stage)
-        
-        #    child_stage.SetDefaultPrim(obj_prim)
-        #    chunk_prim = stage.OverridePrim(f'/chunk_{i}')
-        #    chunk_prim.GetReferences().AddReference(child_stage.GetRootLayer().realPath)
 
-        # def _load():
-        #     def sync_chunk(idx):
-        #         chunk = new_arr[idx]
-        #         #child_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
-        #         child_stage = chunks_stage[idx]['stage']
-        #         xform = UsdGeom.Xform.Define(child_stage, child_stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
-        #         obj_prim = xform.GetPrim()
-        #         for obj in chunk:
-        #             object.sync(obj_prim, obj, parent_stage)
-        #
-        #         child_stage.SetDefaultPrim(obj_prim)
-        #         #chunk_prim = stage.OverridePrim(f'/chunk_{idx}')
-        #         chunk_prim = chunks_stage[idx]['prim']
-        #         print(f"{chunk_prim}____{f'/chunk_{idx}'}")
-        #         chunk_prim.GetReferences().AddReference(child_stage.GetRootLayer().realPath)
-        #
-        #     with futures.ThreadPoolExecutor() as executor:
-        #         chunk_sync = [executor.submit(sync_chunk, idx) for idx in range(chunks)]
-        #
-        #         for future in futures.as_completed(chunk_sync):
-        #             #if future._exception:
-        #             #    print(future.result())
-        #             pass
-        #
-        def _load(main_stage, test):
+        def _load(this):
             def sync_chunk(idx, stage, prim, objs):
                 xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
                 obj_prim = xform.GetPrim()
@@ -352,38 +314,28 @@ class FinalEngineScene(FinalEngine):
                     object.sync(obj_prim, obj, parent_stage)
 
                 stage.SetDefaultPrim(obj_prim)
-                #prim.GetReferences().AddReference(stage.GetRootLayer().realPath)
 
             with futures.ThreadPoolExecutor() as executor:
-                chunk_sync = [executor.submit(sync_chunk, idx, chunks_data[idx]["stage"]) for idx in chunks_data]
-
                 chunk_sync = []
 
                 for idx in chunks_data:
                     chunk_sync.append(executor.submit(sync_chunk, idx,
-                                                     chunks_data[idx]['stage'], 
-                                                     chunks_data[idx]["prim"], 
-                                                     chunks_data[idx]["objs"]))
+                                                      chunks_data[idx]['stage'],
+                                                      chunks_data[idx]["prim"],
+                                                      chunks_data[idx]["objs"]))
 
                 for idx, future in enumerate(futures.wait(chunk_sync)):
                     if idx == 0:
                         for i in chunks_data:
-                            chunk_prim = test.stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
-                            chunk_prim.GetReferences().AddReference(chunks_data[i]['stage'].GetRootLayer().realPath)
-                        test.stage.Save()
+                            chunk_prim = this.stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
+                            chunk_prim.GetReferences().AddReference(
+                                chunks_data[i]['stage'].GetRootLayer().realPath)
                     pass
 
-        load_thread = threading.Thread(target=_load, args=(stage,self))
+        load_thread = threading.Thread(target=_load, args=(self,))
         load_thread.start()
-
-        # for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
-        #         depsgraph, use_scene_cameras=False)):
-        #     if self.render_engine.test_break():
-        #         return
-        #
-        #     self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
-        #
-        #     object.sync(root_prim, obj_data)
+        load_thread.join()
+        chunks_data = None
 
         if depsgraph.scene.world is not None:
             world.sync(root_prim, depsgraph.scene.world)

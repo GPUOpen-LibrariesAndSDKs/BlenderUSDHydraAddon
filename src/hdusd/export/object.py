@@ -133,10 +133,8 @@ def sync(objects_prim, obj_data: ObjectData, parent_stage = None, **kwargs):
         return
 
     if obj.parent and obj_data.sdf_name != sdf_name(obj) and parent_stage:
-        #parent_prim = stage.GetPrimAtPath(f"/{sdf_name(obj)}")
-        parent_prim = stage.OverridePrim('/parents')
+        parent_prim = stage.OverridePrim('/parent')
         parent_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath)
-        #parent_prim = parent_stage.GetPrimAtPath(f"/{sdf_name(obj)}")
 
         if not parent_prim or not parent_prim.IsValid():
            return
