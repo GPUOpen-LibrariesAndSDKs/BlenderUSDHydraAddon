@@ -36,18 +36,16 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
             uifolder = mx_utils.get_attr(nd_input, 'uifolder')
             uiname = f"{uifolder} {uiname}"
 
+        is_prop_area = context.area.type == 'PROPERTIES'
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
             uitype = title_str(nd_type)
-
-            if uiname.lower() == uitype.lower() or bpy.context.area.type != 'PROPERTIES':
-                layout.label(text=f"{uiname}: {uitype}")
-            else:
-                layout.label(text='')
+            layout.label(text=f"{uiname}: {uitype}" if uiname.lower() == uitype.lower() or not is_prop_area else uitype)
         else:
-            if bpy.context.area.type == 'PROPERTIES':
-                layout.prop(node, node._input_prop_name(self.name), text='')
-            else:
-                layout.prop(node, node._input_prop_name(self.name), text=uiname)
+            if nd_type == 'boolean':
+                layout.use_property_split = False
+                layout.alignment = 'LEFT'
+            layout.prop(node, node._input_prop_name(self.name), text='' if is_prop_area else uiname)
+
 
     def draw_color(self, context, node):
         return mx_utils.get_socket_color(node.nodedef.getInput(self.name).getType())
@@ -150,25 +148,25 @@ class MxNode(bpy.types.ShaderNode):
         nodetree.no_update_call(init_)
 
     def draw_buttons(self, context, layout):
+        is_prop_area = context.area.type == 'PROPERTIES'
         if len(self._data_types) > 1:
-            layout.prop(self, 'data_type')
+            layout1 = layout
+            if is_prop_area:
+                layout1 = layout1.split(factor=0.012, align=True)
+                col = layout1.column()
+                layout1 = layout1.column()
+            layout1.prop(self, 'data_type')
 
         nodedef = self.nodedef
 
         if self._ui_folders:
-            new_layout = layout
-            if context.area.type == "PROPERTIES":
-                new_layout = layout.split(factor=0.38)
-            col = new_layout.column()
-            col = new_layout.column(align=True)
+            col = layout.column(align=True)
             r = None
             for i, f in enumerate(self._ui_folders):
                 if i % 3 == 0:  # putting 3 buttons per row
                     col.use_property_split = False
                     col.use_property_decorate = False
                     r = col.row(align=True)
-                col.use_property_split = True
-                col.use_property_decorate = True
                 r.prop(self, self._folder_prop_name(f), toggle=True)
 
         for nd_input in mx_utils.get_nodedef_inputs(nodedef, True):
@@ -178,8 +176,9 @@ class MxNode(bpy.types.ShaderNode):
 
             name = nd_input.getName()
             if self.category in ("texture2d", "texture3d") and nd_input.getType() == 'filename':
-                split = layout.row(align=True).split(factor=0.25, align=True)
+                split = layout.row(align=True).split(factor=0.4 if is_prop_area else 0.25, align=True)
                 col = split.column()
+                col.alignment='RIGHT' if is_prop_area else 'EXPAND'
                 col.label(text=nd_input.getAttribute('uiname') if nd_input.hasAttribute('uiname')
                           else title_str(name))
                 col = split.column()
@@ -187,7 +186,12 @@ class MxNode(bpy.types.ShaderNode):
                                 open="image.open", new="image.new")
 
             else:
-                layout.prop(self, self._input_prop_name(name))
+                layout1 = layout
+                if is_prop_area:
+                    layout1 = layout1.split(factor=0.012, align=True)
+                    col = layout1.column()
+                    layout1 = layout1.column()
+                layout1.prop(self, self._input_prop_name(name))
 
     def draw_node_view(self, context, layout):
         from ...ui.material import HDUSD_MATERIAL_OP_invoke_popup_input_nodes
@@ -208,7 +212,7 @@ class MxNode(bpy.types.ShaderNode):
                 if not link or isinstance(link.from_node, bpy.types.NodeReroute):
                     continue
 
-                split = layout.split(factor=0.38)
+                split = layout.split(factor=0.4)
                 split_1 = split.split(factor=0.4)
 
                 row = split_1.row()
@@ -222,17 +226,19 @@ class MxNode(bpy.types.ShaderNode):
                 row.alignment = 'RIGHT'
                 row.label(text=uiname)
                 row = split.row(align=True)
+                row.use_property_decorate = False
 
                 box = row.box()
                 box.scale_x = 0.7
                 box.scale_y = 0.5
                 box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
 
-                op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname,
-                                icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name)
+                op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
                 op.input_num = i
                 op.current_node_name = self.name
-                row.label(icon='SMALL_TRI_RIGHT_VEC')
+
+                row.prop(link.from_node, 'name', text='')
+                row.label(icon='BLANK1')
 
                 if socket_in.show_expanded:
                     link.from_node.draw_node_view(context, layout)
@@ -246,13 +252,12 @@ class MxNode(bpy.types.ShaderNode):
                         is_draw = False
 
                 if is_draw:
-                    split = layout.split(factor=0.38)
+                    split = layout.split(factor=0.4)
 
                     row = split.row(align=True)
                     row.alignment = 'RIGHT'
                     row.label(text=uiname)
                     row = split.row(align=True)
-
                     box = row.box()
                     box.scale_x = 0.7
                     box.scale_y = 0.5
