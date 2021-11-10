@@ -295,11 +295,9 @@ class FinalEngineScene(FinalEngine):
         children = [obj for obj in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False)]
 
         chunks = math.ceil(len(children) / CHUNK_COUNT)
-        new_arr = []
         chunks_data = {}
 
         for i in range(chunks):
-            new_arr.append(children[i * CHUNK_COUNT:(i + 1) * CHUNK_COUNT])
             chunk_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
             chunk_prim = stage.OverridePrim(f'/chunk_{i}')
             val = {'stage': chunk_stage, 'prim': chunk_prim,
