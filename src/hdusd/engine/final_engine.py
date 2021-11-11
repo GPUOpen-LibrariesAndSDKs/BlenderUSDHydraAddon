@@ -268,6 +268,9 @@ class FinalEngine(Engine):
 
 
 class FinalEngineScene(FinalEngine):
+    objects_count = 0
+    objects_processed = 0
+
     def _sync(self, depsgraph):
         stage = self.cached_stage.create()
 
@@ -286,7 +289,7 @@ class FinalEngineScene(FinalEngine):
             if self.render_engine.test_break():
                 return
 
-            self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
+            self.notify_status(0.0, f"Syncing parent object {i}/{objects_len}: {obj_data.object.name}")
 
             object.sync(parent_root_prim, obj_data)
             def_prim = parent_stage.GetPrimAtPath(f"/{obj_data.sdf_name}")
@@ -294,7 +297,8 @@ class FinalEngineScene(FinalEngine):
 
         children = [obj for obj in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False)]
 
-        chunks = math.ceil(len(children) / CHUNK_COUNT)
+        self.instances_count = len(children)
+        chunks = math.ceil(self.instances_count / CHUNK_COUNT)
         chunks_data = {}
 
         for i in range(chunks):
@@ -305,10 +309,15 @@ class FinalEngineScene(FinalEngine):
             chunks_data[i] = val
 
         def _load(this):
+            threadLock = threading.Lock()
+
             def sync_chunk(idx, stage, prim, objs):
                 xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
                 obj_prim = xform.GetPrim()
                 for obj in objs:
+                    with threadLock:
+                        this.instances_processed += 1
+                        this.notify_status(0.0, f"Syncing objects: {this.instances_processed} / {this.instances_count}")
                     object.sync(obj_prim, obj, parent_stage)
 
                 stage.SetDefaultPrim(obj_prim)
