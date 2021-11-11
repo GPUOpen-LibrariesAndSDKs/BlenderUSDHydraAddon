@@ -20,6 +20,15 @@ from pxr import Usd, UsdGeom, Tf
 from .base_node import USDNode
 
 
+class HDUSD_USD_NODETREE_OP_transform_add_empty(bpy.types.Operator):
+    """Add new Empty object"""
+    bl_idname = "hdusd.usd_nodetree_transform_add_empty"
+    bl_label = ""
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+
 class TransformNode(USDNode):
     """Transforms input data"""
     bl_idname = 'usd.TransformNode'
@@ -125,5 +134,80 @@ class TransformNode(USDNode):
             root_prim.GetAttribute('xformOp:scale').Set((self.scale_x,
                                                          self.scale_y,
                                                          self.scale_z))
+
+        return stage
+
+class TransformEmptyNode(USDNode):
+    """Transforms input data based on Empty object"""
+    bl_idname = 'usd.TransformEmptyNode'
+    bl_label = "Transform by Empty object"
+    bl_icon = "OBJECT_ORIGIN"
+
+    def update_data(self, context):
+        self.reset()
+
+    def is_empty_obj(self, object):
+        return object.type == 'EMPTY' and not object.hdusd.is_usd
+
+    # region properties
+    name: bpy.props.StringProperty(
+        name="Xform name",
+        description="Name for USD root primitive",
+        default="Transform",
+        update=update_data
+    )
+
+    object: bpy.props.PointerProperty(
+        type=bpy.types.Object,
+        name="Object",
+        description="Object for scattering instances",
+        update=update_data,
+        poll=is_empty_obj
+    )
+
+    translation_x: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
+    translation_y: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
+    translation_z: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
+
+    rotation_y: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
+    rotation_z: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
+    rotation_x: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
+
+    scale_x: bpy.props.FloatProperty(update=update_data, default=1.0)
+    scale_y: bpy.props.FloatProperty(update=update_data, default=1.0)
+    scale_z: bpy.props.FloatProperty(update=update_data, default=1.0)
+    # endregion
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, 'name')
+        row = layout.row(align=True)
+        if self.object:
+            row.prop(self, 'object')
+        else:
+            row.prop(self, 'object')
+            row.operator(HDUSD_USD_NODETREE_OP_transform_add_empty.bl_idname, icon='OUTLINER_OB_EMPTY')
+
+    def compute(self, **kwargs):
+        input_stage = self.get_input_link('Input', **kwargs)
+
+        if not input_stage or not self.name:
+            return None
+
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        obj = self.object.evaluated_get(depsgraph)
+
+        path = f'/{Tf.MakeValidIdentifier(self.name)}'
+        stage = self.cached_stage.create()
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+        root_xform = UsdGeom.Xform.Define(stage, path)
+        root_prim = root_xform.GetPrim()
+
+        for prim in input_stage.GetPseudoRoot().GetAllChildren():
+            override_prim = stage.OverridePrim(root_xform.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
+                                                       prim.GetPath())
+
+        usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
 
         return stage
