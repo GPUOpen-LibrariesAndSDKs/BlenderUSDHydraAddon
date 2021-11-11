@@ -14,13 +14,14 @@
 #********************************************************************
 from dataclasses import dataclass
 import textwrap
-
-import bpy
-from bpy_extras import view3d_utils
 import weakref
 import time
 
-from pxr import Usd, UsdGeom, Tf
+import bpy
+import bgl
+from bpy_extras import view3d_utils
+
+from pxr import Usd, UsdGeom, Tf, Gf
 from pxr import UsdImagingGL
 
 from .engine import Engine
@@ -256,10 +257,17 @@ class ViewportEngine(Engine):
         self.renderer.SetRenderViewport((*view_settings.border[0], *view_settings.border[1]))
         self.renderer.SetRendererAov('color')
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
+        # self.render_params.forceRefresh = True
+        # self.render_params.overrideColor = (1, 0, 0, 1)
+
         self.render_engine.bind_display_space_shader(context.scene)
 
         if usd_utils.get_renderer_percent_done(self.renderer) == 0.0:
             self.time_begin = time.perf_counter()
+
+        # bgl.glEnable(bgl.GL_DEPTH_TEST)
+        # bgl.glDepthFunc(bgl.GL_L)
+        # bgl.glClear(bgl.GL_DEPTH_BUFFER_BIT)
 
         try:
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
