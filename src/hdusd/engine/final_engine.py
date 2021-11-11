@@ -297,8 +297,8 @@ class FinalEngineScene(FinalEngine):
 
         children = [obj for obj in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False)]
 
-        self.instances_count = len(children)
-        chunks = math.ceil(self.instances_count / CHUNK_COUNT)
+        self.objects_count = len(children)
+        chunks = math.ceil(self.objects_count / CHUNK_COUNT)
         chunks_data = {}
 
         for i in range(chunks):
