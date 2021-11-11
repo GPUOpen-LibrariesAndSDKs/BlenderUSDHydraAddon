@@ -316,8 +316,8 @@ class FinalEngineScene(FinalEngine):
                 obj_prim = xform.GetPrim()
                 for obj in objs:
                     with threadLock:
-                        this.instances_processed += 1
-                        this.notify_status(0.0, f"Syncing objects: {this.instances_processed} / {this.instances_count}")
+                        this.objects_processed += 1
+                        this.notify_status(0.0, f"Syncing objects: {this.objects_processed} / {this.objects_count}")
                     object.sync(obj_prim, obj, parent_stage)
 
                 stage.SetDefaultPrim(obj_prim)
