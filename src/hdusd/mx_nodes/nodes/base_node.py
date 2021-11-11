@@ -39,7 +39,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
         is_prop_area = context.area.type == 'PROPERTIES'
         if self.is_linked or mx_utils.is_shader_type(nd_type) or nd_input.getValue() is None:
             uitype = title_str(nd_type)
-            layout.label(text=f"{uiname}: {uitype}" if uiname.lower() == uitype.lower() or not is_prop_area else uitype)
+            layout.label(text=uitype if uiname.lower() == uitype.lower() or is_prop_area else f"{uiname}: {uitype}")
         else:
             if nd_type == 'boolean':
                 layout.use_property_split = False
