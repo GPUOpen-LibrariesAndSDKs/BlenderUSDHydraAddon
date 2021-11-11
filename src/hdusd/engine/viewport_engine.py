@@ -21,7 +21,7 @@ import bpy
 import bgl
 from bpy_extras import view3d_utils
 
-from pxr import Usd, UsdGeom, Tf, Gf
+from pxr import Usd, UsdGeom, Tf, Gf, Glf
 from pxr import UsdImagingGL
 
 from .engine import Engine
@@ -185,7 +185,7 @@ class ViewportEngine(Engine):
         self.is_gl_delegate = settings.is_gl_delegate
 
         self.space_data = context.space_data
-        self.shading_data = None
+        self.shading_data = world.ShadingData(context, depsgraph.scene.world)
 
         self.render_params = UsdImagingGL.RenderParams()
         self.render_params.frame = Usd.TimeCode.Default()
@@ -258,8 +258,15 @@ class ViewportEngine(Engine):
         self.renderer.SetRendererAov('color')
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
         self.render_params.clipPlanes = [Gf.Vec4d(i) for i in gf_camera.clippingPlanes]
-        # self.render_params.forceRefresh = True
-        # self.render_params.overrideColor = (1, 0, 0, 1)
+
+        if self.shading_data.type == 'MATERIAL' and self.is_gl_delegate:
+            l = Glf.SimpleLight()
+            l.ambient = (0, 0, 0, 0)
+            l.position = (*gf_camera.frustum.position, 1)
+
+            mat = Glf.SimpleMaterial()
+
+            self.renderer.SetLightingState((l,), mat, (0, 0, 0, 0))
 
         bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
 
@@ -357,8 +364,6 @@ class ViewportEngineScene(ViewportEngine):
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         root_prim = stage.GetPseudoRoot()
-
-        self.shading_data = world.ShadingData(context, depsgraph.scene.world)
 
         for obj_data in object.ObjectData.depsgraph_objects(
                 depsgraph,
