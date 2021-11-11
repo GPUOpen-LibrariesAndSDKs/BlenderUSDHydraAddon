@@ -22,6 +22,7 @@ from pxr import Sdf, UsdLux, Tf
 
 from ...utils.image import cache_image_file, cache_image_file_path
 from ...utils import BLENDER_DATA_DIR
+from ...utils import usd as usd_utils
 
 from ...utils import logging
 log = logging.Log('export.world')
@@ -71,7 +72,7 @@ class ShadingData:
 class WorldData:
     """ Comparable dataclass which holds all environment settings """
 
-    color: tuple = (0.0, 0.0, 0.0)
+    color: tuple = (0.05, 0.05, 0.05)
     image: str = None
     intensity: float = 1.0
     rotation: tuple = (0.0, 0.0, 0.0)
@@ -188,19 +189,26 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
     obj_prim = stage.DefinePrim(root_prim.GetPath().AppendChild(OBJ_PRIM_NAME))
     usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild(LIGHT_PRIM_NAME))
+    light_prim = usd_light.GetPrim()
     usd_light.OrientToStageUpAxis()
 
     if data.image:
         usd_light.CreateTextureFileAttr(str(data.image))
-    else:
-        usd_light.CreateColorAttr(data.color)
+        
+    usd_light.CreateColorAttr(data.color)
 
     usd_light.CreateIntensityAttr(data.intensity)
-    # usd_light.CreateInput("transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
+    light_prim.CreateAttribute("inputs:transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
 
     # set correct Dome light rotation
     usd_light.AddRotateXOp().Set(180.0)
     usd_light.AddRotateYOp().Set(-90.0 + math.degrees(data.rotation[2]))
+
+    # setting visibility through variant for delegates
+    visibility_attr = light_prim.CreateAttribute("visibility", Sdf.ValueTypeNames.Token)
+    usd_utils.set_delegate_variants(obj_prim,
+                                    lambda: visibility_attr.Set('invisible'),
+                                    lambda: visibility_attr.Set('inherited'))
 
 
 def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
@@ -224,7 +232,7 @@ def get_clear_color(root_prim):
     light_prim = root_prim.GetChild(OBJ_PRIM_NAME).GetChild(LIGHT_PRIM_NAME)
     color = light_prim.GetAttribute('inputs:color').Get()
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
-    # transparency = light_prim.GetAttribute('inputs:transparency').Get()
+    transparency = light_prim.GetAttribute('inputs:transparency').Get()
     clear_color = [c * intensity for c in color]
     clear_color.append(1.0)
     return tuple(clear_color)

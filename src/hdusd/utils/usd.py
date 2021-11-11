@@ -15,6 +15,7 @@
 import math
 
 import mathutils
+import bpy
 
 
 def get_xform_transform(xform):
@@ -39,3 +40,20 @@ def get_renderer_percent_done(renderer):
         percent = 0.0
 
     return percent
+
+
+def set_delegate_variants(obj_prim, gl_func, rpr_func):
+    vset = obj_prim.GetVariantSets().AddVariantSet('delegate')
+    vset.AddVariant('GL')
+    vset.AddVariant('RPR')
+
+    vset.SetVariantSelection('GL')
+    with vset.GetVariantEditContext():
+        gl_func()
+
+    vset.SetVariantSelection('RPR')
+    with vset.GetVariantEditContext():
+        rpr_func()
+
+    # setting default variant
+    vset.SetVariantSelection('GL' if bpy.context.scene.hdusd.viewport.is_gl_delegate else 'RPR')

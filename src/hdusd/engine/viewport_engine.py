@@ -257,17 +257,16 @@ class ViewportEngine(Engine):
         self.renderer.SetRenderViewport((*view_settings.border[0], *view_settings.border[1]))
         self.renderer.SetRendererAov('color')
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
+        self.render_params.clipPlanes = [Gf.Vec4d(i) for i in gf_camera.clippingPlanes]
         # self.render_params.forceRefresh = True
         # self.render_params.overrideColor = (1, 0, 0, 1)
+
+        bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
 
         self.render_engine.bind_display_space_shader(context.scene)
 
         if usd_utils.get_renderer_percent_done(self.renderer) == 0.0:
             self.time_begin = time.perf_counter()
-
-        # bgl.glEnable(bgl.GL_DEPTH_TEST)
-        # bgl.glDepthFunc(bgl.GL_L)
-        # bgl.glClear(bgl.GL_DEPTH_BUFFER_BIT)
 
         try:
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
@@ -279,6 +278,10 @@ class ViewportEngine(Engine):
                 log.error(e)
 
         self.render_engine.unbind_display_space_shader()
+
+        # additional clear of GL depth buffer which provides blender to draw viewport grid
+        bgl.glClear(bgl.GL_DEPTH_BUFFER_BIT)
+
         elapsed_time = time_str(time.perf_counter() - self.time_begin)
         if not self.renderer.IsConverged():
             self.notify_status(f"Time: {elapsed_time} | "
@@ -476,10 +479,6 @@ class ViewportEngineNodetree(ViewportEngine):
         if stage:
             # creating overrides from nodetree stage
             for prim in stage.GetPseudoRoot().GetAllChildren():
-                if prim.GetName() == 'World':
-                    world_data = world.WorldData.init_from_stage(stage)
-                    self.render_params.clearColor = world_data.clear_color
-
                 override_prim = engine_stage.OverridePrim(
                     root_prim.GetPath().AppendChild(prim.GetName()))
                 override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,
