@@ -15,7 +15,7 @@
 import bpy
 import math
 
-from pxr import Usd, UsdGeom, Tf
+from pxr import Usd, UsdGeom, Tf, Gf
 
 from .base_node import USDNode
 
@@ -26,6 +26,7 @@ class HDUSD_USD_NODETREE_OP_transform_add_empty(bpy.types.Operator):
     bl_label = ""
 
     def execute(self, context):
+        bpy.ops.object.add(type='EMPTY')
         return {"FINISHED"}
 
 
@@ -149,7 +150,6 @@ class TransformEmptyNode(USDNode):
     def is_empty_obj(self, object):
         return object.type == 'EMPTY' and not object.hdusd.is_usd
 
-    # region properties
     name: bpy.props.StringProperty(
         name="Xform name",
         description="Name for USD root primitive",
@@ -164,19 +164,6 @@ class TransformEmptyNode(USDNode):
         update=update_data,
         poll=is_empty_obj
     )
-
-    translation_x: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
-    translation_y: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
-    translation_z: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
-
-    rotation_y: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
-    rotation_z: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
-    rotation_x: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
-
-    scale_x: bpy.props.FloatProperty(update=update_data, default=1.0)
-    scale_y: bpy.props.FloatProperty(update=update_data, default=1.0)
-    scale_z: bpy.props.FloatProperty(update=update_data, default=1.0)
-    # endregion
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'name')
@@ -193,6 +180,9 @@ class TransformEmptyNode(USDNode):
         if not input_stage or not self.name:
             return None
 
+        if not self.object:
+            return input_stage
+
         depsgraph = bpy.context.evaluated_depsgraph_get()
         obj = self.object.evaluated_get(depsgraph)
 
@@ -208,6 +198,14 @@ class TransformEmptyNode(USDNode):
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 
-        usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
+        if obj:
+            usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
+            usd_geom.AddTransformOp()
+            obj_matrix = obj.matrix_world.transposed()
+            matrix = Gf.Matrix4d(obj_matrix[0][0], obj_matrix[0][1], obj_matrix[0][2], 0,
+                                 obj_matrix[1][0], obj_matrix[1][1], obj_matrix[1][2], 0,
+                                 obj_matrix[2][0], obj_matrix[2][1], obj_matrix[2][2], 0,
+                                 obj_matrix[3][0], obj_matrix[3][1], obj_matrix[3][2], 1)
+            root_prim.GetAttribute('xformOp:transform').Set(matrix)
 
         return stage
