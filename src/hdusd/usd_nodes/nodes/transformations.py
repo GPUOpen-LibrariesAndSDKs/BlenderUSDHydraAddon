@@ -25,6 +25,7 @@ class TransformNode(USDNode):
     bl_idname = 'usd.TransformNode'
     bl_label = "Transform"
     bl_icon = "OBJECT_ORIGIN"
+    bl_width_default = 400
 
     def update_data(self, context):
         self.reset()
@@ -38,48 +39,54 @@ class TransformNode(USDNode):
     )
 
     toggle_translation: bpy.props.BoolProperty(update=update_data)
-    translation: bpy.props.FloatVectorProperty(update=update_data, subtype='TRANSLATION')
+    translation_x: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
+    translation_y: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
+    translation_z: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
 
     toggle_rotation: bpy.props.BoolProperty(update=update_data)
-    rotation: bpy.props.FloatVectorProperty(update=update_data, subtype='EULER')
+    rotation_y: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
+    rotation_z: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
+    rotation_x: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
 
     toggle_scale: bpy.props.BoolProperty(update=update_data)
-    scale: bpy.props.FloatVectorProperty(update=update_data, default=(1, 1, 1), subtype='XYZ')
+    scale_x: bpy.props.FloatProperty(update=update_data, default=1.0)
+    scale_y: bpy.props.FloatProperty(update=update_data, default=1.0)
+    scale_z: bpy.props.FloatProperty(update=update_data, default=1.0)
     # endregion
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'name')
 
-        row = layout.row()
-        row.alignment = 'LEFT'
+        split = layout.split(factor=0.20)
+        col1 = split.column()
+        col2 = split.column()
+
+        row = col1.row(align=True)
         row.prop(self, 'toggle_translation', text='')
         row.label(text='Translation')
 
-        if self.toggle_translation:
-            col = layout.column(align=True)
-            col.prop(self, 'translation', text='')
-
-            layout.separator()
-
-        row = layout.row()
-        row.alignment = 'LEFT'
+        row = col1.row(align=True)
         row.prop(self, 'toggle_rotation', text='')
         row.label(text='Rotation')
 
-        if self.toggle_rotation:
-            col = layout.column(align=True)
-            col.prop(self, 'rotation', text='')
-
-            layout.separator()
-
-        row = layout.row()
-        row.alignment = 'LEFT'
+        row = col1.row(align=True)
         row.prop(self, 'toggle_scale', text='')
         row.label(text='Scale')
 
-        if self.toggle_scale:
-            col = layout.column(align=True)
-            col.prop(self, 'scale', text='')
+        row = col2.row(align=True)
+        row.prop(self, 'translation_x', text='')
+        row.prop(self, 'translation_y', text='')
+        row.prop(self, 'translation_z', text='')
+
+        row = col2.row(align=True)
+        row.prop(self, 'rotation_x', text='')
+        row.prop(self, 'rotation_y', text='')
+        row.prop(self, 'rotation_z', text='')
+
+        row = col2.row(align=True)
+        row.prop(self, 'scale_x', text='')
+        row.prop(self, 'scale_y', text='')
+        row.prop(self, 'scale_z', text='')
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
@@ -103,15 +110,20 @@ class TransformNode(USDNode):
 
         if self.toggle_translation:
             usd_geom.AddTranslateOp()
-            root_prim.GetAttribute('xformOp:translate').Set(self.translation[:3])
+            root_prim.GetAttribute('xformOp:translate').Set((self.translation_x,
+                                                             self.translation_y,
+                                                             self.translation_z))
 
         if self.toggle_rotation:
             usd_geom.AddRotateXYZOp()
-            rotation = tuple(math.degrees(rot) for rot in self.rotation)
-            root_prim.GetAttribute('xformOp:rotateXYZ').Set(rotation)
+            root_prim.GetAttribute('xformOp:rotateXYZ').Set((math.degrees(self.rotation_x),
+                                                             math.degrees(self.rotation_y),
+                                                             math.degrees(self.rotation_z)))
 
         if self.toggle_scale:
             usd_geom.AddScaleOp()
-            root_prim.GetAttribute('xformOp:scale').Set(self.scale[:3])
+            root_prim.GetAttribute('xformOp:scale').Set((self.scale_x,
+                                                         self.scale_y,
+                                                         self.scale_z))
 
         return stage
