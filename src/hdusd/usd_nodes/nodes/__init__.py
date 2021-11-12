@@ -48,7 +48,7 @@ node_categories = [
     ]),
     USDNodeCategory('HdUSD_USD_TRANSFORMATIONS', 'Transformations', items=[
         NodeItem('usd.TransformNode'),
-        NodeItem('usd.TransformEmptyNode'),
+        NodeItem('usd.TransformByEmptyNode'),
     ]),
     USDNodeCategory('HdUSD_USD_LAYOUT', 'Layout', items=[
         NodeItem('NodeReroute'),
@@ -79,7 +79,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     rpr_render_settings.RprRenderSettingsNode,
     transformations.HDUSD_USD_NODETREE_OP_transform_add_empty,
     transformations.TransformNode,
-    transformations.TransformEmptyNode,
+    transformations.TransformByEmptyNode,
 ])
 
 

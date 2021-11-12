@@ -15,6 +15,8 @@
 import bpy
 import math
 
+from mathutils import Matrix
+
 from pxr import Usd, UsdGeom, Tf, Gf
 
 from .base_node import USDNode
@@ -35,7 +37,7 @@ class TransformNode(USDNode):
     bl_idname = 'usd.TransformNode'
     bl_label = "Transform"
     bl_icon = "OBJECT_ORIGIN"
-    bl_width_default = 400
+    bl_width_default = 305
 
     def update_data(self, context):
         self.reset()
@@ -48,17 +50,14 @@ class TransformNode(USDNode):
         update=update_data
     )
 
-    toggle_translation: bpy.props.BoolProperty(update=update_data)
     translation_x: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
     translation_y: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
     translation_z: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
 
-    toggle_rotation: bpy.props.BoolProperty(update=update_data)
     rotation_y: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
     rotation_z: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
     rotation_x: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
 
-    toggle_scale: bpy.props.BoolProperty(update=update_data)
     scale_x: bpy.props.FloatProperty(update=update_data, default=1.0)
     scale_y: bpy.props.FloatProperty(update=update_data, default=1.0)
     scale_z: bpy.props.FloatProperty(update=update_data, default=1.0)
@@ -71,17 +70,9 @@ class TransformNode(USDNode):
         col1 = split.column()
         col2 = split.column()
 
-        row = col1.row(align=True)
-        row.prop(self, 'toggle_translation', text='')
-        row.label(text='Translation')
-
-        row = col1.row(align=True)
-        row.prop(self, 'toggle_rotation', text='')
-        row.label(text='Rotation')
-
-        row = col1.row(align=True)
-        row.prop(self, 'toggle_scale', text='')
-        row.label(text='Scale')
+        col1.label(text='Translation')
+        col1.label(text='Rotation')
+        col1.label(text='Scale')
 
         row = col2.row(align=True)
         row.prop(self, 'translation_x', text='')
@@ -118,29 +109,35 @@ class TransformNode(USDNode):
 
         usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
 
-        if self.toggle_translation:
-            usd_geom.AddTranslateOp()
-            root_prim.GetAttribute('xformOp:translate').Set((self.translation_x,
-                                                             self.translation_y,
-                                                             self.translation_z))
+        translation = Matrix.Translation((self.translation_x,
+                                          self.translation_y,
+                                          self.translation_z))
 
-        if self.toggle_rotation:
-            usd_geom.AddRotateXYZOp()
-            root_prim.GetAttribute('xformOp:rotateXYZ').Set((math.degrees(self.rotation_x),
-                                                             math.degrees(self.rotation_y),
-                                                             math.degrees(self.rotation_z)))
+        diagonal = Matrix.Diagonal((self.scale_x,
+                                    self.scale_y,
+                                    self.scale_z)).to_4x4()
 
-        if self.toggle_scale:
-            usd_geom.AddScaleOp()
-            root_prim.GetAttribute('xformOp:scale').Set((self.scale_x,
-                                                         self.scale_y,
-                                                         self.scale_z))
+        rotation_x = Matrix.Rotation(self.rotation_x, 4, 'X')
+        rotation_y = Matrix.Rotation(self.rotation_y, 4, 'Y')
+        rotation_z = Matrix.Rotation(self.rotation_z, 4, 'Z')
+
+        transform = translation @ rotation_x @ rotation_y @ rotation_z @ diagonal
+
+        transform = transform.transposed()
+
+        usd_geom.AddTransformOp()
+        matrix = Gf.Matrix4d(transform[0][0], transform[0][1], transform[0][2], 0,
+                             transform[1][0], transform[1][1], transform[1][2], 0,
+                             transform[2][0], transform[2][1], transform[2][2], 0,
+                             transform[3][0], transform[3][1], transform[3][2], 1)
+        root_prim.GetAttribute('xformOp:transform').Set(matrix)
 
         return stage
 
-class TransformEmptyNode(USDNode):
+
+class TransformByEmptyNode(USDNode):
     """Transforms input data based on Empty object"""
-    bl_idname = 'usd.TransformEmptyNode'
+    bl_idname = 'usd.TransformByEmptyNode'
     bl_label = "Transform by Empty object"
     bl_icon = "OBJECT_ORIGIN"
 
