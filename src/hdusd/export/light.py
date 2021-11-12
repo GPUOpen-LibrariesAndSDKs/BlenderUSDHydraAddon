@@ -128,11 +128,10 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         color_attr.Set(tuple(power))
 
     else:
-        usd_utils.add_delegate_variants(obj_prim,
-            {
-                'GL': lambda: color_attr.Set(tuple(power / 1000)),
-                'RPR': lambda: color_attr.Set(tuple(power))
-            })
+        usd_utils.add_delegate_variants(obj_prim, {
+            'GL': lambda: color_attr.Set(tuple(power / 1000)),
+            'RPR': lambda: color_attr.Set(tuple(power))
+        })
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):

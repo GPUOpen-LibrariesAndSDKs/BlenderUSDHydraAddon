@@ -193,8 +193,12 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
     usd_light.OrientToStageUpAxis()
 
     if data.image:
-        usd_light.CreateTextureFileAttr(str(data.image))
-        
+        tex_attr = usd_light.CreateTextureFileAttr()
+        usd_utils.add_delegate_variants(obj_prim, {
+            'GL': lambda: tex_attr.Set(""),
+            'RPR': lambda: tex_attr.Set(str(data.image))
+        })
+
     usd_light.CreateColorAttr(data.color)
 
     usd_light.CreateIntensityAttr(data.intensity)
@@ -203,14 +207,6 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
     # set correct Dome light rotation
     usd_light.AddRotateXOp().Set(180.0)
     usd_light.AddRotateYOp().Set(-90.0 + math.degrees(data.rotation[2]))
-
-    # setting visibility through variant for delegates
-    visibility_attr = light_prim.CreateAttribute("visibility", Sdf.ValueTypeNames.Token)
-    usd_utils.add_delegate_variants(obj_prim,
-        {
-            'GL': lambda: visibility_attr.Set('invisible'),
-            'RPR': lambda: visibility_attr.Set('inherited')
-        })
 
 
 def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
