@@ -122,15 +122,8 @@ class TransformNode(USDNode):
         rotation_z = Matrix.Rotation(self.rotation_z, 4, 'Z')
 
         transform = translation @ rotation_x @ rotation_y @ rotation_z @ diagonal
-
-        transform = transform.transposed()
-
         usd_geom.AddTransformOp()
-        matrix = Gf.Matrix4d(transform[0][0], transform[0][1], transform[0][2], 0,
-                             transform[1][0], transform[1][1], transform[1][2], 0,
-                             transform[2][0], transform[2][1], transform[2][2], 0,
-                             transform[3][0], transform[3][1], transform[3][2], 1)
-        root_prim.GetAttribute('xformOp:transform').Set(matrix)
+        root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(transform.transposed()))
 
         return stage
 
@@ -198,11 +191,6 @@ class TransformByEmptyNode(USDNode):
         if obj:
             usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
             usd_geom.AddTransformOp()
-            obj_matrix = obj.matrix_world.transposed()
-            matrix = Gf.Matrix4d(obj_matrix[0][0], obj_matrix[0][1], obj_matrix[0][2], 0,
-                                 obj_matrix[1][0], obj_matrix[1][1], obj_matrix[1][2], 0,
-                                 obj_matrix[2][0], obj_matrix[2][1], obj_matrix[2][2], 0,
-                                 obj_matrix[3][0], obj_matrix[3][1], obj_matrix[3][2], 1)
-            root_prim.GetAttribute('xformOp:transform').Set(matrix)
+            root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(obj.matrix_world.transposed()))
 
         return stage
