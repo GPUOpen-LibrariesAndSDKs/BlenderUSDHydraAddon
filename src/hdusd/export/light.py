@@ -18,6 +18,7 @@ import numpy as np
 from pxr import UsdLux, Tf, Sdf
 import bpy
 
+from ..utils import usd as usd_utils
 
 from ..utils import logging
 log = logging.Log('export.light')
@@ -118,12 +119,20 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
     power = get_radiant_power(light)
 
+    color_attr = usd_light.CreateColorAttr()
+
     if is_preview_render:
         # Material Previews are overly bright, that's why
         # decreasing light intensity for material preview by 10 times
         power *= 0.1
+        color_attr.Set(tuple(power))
 
-    usd_light.CreateColorAttr().Set(tuple(power))
+    else:
+        usd_utils.add_delegate_variants(obj_prim,
+            {
+                'GL': lambda: color_attr.Set(tuple(power / 1000)),
+                'RPR': lambda: color_attr.Set(tuple(power))
+            })
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):
