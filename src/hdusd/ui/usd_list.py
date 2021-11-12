@@ -15,6 +15,7 @@
 import bpy
 
 from pxr import UsdGeom
+from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
@@ -278,6 +279,23 @@ class HDUSD_NODE_PT_usd_nodetree_tree_tools(HDUSD_UsdNodeTreePanel):
         col.operator(op_idname, text="USD file").scene_source = "USD_FILE"
 
 
+class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
+    bl_idname = "hdusd.export_usd_file"
+    bl_label = "USD Export to File"
+    bl_description = "Export USD node tree to .usda file"
+
+    filename_ext = ".usda"
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="File path used for exporting material as USD node tree to .usda file",
+        maxlen=1024, subtype="FILE_PATH"
+    )
+    filter_glob: bpy.props.StringProperty(default="*.usda", options={'HIDDEN'}, )
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
 class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
     bl_label = "USD Nodes Tools"
 
@@ -286,3 +304,4 @@ class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
 
         col.operator(HDUSD_OP_usd_tree_node_print_stage.bl_idname)
         col.operator(HDUSD_OP_usd_tree_node_print_root_layer.bl_idname)
+        col.operator(HDUSD_NODE_OP_export_usd_file.bl_idname)
