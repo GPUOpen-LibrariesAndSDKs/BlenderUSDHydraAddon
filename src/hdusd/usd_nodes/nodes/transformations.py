@@ -28,7 +28,14 @@ class HDUSD_USD_NODETREE_OP_transform_add_empty(bpy.types.Operator):
     bl_label = ""
 
     def execute(self, context):
-        bpy.ops.object.add(type='EMPTY')
+        obj = bpy.data.objects.new('Empty', None)        
+        context.view_layer.active_layer_collection.collection.objects.link(obj)
+        context.node.object = bpy.data.objects[obj.name_full]
+        for sel_obj in context.selected_objects:
+            sel_obj.select_set(False)
+        context.view_layer.objects.active = obj
+        obj.select_set(True)
+
         return {"FINISHED"}
 
 
@@ -107,8 +114,6 @@ class TransformNode(USDNode):
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 
-        usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
-
         translation = Matrix.Translation((self.translation_x,
                                           self.translation_y,
                                           self.translation_z))
@@ -122,7 +127,8 @@ class TransformNode(USDNode):
         rotation_z = Matrix.Rotation(self.rotation_z, 4, 'Z')
 
         transform = translation @ rotation_x @ rotation_y @ rotation_z @ diagonal
-        usd_geom.AddTransformOp()
+
+        UsdGeom.Xform.Get(stage, root_xform.GetPath()).AddTransformOp()
         root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(transform.transposed()))
 
         return stage
@@ -135,6 +141,8 @@ class TransformByEmptyNode(USDNode):
     bl_icon = "OBJECT_ORIGIN"
 
     def update_data(self, context):
+        for sel_obj in context.selected_objects:
+            sel_obj.select_set(False)
         self.reset()
 
     def is_empty_obj(self, object):
@@ -158,6 +166,7 @@ class TransformByEmptyNode(USDNode):
     def draw_buttons(self, context, layout):
         layout.prop(self, 'name')
         row = layout.row(align=True)
+        
         if self.object:
             row.prop(self, 'object')
         else:
@@ -189,8 +198,7 @@ class TransformByEmptyNode(USDNode):
                                                        prim.GetPath())
 
         if obj:
-            usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
-            usd_geom.AddTransformOp()
+            UsdGeom.Xform.Get(stage, root_xform.GetPath()).AddTransformOp()
             root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(obj.matrix_world.transposed()))
 
         return stage
