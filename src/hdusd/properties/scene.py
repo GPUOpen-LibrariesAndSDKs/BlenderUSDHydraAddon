@@ -32,6 +32,10 @@ class RenderSettings(bpy.types.PropertyGroup):
     def is_gl_delegate(self):
         return self.delegate == 'HdStormRendererPlugin'
 
+    @property
+    def delegate_name(self):
+        return _render_delegates[self.delegate]
+
     hdrpr: bpy.props.PointerProperty(type=hdrpr_render.RenderSettings)
 
 

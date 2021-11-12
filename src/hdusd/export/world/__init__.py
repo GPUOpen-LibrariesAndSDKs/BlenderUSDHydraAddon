@@ -206,9 +206,11 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
     # setting visibility through variant for delegates
     visibility_attr = light_prim.CreateAttribute("visibility", Sdf.ValueTypeNames.Token)
-    usd_utils.set_delegate_variants(obj_prim,
-                                    lambda: visibility_attr.Set('invisible'),
-                                    lambda: visibility_attr.Set('inherited'))
+    usd_utils.add_delegate_variants(obj_prim,
+        {
+            'GL': lambda: visibility_attr.Set('invisible'),
+            'RPR': lambda: visibility_attr.Set('inherited')
+        })
 
 
 def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
@@ -234,5 +236,5 @@ def get_clear_color(root_prim):
     intensity = light_prim.GetAttribute('inputs:intensity').Get()
     transparency = light_prim.GetAttribute('inputs:transparency').Get()
     clear_color = [c * intensity for c in color]
-    clear_color.append(1.0)
+    clear_color.append(transparency)
     return tuple(clear_color)

@@ -194,7 +194,7 @@ class ViewportEngine(Engine):
 
         self._sync(context, depsgraph)
 
-        usd_utils.set_variant_delegate(self.stage, self.is_gl_delegate)
+        usd_utils.set_delegate_variant_stage(self.stage, settings.delegate_name)
 
         self.is_synced = True
         log('Finish sync')
@@ -219,7 +219,7 @@ class ViewportEngine(Engine):
         self._sync_update(context, depsgraph)
 
         if gl_delegate_changed:
-            usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
+            usd_utils.set_delegate_variant_stage(self.cached_stage(), settings.delegate_name)
 
         if self.renderer.IsPauseRendererSupported():
             self.renderer.ResumeRenderer()

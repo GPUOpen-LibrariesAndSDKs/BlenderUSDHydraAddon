@@ -23,9 +23,8 @@ def get_xform_transform(xform):
     return transform.transposed()
 
 
-def set_variant_delegate(stage, is_gl_delegate):
-    name = 'GL' if is_gl_delegate else 'RPR'
-    for prim in stage.TraverseAll():
+def set_delegate_variant(prims, name):
+    for prim in prims:
         vsets = prim.GetVariantSets()
         if 'delegate' not in vsets.GetNames():
             continue
@@ -34,26 +33,27 @@ def set_variant_delegate(stage, is_gl_delegate):
         vset.SetVariantSelection(name)
 
 
+def set_delegate_variant_stage(stage, name):
+    set_delegate_variant(stage.TraverseAll(), name)
+
+
+def add_delegate_variants(prim, variants: dict, default_name=None):
+    vset = prim.GetVariantSets().AddVariantSet('delegate')
+    for name, func in variants.items():
+        vset.AddVariant(name)
+        vset.SetVariantSelection(name)
+        with vset.GetVariantEditContext():
+            func()
+
+    if default_name is None:
+        default_name = bpy.context.scene.hdusd.viewport.delegate_name
+
+    vset.SetVariantSelection(default_name)
+
+
 def get_renderer_percent_done(renderer):
     percent = renderer.GetRenderStats().get('percentDone', 0.0)
     if math.isnan(percent):
         percent = 0.0
 
     return percent
-
-
-def set_delegate_variants(obj_prim, gl_func, rpr_func):
-    vset = obj_prim.GetVariantSets().AddVariantSet('delegate')
-    vset.AddVariant('GL')
-    vset.AddVariant('RPR')
-
-    vset.SetVariantSelection('GL')
-    with vset.GetVariantEditContext():
-        gl_func()
-
-    vset.SetVariantSelection('RPR')
-    with vset.GetVariantEditContext():
-        rpr_func()
-
-    # setting default variant
-    vset.SetVariantSelection('GL' if bpy.context.scene.hdusd.viewport.is_gl_delegate else 'RPR')
