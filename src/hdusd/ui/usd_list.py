@@ -13,9 +13,11 @@
 # limitations under the License.
 #********************************************************************
 import bpy
+import shutil
 
 from pxr import UsdGeom
 from bpy_extras.io_utils import ExportHelper
+from pathlib import Path
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
@@ -292,7 +294,60 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     )
     filter_glob: bpy.props.StringProperty(default="*.usda", options={'HIDDEN'}, )
 
+    is_pack_into_one_file: bpy.props.BoolProperty(name="Pack into one file",
+                                                  description="Pack all references into one file",
+                                                  default=True)
     def execute(self, context):
+        tree = context.space_data.edit_tree
+        node = context.active_node
+        if not node:
+            log(f"Unable to export USD nodetree \"{tree.name}\" stage: no USD node selected")
+            return {'CANCELLED'}
+
+        # get the USD stage from selected node
+        stage = node.cached_stage()
+        if not stage:
+            log(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
+            return {'CANCELLED'}
+
+        if not Path(self.filepath).suffix:
+            log(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: write correct file name")
+            return {'CANCELLED'}
+        # TODO попробовать создать тут собственный стейдж в нужном месте, взять его рут лейер, сделать TransferContent
+        # stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
+        # stage.GetRootLayer().TransferContent
+        if self.is_pack_into_one_file:
+            stage.Export(self.filepath)
+            log(f"Export of \"{tree.name}\":\"{node.name}\" stage to {self.filepath}: completed successfuly")
+        else:
+            root_layer = stage.GetRootLayer()
+            root_layer.Export(self.filepath)
+
+            mtlx_files = [layer for layer in stage.GetUsedLayers() if Path(layer.realPath).suffix == '.mtlx']
+
+            for file in mtlx_files:
+                dest_path = f"{Path(self.filepath).parents[0]}/{Path(file.realPath).name}"
+                shutil.copy(file.realPath, dest_path)
+                log(f"Export file {file.realPath} to {dest_path}: completed successfuly")
+
+            for layer in stage.GetUsedLayers():
+                if not layer.realPath or root_layer.realPath == layer.realPath:
+                    continue
+
+                ref = [ref for ref in root_layer.GetExternalReferences() if Path(ref) == Path(layer.realPath)]
+
+                if not ref:
+                    continue
+
+                dest_path = f"{Path(self.filepath).parents[0]}/{Path(layer.realPath).name}"
+
+                layer.Export(dest_path)
+
+                ref = ref[0]
+                root_layer.UpdateExternalReference(ref, dest_path)
+
+                log(f"Export file {file.realPath} to {dest_path}: completed successfuly")
+
         return {'FINISHED'}
 
 
