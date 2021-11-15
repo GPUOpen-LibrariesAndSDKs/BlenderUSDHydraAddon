@@ -170,3 +170,12 @@ class TransformByEmptyNode(USDNode):
             root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(get_transform(obj)))
 
         return stage
+
+    def depsgraph_update(self, depsgraph):
+        if not self.object:
+            return
+
+        obj = next((update.id for update in depsgraph.updates if isinstance(update.id, bpy.types.Object)
+                    and not update.id.hdusd.is_usd and update.id.name == self.object.name), None)
+        if obj:
+            self.reset()
