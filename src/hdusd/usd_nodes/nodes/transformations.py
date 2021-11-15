@@ -44,14 +44,14 @@ class TransformNode(USDNode):
     bl_idname = 'usd.TransformNode'
     bl_label = "Transform"
     bl_icon = "OBJECT_ORIGIN"
-    bl_width_default = 305
+    bl_width_default = 250
 
     def update_data(self, context):
         self.reset()
 
     name: bpy.props.StringProperty(
-        name="Xform name",
-        description="Name for USD root primitive",
+        name="Name",
+        description="Xform name for USD root primitive",
         default="Transform",
         update=update_data
     )
