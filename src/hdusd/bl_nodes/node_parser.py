@@ -291,10 +291,7 @@ class NodeParser:
         node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object,
                                      out_key, self.cached_nodes, group_nodes, **self.kwargs)
 
-        if self.kwargs.get('rpr', False):
-            node_item = node_parser.export_rpr()
-        else:
-            node_item = node_parser.export()
+        node_item = node_parser.export()
 
         self.cached_nodes[(node.name, out_key)] = node_item
         return node_item
@@ -376,7 +373,3 @@ class NodeParser:
     def export(self) -> [NodeItem, None]:
         """Main export function which should be overridable in child classes"""
         return None
-
-    def export_rpr(self) -> [NodeItem, None]:
-        """Main export with RPR nodes function which could be overridable in child classes"""
-        return self.export()

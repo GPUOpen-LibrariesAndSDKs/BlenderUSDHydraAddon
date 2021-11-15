@@ -52,8 +52,7 @@ class MaterialProperties(HdUSDProperties):
 
         doc = mx.createDocument()
 
-        node_parser = ShaderNodeOutputMaterial(doc, material, output_node, obj,
-                                               rpr=bpy.context.scene.hdusd.use_rpr_mx_nodes)
+        node_parser = ShaderNodeOutputMaterial(doc, material, output_node, obj)
         if not node_parser.export():
             return None
 

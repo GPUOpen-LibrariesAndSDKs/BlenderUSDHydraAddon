@@ -234,13 +234,3 @@ class HDUSD_RENDER_PT_help_about(HdUSD_Panel):
         row.alignment = 'CENTER'
         row.operator('hdusd.op_open_web_page', text="Community").page = 'community'
         row.operator('hdusd.op_open_web_page', text="Bug Reports").page = 'bug_reports'
-
-
-class HDUSD_RENDER_PT_debug(HdUSD_Panel):
-    bl_label = "Debug"
-    bl_context = 'render'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(context.scene.hdusd, "use_rpr_mx_nodes")
