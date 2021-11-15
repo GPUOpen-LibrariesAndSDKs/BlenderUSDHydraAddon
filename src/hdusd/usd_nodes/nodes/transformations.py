@@ -13,7 +13,6 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-import math
 
 from mathutils import Matrix
 
@@ -21,6 +20,7 @@ from pxr import Usd, UsdGeom, Tf, Gf
 
 from .base_node import USDNode
 
+from ...export.object import get_transform
 
 class HDUSD_USD_NODETREE_OP_transform_add_empty(bpy.types.Operator):
     """Add new Empty object"""
@@ -49,7 +49,6 @@ class TransformNode(USDNode):
     def update_data(self, context):
         self.reset()
 
-    # region properties
     name: bpy.props.StringProperty(
         name="Xform name",
         description="Name for USD root primitive",
@@ -57,44 +56,17 @@ class TransformNode(USDNode):
         update=update_data
     )
 
-    translation_x: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
-    translation_y: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
-    translation_z: bpy.props.FloatProperty(update=update_data, subtype='DISTANCE')
-
-    rotation_y: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
-    rotation_z: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
-    rotation_x: bpy.props.FloatProperty(update=update_data, subtype='ANGLE')
-
-    scale_x: bpy.props.FloatProperty(update=update_data, default=1.0)
-    scale_y: bpy.props.FloatProperty(update=update_data, default=1.0)
-    scale_z: bpy.props.FloatProperty(update=update_data, default=1.0)
-    # endregion
+    translation: bpy.props.FloatVectorProperty(update=update_data, unit='LENGTH')
+    rotation: bpy.props.FloatVectorProperty(update=update_data, unit='ROTATION')
+    scale: bpy.props.FloatVectorProperty(update=update_data, unit='NONE', default=(1.0, 1.0, 1.0))
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'name')
-
-        split = layout.split(factor=0.20)
-        col1 = split.column()
-        col2 = split.column()
-
-        col1.label(text='Translation')
-        col1.label(text='Rotation')
-        col1.label(text='Scale')
-
-        row = col2.row(align=True)
-        row.prop(self, 'translation_x', text='')
-        row.prop(self, 'translation_y', text='')
-        row.prop(self, 'translation_z', text='')
-
-        row = col2.row(align=True)
-        row.prop(self, 'rotation_x', text='')
-        row.prop(self, 'rotation_y', text='')
-        row.prop(self, 'rotation_z', text='')
-
-        row = col2.row(align=True)
-        row.prop(self, 'scale_x', text='')
-        row.prop(self, 'scale_y', text='')
-        row.prop(self, 'scale_z', text='')
+        col = layout.column()
+        col.prop(self, 'name')
+        col.separator()
+        col.row().prop(self, 'translation', text='Translation')
+        col.row().prop(self, 'rotation', text='Rotation')
+        col.row().prop(self, 'scale', text='Scale')
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
@@ -114,17 +86,13 @@ class TransformNode(USDNode):
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 
-        translation = Matrix.Translation((self.translation_x,
-                                          self.translation_y,
-                                          self.translation_z))
+        translation = Matrix.Translation((self.translation[:3]))
 
-        diagonal = Matrix.Diagonal((self.scale_x,
-                                    self.scale_y,
-                                    self.scale_z)).to_4x4()
+        diagonal = Matrix.Diagonal((self.scale[:3])).to_4x4()
 
-        rotation_x = Matrix.Rotation(self.rotation_x, 4, 'X')
-        rotation_y = Matrix.Rotation(self.rotation_y, 4, 'Y')
-        rotation_z = Matrix.Rotation(self.rotation_z, 4, 'Z')
+        rotation_x = Matrix.Rotation(self.rotation[0], 4, 'X')
+        rotation_y = Matrix.Rotation(self.rotation[1], 4, 'Y')
+        rotation_z = Matrix.Rotation(self.rotation[2], 4, 'Z')
 
         transform = translation @ rotation_x @ rotation_y @ rotation_z @ diagonal
 
@@ -199,6 +167,6 @@ class TransformByEmptyNode(USDNode):
 
         if obj:
             UsdGeom.Xform.Get(stage, root_xform.GetPath()).AddTransformOp()
-            root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(obj.matrix_world.transposed()))
+            root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(get_transform(obj)))
 
         return stage
