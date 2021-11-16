@@ -13,11 +13,30 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-import math
 
-from pxr import Usd, UsdGeom, Tf
+from mathutils import Matrix
+
+from pxr import Usd, UsdGeom, Tf, Gf
 
 from .base_node import USDNode
+
+from ...export.object import get_transform
+
+class HDUSD_USD_NODETREE_OP_transform_add_empty(bpy.types.Operator):
+    """Add new Empty object"""
+    bl_idname = "hdusd.usd_nodetree_transform_add_empty"
+    bl_label = ""
+
+    def execute(self, context):
+        obj = bpy.data.objects.new('Empty', None)        
+        context.view_layer.active_layer_collection.collection.objects.link(obj)
+        context.node.object = bpy.data.objects[obj.name_full]
+        for sel_obj in context.selected_objects:
+            sel_obj.select_set(False)
+        context.view_layer.objects.active = obj
+        obj.select_set(True)
+
+        return {"FINISHED"}
 
 
 class TransformNode(USDNode):
@@ -25,61 +44,29 @@ class TransformNode(USDNode):
     bl_idname = 'usd.TransformNode'
     bl_label = "Transform"
     bl_icon = "OBJECT_ORIGIN"
+    bl_width_default = 250
 
     def update_data(self, context):
         self.reset()
 
-    # region properties
     name: bpy.props.StringProperty(
-        name="Xform name",
-        description="Name for USD root primitive",
+        name="Name",
+        description="Xform name for USD root primitive",
         default="Transform",
         update=update_data
     )
 
-    toggle_translation: bpy.props.BoolProperty(update=update_data)
-    translation: bpy.props.FloatVectorProperty(update=update_data, subtype='TRANSLATION')
-
-    toggle_rotation: bpy.props.BoolProperty(update=update_data)
-    rotation: bpy.props.FloatVectorProperty(update=update_data, subtype='EULER')
-
-    toggle_scale: bpy.props.BoolProperty(update=update_data)
-    scale: bpy.props.FloatVectorProperty(update=update_data, default=(1, 1, 1), subtype='XYZ')
-    # endregion
+    translation: bpy.props.FloatVectorProperty(update=update_data, unit='LENGTH')
+    rotation: bpy.props.FloatVectorProperty(update=update_data, unit='ROTATION')
+    scale: bpy.props.FloatVectorProperty(update=update_data, unit='NONE', default=(1.0, 1.0, 1.0))
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, 'name')
-
-        row = layout.row()
-        row.alignment = 'LEFT'
-        row.prop(self, 'toggle_translation', text='')
-        row.label(text='Translation')
-
-        if self.toggle_translation:
-            col = layout.column(align=True)
-            col.prop(self, 'translation', text='')
-
-            layout.separator()
-
-        row = layout.row()
-        row.alignment = 'LEFT'
-        row.prop(self, 'toggle_rotation', text='')
-        row.label(text='Rotation')
-
-        if self.toggle_rotation:
-            col = layout.column(align=True)
-            col.prop(self, 'rotation', text='')
-
-            layout.separator()
-
-        row = layout.row()
-        row.alignment = 'LEFT'
-        row.prop(self, 'toggle_scale', text='')
-        row.label(text='Scale')
-
-        if self.toggle_scale:
-            col = layout.column(align=True)
-            col.prop(self, 'scale', text='')
+        col = layout.column()
+        col.prop(self, 'name')
+        col.separator()
+        col.row().prop(self, 'translation', text='Translation')
+        col.row().prop(self, 'rotation', text='Rotation')
+        col.row().prop(self, 'scale', text='Scale')
 
     def compute(self, **kwargs):
         input_stage = self.get_input_link('Input', **kwargs)
@@ -99,19 +86,96 @@ class TransformNode(USDNode):
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
 
-        usd_geom = UsdGeom.Xform.Get(stage, root_xform.GetPath())
+        translation = Matrix.Translation((self.translation[:3]))
 
-        if self.toggle_translation:
-            usd_geom.AddTranslateOp()
-            root_prim.GetAttribute('xformOp:translate').Set(self.translation[:3])
+        diagonal = Matrix.Diagonal((self.scale[:3])).to_4x4()
 
-        if self.toggle_rotation:
-            usd_geom.AddRotateXYZOp()
-            rotation = tuple(math.degrees(rot) for rot in self.rotation)
-            root_prim.GetAttribute('xformOp:rotateXYZ').Set(rotation)
+        rotation_x = Matrix.Rotation(self.rotation[0], 4, 'X')
+        rotation_y = Matrix.Rotation(self.rotation[1], 4, 'Y')
+        rotation_z = Matrix.Rotation(self.rotation[2], 4, 'Z')
 
-        if self.toggle_scale:
-            usd_geom.AddScaleOp()
-            root_prim.GetAttribute('xformOp:scale').Set(self.scale[:3])
+        transform = translation @ rotation_x @ rotation_y @ rotation_z @ diagonal
+
+        UsdGeom.Xform.Get(stage, root_xform.GetPath()).AddTransformOp()
+        root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(transform.transposed()))
 
         return stage
+
+
+class TransformByEmptyNode(USDNode):
+    """Transforms input data based on Empty object"""
+    bl_idname = 'usd.TransformByEmptyNode'
+    bl_label = "Transform by Empty object"
+    bl_icon = "OBJECT_ORIGIN"
+
+    def update_data(self, context):
+        for sel_obj in context.selected_objects:
+            sel_obj.select_set(False)
+        self.reset()
+
+    def is_empty_obj(self, object):
+        return object.type == 'EMPTY' and not object.hdusd.is_usd
+
+    name: bpy.props.StringProperty(
+        name="Xform name",
+        description="Name for USD root primitive",
+        default="Transform",
+        update=update_data
+    )
+
+    object: bpy.props.PointerProperty(
+        type=bpy.types.Object,
+        name="Object",
+        description="Object for scattering instances",
+        update=update_data,
+        poll=is_empty_obj
+    )
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, 'name')
+        row = layout.row(align=True)
+        
+        if self.object:
+            row.prop(self, 'object')
+        else:
+            row.prop(self, 'object')
+            row.operator(HDUSD_USD_NODETREE_OP_transform_add_empty.bl_idname, icon='OUTLINER_OB_EMPTY')
+
+    def compute(self, **kwargs):
+        input_stage = self.get_input_link('Input', **kwargs)
+
+        if not input_stage or not self.name:
+            return None
+
+        if not self.object:
+            return input_stage
+
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        obj = self.object.evaluated_get(depsgraph)
+
+        path = f'/{Tf.MakeValidIdentifier(self.name)}'
+        stage = self.cached_stage.create()
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+        root_xform = UsdGeom.Xform.Define(stage, path)
+        root_prim = root_xform.GetPrim()
+
+        for prim in input_stage.GetPseudoRoot().GetAllChildren():
+            override_prim = stage.OverridePrim(root_xform.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
+                                                       prim.GetPath())
+
+        if obj:
+            UsdGeom.Xform.Get(stage, root_xform.GetPath()).AddTransformOp()
+            root_prim.GetAttribute('xformOp:transform').Set(Gf.Matrix4d(get_transform(obj)))
+
+        return stage
+
+    def depsgraph_update(self, depsgraph):
+        if not self.object:
+            return
+
+        obj = next((update.id for update in depsgraph.updates if isinstance(update.id, bpy.types.Object)
+                    and not update.id.hdusd.is_usd and update.id.name == self.object.name), None)
+        if obj:
+            self.reset()
