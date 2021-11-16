@@ -103,9 +103,3 @@ class SceneProperties(HdUSDProperties):
 
     final: bpy.props.PointerProperty(type=FinalRenderSettings)
     viewport: bpy.props.PointerProperty(type=ViewportRenderSettings)
-
-    use_rpr_mx_nodes: bpy.props.BoolProperty(
-        name="RPR MaterialX Nodes",
-        description="Use RPR MaterialX Nodes as default nodes",
-        default=False,
-    )
