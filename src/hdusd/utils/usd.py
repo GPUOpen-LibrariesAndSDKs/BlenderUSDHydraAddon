@@ -15,6 +15,7 @@
 import math
 
 import mathutils
+import bpy
 
 
 def get_xform_transform(xform):
@@ -22,15 +23,32 @@ def get_xform_transform(xform):
     return transform.transposed()
 
 
-def set_variant_delegate(stage, is_gl_delegate):
-    name = 'GL' if is_gl_delegate else 'RPR'
-    for prim in stage.TraverseAll():
+def set_delegate_variant(prims, name):
+    for prim in prims:
         vsets = prim.GetVariantSets()
         if 'delegate' not in vsets.GetNames():
             continue
 
         vset = vsets.GetVariantSet('delegate')
         vset.SetVariantSelection(name)
+
+
+def set_delegate_variant_stage(stage, name):
+    set_delegate_variant(stage.TraverseAll(), name)
+
+
+def add_delegate_variants(prim, variants: dict, default_name=None):
+    vset = prim.GetVariantSets().AddVariantSet('delegate')
+    for name, func in variants.items():
+        vset.AddVariant(name)
+        vset.SetVariantSelection(name)
+        with vset.GetVariantEditContext():
+            func()
+
+    if default_name is None:
+        default_name = bpy.context.scene.hdusd.viewport.delegate_name
+
+    vset.SetVariantSelection(default_name)
 
 
 def get_renderer_percent_done(renderer):
