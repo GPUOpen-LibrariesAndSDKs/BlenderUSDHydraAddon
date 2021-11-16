@@ -268,9 +268,6 @@ class FinalEngine(Engine):
 
 
 class FinalEngineScene(FinalEngine):
-    objects_count = 0
-    objects_processed = 0
-
     def _sync(self, depsgraph):
         stage = self.cached_stage.create()
 
@@ -285,7 +282,7 @@ class FinalEngineScene(FinalEngine):
         parent_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
         parent_root_prim = parent_stage.GetPseudoRoot()
 
-        for i, obj_data in enumerate(set(object.ObjectData.parent_objects(depsgraph))):
+        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_obj(depsgraph)):
             if self.render_engine.test_break():
                 return
 
@@ -295,10 +292,9 @@ class FinalEngineScene(FinalEngine):
             def_prim = parent_stage.GetPrimAtPath(f"/{obj_data.sdf_name}")
             parent_stage.SetDefaultPrim(def_prim)
 
-        children = [obj for obj in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False)]
-
-        self.objects_count = len(children)
-        chunks = math.ceil(self.objects_count / CHUNK_COUNT)
+        instance_len = sum(1 for _ in object.ObjectData.depsgraph_objects_inst(
+            depsgraph, use_scene_cameras=False))
+        chunks = math.ceil(instance_len / CHUNK_COUNT)
         chunks_data = {}
 
         for i in range(chunks):
@@ -308,41 +304,39 @@ class FinalEngineScene(FinalEngine):
                    'objs': children[i * CHUNK_COUNT:(i + 1) * CHUNK_COUNT]}
             chunks_data[i] = val
 
-        def _load(this):
-            threadLock = threading.Lock()
+        objects_processed = 0
+        threadLock = threading.Lock()
 
-            def sync_chunk(idx, stage, prim, objs):
-                xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
-                obj_prim = xform.GetPrim()
-                for obj in objs:
-                    with threadLock:
-                        this.objects_processed += 1
-                        this.notify_status(0.0, f"Syncing objects: {this.objects_processed} / {this.objects_count}")
-                    object.sync(obj_prim, obj, parent_stage)
+        def sync_chunk(idx, stage, prim, objs):
+            nonlocal objects_processed
 
-                stage.SetDefaultPrim(obj_prim)
+            xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
+            obj_prim = xform.GetPrim()
+            for obj in objs:
+                with threadLock:
+                    objects_processed += 1
 
-            with futures.ThreadPoolExecutor() as executor:
-                chunk_sync = []
+                self.notify_status(0.0, f"Syncing objects: {objects_processed} / {instance_len}")
+                object.sync(obj_prim, obj, parent_stage)
 
-                for idx in chunks_data:
-                    chunk_sync.append(executor.submit(sync_chunk, idx,
-                                                      chunks_data[idx]['stage'],
-                                                      chunks_data[idx]["prim"],
-                                                      chunks_data[idx]["objs"]))
+            stage.SetDefaultPrim(obj_prim)
 
-                for idx, future in enumerate(futures.wait(chunk_sync)):
-                    if idx == 0:
-                        for i in chunks_data:
-                            chunk_prim = this.stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
-                            chunk_prim.GetReferences().AddReference(
-                                chunks_data[i]['stage'].GetRootLayer().realPath)
-                    pass
+        with futures.ThreadPoolExecutor() as executor:
+            chunk_sync = []
 
-        load_thread = threading.Thread(target=_load, args=(self,))
-        load_thread.start()
-        load_thread.join()
-        chunks_data = None
+            for idx in chunks_data:
+                chunk_sync.append(executor.submit(sync_chunk, idx,
+                                                  chunks_data[idx]['stage'],
+                                                  chunks_data[idx]["prim"],
+                                                  chunks_data[idx]["objs"]))
+
+            for idx, future in enumerate(futures.wait(chunk_sync)):
+                if idx == 0:
+                    for i in chunks_data:
+                        chunk_prim = self.stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
+                        chunk_prim.GetReferences().AddReference(
+                            chunks_data[i]['stage'].GetRootLayer().realPath)
+                pass
 
         if depsgraph.scene.world is not None:
             world.sync(root_prim, depsgraph.scene.world)

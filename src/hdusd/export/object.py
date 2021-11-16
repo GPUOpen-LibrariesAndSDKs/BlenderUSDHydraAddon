@@ -63,8 +63,8 @@ class ObjectData:
         name = Tf.MakeValidIdentifier(self.object.name_full)
         return name if self.instance_id == 0 else f"{name}_{self.instance_id}"
 
-    @staticmethod
-    def depsgraph_objects(depsgraph, *, space_data=None,
+    @classmethod
+    def depsgraph_objects(cls, depsgraph, *, space_data=None,
                           use_scene_lights=True, use_scene_cameras=True):
         for instance in depsgraph.object_instances:
             obj = instance.object
@@ -81,7 +81,25 @@ class ObjectData:
                 continue
 
             yield ObjectData.from_instance(instance)
-            
+
+    @classmethod
+    def depsgraph_objects_obj(cls, depsgraph, *, space_data=None,
+                              use_scene_lights=True, use_scene_cameras=True):
+        for obj_data in cls.depsgraph_objects(depsgraph, space_data=space_data,
+                                              use_scene_lights=use_scene_lights,
+                                              use_scene_cameras=use_scene_cameras):
+            if obj_data.instance_id == 0:
+                yield obj_data
+
+    @classmethod
+    def depsgraph_objects_inst(cls, depsgraph, *, space_data=None,
+                               use_scene_lights=True, use_scene_cameras=True):
+        for obj_data in cls.depsgraph_objects(depsgraph, space_data=space_data,
+                                              use_scene_lights=use_scene_lights,
+                                              use_scene_cameras=use_scene_cameras):
+            if obj_data.instance_id != 0:
+                yield obj_data
+
     @staticmethod            
     def parent_objects(depsgraph):
         for instance in depsgraph.object_instances:
@@ -90,7 +108,7 @@ class ObjectData:
                 continue
 
             if obj.parent:
-                yield ObjectData.from_object(obj)
+                yield ObjectData.from_object(obj.parent)
 
 
 def sdf_name(obj: bpy.types.Object):
