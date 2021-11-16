@@ -27,7 +27,7 @@ from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
 
 
-NODE_SHADER_CATEGORIES = set(['PBR', 'RPR Shaders'])
+NODE_SHADER_CATEGORIES = set(['PBR'])
 NODE_EXCLUDE_CATEGORIES = set(['material'])
 NODE_LINK_CATEGORY = 'Link'
 
@@ -240,14 +240,12 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
         layout = self.layout
 
         split = layout.row(align=True).split(factor=0.4)
-        col = split.column()
-        col.alignment = 'RIGHT'
-        col.label(text="MaterialX")
-        col = split.column()
-        row = col.row(align=True)
-        col1 = row.column()
-        col1.enabled = any(ng.bl_idname == 'hdusd.MxNodeTree' for ng in bpy.data.node_groups)
-        col1.menu(HDUSD_MATERIAL_MT_mx_node_tree.bl_idname, text="", icon='MATERIAL')
+        row = split.column()
+        row.alignment = 'RIGHT'
+        row.label(text="MaterialX")
+        row = split.row()
+        row = row.row(align=True)
+        row.menu(HDUSD_MATERIAL_MT_mx_node_tree.bl_idname, text="", icon='MATERIAL')
 
         if mat_hdusd.mx_node_tree:
             row.prop(mat_hdusd.mx_node_tree, 'name', text="")
@@ -323,10 +321,12 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
             if i % 4 == 0:
                 col = row.column()
             col.emboss = 'PULLDOWN_MENU'
-            col.label(text=category, icon='NODE')
+            col.label(text=category.title(), icon='NODE')
             for node in mx_node_classes:
                 if node.category == category:
-                    op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+                    row1 = col.row()
+                    row1.alignment = 'LEFT'
+                    op = row1.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
                                       text=node.bl_label)
                     op.new_node_name = node.bl_idname
                     op.input_num = self.input_num
@@ -342,11 +342,14 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
             link = next((link for link in node_inputs[self.input_num].links), None)
             
             if link:
-                op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
+                row1 = col.row()
+                row1.alignment = 'LEFT'
+                op = row1.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_remove_node.bl_label)
                 op.input_node_name = link.from_node.name
-
-                op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
+                row1 = col.row()
+                row1.alignment = 'LEFT'
+                op = row1.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
                 op.output_node_name = link.to_node.name
                 op.input_num = self.input_num
@@ -375,10 +378,12 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
         for category in sorted(NODE_SHADER_CATEGORIES):
             col = row.column()
             col.emboss = 'PULLDOWN_MENU'
-            col.label(text=category)
+            col.label(text=category, icon='NODE')
             for node in mx_node_classes:
                 if node.category == category:
-                    op = col.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+                    row1 = col.row()
+                    row1.alignment = 'LEFT'
+                    op = row1.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
                                       text=node.bl_label)
                     op.new_node_name = node.bl_idname
                     op.input_num = self.input_num
@@ -393,11 +398,15 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
             link = next((link for link in node_inputs[self.input_num].links), None)
 
             if link:
-                op = col.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
+                row1 = col.row()
+                row1.alignment = 'LEFT'
+                op = row1.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_remove_node.bl_label)
                 op.input_node_name = link.from_node.name
 
-                op = col.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
+                row1 = col.row()
+                row1.alignment = 'LEFT'
+                op = row1.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
                                   text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
                 op.output_node_name = link.to_node.name
                 op.input_num = self.input_num
@@ -467,19 +476,26 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         input = output_node.inputs[self.bl_label]
         link = next((link for link in input.links if link.is_valid), None)
 
-        split = layout.split(factor=0.2)
-        col = split.column()
-
-        row = split.row()
+        split = layout.split(factor=0.4)
+        row = split.row(align=True)
+        row.alignment = 'RIGHT'
         row.label(text='Surface')
 
-        box = row.column().box()
-        box.scale_x = 2
+        row = split.row(align=True)
+        box = row.box()
+        box.scale_x = 0.7
         box.scale_y = 0.5
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
+        op.input_num = int(input.identifier[-1])
 
-        box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
-        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
-                          icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name if link else 'None')
+        if link:
+            row.prop(link.from_node, 'name', text="")
+        else:
+            box = row.box()
+            box.scale_y = 0.5
+            box.label(text='None')
+
+        row.label(icon='BLANK1')
 
         if not link:
             layout.label(text="No input node")
@@ -514,19 +530,26 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         input = output_node.inputs[self.bl_label]
         link = next((link for link in input.links if link.is_valid), None)
 
-        split = layout.split(factor=0.09)
-        col = split.column()
-
-        row = split.row()
+        split = layout.split(factor=0.4)
+        row = split.row(align=True)
+        row.alignment = 'RIGHT'
         row.label(text='Displacement')
 
-        box = row.column().box()
-        box.scale_x = 1.53
+        row = split.row(align=True)
+        box = row.box()
+        box.scale_x = 0.7
         box.scale_y = 0.5
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
+        op.input_num = int(input.identifier[-1])
 
-        box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
-        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
-                          icon='HANDLETYPE_AUTO_CLAMP_VEC', text=link.from_node.name if link else 'None')
+        if link:
+            row.prop(link.from_node, 'name', text="")
+        else:
+            box = row.box()
+            box.scale_y = 0.5
+            box.label(text='None')
+
+        row.label(icon='BLANK1')
 
         if not link:
             layout.label(text="No input node")
