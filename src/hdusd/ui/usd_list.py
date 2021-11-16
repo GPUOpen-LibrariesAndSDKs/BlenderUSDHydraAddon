@@ -324,27 +324,29 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         root_layer = new_stage.GetRootLayer()
         root_layer.TransferContent(stage.GetRootLayer())
 
+        dest_path_root_dir = Path(self.filepath).parent
+
         def _update_layer_refs(layer):
             for ref in layer.GetCompositionAssetDependencies():
+                ref_name = Path(ref).name
                 if Path(ref).suffix == '.mtlx':
-                    dest_path = f"{Path(self.filepath).parent}/{Path(ref).name}"
-                    shutil.copy(f"{Path(layer.realPath).parent}{ref}", dest_path)
-                    log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
+                    source_path = f"{Path(layer.realPath).parent}{ref}"
+                    dest_path = f"{dest_path_root_dir}/{ref_name}"
+                    shutil.copy(source_path, dest_path)
+                    log(f"Export file {source_path} to {dest_path}: completed successfuly")
                 else:
                     ref_layer = Sdf.Layer.Find(ref)
                     if ref_layer.GetCompositionAssetDependencies():
                         _update_layer_refs(ref_layer)
 
-                    dest_path = f"{Path(self.filepath).parent}/{Path(ref).name}"
+                    dest_path = f"{dest_path_root_dir}/{ref_name}"
                     ref_layer.Export(dest_path)
                     log(f"Export file {ref} to {dest_path}: completed successfuly")
 
                     layer.UpdateCompositionAssetDependency(ref, dest_path)
 
             if layer is root_layer:
-                dest_path = f"{Path(self.filepath).parent}/{Path(self.filepath).name}" \
-                            if layer is root_layer else \
-                            f"{Path(self.filepath).parent}/{Path(layer.realPath).name}"
+                dest_path = f"{dest_path_root_dir}/{Path(self.filepath).name}"
 
                 layer.Export(dest_path)
                 log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
