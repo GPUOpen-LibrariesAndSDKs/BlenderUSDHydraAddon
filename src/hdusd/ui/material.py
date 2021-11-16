@@ -117,8 +117,7 @@ class HDUSD_MATERIAL_OP_new_mx_node_tree(bpy.types.Operator):
     def execute(self, context):
         mat = context.material
         mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
-        mx_node_tree.create_basic_nodes(
-            'RPR_rpr_uberv2' if context.scene.hdusd.use_rpr_mx_nodes else 'PBR_standard_surface')
+        mx_node_tree.create_basic_nodes()
 
         mat.hdusd.mx_node_tree = mx_node_tree
         return {"FINISHED"}
