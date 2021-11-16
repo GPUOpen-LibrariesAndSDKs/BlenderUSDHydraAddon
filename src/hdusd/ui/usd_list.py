@@ -15,7 +15,7 @@
 import bpy
 import shutil
 
-from pxr import UsdGeom, Usd
+from pxr import UsdGeom, Usd, Sdf
 from bpy_extras.io_utils import ExportHelper
 from pathlib import Path
 
@@ -324,33 +324,32 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         root_layer = new_stage.GetRootLayer()
         root_layer.TransferContent(stage.GetRootLayer())
 
-        mtlx_files = [layer for layer in new_stage.GetUsedLayers() if Path(layer.realPath).suffix == '.mtlx']
+        def _update_layer_refs(layer):
+            for ref in layer.GetCompositionAssetDependencies():
+                if Path(ref).suffix == '.mtlx':
+                    dest_path = f"{Path(self.filepath).parent}/{Path(ref).name}"
+                    shutil.copy(f"{Path(layer.realPath).parent}{ref}", dest_path)
+                    log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
+                else:
+                    ref_layer = Sdf.Layer.Find(ref)
+                    if ref_layer.GetCompositionAssetDependencies():
+                        _update_layer_refs(ref_layer)
 
-        for file in mtlx_files:
-            dest_path = f"{Path(self.filepath).parents[0]}/{Path(file.realPath).name}"
-            shutil.copy(file.realPath, dest_path)
-            log(f"Export file {file.realPath} to {dest_path}: completed successfuly")
+                    dest_path = f"{Path(self.filepath).parent}/{Path(ref).name}"
+                    ref_layer.Export(dest_path)
+                    log(f"Export file {ref} to {dest_path}: completed successfuly")
 
-        for layer in new_stage.GetUsedLayers():
-            if not layer.realPath or root_layer.realPath == layer.realPath:
-                continue
+                    layer.UpdateCompositionAssetDependency(ref, dest_path)
 
-            ref = next((ref for ref in root_layer.GetExternalReferences() if Path(ref) == Path(layer.realPath)), None)
+            if layer is root_layer:
+                dest_path = f"{Path(self.filepath).parent}/{Path(self.filepath).name}" \
+                            if layer is root_layer else \
+                            f"{Path(self.filepath).parent}/{Path(layer.realPath).name}"
 
-            if not ref:
-                continue
+                layer.Export(dest_path)
+                log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
 
-            dest_path = f"{Path(self.filepath).parents[0]}/{Path(layer.realPath).name}"
-
-            layer.Export(dest_path)
-
-            root_layer.UpdateExternalReference(ref, dest_path)
-
-            log(f"Export file {ref} to {dest_path}: completed successfuly")
-
-        root_layer.Export(self.filepath)
-
-        log(f"Export file {root_layer.identifier} to {self.filepath}: completed successfuly")
+        _update_layer_refs(root_layer)
 
         return {'FINISHED'}
 
