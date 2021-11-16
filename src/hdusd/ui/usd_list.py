@@ -297,6 +297,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     is_pack_into_one_file: bpy.props.BoolProperty(name="Pack into one file",
                                                   description="Pack all references into one file",
                                                   default=True)
+
     def execute(self, context):
         tree = context.space_data.edit_tree
         node = context.active_node
@@ -327,10 +328,12 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         dest_path_root_dir = Path(self.filepath).parent
 
         def _update_layer_refs(layer):
+            nonlocal new_stage
+
             for ref in layer.GetCompositionAssetDependencies():
                 ref_name = Path(ref).name
                 if Path(ref).suffix == '.mtlx':
-                    source_path = f"{Path(layer.realPath).parent}{ref}"
+                    source_path = f"{new_stage.GetPathResolverContext().GetSearchPath()[0]}/{ref}"
                     dest_path = f"{dest_path_root_dir}/{ref_name}"
                     shutil.copy(source_path, dest_path)
                     log(f"Export file {source_path} to {dest_path}: completed successfuly")
@@ -347,7 +350,6 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
             if layer is root_layer:
                 dest_path = f"{dest_path_root_dir}/{Path(self.filepath).name}"
-
                 layer.Export(dest_path)
                 log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
 
