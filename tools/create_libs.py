@@ -79,8 +79,6 @@ def main(bin_dir):
     print(f"Clearing {rpr_usd_init_py}")
     rpr_usd_init_py.write_text("")
 
-    print("Done.")
-
 
 def copy_usd_debug_files(bin_dir):
     repo_dir = Path(__file__).parent.parent
