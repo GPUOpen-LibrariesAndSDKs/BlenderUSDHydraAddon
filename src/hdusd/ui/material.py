@@ -486,7 +486,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         box.scale_x = 0.7
         box.scale_y = 0.5
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
-        op.input_num = int(input.identifier[-1])
+        op.input_num = output_node.inputs.find(self.bl_label)
 
         if link:
             row.prop(link.from_node, 'name', text="")
@@ -540,7 +540,7 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         box.scale_x = 0.7
         box.scale_y = 0.5
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
-        op.input_num = int(input.identifier[-1])
+        op.input_num = output_node.inputs.find(self.bl_label)
 
         if link:
             row.prop(link.from_node, 'name', text="")
