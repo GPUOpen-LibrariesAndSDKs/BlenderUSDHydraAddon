@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from pathlib import Path
 import traceback
 
 import MaterialX as mx
-
+import shutil
 import bpy
+import os
+
 from bpy_extras.io_utils import ImportHelper, ExportHelper
+from pathlib import Path
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
@@ -72,6 +74,17 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     )
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
+    is_export_textures: bpy.props.BoolProperty(name="Export bound textures",
+                                               description="Export bound textures to corresponded folder",
+                                               default=True)
+
+    texture_folder_name: bpy.props.StringProperty(
+        name="Texture folder name",
+        description="Texture folder name used for exporting files",
+        default='Textures',
+        maxlen=1024
+    )
+
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree
         doc = mx_node_tree.export()
@@ -79,7 +92,38 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
             log.warn("Incorrect node tree to export", mx_node_tree)
             return {'CANCELLED'}
 
+        if self.is_export_textures:
+            texture_folder = Path(self.filepath).parent / self.texture_folder_name
+            if os.path.isdir(texture_folder):
+                shutil.rmtree(texture_folder)
+
+            os.makedirs(texture_folder)
+            image_paths = set()
+
+            i = 0
+
+            input_files = tuple(v for v in doc.traverseTree() if isinstance(v, mx.Input) and v.getType() == 'filename')
+            for mx_input in input_files:
+                source_path = mx_input.getValue()
+                dest_path = texture_folder / Path(source_path).name
+
+                if source_path not in image_paths:
+                    image_paths.update([source_path])
+
+                    if os.path.isfile(dest_path):
+                        i += 1
+                        dest_path = texture_folder / f"{Path(source_path).stem}_{i}{Path(source_path).suffix}"
+                    else:
+                        dest_path = texture_folder / f"{Path(source_path).stem}{Path(source_path).suffix}"
+
+                    shutil.copy(source_path, dest_path)
+                    log(f"Export file {source_path} to {dest_path}: completed successfuly")
+
+                mx_input.setValue(str(dest_path), mx_input.getType())
+
         mx.writeToXmlFile(doc, self.filepath)
+        log(f"Export MaterialX to {self.filepath}: completed successfuly")
+
         return {'FINISHED'}
 
     @staticmethod
