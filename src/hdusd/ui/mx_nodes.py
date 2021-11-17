@@ -74,11 +74,15 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     )
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
+    is_export_deps: bpy.props.BoolProperty(name="Export MaterialX dependencies",
+                                           description="WARNING: Folder with name \"libraries\" will be used",
+                                           default=False)
+
     is_export_textures: bpy.props.BoolProperty(name="Export bound textures",
                                                description="Export bound textures to corresponded folder",
                                                default=True)
 
-    texture_folder_name: bpy.props.StringProperty(
+    texture_dir_name: bpy.props.StringProperty(
         name="Texture folder name",
         description="Texture folder name used for exporting files",
         default='Textures',
@@ -92,12 +96,25 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
             log.warn("Incorrect node tree to export", mx_node_tree)
             return {'CANCELLED'}
 
-        if self.is_export_textures:
-            texture_folder = Path(self.filepath).parent / self.texture_folder_name
-            if os.path.isdir(texture_folder):
-                shutil.rmtree(texture_folder)
+        root_dir = Path(self.filepath).parent
 
-            os.makedirs(texture_folder)
+        if self.is_export_deps:
+            mx_libs_dir = root_dir / mx_utils.MX_LIBS_FOLDER
+            if os.path.isdir(mx_libs_dir):
+                shutil.rmtree(mx_libs_dir)
+
+            for mtlx_path in set(node._file_path for node in mx_node_tree.nodes):
+                source_path = mx_utils.MX_LIBS_DIR.parent / mtlx_path
+                dest_path = root_dir / mtlx_path
+                Path(dest_path.parent).mkdir(parents=True, exist_ok=True)
+                shutil.copy(source_path, dest_path)
+
+        if self.is_export_textures:
+            texture_dir = root_dir / self.texture_dir_name
+            if os.path.isdir(texture_dir):
+                shutil.rmtree(texture_dir)
+
+            Path(texture_dir).mkdir(parents=True, exist_ok=True)
             image_paths = set()
 
             i = 0
@@ -105,16 +122,16 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
             input_files = tuple(v for v in doc.traverseTree() if isinstance(v, mx.Input) and v.getType() == 'filename')
             for mx_input in input_files:
                 source_path = mx_input.getValue()
-                dest_path = texture_folder / Path(source_path).name
+                dest_path = texture_dir / Path(source_path).name
 
                 if source_path not in image_paths:
                     image_paths.update([source_path])
 
                     if os.path.isfile(dest_path):
                         i += 1
-                        dest_path = texture_folder / f"{Path(source_path).stem}_{i}{Path(source_path).suffix}"
+                        dest_path = texture_dir / f"{Path(source_path).stem}_{i}{Path(source_path).suffix}"
                     else:
-                        dest_path = texture_folder / f"{Path(source_path).stem}{Path(source_path).suffix}"
+                        dest_path = texture_dir / f"{Path(source_path).stem}{Path(source_path).suffix}"
 
                     shutil.copy(source_path, dest_path)
                     log(f"Export file {source_path} to {dest_path}: completed successfuly")

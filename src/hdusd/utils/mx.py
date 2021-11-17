@@ -26,7 +26,8 @@ from . import logging
 log = logging.Log('utils.mx')
 
 
-MX_LIBS_DIR = LIBS_DIR / "libraries"
+MX_LIBS_FOLDER = "libraries"
+MX_LIBS_DIR = LIBS_DIR / MX_LIBS_FOLDER
 
 os.environ['MATERIALX_SEARCH_PATH'] = str(MX_LIBS_DIR)
 
