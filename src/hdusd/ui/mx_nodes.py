@@ -75,7 +75,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
     is_export_deps: bpy.props.BoolProperty(name="Export MaterialX dependencies",
-                                           description="WARNING: Folder with name \"libraries\" will be used",
+                                           description="Export used MaterialX dependencies",
                                            default=False)
 
     is_export_textures: bpy.props.BoolProperty(name="Export bound textures",
@@ -106,8 +106,11 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
             for mtlx_path in set(node._file_path for node in mx_node_tree.nodes):
                 source_path = mx_utils.MX_LIBS_DIR.parent / mtlx_path
                 dest_path = root_dir / mtlx_path
+                rel_dest_path = os.path.relpath(dest_path, root_dir / mx_utils.MX_LIBS_FOLDER)
+                dest_path = root_dir / rel_dest_path
                 Path(dest_path.parent).mkdir(parents=True, exist_ok=True)
                 shutil.copy(source_path, dest_path)
+                mx.prependXInclude(doc, rel_dest_path)
 
         if self.is_export_textures:
             texture_dir = root_dir / self.texture_dir_name
@@ -136,7 +139,8 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
                     shutil.copy(source_path, dest_path)
                     log(f"Export file {source_path} to {dest_path}: completed successfuly")
 
-                mx_input.setValue(str(dest_path), mx_input.getType())
+                rel_dest_path = os.path.relpath(dest_path, root_dir)
+                mx_input.setValue(rel_dest_path, mx_input.getType())
 
         mx.writeToXmlFile(doc, self.filepath)
         log(f"Export MaterialX to {self.filepath}: completed successfuly")
