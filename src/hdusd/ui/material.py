@@ -154,33 +154,8 @@ class HDUSD_MATERIAL_OP_convert_mx_node_tree(bpy.types.Operator):
     bl_idname = "hdusd.material_convert_mx_node_tree"
     bl_label = "Convert"
 
-    def execute(self, context):
-        mat = context.material
-        mx_node_tree = mat.hdusd.mx_node_tree
-
-        if mx_node_tree:
-            mat.hdusd.mx_node_tree = None
-        else:
-            mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
-
-        doc = mat.hdusd.export(context.object)
-        mat.hdusd.mx_node_tree = mx_node_tree
-
-        if not doc:
-            log.warn("Incorrect node tree to export", mx_node_tree)
-            return {'CANCELLED'}
-
-        mtlx_file = get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
-        mx.writeToXmlFile(doc, str(mtlx_file))
-        search_path = mx.FileSearchPath(str(mtlx_file.parent))
-        search_path.append(str(mx_utils.MX_LIBS_DIR))
-
-        try:
-            mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
-            mx_node_tree.import_(doc, mtlx_file)
-
-        except Exception as e:
-            log.error(traceback.format_exc(), mtlx_file)
+    def execute(self, context): 
+        if mx_utils.convert_mx_node_tree(context) == {'CANCELLED'}:
             return {'CANCELLED'}
 
         return {"FINISHED"}
@@ -613,12 +588,37 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
     )
     filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
 
+    is_export_deps: bpy.props.BoolProperty(name="Export MaterialX dependencies",
+                                           description="Export used MaterialX dependencies",
+                                           default=False)
+
+    is_export_textures: bpy.props.BoolProperty(name="Export bound textures",
+                                               description="Export bound textures to corresponded folder",
+                                               default=False)
+
+    texture_dir_name: bpy.props.StringProperty(
+        name="Texture folder name",
+        description="Texture folder name used for exporting files",
+        default='Textures',
+        maxlen=1024
+    )
+
     def execute(self, context):
         doc = context.material.hdusd.export(context.object)
         if not doc:
             return {'CANCELLED'}
 
-        mx.writeToXmlFile(doc, self.filepath)
+        mx_node_tree = mx_utils.convert_mx_node_tree(context)
+        if mx_node_tree == {'CANCELLED'}:
+            return {'CANCELLED'}
+
+        mx_utils.export_mx_to_file(doc, self.filepath,
+                                   mx_node_tree=mx_node_tree,
+                                   is_export_deps=self.is_export_deps,
+                                   is_export_textures=self.is_export_textures,
+                                   texture_dir_name=self.texture_dir_name)
+
+        bpy.data.node_groups.remove(mx_node_tree)
         return {'FINISHED'}
 
 
