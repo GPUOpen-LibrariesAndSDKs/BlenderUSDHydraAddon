@@ -20,7 +20,7 @@ import MaterialX as mx
 import bpy
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 
-from . import HdUSD_Panel, HdUSD_Operator
+from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
 from ..utils import mx as mx_utils
 from .. import config
@@ -119,8 +119,8 @@ class HDUSD_MX_OP_create_basic_nodes(HdUSD_Operator):
         return {"FINISHED"}
 
 
-class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
-    bl_label = "Import/Export"
+class HDUSD_MX_MATERIAL_PT_tools(HdUSD_Panel):
+    bl_label = "MaterialX Tools"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -133,10 +133,22 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname)
-        layout.operator(HDUSD_MX_OP_import_file.bl_idname)
+        layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname, icon='ADD')
+        layout.operator(HDUSD_MX_OP_import_file.bl_idname, icon='IMPORT')
+        layout.operator(HDUSD_MX_OP_export_file.bl_idname, icon='EXPORT')
 
-        col = layout.column()
-        col.enabled = HDUSD_MX_OP_export_file.enabled(context)
-        col.operator(HDUSD_MX_OP_export_file.bl_idname)
-        col.operator(HDUSD_MX_OP_export_console.bl_idname)
+
+class HDUSD_MX_MATERIAL_PT_debug(HdUSD_ChildPanel):
+    bl_label = "Debugging"
+    bl_parent_id = 'HDUSD_MX_MATERIAL_PT_tools'
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(cls, context):
+        return config.show_debug_settings
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator(HDUSD_MX_OP_export_console.bl_idname)
