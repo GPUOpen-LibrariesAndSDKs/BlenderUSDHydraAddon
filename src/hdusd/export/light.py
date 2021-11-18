@@ -18,6 +18,7 @@ import numpy as np
 from pxr import UsdLux, Tf, Sdf
 import bpy
 
+from ..utils import usd as usd_utils
 
 from ..utils import logging
 log = logging.Log('export.light')
@@ -118,30 +119,19 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
     power = get_radiant_power(light)
 
-    colorAttr = usd_light.CreateColorAttr()
+    color_attr = usd_light.CreateColorAttr()
 
     if is_preview_render:
         # Material Previews are overly bright, that's why
         # decreasing light intensity for material preview by 10 times
         power *= 0.1
-        colorAttr.Set(tuple(power))
+        color_attr.Set(tuple(power))
 
     else:
-        # setting light color through variants for GL and RPR renderers
-        vset = obj_prim.GetVariantSets().AddVariantSet('delegate')
-        vset.AddVariant('GL')
-        vset.AddVariant('RPR')
-
-        vset.SetVariantSelection('GL')
-        with vset.GetVariantEditContext():
-            colorAttr.Set(tuple(power / 1000))
-
-        vset.SetVariantSelection('RPR')
-        with vset.GetVariantEditContext():
-            colorAttr.Set(tuple(power))
-
-        # setting default variant
-        vset.SetVariantSelection('GL' if context.scene.hdusd.viewport.is_gl_delegate else 'RPR')
+        usd_utils.add_delegate_variants(obj_prim, {
+            'GL': lambda: color_attr.Set(tuple(power / 1000)),
+            'RPR': lambda: color_attr.Set(tuple(power))
+        })
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):

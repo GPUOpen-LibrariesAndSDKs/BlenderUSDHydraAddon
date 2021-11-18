@@ -14,13 +14,14 @@
 #********************************************************************
 from dataclasses import dataclass
 import textwrap
-
-import bpy
-from bpy_extras import view3d_utils
 import weakref
 import time
 
-from pxr import Usd, UsdGeom, Tf
+import bpy
+import bgl
+from bpy_extras import view3d_utils
+
+from pxr import Usd, UsdGeom, Tf, Gf, Glf
 from pxr import UsdImagingGL
 
 from .engine import Engine
@@ -184,7 +185,7 @@ class ViewportEngine(Engine):
         self.is_gl_delegate = settings.is_gl_delegate
 
         self.space_data = context.space_data
-        self.shading_data = None
+        self.shading_data = world.ShadingData(context, depsgraph.scene.world)
 
         self.render_params = UsdImagingGL.RenderParams()
         self.render_params.frame = Usd.TimeCode.Default()
@@ -193,7 +194,7 @@ class ViewportEngine(Engine):
 
         self._sync(context, depsgraph)
 
-        usd_utils.set_variant_delegate(self.stage, self.is_gl_delegate)
+        usd_utils.set_delegate_variant_stage(self.stage, settings.delegate_name)
 
         self.is_synced = True
         log('Finish sync')
@@ -218,7 +219,7 @@ class ViewportEngine(Engine):
         self._sync_update(context, depsgraph)
 
         if gl_delegate_changed:
-            usd_utils.set_variant_delegate(self.cached_stage(), self.is_gl_delegate)
+            usd_utils.set_delegate_variant_stage(self.cached_stage(), settings.delegate_name)
 
         if self.renderer.IsPauseRendererSupported():
             self.renderer.ResumeRenderer()
@@ -256,6 +257,19 @@ class ViewportEngine(Engine):
         self.renderer.SetRenderViewport((*view_settings.border[0], *view_settings.border[1]))
         self.renderer.SetRendererAov('color')
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
+        self.render_params.clipPlanes = [Gf.Vec4d(i) for i in gf_camera.clippingPlanes]
+
+        if self.shading_data.type == 'MATERIAL' and self.is_gl_delegate:
+            l = Glf.SimpleLight()
+            l.ambient = (0, 0, 0, 0)
+            l.position = (*gf_camera.frustum.position, 1)
+
+            mat = Glf.SimpleMaterial()
+
+            self.renderer.SetLightingState((l,), mat, (0, 0, 0, 0))
+
+        bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
+
         self.render_engine.bind_display_space_shader(context.scene)
 
         if usd_utils.get_renderer_percent_done(self.renderer) == 0.0:
@@ -271,6 +285,10 @@ class ViewportEngine(Engine):
                 log.error(e)
 
         self.render_engine.unbind_display_space_shader()
+
+        # additional clear of GL depth buffer which provides blender to draw viewport grid
+        bgl.glClear(bgl.GL_DEPTH_BUFFER_BIT)
+
         elapsed_time = time_str(time.perf_counter() - self.time_begin)
         if not self.renderer.IsConverged():
             self.notify_status(f"Time: {elapsed_time} | "
@@ -346,8 +364,6 @@ class ViewportEngineScene(ViewportEngine):
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         root_prim = stage.GetPseudoRoot()
-
-        self.shading_data = world.ShadingData(context, depsgraph.scene.world)
 
         for obj_data in object.ObjectData.depsgraph_objects(
                 depsgraph,
@@ -468,10 +484,6 @@ class ViewportEngineNodetree(ViewportEngine):
         if stage:
             # creating overrides from nodetree stage
             for prim in stage.GetPseudoRoot().GetAllChildren():
-                if prim.GetName() == 'World':
-                    world_data = world.WorldData.init_from_stage(stage)
-                    self.render_params.clearColor = world_data.clear_color
-
                 override_prim = engine_stage.OverridePrim(
                     root_prim.GetPath().AppendChild(prim.GetName()))
                 override_prim.GetReferences().AddReference(stage.GetRootLayer().realPath,

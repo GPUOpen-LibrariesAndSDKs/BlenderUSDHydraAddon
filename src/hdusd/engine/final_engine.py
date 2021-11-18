@@ -186,7 +186,7 @@ class FinalEngine(Engine):
 
         self._sync(depsgraph)
 
-        usd_utils.set_variant_delegate(self.stage, settings.is_gl_delegate)
+        usd_utils.set_delegate_variant_stage(self.stage, settings.delegate_name)
 
         if self.render_engine.test_break():
             log.warn("Syncing stopped by user termination")
