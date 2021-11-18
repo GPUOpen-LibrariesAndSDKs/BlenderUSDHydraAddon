@@ -488,7 +488,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
-        if link:
+        if link and hasattr(link.from_node, 'nodedef'):    # handle MaterialX 1.37 nodes
             row.prop(link.from_node, 'name', text="")
         else:
             box = row.box()
@@ -501,11 +501,15 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
             layout.label(text="No input node")
             return
 
-        layout.separator()
+        if not hasattr(link.from_node, "nodedef"):
+            layout.label(text="Unsupported node")
+            return
 
         link = pass_node_reroute(link)
         if not link:
             return
+
+        layout.separator()
 
         link.from_node.draw_node_view(context, layout)
 
@@ -542,7 +546,7 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
-        if link:
+        if link and hasattr(link.from_node, 'nodedef'):    # handle MaterialX 1.37 nodes
             row.prop(link.from_node, 'name', text="")
         else:
             box = row.box()
@@ -555,11 +559,15 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
             layout.label(text="No input node")
             return
 
-        layout.separator()
+        if not hasattr(link.from_node, "nodedef"):
+            layout.label(text="Unsupported node")
+            return
 
         link = pass_node_reroute(link)
         if not link:
             return
+
+        layout.separator()
 
         link.from_node.draw_node_view(context, layout)
 

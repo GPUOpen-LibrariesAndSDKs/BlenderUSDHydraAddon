@@ -26,6 +26,9 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_label = "MX Input Socket"
 
     def draw(self, context, layout, node, text):
+        if not hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+            return
+
         nd = node.nodedef
         nd_input = nd.getInput(self.name)
         nd_type = nd_input.getType()
@@ -43,7 +46,10 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
 
 
     def draw_color(self, context, node):
-        return mx_utils.get_socket_color(node.nodedef.getInput(self.name).getType())
+        socket_type = 'undefined'
+        if hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+            socket_type = node.nodedef.getInput(self.name).getType()
+        return mx_utils.get_socket_color(socket_type)
 
 
 class MxNodeOutputSocket(bpy.types.NodeSocket):
@@ -51,6 +57,9 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
     bl_label = "MX Output Socket"
 
     def draw(self, context, layout, node, text):
+        if not hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+            return
+
         nd = node.nodedef
         mx_output = nd.getOutput(self.name)
         uiname = mx_utils.get_attr(mx_output, 'uiname', title_str(mx_output.getName()))
@@ -61,7 +70,10 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
             layout.label(text=f"{uiname}: {uitype}")
 
     def draw_color(self, context, node):
-        return mx_utils.get_socket_color(node.nodedef.getOutput(self.name).getType())
+        socket_type = 'undefined'
+        if hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+            socket_type = node.nodedef.getOutput(self.name).getType()
+        return mx_utils.get_socket_color(socket_type)
 
 
 class MxNode(bpy.types.ShaderNode):
@@ -362,6 +374,10 @@ class MxNode(bpy.types.ShaderNode):
 
         link = pass_node_reroute(link)
         if not link:
+            return None
+
+        if not hasattr(link.from_node, 'nodedef'):    # handle MaterialX 1.37 nodes
+            log.warn(f"Ignoring unsupported node {link.from_node.bl_idname}", link.from_node, link.from_node.id_data)
             return None
 
         return self._compute_node(link.from_node, link.from_socket.name, **kwargs)
