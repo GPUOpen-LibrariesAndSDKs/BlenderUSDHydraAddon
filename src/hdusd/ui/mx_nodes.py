@@ -23,6 +23,7 @@ from bpy_extras.io_utils import ImportHelper, ExportHelper
 from . import HdUSD_Panel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
 from ..utils import mx as mx_utils
+from .. import config
 
 from ..utils import logging
 log = logging.Log('ui.mx_nodes')

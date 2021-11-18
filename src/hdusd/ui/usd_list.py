@@ -18,6 +18,7 @@ from pxr import UsdGeom
 
 from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
+from .. import config
 
 from ..utils import logging
 log = logging.Log('ui.usd_list')
@@ -147,7 +148,7 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
 
 
 class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
-    bl_label = "USD List"
+    bl_label = "USD Node Prims"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -181,7 +182,7 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
 
 
 class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
-    """Add basic USD nodes"""
+    """Add / Replace to basic USD nodes"""
     bl_idname = "hdusd.usd_nodetree_add_basic_nodes"
     bl_label = "Add Basic Nodes"
 
@@ -267,19 +268,25 @@ class HDUSD_UsdNodeTreePanel(HdUSD_Panel):
 
 
 class HDUSD_NODE_PT_usd_nodetree_tree_tools(HDUSD_UsdNodeTreePanel):
-    bl_label = "Setup basic USD Node Tree"
+    bl_label = "USD Tools"
 
     def draw(self, context):
         col = self.layout.column()
-        col.label(text="Replace current tree using")
 
-        op_idname = HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname
-        col.operator(op_idname, text="Current Scene").scene_source = "SCENE"
-        col.operator(op_idname, text="USD file").scene_source = "USD_FILE"
+        col.label(text="Replace current tree using")
+        col.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
+                     text="Blender Scene", icon='SCENE_DATA').scene_source = "SCENE"
+        col.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
+                     text="USD file", icon='FILE').scene_source = "USD_FILE"
 
 
 class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
-    bl_label = "USD Nodes Tools"
+    bl_label = "Debugging"
+    bl_parent_id = 'HDUSD_NODE_PT_usd_nodetree_tree_tools'
+
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and config.show_debug_settings
 
     def draw(self, context):
         col = self.layout.column()

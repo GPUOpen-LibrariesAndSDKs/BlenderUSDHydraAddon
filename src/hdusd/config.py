@@ -13,9 +13,10 @@
 # limitations under the License.
 #********************************************************************
 
-# logging
+# logging and debugging
 logging_level = 'INFO'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
 logging_backups = 5
+show_debug_settings = False
 
 # other settings
 matlib_enabled = False
