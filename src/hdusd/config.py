@@ -13,14 +13,17 @@
 # limitations under the License.
 #********************************************************************
 
-# logging and debugging
+# logging
 logging_level = 'INFO'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
 logging_backups = 5
-show_debug_settings = False
 
 # other settings
 matlib_enabled = False
 engine_use_preview = True
+
+# dev settings
+show_dev_settings = False
+
 
 try:
     # Trying to load configdev.py if it exist

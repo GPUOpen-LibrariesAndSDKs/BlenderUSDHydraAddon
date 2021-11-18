@@ -656,15 +656,15 @@ class HDUSD_MATERIAL_PT_tools(HdUSD_Panel):
         layout.operator(HDUSD_MATERIAL_OP_export_mx_file.bl_idname, icon='EXPORT')
 
 
-class HDUSD_MATERIAL_PT_debug(HdUSD_ChildPanel):
-    bl_label = "Debugging"
+class HDUSD_MATERIAL_PT_dev(HdUSD_ChildPanel):
+    bl_label = "Dev"
     bl_parent_id = 'HDUSD_MATERIAL_PT_tools'
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
 
     @classmethod
     def poll(cls, context):
-        return config.show_debug_settings
+        return config.show_dev_settings
 
     def draw(self, context):
         layout = self.layout

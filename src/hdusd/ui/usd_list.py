@@ -277,15 +277,15 @@ class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
                         text="USD file", icon='FILE').scene_source = "USD_FILE"
 
 
-class HDUSD_NODE_PT_usd_nodetree_debug(HdUSD_ChildPanel):
-    bl_label = "Debugging"
+class HDUSD_NODE_PT_usd_nodetree_dev(HdUSD_ChildPanel):
+    bl_label = "Dev"
     bl_parent_id = 'HDUSD_NODE_PT_usd_nodetree_tools'
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
 
     @classmethod
     def poll(cls, context):
-        return config.show_debug_settings
+        return config.show_dev_settings
 
     def draw(self, context):
         layout = self.layout
