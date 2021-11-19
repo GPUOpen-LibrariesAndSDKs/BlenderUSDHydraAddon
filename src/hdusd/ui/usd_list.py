@@ -14,6 +14,8 @@
 #********************************************************************
 import bpy
 import shutil
+import MaterialX as mx
+import traceback
 
 from pxr import UsdGeom, Usd, Sdf
 from bpy_extras.io_utils import ExportHelper
@@ -23,6 +25,9 @@ from . import HdUSD_Panel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 
 from ..utils import logging, get_temp_file
+from ..utils.mx import export_mx_to_file, MX_LIBS_DIR
+from ..mx_nodes.node_tree import MxNodeTree
+
 log = logging.Log('ui.usd_list')
 
 
@@ -333,10 +338,55 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
             for ref in layer.GetCompositionAssetDependencies():
                 ref_name = Path(ref).name
                 if Path(ref).suffix == '.mtlx':
-                    source_path = f"{new_stage.GetPathResolverContext().GetSearchPath()[0]}/{ref}"
+                    doc = mx.createDocument()
+                    source_path = Path(f"{new_stage.GetPathResolverContext().GetSearchPath()[0]}/{ref}")
                     dest_path = f"{dest_path_root_dir}/{ref_name}"
-                    shutil.copy(source_path, dest_path)
-                    log(f"Export file {source_path} to {dest_path}: completed successfuly")
+                    search_path = mx.FileSearchPath(str(source_path.parent))
+                    search_path.append(str(MX_LIBS_DIR))
+                    mx.readFromXmlFile(doc, str(source_path), searchPath=search_path)
+
+                    mx_node_tree = next((mat.hdusd.mx_node_tree for mat in bpy.data.materials
+                                         if mat.hdusd.mx_node_tree
+                                         and source_path.stem.startswith(mat.name_full)
+                                         and source_path.stem.endswith(mat.hdusd.mx_node_tree.name_full)), None)
+
+                    if not mx_node_tree:
+                        mat = bpy.data.materials.get(source_path.stem, None)
+                        if not mat:
+                            continue
+
+                        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}",
+                                                                type=MxNodeTree.bl_idname)
+
+                        mat.hdusd.mx_node_tree = mx_node_tree
+
+                        try:
+                            mx_node_tree.import_(doc, source_path)
+                        except Exception as e:
+                            log.error(traceback.format_exc(), source_path)
+                            bpy.data.node_groups.remove(mx_node_tree)
+                            continue
+
+                        # after mx_node_tree.import_ deps updated, so we need to change them back since we convert material only to get mx_node_tree
+                        layer.UpdateCompositionAssetDependency(f'./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx', ref)
+
+                        export_mx_to_file(doc, dest_path,
+                                          is_export_textures=True,
+                                          is_export_deps=True,
+                                          mx_node_tree=mx_node_tree,
+                                          is_clean_texture_folder=False,
+                                          is_clean_deps_folder=False)
+
+                        bpy.data.node_groups.remove(mx_node_tree)
+
+                        continue
+
+                    export_mx_to_file(doc, dest_path,
+                                      is_export_textures=True,
+                                      is_export_deps=True,
+                                      mx_node_tree=mx_node_tree,
+                                      is_clean_texture_folder=False,
+                                      is_clean_deps_folder=False)
                 else:
                     ref_layer = Sdf.Layer.Find(ref)
                     if ref_layer.GetCompositionAssetDependencies():
