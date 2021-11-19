@@ -28,6 +28,9 @@ class MatlibProperties(bpy.types.PropertyGroup):
         search_str = self.search.strip().lower()
 
         materials_list = manager.materials_list
+        if not materials_list:
+            return materials
+
         for mat in materials_list:
             if search_str not in mat.title.lower():
                 continue

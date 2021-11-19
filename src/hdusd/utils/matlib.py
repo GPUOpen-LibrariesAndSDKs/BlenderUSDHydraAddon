@@ -33,6 +33,15 @@ URL = "https://matlibapi.stvcis.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
+def update_ui(space_type="PROPERTIES", region_type="WINDOW"):
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == "PROPERTIES":
+                for region in area.regions:
+                    if region.type == "WINDOW":
+                        region.tag_redraw()
+
+
 def download_file(url, path, cache_check=True):
     if cache_check and path.is_file():
         return path
@@ -78,7 +87,12 @@ def request_json(url, params, path, cache_check=True):
 
     log("request_json", f"{url=}, {params=}, {path=}")
 
-    response = requests.get(url, params=params)
+    try:
+        response = requests.get(url, params=params)
+    except requests.exceptions.ConnectionError as e:
+        log.error(e)
+        return None
+
     res_json = response.json()
 
     if path:
@@ -117,12 +131,12 @@ class Render:
     def get_info(self, cache_chek=True):
         json_data = request_json(f"{URL}/renders/{self.id}", None,
                                  self.cache_dir / f"R-{self.id[:8]}.json", cache_chek)
-
-        self.author = json_data['author']
-        self.image = json_data['image']
-        self.image_url = json_data['image_url']
-        self.thumbnail = json_data['thumbnail']
-        self.thumbnail_url = json_data['thumbnail_url']
+        if json_data:
+            self.author = json_data['author']
+            self.image = json_data['image']
+            self.image_url = json_data['image_url']
+            self.thumbnail = json_data['thumbnail']
+            self.thumbnail_url = json_data['thumbnail_url']
 
     def get_image(self, cache_check=True):
         self.image_path = download_file(self.image_url,
@@ -167,14 +181,16 @@ class Package:
         json_data = request_json(f"{URL}/packages/{self.id}", None,
                                  self.cache_dir / "info.json", cache_check)
 
-        self.author = json_data['author']
-        self.file = json_data['file']
-        self.file_url = json_data['file_url']
-        self.label = json_data['label']
-        self.size_str = json_data['size']
+        if json_data:
+            self.author = json_data['author']
+            self.file = json_data['file']
+            self.file_url = json_data['file_url']
+            self.label = json_data['label']
+            self.size_str = json_data['size']
 
     def download(self, cache_check=True):
         def callback(size):
+            update_ui()
             self.size_load = size
 
         download_file_callback(self.file_url, self.file_path, callback, cache_check)
@@ -226,7 +242,8 @@ class Category:
         json_data = request_json(f"{URL}/categories/{self.id}", None,
                                  self.cache_dir / f"C-{self.id[:8]}.json", use_cache)
 
-        self.title = json_data['title']
+        if json_data:
+            self.title = json_data['title']
 
     def __lt__(self, other):
         return self.title < other.title
@@ -271,10 +288,13 @@ class Material:
     @classmethod
     def get_materials(cls):
         offset = 0
-        limit = 500
+        limit = 50
 
         while True:
             res_json = request_json(f"{URL}/materials", {'limit': limit, 'offset': offset}, None)
+
+            if not res_json:
+                break
 
             count = res_json['count']
 
@@ -305,24 +325,42 @@ class Manager:
         self.pcoll = None
         self.load_thread = None
         self.package_executor = None
+        self.poll = True
+        self.status = ""
+        self.connection = False
 
     def __del__(self):
         # bpy.utils.previews.remove(self.pcoll)
         pass
 
+    def set_status(self, msg):
+        self.status = msg
+        update_ui()
+
+    def check_connection(self, url):
+        self.set_status(f"Connecting to server...")
+        try:
+            self.connection = requests.get(f"{url}/materials")
+        except requests.exceptions.ConnectionError as e:
+            self.connection = False
+            log.error(e)
+            self.set_status(f"Connection Error")
+
     @property
     def materials_list(self):
         # required for thread safe purposes
-        return list(manager.materials.values())
+        return list(manager.materials.values()) if manager.materials else None
 
     @property
     def categories_list(self):
         # required for thread safe purposes
         return list(manager.categories.values())
 
-    def check_load_materials(self):
-        if self.materials is not None:
+    def check_load_materials(self, reset = False):
+        if self.materials is not None and not reset:
             return True
+        if reset:
+            bpy.utils.previews.remove(self.pcoll)
 
         self.materials = {}
         self.categories = {}
@@ -331,6 +369,7 @@ class Manager:
         def category_load(cat):
             cat.get_info()
             self.categories[cat.id] = cat
+            update_ui()
 
         def material_load(mat):
             for render in mat.renders:
@@ -342,9 +381,12 @@ class Manager:
                 package.get_info()
 
             self.materials[mat.id] = mat
+            self.set_status(f"Syncing{'.' * ((len(self.materials))%5+1)} {str(len(self.materials))} materials")
 
         def load():
+            self.poll = False
             with futures.ThreadPoolExecutor() as executor:
+                update_ui()
                 #
                 # getting cached materials
                 #
@@ -394,7 +436,13 @@ class Manager:
                 for _ in futures.as_completed(material_loaders):
                     pass
 
+                update_ui()
+
+            self.poll = True
+
+        self.check_connection(URL)
         self.load_thread = threading.Thread(target=load)
+        self.load_thread.daemon = True
         self.load_thread.start()
 
         return False

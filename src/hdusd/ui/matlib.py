@@ -84,6 +84,19 @@ class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
 
         return {"FINISHED"}
 
+class HDUSD_MATLIB_OP_sync_materials(HdUSD_Operator):
+    """Download material package"""
+    bl_idname = "hdusd.matlib_sync_materials"
+    bl_label = "Sync Materials"
+
+    def execute(self, context):
+        manager.check_load_materials(reset=True)
+        return {"FINISHED"}
+
+    @classmethod
+    def poll(cls, context):
+        return manager.poll
+
 
 class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
     bl_label = "Material Library"
@@ -109,16 +122,25 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         if matlib_prop.search:
             row.operator(HDUSD_MATERIAL_OP_matlib_clear_search.bl_idname, icon='X')
 
+        materials = matlib_prop.get_materials()
+        if manager.poll:
+            manager.status = "No materials found" if not materials else f"{str(len(materials))} materials"
+
+        row = layout.row()
+
+        row1 = row.row()
+        row1.alignment = 'LEFT'
+        row1.label(text=manager.status)
+
+        row1 = row.row()
+        row1.alignment = 'RIGHT'
+        row1.operator(HDUSD_MATLIB_OP_sync_materials.bl_idname, icon='FILE_REFRESH', text='', emboss=False)
+
         # materials
         col = layout.column(align=True)
-        materials = matlib_prop.get_materials()
-        if not materials:
-            col.label(text="No materials found")
-            return
 
-        row = col.row()
-        row.alignment = 'RIGHT'
-        row.label(text=f"{len(materials)} materials")
+        if not materials:
+            return
 
         col.template_icon_view(matlib_prop, 'material_id', show_labels=True)
 
