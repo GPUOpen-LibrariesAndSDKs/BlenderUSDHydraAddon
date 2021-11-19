@@ -20,6 +20,7 @@ from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
+from ..mx_nodes.nodes.base_node import is_mx_node_valid
 from ..utils import get_temp_file, pass_node_reroute
 from ..utils import mx as mx_utils
 
@@ -488,7 +489,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
-        if link and hasattr(link.from_node, 'nodedef'):    # handle MaterialX 1.37 nodes
+        if link and is_mx_node_valid(link.from_node):
             row.prop(link.from_node, 'name', text="")
         else:
             box = row.box()
@@ -501,7 +502,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
             layout.label(text="No input node")
             return
 
-        if not hasattr(link.from_node, "nodedef"):
+        if not is_mx_node_valid(link.from_node):
             layout.label(text="Unsupported node")
             return
 
@@ -546,7 +547,7 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
-        if link and hasattr(link.from_node, 'nodedef'):    # handle MaterialX 1.37 nodes
+        if link and is_mx_node_valid(link.from_node):
             row.prop(link.from_node, 'name', text="")
         else:
             box = row.box()
@@ -559,7 +560,7 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
             layout.label(text="No input node")
             return
 
-        if not hasattr(link.from_node, "nodedef"):
+        if not is_mx_node_valid(link.from_node):
             layout.label(text="Unsupported node")
             return
 

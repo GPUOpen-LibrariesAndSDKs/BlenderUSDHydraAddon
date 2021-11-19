@@ -26,7 +26,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
     bl_label = "MX Input Socket"
 
     def draw(self, context, layout, node, text):
-        if not hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+        if not is_mx_node_valid(node):
             return
 
         nd = node.nodedef
@@ -47,7 +47,7 @@ class MxNodeInputSocket(bpy.types.NodeSocket):
 
     def draw_color(self, context, node):
         socket_type = 'undefined'
-        if hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+        if is_mx_node_valid(node):
             socket_type = node.nodedef.getInput(self.name).getType()
         return mx_utils.get_socket_color(socket_type)
 
@@ -57,7 +57,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
     bl_label = "MX Output Socket"
 
     def draw(self, context, layout, node, text):
-        if not hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+        if not is_mx_node_valid(node):
             return
 
         nd = node.nodedef
@@ -71,7 +71,7 @@ class MxNodeOutputSocket(bpy.types.NodeSocket):
 
     def draw_color(self, context, node):
         socket_type = 'undefined'
-        if hasattr(node, 'nodedef'):    # handle MaterialX 1.37 nodes
+        if is_mx_node_valid(node):
             socket_type = node.nodedef.getOutput(self.name).getType()
         return mx_utils.get_socket_color(socket_type)
 
@@ -376,7 +376,7 @@ class MxNode(bpy.types.ShaderNode):
         if not link:
             return None
 
-        if not hasattr(link.from_node, 'nodedef'):    # handle MaterialX 1.37 nodes
+        if not is_mx_node_valid(link.from_node):
             log.warn(f"Ignoring unsupported node {link.from_node.bl_idname}", link.from_node, link.from_node.id_data)
             return None
 
@@ -455,3 +455,8 @@ class MxNode(bpy.types.ShaderNode):
         output = self.outputs.new(MxNodeOutputSocket.bl_idname, f'out_{len(self.outputs)}')
         output.name = mx_output.getName()
         return output
+
+
+def is_mx_node_valid(node):
+    # handle MaterialX 1.37 nodes
+    return hasattr(node, 'nodedef')
