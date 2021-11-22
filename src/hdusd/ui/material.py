@@ -155,7 +155,7 @@ class HDUSD_MATERIAL_OP_convert_mx_node_tree(bpy.types.Operator):
     bl_label = "Convert"
 
     def execute(self, context): 
-        if mx_utils.convert_mx_node_tree(context) == {'CANCELLED'}:
+        if not mx_utils.convert_mx_node_tree(context):
             return {'CANCELLED'}
 
         return {"FINISHED"}
@@ -599,7 +599,7 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
     texture_dir_name: bpy.props.StringProperty(
         name="Texture folder name",
         description="Texture folder name used for exporting files",
-        default='Textures',
+        default='textures',
         maxlen=1024
     )
 
@@ -609,7 +609,7 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
             return {'CANCELLED'}
 
         mx_node_tree = mx_utils.convert_mx_node_tree(context)
-        if mx_node_tree == {'CANCELLED'}:
+        if not mx_node_tree:
             return {'CANCELLED'}
 
         mx_utils.export_mx_to_file(doc, self.filepath,

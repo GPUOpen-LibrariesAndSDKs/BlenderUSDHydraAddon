@@ -83,7 +83,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     texture_dir_name: bpy.props.StringProperty(
         name="Texture folder name",
         description="Texture folder name used for exporting files",
-        default='Textures',
+        default='textures',
         maxlen=1024
     )
 

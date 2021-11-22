@@ -223,22 +223,17 @@ def convert_mx_node_tree(context):
     from ..mx_nodes.node_tree import MxNodeTree
 
     mat = context.material
-    mx_node_tree = mat.hdusd.mx_node_tree
-
-    if mx_node_tree:
-        mat.hdusd.mx_node_tree = None
-    else:
-        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+    mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
 
     doc = mat.hdusd.export(context.object)
     mat.hdusd.mx_node_tree = mx_node_tree
 
     if not doc:
         log.warn("Incorrect node tree to export", mx_node_tree)
-        return {'CANCELLED'}
+        return None
 
     mtlx_file = get_temp_file(".mtlx",
-                              f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
+                              f'{mat.name}_{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
     mx.writeToXmlFile(doc, str(mtlx_file))
     search_path = mx.FileSearchPath(str(mtlx_file.parent))
     search_path.append(str(MX_LIBS_DIR))
@@ -253,8 +248,8 @@ def convert_mx_node_tree(context):
     return mx_node_tree
 
 
-def export_mx_to_file(doc, filepath, mx_node_tree=None, is_export_deps=False,
-                      is_export_textures=False, texture_dir_name='Textures'):
+def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
+                      is_export_textures=False, texture_dir_name="textures"):
     root_dir = Path(filepath).parent
 
     if is_export_deps and mx_node_tree:
@@ -262,14 +257,20 @@ def export_mx_to_file(doc, filepath, mx_node_tree=None, is_export_deps=False,
         if os.path.isdir(mx_libs_dir):
             shutil.rmtree(mx_libs_dir)
 
-        for mtlx_path in set(node._file_path for node in mx_node_tree.nodes):
+        # we need to export every deps only once
+        unique_paths = set(node._file_path for node in mx_node_tree.nodes)
+
+        for mtlx_path in unique_paths:
+            # defining paths
             source_path = MX_LIBS_DIR.parent / mtlx_path
-            dest_path = root_dir / mtlx_path
-            rel_dest_path = os.path.relpath(dest_path, root_dir / MX_LIBS_FOLDER)
+            full_dest_path = root_dir / mtlx_path
+            rel_dest_path = full_dest_path.relative_to(root_dir / MX_LIBS_FOLDER)
             dest_path = root_dir / rel_dest_path
+
             Path(dest_path.parent).mkdir(parents=True, exist_ok=True)
             shutil.copy(source_path, dest_path)
-            mx.prependXInclude(doc, rel_dest_path)
+
+            mx.prependXInclude(doc, str(rel_dest_path))
 
     if is_export_textures:
         texture_dir = root_dir / texture_dir_name
@@ -281,26 +282,25 @@ def export_mx_to_file(doc, filepath, mx_node_tree=None, is_export_deps=False,
 
         i = 0
 
-        input_files = tuple(
-            v for v in doc.traverseTree() if isinstance(v, mx.Input) and v.getType() == 'filename')
+        input_files = (v for v in doc.traverseTree() if isinstance(v, mx.Input) and v.getType() == 'filename')
         for mx_input in input_files:
-            source_path = mx_input.getValue()
-            dest_path = texture_dir / Path(source_path).name
+            source_path = Path(mx_input.getValue())
+            dest_path = texture_dir / source_path.name
 
             if source_path not in image_paths:
                 image_paths.update([source_path])
 
                 if os.path.isfile(dest_path):
                     i += 1
-                    dest_path = texture_dir / f"{Path(source_path).stem}_{i}{Path(source_path).suffix}"
+                    dest_path = texture_dir / f"{source_path.stem}_{i}{source_path.suffix}"
                 else:
-                    dest_path = texture_dir / f"{Path(source_path).stem}{Path(source_path).suffix}"
+                    dest_path = texture_dir / f"{source_path.stem}{source_path.suffix}"
 
                 shutil.copy(source_path, dest_path)
                 log(f"Export file {source_path} to {dest_path}: completed successfuly")
 
-            rel_dest_path = os.path.relpath(dest_path, root_dir)
-            mx_input.setValue(rel_dest_path, mx_input.getType())
+            rel_dest_path = dest_path.relative_to(root_dir)
+            mx_input.setValue(str(rel_dest_path), mx_input.getType())
 
     mx.writeToXmlFile(doc, filepath)
     log(f"Export MaterialX to {filepath}: completed successfuly")
