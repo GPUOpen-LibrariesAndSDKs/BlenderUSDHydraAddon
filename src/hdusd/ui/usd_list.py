@@ -392,11 +392,15 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                     if ref_layer.GetCompositionAssetDependencies():
                         _update_layer_refs(ref_layer)
 
-                    dest_path = f"{dest_path_root_dir}/{ref_name}"
-                    ref_layer.Export(dest_path)
+                    dest_path = Path(f"{dest_path_root_dir}/{ref_name}")
+
+                    ref_layer.Export(str(dest_path))
+                    
                     log(f"Export file {ref} to {dest_path}: completed successfuly")
 
-                    layer.UpdateCompositionAssetDependency(ref, dest_path)
+                    rel_dest_path = dest_path.parent.relative_to(Path(self.filepath).parent) / dest_path.name
+
+                    layer.UpdateCompositionAssetDependency(ref, str(rel_dest_path))
 
             if layer is root_layer:
                 dest_path = f"{dest_path_root_dir}/{Path(self.filepath).name}"
