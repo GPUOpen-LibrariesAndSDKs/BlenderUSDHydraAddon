@@ -596,6 +596,14 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
                                                description="Export bound textures to corresponded folder",
                                                default=False)
 
+    is_clean_texture_folder: bpy.props.BoolProperty(name="Сlean texture folder",
+                                                    description="Сlean texture folder before export",
+                                                    default=True)
+
+    is_clean_deps_folders: bpy.props.BoolProperty(name="Сlean MaterialX dependencies folders",
+                                                  description="Сlean MaterialX dependencies folders before export",
+                                                  default=True)
+
     texture_dir_name: bpy.props.StringProperty(
         name="Texture folder name",
         description="Texture folder name used for exporting files",
@@ -616,7 +624,9 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
                                    mx_node_tree=mx_node_tree,
                                    is_export_deps=self.is_export_deps,
                                    is_export_textures=self.is_export_textures,
-                                   texture_dir_name=self.texture_dir_name)
+                                   texture_dir_name=self.texture_dir_name,
+                                   is_clean_texture_folder=self.is_clean_texture_folder,
+                                   is_clean_deps_folders=self.is_clean_deps_folders)
 
         bpy.data.node_groups.remove(mx_node_tree)
         return {'FINISHED'}

@@ -250,12 +250,12 @@ def convert_mx_node_tree(context):
 
 def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
                       is_export_textures=False, texture_dir_name='textures',
-                      is_clean_texture_folder=True, is_clean_deps_folder=True):
+                      is_clean_texture_folder=True, is_clean_deps_folders=True):
     root_dir = Path(filepath).parent
 
     if is_export_deps and mx_node_tree:
         mx_libs_dir = root_dir / MX_LIBS_FOLDER
-        if os.path.isdir(mx_libs_dir) and is_clean_deps_folder:
+        if os.path.isdir(mx_libs_dir) and is_clean_deps_folders:
             shutil.rmtree(mx_libs_dir)
 
         # we need to export every deps only once
