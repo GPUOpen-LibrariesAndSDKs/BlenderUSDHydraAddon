@@ -375,7 +375,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                                           is_export_deps=True,
                                           mx_node_tree=mx_node_tree,
                                           is_clean_texture_folder=False,
-                                          is_clean_deps_folder=False)
+                                          is_clean_deps_folders=False)
 
                         bpy.data.node_groups.remove(mx_node_tree)
 
@@ -386,7 +386,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                                       is_export_deps=True,
                                       mx_node_tree=mx_node_tree,
                                       is_clean_texture_folder=False,
-                                      is_clean_deps_folder=False)
+                                      is_clean_deps_folders=False)
                 else:
                     ref_layer = Sdf.Layer.Find(ref)
                     if ref_layer.GetCompositionAssetDependencies():
