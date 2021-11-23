@@ -65,32 +65,43 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     bl_description = "Export MaterialX node tree to .mtlx file"
 
     filename_ext = ".mtlx"
-    filepath: bpy.props.StringProperty(name="File Path",
-                                       description="File path used for exporting MaterialX node tree to .mtlx file",
-                                       maxlen=1024, subtype="FILE_PATH")
 
-    filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
-
-    is_export_deps: bpy.props.BoolProperty(name="Export MaterialX dependencies",
-                                           description="Export used MaterialX dependencies",
-                                           default=False)
-
-    is_export_textures: bpy.props.BoolProperty(name="Export bound textures",
-                                               description="Export bound textures to corresponded folder",
-                                               default=False)
-
-    is_clean_texture_folder: bpy.props.BoolProperty(name="Сlean texture folder",
-                                                    description="Сlean texture folder before export",
-                                                    default=True)
-
-    is_clean_deps_folders: bpy.props.BoolProperty(name="Сlean MaterialX dependencies folders",
-                                                  description="Сlean MaterialX dependencies folders before export",
-                                                  default=True)
-
-    texture_dir_name: bpy.props.StringProperty(name="Texture folder name",
-                                               description="Texture folder name used for exporting files",
-                                               default='textures',
-                                               maxlen=1024)
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="File path used for exporting MaterialX node tree to .mtlx file",
+        maxlen=1024,
+        subtype="FILE_PATH"
+    )
+    filter_glob: bpy.props.StringProperty(
+        default="*.mtlx",
+        options={'HIDDEN'},
+    )
+    is_export_deps: bpy.props.BoolProperty(
+        name="Export MaterialX dependencies",
+        description="Export used MaterialX dependencies",
+        default=False
+    )
+    is_export_textures: bpy.props.BoolProperty(
+        name="Export bound textures",
+        description="Export bound textures to corresponded folder",
+        default=False
+    )
+    is_clean_texture_folder: bpy.props.BoolProperty(
+        name="Сlean texture folder",
+        description="Сlean texture folder before export",
+        default=True
+    )
+    is_clean_deps_folders: bpy.props.BoolProperty(
+        name="Сlean MaterialX dependencies folders",
+        description="Сlean MaterialX dependencies folders before export",
+        default=True
+    )
+    texture_dir_name: bpy.props.StringProperty(
+        name="Texture folder name",
+        description="Texture folder name used for exporting files",
+        default='textures',
+        maxlen=1024
+    )
 
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree
