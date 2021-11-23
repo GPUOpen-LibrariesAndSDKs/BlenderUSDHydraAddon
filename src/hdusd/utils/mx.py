@@ -256,7 +256,12 @@ def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
 
         input_files = (v for v in doc.traverseTree() if isinstance(v, mx.Input) and v.getType() == 'filename')
         for mx_input in input_files:
-            source_path = Path(mx_input.getValue())
+            mx_value = mx_input.getValue()
+            if not mx_value:
+                log.warn(f"Skipping wrong {mx_input.getType()} input value. Expected: path, got {mx_value}")
+                continue
+
+            source_path = Path(mx_value)
             dest_path = texture_dir / source_path.name
 
             if source_path not in image_paths:

@@ -61,7 +61,7 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
 
 class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     bl_idname = "hdusd.mx_export_file"
-    bl_label = "Export to File"
+    bl_label = "Export MaterialX"
     bl_description = "Export MaterialX node tree to .mtlx file"
 
     # region properties
@@ -78,7 +78,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
         options={'HIDDEN'},
     )
     is_export_deps: bpy.props.BoolProperty(
-        name="Export MaterialX dependencies",
+        name="Include dependencies",
         description="Export used MaterialX dependencies",
         default=False
     )
@@ -90,12 +90,12 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     is_clean_texture_folder: bpy.props.BoolProperty(
         name="Сlean texture folder",
         description="Сlean texture folder before export",
-        default=True
+        default=False
     )
     is_clean_deps_folders: bpy.props.BoolProperty(
         name="Сlean MaterialX dependencies folders",
         description="Сlean MaterialX dependencies folders before export",
-        default=True
+        default=False
     )
     texture_dir_name: bpy.props.StringProperty(
         name="Texture folder name",
@@ -122,6 +122,16 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
 
         return {'FINISHED'}
 
+    def draw(self, context):
+        self.layout.prop(self, 'is_export_deps')
+
+        col = self.layout.column(align=False)
+        col.prop(self, 'is_export_textures')
+
+        row = col.row()
+        row.enabled = self.is_export_textures
+        row.prop(self, 'texture_dir_name', text='')
+
     @staticmethod
     def enabled(context):
         return bool(context.space_data.edit_tree.output_node)
@@ -129,7 +139,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
 
 class HDUSD_MX_OP_export_console(HdUSD_Operator):
     bl_idname = "hdusd.mx_export_console"
-    bl_label = "Export to Console"
+    bl_label = "Export MaterialX to Console"
     bl_description = "Export MaterialX node tree to console"
 
     def execute(self, context):
@@ -177,5 +187,5 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
 
         col = layout.column()
         col.enabled = HDUSD_MX_OP_export_file.enabled(context)
-        col.operator(HDUSD_MX_OP_export_file.bl_idname)
+        col.operator(HDUSD_MX_OP_export_file.bl_idname, text='Export MaterialX to file')
         col.operator(HDUSD_MX_OP_export_console.bl_idname)
