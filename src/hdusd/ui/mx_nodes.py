@@ -185,7 +185,7 @@ class HDUSD_MX_MATERIAL_PT_tools(HdUSD_Panel):
 
         layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname, icon='ADD')
         layout.operator(HDUSD_MX_OP_import_file.bl_idname, icon='IMPORT')
-        layout.operator(HDUSD_MX_OP_export_file.bl_idname, icon='EXPORT', , text='Export MaterialX to file')
+        layout.operator(HDUSD_MX_OP_export_file.bl_idname, icon='EXPORT', text='Export MaterialX to file')
 
 
 class HDUSD_MX_MATERIAL_PT_dev(HdUSD_ChildPanel):

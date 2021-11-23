@@ -154,7 +154,7 @@ class HDUSD_MATERIAL_OP_duplicate_mx_node_tree(bpy.types.Operator):
 class HDUSD_MATERIAL_OP_convert_shader_to_mx(bpy.types.Operator):
     """Converts standard shader node tree to MaterialX node tree for selected material"""
     bl_idname = "hdusd.material_convert_shader_to_mx"
-    bl_label = "Convert"
+    bl_label = "Convert to MaterialX"
 
     def execute(self, context):
         if not context.material.hdusd.convert_shader_to_mx(context.object):
@@ -231,7 +231,7 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
             row.operator(HDUSD_MATERIAL_OP_unlink_mx_node_tree.bl_idname, icon='X')
 
         else:
-            row.operator(HDUSD_MATERIAL_OP_convert_shader_to_mx.bl_idname, icon='FILE_TICK')
+            row.operator(HDUSD_MATERIAL_OP_convert_shader_to_mx.bl_idname, icon='FILE_TICK', text="Convert")
             row.operator(HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname, icon='ADD', text="")
 
     def draw_header(self, context):
@@ -691,8 +691,8 @@ class HDUSD_MATERIAL_PT_tools(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK')
-        layout.operator(HDUSD_MATERIAL_OP_export_mx_file.bl_idname, icon='EXPORT')
+        layout.operator(HDUSD_MATERIAL_OP_convert_shader_to_mx.bl_idname, icon='FILE_TICK')
+        layout.operator(HDUSD_MATERIAL_OP_export_mx_file.bl_idname, text="Export MaterialX to file", icon='EXPORT')
 
 
 class HDUSD_MATERIAL_PT_dev(HdUSD_ChildPanel):
@@ -708,7 +708,6 @@ class HDUSD_MATERIAL_PT_dev(HdUSD_ChildPanel):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator(HDUSD_MATERIAL_OP_export_mx_file.bl_idname, text="Export MaterialX to file")
         layout.operator(HDUSD_MATERIAL_OP_export_mx_console.bl_idname)
 
 
