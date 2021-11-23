@@ -20,6 +20,7 @@ from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
+from ..mx_nodes.nodes.base_node import is_mx_node_valid
 from ..utils import get_temp_file, pass_node_reroute
 from ..utils import mx as mx_utils
 from .. import config
@@ -487,9 +488,9 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         box.scale_x = 0.7
         box.scale_y = 0.5
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
-        op.input_num = int(input.identifier[-1])
+        op.input_num = output_node.inputs.find(self.bl_label)
 
-        if link:
+        if link and is_mx_node_valid(link.from_node):
             row.prop(link.from_node, 'name', text="")
         else:
             box = row.box()
@@ -502,11 +503,15 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
             layout.label(text="No input node")
             return
 
-        layout.separator()
+        if not is_mx_node_valid(link.from_node):
+            layout.label(text="Unsupported node")
+            return
 
         link = pass_node_reroute(link)
         if not link:
             return
+
+        layout.separator()
 
         link.from_node.draw_node_view(context, layout)
 
@@ -541,9 +546,9 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         box.scale_x = 0.7
         box.scale_y = 0.5
         op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
-        op.input_num = int(input.identifier[-1])
+        op.input_num = output_node.inputs.find(self.bl_label)
 
-        if link:
+        if link and is_mx_node_valid(link.from_node):
             row.prop(link.from_node, 'name', text="")
         else:
             box = row.box()
@@ -556,11 +561,15 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
             layout.label(text="No input node")
             return
 
-        layout.separator()
+        if not is_mx_node_valid(link.from_node):
+            layout.label(text="Unsupported node")
+            return
 
         link = pass_node_reroute(link)
         if not link:
             return
+
+        layout.separator()
 
         link.from_node.draw_node_view(context, layout)
 
