@@ -149,13 +149,13 @@ class HDUSD_MATERIAL_OP_duplicate_mx_node_tree(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class HDUSD_MATERIAL_OP_convert_mx_node_tree(bpy.types.Operator):
+class HDUSD_MATERIAL_OP_convert_shader_to_mx(bpy.types.Operator):
     """Converts standard shader node tree to MaterialX node tree for selected material"""
-    bl_idname = "hdusd.material_convert_mx_node_tree"
+    bl_idname = "hdusd.material_convert_shader_to_mx"
     bl_label = "Convert"
 
     def execute(self, context): 
-        if not mx_utils.convert_mx_node_tree(context):
+        if not context.material.hdusd.convert_shader_to_mx(context.object):
             return {'CANCELLED'}
 
         return {"FINISHED"}
@@ -224,12 +224,12 @@ class HDUSD_MATERIAL_PT_material(HdUSD_Panel):
 
         if mat_hdusd.mx_node_tree:
             row.prop(mat_hdusd.mx_node_tree, 'name', text="")
-            row.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK', text="")
+            row.operator(HDUSD_MATERIAL_OP_convert_shader_to_mx.bl_idname, icon='FILE_TICK', text="")
             row.operator(HDUSD_MATERIAL_OP_duplicate_mx_node_tree.bl_idname, icon='DUPLICATE')
             row.operator(HDUSD_MATERIAL_OP_unlink_mx_node_tree.bl_idname, icon='X')
 
         else:
-            row.operator(HDUSD_MATERIAL_OP_convert_mx_node_tree.bl_idname, icon='FILE_TICK')
+            row.operator(HDUSD_MATERIAL_OP_convert_shader_to_mx.bl_idname, icon='FILE_TICK')
             row.operator(HDUSD_MATERIAL_OP_new_mx_node_tree.bl_idname, icon='ADD', text="")
 
     def draw_header(self, context):
@@ -580,8 +580,9 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
     bl_label = "MaterialX Export to File"
     bl_description = "Export material as MaterialX node tree to .mtlx file"
 
+    # region properties
     filename_ext = ".mtlx"
-    
+
     filepath: bpy.props.StringProperty(
         name="File Path",
         description="File path used for exporting material as MaterialX node tree to .mtlx file",
@@ -618,25 +619,27 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
         default='textures',
         maxlen=1024
     )
+    # endregion
 
     def execute(self, context):
-        doc = context.material.hdusd.export(context.object)
+        hdusd_prop = context.material.hdusd
+
+        if not hdusd_prop.convert_shader_to_mx():
+            return {'CANCELLED'}
+
+        doc = context.material.hdusd.export(None)
         if not doc:
             return {'CANCELLED'}
 
-        mx_node_tree = mx_utils.convert_mx_node_tree(context)
-        if not mx_node_tree:
-            return {'CANCELLED'}
-
         mx_utils.export_mx_to_file(doc, self.filepath,
-                                   mx_node_tree=mx_node_tree,
+                                   mx_node_tree=hdusd_prop.mx_node_tree,
                                    is_export_deps=self.is_export_deps,
                                    is_export_textures=self.is_export_textures,
                                    texture_dir_name=self.texture_dir_name,
                                    is_clean_texture_folder=self.is_clean_texture_folder,
                                    is_clean_deps_folders=self.is_clean_deps_folders)
 
-        bpy.data.node_groups.remove(mx_node_tree)
+        bpy.data.node_groups.remove(hdusd_prop.mx_node_tree)
         return {'FINISHED'}
 
 

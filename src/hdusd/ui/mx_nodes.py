@@ -64,6 +64,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     bl_label = "Export to File"
     bl_description = "Export MaterialX node tree to .mtlx file"
 
+    # region properties
     filename_ext = ".mtlx"
 
     filepath: bpy.props.StringProperty(
@@ -102,6 +103,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
         default='textures',
         maxlen=1024
     )
+    # endregion
 
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree

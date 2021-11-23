@@ -219,35 +219,6 @@ def get_socket_color(mx_type):
     return (0.63, 0.63, 0.63, 1.0)
 
 
-def convert_mx_node_tree(context):
-    from ..mx_nodes.node_tree import MxNodeTree
-
-    mat = context.material
-    mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
-
-    doc = mat.hdusd.export(context.object)
-    mat.hdusd.mx_node_tree = mx_node_tree
-
-    if not doc:
-        log.warn("Incorrect node tree to export", mx_node_tree)
-        return None
-
-    mtlx_file = get_temp_file(".mtlx",
-                              f'{mat.name}_{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
-    mx.writeToXmlFile(doc, str(mtlx_file))
-    search_path = mx.FileSearchPath(str(mtlx_file.parent))
-    search_path.append(str(MX_LIBS_DIR))
-
-    try:
-        mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
-        mx_node_tree.import_(doc, mtlx_file)
-    except Exception as e:
-        log.error(traceback.format_exc(), mtlx_file)
-        return {'CANCELLED'}
-
-    return mx_node_tree
-
-
 def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
                       is_export_textures=False, texture_dir_name='textures',
                       is_clean_texture_folder=True, is_clean_deps_folders=True):
