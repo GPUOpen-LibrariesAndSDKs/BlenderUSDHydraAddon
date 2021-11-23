@@ -16,13 +16,11 @@ import os
 import MaterialX as mx
 import bpy
 import shutil
-import traceback
 
 from pathlib import Path
 
 from . import LIBS_DIR, title_str, code_str
 from .image import cache_image_file
-from ..utils import get_temp_file
 
 from . import logging
 log = logging.Log('utils.mx')
