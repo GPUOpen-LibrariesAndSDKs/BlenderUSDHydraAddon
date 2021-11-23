@@ -21,6 +21,10 @@ logging_backups = 5
 matlib_enabled = False
 engine_use_preview = True
 
+# dev settings
+show_dev_settings = False
+
+
 try:
     # Trying to load configdev.py if it exist
     # example for logging setup:
