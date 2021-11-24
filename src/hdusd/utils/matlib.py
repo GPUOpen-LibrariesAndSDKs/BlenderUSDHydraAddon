@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import os
+
 import requests
 import weakref
 from dataclasses import dataclass, field
@@ -31,6 +33,7 @@ log = logging.Log('utils.matlib')
 
 URL = "https://matlibapi.stvcis.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
+TIMEOUT = 5
 
 
 def update_ui(space_type="PROPERTIES", region_type="WINDOW"):
@@ -49,16 +52,23 @@ def download_file(url, path, cache_check=True):
     log("download_file", f"{url=}, {path=}")
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    with requests.get(url, stream=True) as response:
-        with open(path, 'wb') as f:
-            shutil.copyfileobj(response.raw, f)
+
+    try:
+        with requests.get(url, stream=True, timeout = TIMEOUT) as response:
+            with open(path, 'wb') as f:
+                shutil.copyfileobj(response.raw, f)
+
+    except (requests.ConnectionError, requests.Timeout) as exception:
+        log.error(f"No internet connection. {exception}")
+
+        return None
 
     log("download_file", "done")
     return path
 
 
 def download_file_callback(url, path, update_callback, cache_check=True):
-    if cache_check and path.is_file():
+    if cache_check and path.is_file() and path.suffix != ".raw":
         return None
 
     log("download_file_callback", f"{url=}, {path=}")
@@ -67,13 +77,24 @@ def download_file_callback(url, path, update_callback, cache_check=True):
     path_raw = path.with_suffix(".raw")
 
     size = 0
-    with requests.get(url, stream=True) as response:
-        with open(path_raw, 'wb') as f:
-            if update_callback:
-                for chunk in response.iter_content(chunk_size=8192):
-                    size += len(chunk)
-                    update_callback(size)
-                    f.write(chunk)
+    try:
+        with requests.get(url, stream=True, timeout=TIMEOUT) as response:
+            with open(path_raw, 'wb') as f:
+                if update_callback:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        size += len(chunk)
+                        update_callback(size)
+                        f.write(chunk)
+        log(f"file saved. {path_raw}")
+
+    except (requests.ConnectionError, requests.Timeout) as exception:
+        update_callback(None)
+        log.error(f"No internet connection. {exception}")
+        os.remove(path_raw)
+        log(f"File removed. {path_raw}")
+        update_ui()
+
+        return None
 
     path_raw.rename(path)
     log("download_file_callback", "done")
@@ -89,12 +110,13 @@ def request_json(url, params, path, cache_check=True):
 
     try:
         response = requests.get(url, params=params)
-    except requests.exceptions.ConnectionError as e:
-        log.error(e)
+
+    except (requests.ConnectionError, requests.Timeout) as exception:
+        log.error(f"No internet connection. {exception}")
+
         return None
 
     res_json = response.json()
-
     if path:
         save_json(res_json, path)
 
@@ -177,6 +199,10 @@ class Package:
     def has_file(self):
         return self.file_path.is_file()
 
+    @property
+    def is_valid(self):
+        return self.has_file and zipfile.is_zipfile(self.file_path.is_file())
+
     def get_info(self, cache_check=True):
         json_data = request_json(f"{URL}/packages/{self.id}", None,
                                  self.cache_dir / "info.json", cache_check)
@@ -190,8 +216,8 @@ class Package:
 
     def download(self, cache_check=True):
         def callback(size):
-            update_ui()
             self.size_load = size
+            update_ui()
 
         download_file_callback(self.file_url, self.file_path, callback, cache_check)
 
@@ -291,7 +317,7 @@ class Material:
         limit = 50
 
         while True:
-            res_json = request_json(f"{URL}/materials", {'limit': limit, 'offset': offset}, None)
+            res_json = request_json(f"{URL}/materials", {'limit': limit, 'offset': offset, 'timeout': TIMEOUT}, None)
 
             if not res_json:
                 break
@@ -327,7 +353,6 @@ class Manager:
         self.package_executor = None
         self.poll = True
         self.status = ""
-        self.connection = False
 
     def __del__(self):
         # bpy.utils.previews.remove(self.pcoll)
@@ -337,14 +362,18 @@ class Manager:
         self.status = msg
         update_ui()
 
-    def check_connection(self, url):
+    def is_connection(self, url):
         self.set_status(f"Connecting to server...")
+
         try:
-            self.connection = requests.get(f"{url}/materials")
-        except requests.exceptions.ConnectionError as e:
-            self.connection = False
-            log.error(e)
-            self.set_status(f"Connection Error")
+            requests.get(f"{url}/materials", timeout=TIMEOUT)
+
+        except (requests.ConnectionError, requests.Timeout) as exception:
+            log.error(f"No internet connection. {exception}")
+
+            return False
+
+        return True
 
     @property
     def materials_list(self):
@@ -440,10 +469,10 @@ class Manager:
 
             self.poll = True
 
-        self.check_connection(URL)
-        self.load_thread = threading.Thread(target=load)
-        self.load_thread.daemon = True
-        self.load_thread.start()
+        if self.is_connection(URL):
+            self.load_thread = threading.Thread(target=load)
+            self.load_thread.daemon = True
+            self.load_thread.start()
 
         return False
 
@@ -452,6 +481,7 @@ class Manager:
 
         def package_load():
             package.download()
+            update_ui()
 
         if not self.package_executor:
             self.package_executor = futures.ThreadPoolExecutor()
