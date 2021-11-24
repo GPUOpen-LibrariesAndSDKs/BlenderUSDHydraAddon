@@ -199,9 +199,9 @@ class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):
 
 
 class HDUSD_RENDER_PT_help_about(HdUSD_Panel):
-    """Help/About UI panel"""
+    """Help & About USD Hydra addon"""
 
-    bl_label = "Help/About"
+    bl_label = "Help & About"
     bl_context = 'render'
     bl_options = {'DEFAULT_CLOSED'}
 
