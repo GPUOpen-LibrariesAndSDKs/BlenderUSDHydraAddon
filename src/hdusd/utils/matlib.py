@@ -385,7 +385,7 @@ class Manager:
         # required for thread safe purposes
         return list(manager.categories.values())
 
-    def check_load_materials(self, reset = False):
+    def check_load_materials(self, reset=False):
         if self.materials is not None and not reset:
             return True
         if reset:
@@ -469,10 +469,9 @@ class Manager:
 
             self.poll = True
 
-        if self.is_connection(URL):
-            self.load_thread = threading.Thread(target=load)
-            self.load_thread.daemon = True
-            self.load_thread.start()
+        self.load_thread = threading.Thread(target=load)
+        self.load_thread.daemon = True
+        self.load_thread.start()
 
         return False
 
