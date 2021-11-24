@@ -21,7 +21,7 @@ from bpy_extras.io_utils import ExportHelper
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 from ..mx_nodes.nodes.base_node import is_mx_node_valid
-from ..utils import get_temp_file, pass_node_reroute
+from ..utils import get_temp_file, pass_node_reroute, title_str
 from ..utils import mx as mx_utils
 from .. import config
 
@@ -29,8 +29,8 @@ from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
 
 
-NODE_SHADER_CATEGORIES = set(['PBR'])
-NODE_EXCLUDE_CATEGORIES = set(['material'])
+NODE_SHADER_CATEGORIES = {'PBR'}
+NODE_EXCLUDE_CATEGORIES = {'material'}
 NODE_LINK_CATEGORY = 'Link'
 
 
@@ -309,35 +309,65 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_popup(self, width=1000)
+        return context.window_manager.invoke_popup(self, width=600)
 
     def draw(self, context):
         from ..mx_nodes.nodes import mx_node_classes
 
-        row = self.layout.split().row()
-        col = row.column()
+        split = self.layout.split()
 
-        categories = sorted(set(node.category for node in mx_node_classes)
-                            - NODE_SHADER_CATEGORIES - NODE_EXCLUDE_CATEGORIES)
-        for i, category in enumerate(categories):
-            if i % 4 == 0:
-                col = row.column()
-            col.emboss = 'PULLDOWN_MENU'
-            col.label(text=category.title(), icon='NODE')
-            for node in mx_node_classes:
-                if node.category == category:
-                    row1 = col.row()
-                    row1.alignment = 'LEFT'
-                    op = row1.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
-                                      text=node.bl_label)
-                    op.new_node_name = node.bl_idname
-                    op.input_num = self.input_num
-                    op.current_node_name = self.current_node_name
+        cat = ""
+        i = 0
+        col = None
+        for cls in mx_node_classes:
+            if cls.category in NODE_SHADER_CATEGORIES or cls.category in NODE_EXCLUDE_CATEGORIES:
+                continue
+
+            if cat != cls.category:
+                cat = cls.category
+                if not col or i > 30:
+                    i = 0
+                    col = split.column()
+                    col.emboss = 'PULLDOWN_MENU'
+
+                col.label(text=title_str(cat), icon='NODE')
+                i += 1
+
+            row = col.row()
+            i += 1
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+                              text=cls.bl_label)
+            op.new_node_name = cls.bl_idname
+            op.input_num = self.input_num
+            op.current_node_name = self.current_node_name
+
+        # col = split.column()
+        #
+        # categories = sorted(set(node.category for node in mx_node_classes) -
+        #                         NODE_SHADER_CATEGORIES - NODE_EXCLUDE_CATEGORIES,
+        #                         key=lambda x: x.lower())
+        #
+        # i = 0
+        # for category in categories:
+        #     if i % 4 == 0:
+        #         col = split.column()
+        #     col.emboss = 'PULLDOWN_MENU'
+        #     col.label(text=title_str(category), icon='NODE')
+        #     for node in mx_node_classes:
+        #         if node.category == category:
+        #             row1 = col.row()
+        #             row1.alignment = 'LEFT'
+        #             op = row1.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
+        #                               text=node.bl_label)
+        #             op.new_node_name = node.bl_idname
+        #             op.input_num = self.input_num
+        #             op.current_node_name = self.current_node_name
 
         node_tree = context.material.hdusd.mx_node_tree
         node_inputs = node_tree.nodes[self.current_node_name].inputs
         if node_inputs[self.input_num].is_linked:
-            col = row.column()
+            col = split.column()
             col.emboss = 'PULLDOWN_MENU'
             col.label(text=NODE_LINK_CATEGORY)
 
@@ -487,7 +517,8 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         box = row.box()
         box.scale_x = 0.7
         box.scale_y = 0.5
-        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
+                          icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
         if link and is_mx_node_valid(link.from_node):
@@ -545,7 +576,8 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         box = row.box()
         box.scale_x = 0.7
         box.scale_y = 0.5
-        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
+                          icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
         if link and is_mx_node_valid(link.from_node):
