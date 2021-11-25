@@ -222,6 +222,9 @@ def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
                       is_clean_texture_folder=True, is_clean_deps_folders=True):
     root_dir = Path(filepath).parent
 
+    if not root_dir:
+        Path(root_dir).mkdir(parents=True, exist_ok=True)
+
     if is_export_deps and mx_node_tree:
         mx_libs_dir = root_dir / MX_LIBS_FOLDER
         if os.path.isdir(mx_libs_dir) and is_clean_deps_folders:
@@ -247,13 +250,15 @@ def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
         if os.path.isdir(texture_dir) and is_clean_texture_folder:
             shutil.rmtree(texture_dir)
 
-        Path(texture_dir).mkdir(parents=True, exist_ok=True)
         image_paths = set()
 
         i = 0
 
         input_files = (v for v in doc.traverseTree() if isinstance(v, mx.Input) and v.getType() == 'filename')
         for mx_input in input_files:
+            if not os.path.isdir(texture_dir):
+                Path(texture_dir).mkdir(parents=True, exist_ok=True)
+
             mx_value = mx_input.getValue()
             if not mx_value:
                 log.warn(f"Skipping wrong {mx_input.getType()} input value. Expected: path, got {mx_value}")

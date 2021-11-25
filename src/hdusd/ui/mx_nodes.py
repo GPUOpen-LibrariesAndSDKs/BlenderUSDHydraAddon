@@ -86,7 +86,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     is_export_textures: bpy.props.BoolProperty(
         name="Export bound textures",
         description="Export bound textures to corresponded folder",
-        default=False
+        default=True
     )
     is_clean_texture_folder: bpy.props.BoolProperty(
         name="Сlean texture folder",
@@ -104,6 +104,11 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
         default='textures',
         maxlen=1024
     )
+    is_create_new_folder: bpy.props.BoolProperty(
+        name="Create new folder",
+        description="Create new folder for material",
+        default=True
+    )
     # endregion
 
     def execute(self, context):
@@ -112,6 +117,9 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
         if not doc:
             log.warn("Incorrect node tree to export", mx_node_tree)
             return {'CANCELLED'}
+
+        if self.is_create_new_folder:
+            self.filepath = str(Path(self.filepath).parent / mx_node_tree.name_full / Path(self.filepath).name)
 
         mx_utils.export_mx_to_file(doc, self.filepath,
                                    mx_node_tree=mx_node_tree,
@@ -124,6 +132,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
         return {'FINISHED'}
 
     def draw(self, context):
+        self.layout.prop(self, 'is_create_new_folder')
         self.layout.prop(self, 'is_export_deps')
 
         col = self.layout.column(align=False)

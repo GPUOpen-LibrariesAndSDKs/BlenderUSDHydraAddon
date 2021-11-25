@@ -18,6 +18,7 @@ import traceback
 import bpy
 from bpy_extras.io_utils import ExportHelper
 
+from pathlib import Path
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 from ..mx_nodes.nodes.base_node import is_mx_node_valid
@@ -611,7 +612,7 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
     is_export_textures: bpy.props.BoolProperty(
         name="Export bound textures",
         description="Export bound textures to corresponded folder",
-        default=False
+        default=True
     )
     is_clean_texture_folder: bpy.props.BoolProperty(
         name="Сlean texture folder",
@@ -629,6 +630,11 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
         default='textures',
         maxlen=1024,
     )
+    is_create_new_folder: bpy.props.BoolProperty(
+        name="Create new folder",
+        description="Create new folder for material",
+        default=True
+    )
     # endregion
 
     def execute(self, context):
@@ -640,6 +646,9 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
         doc = context.material.hdusd.export(None)
         if not doc:
             return {'CANCELLED'}
+
+        if self.is_create_new_folder:
+            self.filepath = str(Path(self.filepath).parent / context.material.name_full / Path(self.filepath).name)
 
         mx_utils.export_mx_to_file(doc, self.filepath,
                                    mx_node_tree=hdusd_prop.mx_node_tree,
@@ -653,6 +662,7 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
         return {'FINISHED'}
 
     def draw(self, context):
+        self.layout.prop(self, 'is_create_new_folder')
         self.layout.prop(self, 'is_export_deps')
 
         col = self.layout.column(align=False)
@@ -661,6 +671,7 @@ class HDUSD_MATERIAL_OP_export_mx_file(HdUSD_Operator, ExportHelper):
         row = col.row()
         row.enabled = self.is_export_textures
         row.prop(self, 'texture_dir_name', text='')
+
 
 class HDUSD_MATERIAL_OP_export_mx_console(HdUSD_Operator):
     bl_idname = "hdusd.material_export_mx_console"
