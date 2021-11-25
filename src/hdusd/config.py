@@ -18,7 +18,7 @@ logging_level = 'INFO'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR',
 logging_backups = 5
 
 # other settings
-matlib_enabled = True
+matlib_enabled = False
 engine_use_preview = True
 
 # dev settings

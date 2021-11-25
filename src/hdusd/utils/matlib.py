@@ -314,7 +314,7 @@ class Material:
     @classmethod
     def get_materials(cls):
         offset = 0
-        limit = 50
+        limit = 500
 
         while True:
             res_json = request_json(f"{URL}/materials", {'limit': limit, 'offset': offset, 'timeout': TIMEOUT}, None)
