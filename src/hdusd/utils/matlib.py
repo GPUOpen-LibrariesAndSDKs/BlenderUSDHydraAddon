@@ -36,12 +36,12 @@ MATLIB_DIR = LIBS_DIR.parent / "matlib"
 TIMEOUT = 5
 
 
-def update_ui(space_type="PROPERTIES", region_type="WINDOW"):
+def update_ui(area_type="PROPERTIES", region_type="WINDOW"):
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
-            if area.type == "PROPERTIES":
+            if area.type == area_type:
                 for region in area.regions:
-                    if region.type == "WINDOW":
+                    if region.type == region_type:
                         region.tag_redraw()
 
 
