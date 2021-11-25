@@ -29,11 +29,6 @@ from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
 
 
-NODE_SHADER_CATEGORIES = {'PBR'}
-NODE_EXCLUDE_CATEGORIES = {'material'}
-NODE_LINK_CATEGORY = 'Link'
-
-
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
     bl_label = ""
     bl_context = "material"
@@ -314,21 +309,17 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
     def draw(self, context):
         from ..mx_nodes.nodes import mx_node_classes
 
+        MAX_COLUMN_ITEMS = 34
+
         split = self.layout.split()
-
-        def add_operator(col, op_cls, text=None):
-            row = col.row()
-            row.alignment = 'LEFT'
-            return row.operator(op_cls.bl_idname, text=text)
-
         cat = ""
         i = 0
         col = None
         for cls in mx_node_classes:
-            if cls.category in NODE_SHADER_CATEGORIES or cls.category in NODE_EXCLUDE_CATEGORIES:
+            if cls.category in ("PBR", "material"):
                 continue
 
-            if not col or i >= 34:
+            if not col or i >= MAX_COLUMN_ITEMS:
                 i = 0
                 col = split.column()
                 col.emboss = 'PULLDOWN_MENU'
@@ -338,7 +329,9 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
                 col.label(text=title_str(cat), icon='NODE')
                 i += 1
 
-            op = add_operator(col, HDUSD_MATERIAL_OP_link_mx_node, cls.bl_label)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname, text=cls.bl_label)
             op.new_node_name = cls.bl_idname
             op.input_num = self.input_num
             op.current_node_name = self.current_node_name
@@ -350,12 +343,16 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
 
             col = split.column()
             col.emboss = 'PULLDOWN_MENU'
-            col.label(text=NODE_LINK_CATEGORY)
+            col.label(text="Link")
 
-            op = add_operator(col, HDUSD_MATERIAL_OP_remove_node)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname)
             op.input_node_name = link.from_node.name
 
-            op = add_operator(col, HDUSD_MATERIAL_OP_disconnect_node)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname)
             op.output_node_name = link.to_node.name
             op.input_num = self.input_num
 
@@ -378,35 +375,21 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
         from ..mx_nodes.nodes import mx_node_classes
 
         split = self.layout.split()
-
-        def add_operator(col, op_cls, text=None):
-            row = col.row()
-            row.alignment = 'LEFT'
-            return row.operator(op_cls.bl_idname, text=text)
+        col = split.column()
+        col.emboss = 'PULLDOWN_MENU'
+        col.label(text="PBR", icon='NODE')
 
         output_node = context.material.hdusd.mx_node_tree.output_node
-        cat = ""
-        i = 0
-        col = None
         for cls in mx_node_classes:
-            if cls.category not in NODE_SHADER_CATEGORIES:
+            if cls.category != "PBR":
                 continue
 
-            if cat != cls.category:
-                cat = cls.category
-                if not col or i >= 34:
-                    i = 0
-                    col = split.column()
-                    col.emboss = 'PULLDOWN_MENU'
-
-                col.label(text=title_str(cat), icon='NODE')
-                i += 1
-
-            op = add_operator(col, HDUSD_MATERIAL_OP_link_mx_node, cls.bl_label)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname, text=cls.bl_label)
             op.new_node_name = cls.bl_idname
             op.input_num = self.input_num
             op.current_node_name = output_node.name
-            i += 1
 
         input = output_node.inputs[self.input_num]
         if input.is_linked:
@@ -414,12 +397,16 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
 
             col = split.column()
             col.emboss = 'PULLDOWN_MENU'
-            col.label(text=NODE_LINK_CATEGORY)
+            col.label(text="Link")
 
-            op = add_operator(col, HDUSD_MATERIAL_OP_remove_node)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname)
             op.input_node_name = link.from_node.name
 
-            op = add_operator(col, HDUSD_MATERIAL_OP_disconnect_node)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname)
             op.output_node_name = link.to_node.name
             op.input_num = self.input_num
 
@@ -497,8 +484,7 @@ class HDUSD_MATERIAL_PT_material_settings_surface(HdUSD_ChildPanel):
         box = row.box()
         box.scale_x = 0.7
         box.scale_y = 0.5
-        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
-                          icon='HANDLETYPE_AUTO_CLAMP_VEC')
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
         if link and is_mx_node_valid(link.from_node):
@@ -556,8 +542,7 @@ class HDUSD_MATERIAL_PT_material_settings_displacement(HdUSD_ChildPanel):
         box = row.box()
         box.scale_x = 0.7
         box.scale_y = 0.5
-        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname,
-                          icon='HANDLETYPE_AUTO_CLAMP_VEC')
+        op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_shader_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
         op.input_num = output_node.inputs.find(self.bl_label)
 
         if link and is_mx_node_valid(link.from_node):
