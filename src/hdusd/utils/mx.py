@@ -222,7 +222,7 @@ def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
                       is_clean_texture_folder=True, is_clean_deps_folders=True):
     root_dir = Path(filepath).parent
 
-    if not root_dir:
+    if not os.path.isdir(root_dir):
         Path(root_dir).mkdir(parents=True, exist_ok=True)
 
     if is_export_deps and mx_node_tree:
