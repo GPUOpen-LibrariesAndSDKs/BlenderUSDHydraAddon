@@ -22,7 +22,7 @@ import math
 
 import bpy
 import hdusd
-
+import random
 
 # saving current process id
 PID = os.getpid()
@@ -66,12 +66,17 @@ def temp_pid_dir():
     return d
 
 
-def get_temp_file(suffix, name=None):
+def get_temp_file(suffix, name=None, is_rand=False):
+    rand = random.randint(1, 100000000)
     if not name:
         return Path(tempfile.mktemp(suffix, "tmp", temp_pid_dir()))
 
     if suffix:
-        name += suffix
+        if is_rand:
+            name += str(rand) + suffix
+        else:
+            name += suffix
+
     return temp_pid_dir() / name
 
 
