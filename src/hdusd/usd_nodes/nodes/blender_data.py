@@ -276,35 +276,27 @@ class BlenderDataNode(USDNode):
 
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
-                depsgraph_objs = set((obj_data.sdf_name, obj_data) for obj_data in
-                                     ObjectData.depsgraph_objects(depsgraph))
-                depsgraph_keys = set(v[0] for v in depsgraph_objs)
-                parent_keys = set(obj_data.sdf_name for obj_data in
-                                     ObjectData.parent_objects(depsgraph))
+                depsgraph_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects(depsgraph))
+                instances_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects_inst(depsgraph))
 
                 if self.data == 'SCENE':
-                    required_keys = depsgraph_keys | parent_keys
+                    required_keys = depsgraph_keys | instances_keys
 
                 elif self.data == 'COLLECTION':
                     if not self.collection:
                         continue
-
                     if coll.name != self.collection.name:
                         continue
 
                     required_keys = set(object.sdf_name(obj) for obj in coll.objects)
-                    instances_objs_data = (v[1] for v in depsgraph_objs if v[1].parent)
-                    instances_keys = set(data.sdf_name for data in instances_objs_data if sdf_name(data.parent) in required_keys)
-
-                    required_keys.intersection_update(depsgraph_keys)
+                    required_keys.intersection_update(depsgraph_keys) 
                     required_keys = required_keys | instances_keys
 
                 elif self.data == 'OBJECT':
                     if not self.object:
                         continue
 
-                    if object.sdf_name(self.object) in depsgraph_keys:
-                        required_keys = {object.sdf_name(self.object)}
+                    if object.sdf_name(self.object) in depsgraph_keys: required_keys = {object.sdf_name(self.object)}
 
                 keys_to_remove = current_keys - required_keys
                 keys_to_add = required_keys - current_keys

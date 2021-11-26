@@ -105,7 +105,7 @@ class ObjectData:
                 continue
 
             if obj.parent:
-                yield ObjectData.from_object(obj.parent)
+                yield ObjectData.from_object(obj)
 
 
 def sdf_name(obj: bpy.types.Object):
