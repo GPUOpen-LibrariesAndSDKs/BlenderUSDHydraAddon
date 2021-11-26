@@ -321,6 +321,7 @@ class FinalEngineScene(FinalEngine):
 
             stage.SetDefaultPrim(obj_prim)
 
+
         with futures.ThreadPoolExecutor() as executor:
             chunk_sync = []
 

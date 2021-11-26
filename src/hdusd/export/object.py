@@ -153,15 +153,19 @@ def sync(objects_prim, obj_data: ObjectData, parent_stage = None, **kwargs):
         return
 
     if obj.parent and obj_data.sdf_name != sdf_name(obj) and parent_stage:
-        parent_root_prim = parent_stage.GetPseudoRoot()
-        sync(parent_root_prim, ObjectData.from_object(obj))
-        parent_prim = stage.OverridePrim('/parent')
+        sync(parent_stage.GetPseudoRoot(), ObjectData.from_object(obj))
+        parent_root_prim = stage.OverridePrim('/parent')
+        parent_prim = stage.OverridePrim(f"{parent_root_prim.GetPath()}/{sdf_name(obj)}")
         parent_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath, f"/{sdf_name(obj)}")
 
         if not parent_prim or not parent_prim.IsValid():
            return
 
+        if not parent_prim.IsInstanceable():
+            parent_prim.SetInstanceable(True)
+
         obj_prim.GetReferences().AddInternalReference(parent_prim.GetPath())
+        obj_prim.SetInstanceable(False)
 
         return
 
