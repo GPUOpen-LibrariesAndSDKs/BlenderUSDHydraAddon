@@ -276,48 +276,49 @@ class FinalEngineScene(FinalEngine):
 
         root_prim = stage.GetPseudoRoot()
 
-        objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(
-            depsgraph, use_scene_cameras=False))
+        objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False))
 
         parent_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
         parent_root_prim = parent_stage.GetPseudoRoot()
 
-        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_obj(depsgraph)):
+        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_obj(depsgraph, use_scene_cameras=False)):
             if self.render_engine.test_break():
                 return
 
-            self.notify_status(0.0, f"Syncing parent object {i}/{objects_len}: {obj_data.object.name}")
+            self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
 
             object.sync(parent_root_prim, obj_data)
             def_prim = parent_stage.GetPrimAtPath(f"/{obj_data.sdf_name}")
-            parent_stage.SetDefaultPrim(def_prim)
 
-        instance_len = sum(1 for _ in object.ObjectData.depsgraph_objects_inst(
-            depsgraph, use_scene_cameras=False))
+        for prim in parent_stage.GetPseudoRoot().GetAllChildren():
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath, prim.GetPath())
+
+        instance_len = sum(1 for _ in object.ObjectData.depsgraph_objects_inst(depsgraph, use_scene_cameras=False))
         chunks = math.ceil(instance_len / CHUNK_COUNT)
         chunks_data = {}
 
         for i in range(chunks):
             chunk_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
             chunk_prim = stage.OverridePrim(f'/chunk_{i}')
-            val = {'stage': chunk_stage, 'prim': chunk_prim,
-                   'objs': children[i * CHUNK_COUNT:(i + 1) * CHUNK_COUNT]}
-            chunks_data[i] = val
+            chunks_data[i] = {'stage': chunk_stage, 'prim': chunk_prim}
 
         objects_processed = 0
         threadLock = threading.Lock()
 
-        def sync_chunk(idx, stage, prim, objs):
+        def sync_chunk(idx, stage, prim):
             nonlocal objects_processed
 
             xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
             obj_prim = xform.GetPrim()
-            for obj in objs:
-                with threadLock:
-                    objects_processed += 1
 
-                self.notify_status(0.0, f"Syncing objects: {objects_processed} / {instance_len}")
-                object.sync(obj_prim, obj, parent_stage)
+            for i, obj in enumerate(object.ObjectData.depsgraph_objects_inst(depsgraph, use_scene_cameras=False)):
+                if i >= (idx) * CHUNK_COUNT and i < (idx + 1) * CHUNK_COUNT:
+                    with threadLock:
+                        objects_processed += 1
+
+                    self.notify_status(0.0, f"Syncing instances: {objects_processed} / {instance_len}")
+                    object.sync(obj_prim, obj, parent_stage)
 
             stage.SetDefaultPrim(obj_prim)
 
@@ -327,15 +328,13 @@ class FinalEngineScene(FinalEngine):
             for idx in chunks_data:
                 chunk_sync.append(executor.submit(sync_chunk, idx,
                                                   chunks_data[idx]['stage'],
-                                                  chunks_data[idx]["prim"],
-                                                  chunks_data[idx]["objs"]))
+                                                  chunks_data[idx]["prim"]))
 
             for idx, future in enumerate(futures.wait(chunk_sync)):
                 if idx == 0:
                     for i in chunks_data:
-                        chunk_prim = self.stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
-                        chunk_prim.GetReferences().AddReference(
-                            chunks_data[i]['stage'].GetRootLayer().realPath)
+                        chunk_prim = stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
+                        chunk_prim.GetReferences().AddReference(chunks_data[i]['stage'].GetRootLayer().realPath)
                 pass
 
         if depsgraph.scene.world is not None:
