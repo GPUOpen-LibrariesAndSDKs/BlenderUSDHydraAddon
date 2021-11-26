@@ -253,14 +253,16 @@ class BlenderDataNode(USDNode):
                             ObjectData.from_object(self.object).sdf_name != obj_data.sdf_name:
                         continue
 
-                # updating object
-                object.sync_update(root_prim, obj_data,
-                                   update.is_updated_geometry, update.is_updated_transform,
-                                   **kwargs)
+                # we need this "if" to prevent emergence of instancer object when we edit parent object
+                if not obj.parent:
+                    object.sync_update(root_prim, obj_data,
+                                       update.is_updated_geometry, update.is_updated_transform,
+                                       **kwargs)
 
                 for inst_obj_data in ObjectData.depsgraph_objects_inst(depsgraph):
                     if obj_data.sdf_name == sdf_name(inst_obj_data.object):
-                        object.sync_update(root_prim, inst_obj_data, update.is_updated_geometry, update.is_updated_transform, **kwargs)
+                        object.sync_update(root_prim, inst_obj_data, update.is_updated_geometry, update.is_updated_transform
+                                           , **kwargs)
 
                 is_updated = True
                 continue

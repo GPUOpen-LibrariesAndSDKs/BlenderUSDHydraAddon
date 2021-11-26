@@ -288,7 +288,6 @@ class FinalEngineScene(FinalEngine):
             self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
 
             object.sync(parent_root_prim, obj_data)
-            def_prim = parent_stage.GetPrimAtPath(f"/{obj_data.sdf_name}")
 
         for prim in parent_stage.GetPseudoRoot().GetAllChildren():
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
@@ -312,13 +311,13 @@ class FinalEngineScene(FinalEngine):
             xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
             obj_prim = xform.GetPrim()
 
-            for i, obj in enumerate(object.ObjectData.depsgraph_objects_inst(depsgraph, use_scene_cameras=False)):
+            for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_inst(depsgraph, use_scene_cameras=False)):
                 if i >= (idx) * CHUNK_COUNT and i < (idx + 1) * CHUNK_COUNT:
                     with threadLock:
                         objects_processed += 1
 
                     self.notify_status(0.0, f"Syncing instances: {objects_processed} / {instance_len}")
-                    object.sync(obj_prim, obj, parent_stage)
+                    object.sync(obj_prim, obj_data, parent_stage)
 
             stage.SetDefaultPrim(obj_prim)
 
