@@ -289,8 +289,8 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
             return {'CANCELLED'}
 
         # get the USD stage from selected node
-        stage = node.cached_stage()
-        if not stage:
+        input_stage = node.cached_stage()
+        if not input_stage:
             log.warn(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
             return {'CANCELLED'}
 
@@ -299,19 +299,20 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
             return {'CANCELLED'}
 
         if self.is_pack_into_one_file:
-            stage.Export(self.filepath)
+            input_stage.Export(self.filepath)
             log.warn(f"Export of \"{tree.name}\":\"{node.name}\" stage to {self.filepath}: completed successfuly")
             return {'FINISHED'}
 
         new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
 
         root_layer = new_stage.GetRootLayer()
-        root_layer.TransferContent(stage.GetRootLayer())
+        input_stage_root_layer = input_stage.GetRootLayer()
+        root_layer.TransferContent(input_stage_root_layer)
 
         dest_path_root_dir = Path(self.filepath).parent
 
         def _update_layer_refs(layer):
-            nonlocal new_stage
+            nonlocal new_stage, input_stage_root_layer
 
             for ref in layer.GetCompositionAssetDependencies():
                 ref_name = Path(ref).name
@@ -347,6 +348,8 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
                         # after mx_node_tree.import_ deps updated, so we need to change them back since we convert material only to get mx_node_tree
                         layer.UpdateCompositionAssetDependency(f'./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx', ref)
+                        # mx_node_tree.import_ changes  deps for input stage too
+                        input_stage_root_layer.UpdateCompositionAssetDependency(f'./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx', ref)
 
                         export_mx_to_file(doc, dest_path,
                                           is_export_textures=True,
