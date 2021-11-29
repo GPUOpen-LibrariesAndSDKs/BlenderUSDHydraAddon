@@ -277,8 +277,8 @@ class FinalEngineScene(FinalEngine):
 
         objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False))
 
-        parent_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
-        parent_root_prim = parent_stage.GetPseudoRoot()
+        objects_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
+        parent_root_prim = objects_stage.GetPseudoRoot()
 
         for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_obj(depsgraph, use_scene_cameras=False)):
             if self.render_engine.test_break():
@@ -288,9 +288,9 @@ class FinalEngineScene(FinalEngine):
 
             object.sync(parent_root_prim, obj_data)
 
-        for prim in parent_stage.GetPseudoRoot().GetAllChildren():
+        for prim in objects_stage.GetPseudoRoot().GetAllChildren():
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-            override_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath, prim.GetPath())
+            override_prim.GetReferences().AddReference(objects_stage.GetRootLayer().realPath, prim.GetPath())
 
         instance_len = sum(1 for _ in object.ObjectData.depsgraph_objects_inst(depsgraph, use_scene_cameras=False))
         chunks = math.ceil(instance_len / CHUNK_COUNT)
@@ -316,7 +316,7 @@ class FinalEngineScene(FinalEngine):
                         objects_processed += 1
 
                     self.notify_status(0.0, f"Syncing instances: {objects_processed} / {instance_len}")
-                    object.sync(obj_prim, obj_data, parent_stage)
+                    object.sync(obj_prim, obj_data, objects_stage)
 
             stage.SetDefaultPrim(obj_prim)
 
