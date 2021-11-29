@@ -63,8 +63,8 @@ node_categories = [
         NodeItem('ShaderNodeNormalMap'),
     ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_LAYOUT', "Layout", items=[
-        NodeItem('NodeReroute'),
         NodeItem('NodeFrame'),
+        NodeItem('NodeReroute'),
     ], ),
 ]
 

@@ -51,8 +51,8 @@ node_categories = [
         NodeItem('usd.TransformByEmptyNode'),
     ]),
     USDNodeCategory('HdUSD_USD_LAYOUT', 'Layout', items=[
-        NodeItem('NodeReroute'),
         NodeItem('NodeFrame'),
+        NodeItem('NodeReroute'),
     ]),
 ]
 
