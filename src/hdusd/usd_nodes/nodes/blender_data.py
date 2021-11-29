@@ -18,6 +18,7 @@ from pxr import UsdGeom
 
 from .base_node import USDNode
 from ...export import object, material, world
+from ...utils import usd as usd_utils
 from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
 
 
@@ -226,13 +227,8 @@ class BlenderDataNode(USDNode):
             if isinstance(update.id, bpy.types.Scene):
                 scene = update.id
                 world.sync_update(root_prim, scene.world)
-                for prim in root_prim.GetAllChildren():
-                    vsets = prim.GetVariantSets()
-                    if 'delegate' not in vsets.GetNames():
-                        continue
-
-                    vset = vsets.GetVariantSet('delegate')
-                    vset.SetVariantSelection('GL' if scene.hdusd.viewport.is_gl_delegate else 'RPR')
+                usd_utils.set_delegate_variant(root_prim.GetAllChildren(),
+                                               scene.hdusd.viewport.delegate_name)
 
                 continue
 
@@ -292,6 +288,7 @@ class BlenderDataNode(USDNode):
                 elif self.data == 'COLLECTION':
                     if not self.collection:
                         continue
+
                     if coll.name != self.collection.name:
                         continue
 

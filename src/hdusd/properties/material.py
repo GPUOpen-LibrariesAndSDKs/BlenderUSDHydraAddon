@@ -14,14 +14,16 @@
 #********************************************************************
 import bpy
 import MaterialX as mx
+import traceback
 
 from . import HdUSDProperties
 from ..mx_nodes.node_tree import MxNodeTree
 from ..bl_nodes.nodes import ShaderNodeOutputMaterial
 from ..usd_nodes import node_tree as usd_node_tree
 from ..engine.viewport_engine import ViewportEngineScene
+from ..utils.mx import MX_LIBS_DIR
 
-from ..utils import logging
+from ..utils import logging, get_temp_file
 log = logging.Log('properties.material')
 
 
@@ -52,8 +54,7 @@ class MaterialProperties(HdUSDProperties):
 
         doc = mx.createDocument()
 
-        node_parser = ShaderNodeOutputMaterial(doc, material, output_node, obj,
-                                               rpr=bpy.context.scene.hdusd.use_rpr_mx_nodes)
+        node_parser = ShaderNodeOutputMaterial(doc, material, output_node, obj)
         if not node_parser.export():
             return None
 
@@ -70,6 +71,44 @@ class MaterialProperties(HdUSDProperties):
         material = self.id_data
         usd_node_tree.material_update(material)
         ViewportEngineScene.material_update(material)
+
+    def convert_shader_to_mx(self, obj: bpy.types.Object = None):
+        mat = self.id_data
+        output_node = self.output_node
+        if not output_node:
+            log.warn("Incorrect node tree to export: output node doesn't exist")
+            return False
+
+        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+
+        if obj:
+            doc = self.export(obj)
+        else:
+            doc = mx.createDocument()
+
+            node_parser = ShaderNodeOutputMaterial(doc, mat, output_node, obj)
+            if not node_parser.export():
+                return False
+
+        if not doc:
+            log.warn("Incorrect node tree to export", mx_node_tree)
+            return False
+
+        mtlx_file = get_temp_file(".mtlx",
+                                  f'{mat.name}_{self.mx_node_tree.name if self.mx_node_tree else ""}')
+        mx.writeToXmlFile(doc, str(mtlx_file))
+        search_path = mx.FileSearchPath(str(mtlx_file.parent))
+        search_path.append(str(MX_LIBS_DIR))
+
+        try:
+            mx.readFromXmlFile(doc, str(mtlx_file), searchPath=search_path)
+            mx_node_tree.import_(doc, mtlx_file)
+            self.mx_node_tree = mx_node_tree
+        except Exception as e:
+            log.error(traceback.format_exc(), mtlx_file)
+            return False
+
+        return True
 
 
 def depsgraph_update(depsgraph):

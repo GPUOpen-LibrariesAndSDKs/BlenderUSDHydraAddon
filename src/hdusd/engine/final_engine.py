@@ -1,4 +1,4 @@
-# **********************************************************************
+#**********************************************************************
 # Copyright 2020 Advanced Micro Devices, Inc
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ********************************************************************
+#********************************************************************
 import time
 import numpy as np
 import threading
@@ -30,7 +30,6 @@ from ..utils import usd as usd_utils
 from ..export import object, world
 
 from ..utils import logging
-
 log = logging.Log('final_engine')
 
 
@@ -127,9 +126,10 @@ class FinalEngine(Engine):
             if self.render_engine.test_break():
                 break
 
-            percent_done = renderer.GetRenderStats()['percentDone']
+            percent_done = usd_utils.get_renderer_percent_done(renderer)
             self.notify_status(percent_done / 100,
-                               f"Render Time: {time_str(time.perf_counter() - time_begin)} | Done: {round(percent_done)}%")
+                               f"Render Time: {time_str(time.perf_counter() - time_begin)} | "
+                               f"Done: {int(percent_done)}%")
 
             if renderer.IsConverged():
                 break
@@ -140,16 +140,15 @@ class FinalEngine(Engine):
         renderer.GetRendererAov('color', render_images['Combined'].ctypes.data)
         self.update_render_result(render_images)
 
-        # its important to clear data explicitly
+        # explicit renderer deletion
         renderer = None
 
     def _set_scene_camera(self, renderer, scene):
         if scene.hdusd.final.nodetree_camera != '' and scene.hdusd.final.data_source:
             usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, scene.hdusd.final.nodetree_camera)
         else:
-            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage,
-                                                     Tf.MakeValidIdentifier(scene.camera.data.name))
-
+            usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
+       
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
@@ -193,7 +192,7 @@ class FinalEngine(Engine):
 
         self._sync(depsgraph)
 
-        usd_utils.set_variant_delegate(self.stage, settings.is_gl_delegate)
+        usd_utils.set_delegate_variant_stage(self.stage, settings.delegate_name)
 
         if self.render_engine.test_break():
             log.warn("Syncing stopped by user termination")
