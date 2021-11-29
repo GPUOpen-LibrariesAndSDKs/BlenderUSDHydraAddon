@@ -278,7 +278,7 @@ class FinalEngineScene(FinalEngine):
         objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False))
 
         objects_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
-        parent_root_prim = objects_stage.GetPseudoRoot()
+        object_root_prim = objects_stage.GetPseudoRoot()
 
         for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_obj(depsgraph, use_scene_cameras=False)):
             if self.render_engine.test_break():
@@ -286,7 +286,7 @@ class FinalEngineScene(FinalEngine):
 
             self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
 
-            object.sync(parent_root_prim, obj_data)
+            object.sync(object_root_prim, obj_data)
 
         for prim in objects_stage.GetPseudoRoot().GetAllChildren():
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
