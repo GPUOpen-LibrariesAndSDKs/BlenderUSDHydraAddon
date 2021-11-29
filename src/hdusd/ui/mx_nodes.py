@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-from pathlib import Path
 import traceback
 
 import MaterialX as mx
-
 import bpy
-from bpy_extras.io_utils import ImportHelper, ExportHelper
 
-from . import HdUSD_Panel, HdUSD_Operator
+from bpy_extras.io_utils import ImportHelper, ExportHelper
+from pathlib import Path
+
+from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree
 from ..utils import mx as mx_utils
+from .. import config
 
 from ..utils import logging
 log = logging.Log('ui.mx_nodes')
@@ -61,16 +62,54 @@ class HDUSD_MX_OP_import_file(HdUSD_Operator, ImportHelper):
 
 class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
     bl_idname = "hdusd.mx_export_file"
-    bl_label = "Export to File"
+    bl_label = "Export MaterialX"
     bl_description = "Export MaterialX node tree to .mtlx file"
 
+    # region properties
     filename_ext = ".mtlx"
+
     filepath: bpy.props.StringProperty(
         name="File Path",
         description="File path used for exporting MaterialX node tree to .mtlx file",
-        maxlen=1024, subtype="FILE_PATH"
+        maxlen=1024,
+        subtype="FILE_PATH"
     )
-    filter_glob: bpy.props.StringProperty(default="*.mtlx", options={'HIDDEN'}, )
+    filter_glob: bpy.props.StringProperty(
+        default="*.mtlx",
+        options={'HIDDEN'},
+    )
+    is_export_deps: bpy.props.BoolProperty(
+        name="Include dependencies",
+        description="Export used MaterialX dependencies",
+        default=False
+    )
+    is_export_textures: bpy.props.BoolProperty(
+        name="Export bound textures",
+        description="Export bound textures to corresponded folder",
+        default=True
+    )
+    is_clean_texture_folder: bpy.props.BoolProperty(
+        name="Сlean texture folder",
+        description="Сlean texture folder before export",
+        default=False
+    )
+    is_clean_deps_folders: bpy.props.BoolProperty(
+        name="Сlean MaterialX dependencies folders",
+        description="Сlean MaterialX dependencies folders before export",
+        default=False
+    )
+    texture_dir_name: bpy.props.StringProperty(
+        name="Texture folder name",
+        description="Texture folder name used for exporting files",
+        default='textures',
+        maxlen=1024
+    )
+    is_create_new_folder: bpy.props.BoolProperty(
+        name="Create new folder",
+        description="Create new folder for material",
+        default=True
+    )
+    # endregion
 
     def execute(self, context):
         mx_node_tree = context.space_data.edit_tree
@@ -79,8 +118,29 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
             log.warn("Incorrect node tree to export", mx_node_tree)
             return {'CANCELLED'}
 
-        mx.writeToXmlFile(doc, self.filepath)
+        if self.is_create_new_folder:
+            self.filepath = str(Path(self.filepath).parent / mx_node_tree.name_full / Path(self.filepath).name)
+
+        mx_utils.export_mx_to_file(doc, self.filepath,
+                                   mx_node_tree=mx_node_tree,
+                                   is_export_deps=self.is_export_deps,
+                                   is_export_textures=self.is_export_textures,
+                                   texture_dir_name=self.texture_dir_name,
+                                   is_clean_texture_folder=self.is_clean_texture_folder,
+                                   is_clean_deps_folders=self.is_clean_deps_folders)
+
         return {'FINISHED'}
+
+    def draw(self, context):
+        self.layout.prop(self, 'is_create_new_folder')
+        self.layout.prop(self, 'is_export_deps')
+
+        col = self.layout.column(align=False)
+        col.prop(self, 'is_export_textures')
+
+        row = col.row()
+        row.enabled = self.is_export_textures
+        row.prop(self, 'texture_dir_name', text='')
 
     @staticmethod
     def enabled(context):
@@ -89,7 +149,7 @@ class HDUSD_MX_OP_export_file(HdUSD_Operator, ExportHelper):
 
 class HDUSD_MX_OP_export_console(HdUSD_Operator):
     bl_idname = "hdusd.mx_export_console"
-    bl_label = "Export to Console"
+    bl_label = "Export MaterialX to Console"
     bl_description = "Export MaterialX node tree to console"
 
     def execute(self, context):
@@ -118,8 +178,8 @@ class HDUSD_MX_OP_create_basic_nodes(HdUSD_Operator):
         return {"FINISHED"}
 
 
-class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
-    bl_label = "Import/Export"
+class HDUSD_MX_MATERIAL_PT_tools(HdUSD_Panel):
+    bl_label = "MaterialX Tools"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -132,10 +192,22 @@ class HDUSD_MX_MATERIAL_PT_import_export(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname)
-        layout.operator(HDUSD_MX_OP_import_file.bl_idname)
+        layout.operator(HDUSD_MX_OP_create_basic_nodes.bl_idname, icon='ADD')
+        layout.operator(HDUSD_MX_OP_import_file.bl_idname, icon='IMPORT')
+        layout.operator(HDUSD_MX_OP_export_file.bl_idname, icon='EXPORT', text='Export MaterialX to file')
 
-        col = layout.column()
-        col.enabled = HDUSD_MX_OP_export_file.enabled(context)
-        col.operator(HDUSD_MX_OP_export_file.bl_idname)
-        col.operator(HDUSD_MX_OP_export_console.bl_idname)
+
+class HDUSD_MX_MATERIAL_PT_dev(HdUSD_ChildPanel):
+    bl_label = "Dev"
+    bl_parent_id = 'HDUSD_MX_MATERIAL_PT_tools'
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(cls, context):
+        return config.show_dev_settings
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator(HDUSD_MX_OP_export_console.bl_idname)

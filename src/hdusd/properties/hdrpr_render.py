@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import math
+import os
 
 import bpy
 from bpy.props import (
@@ -22,6 +23,11 @@ from bpy.props import (
     BoolProperty,
     IntProperty,
 )
+
+
+# Temporary force enabling of Lighting Compiler until it'll be by default enabled on RPR side
+# Required for some cards
+os.environ['GPU_ENABLE_LC'] = "1"
 
 
 class QualitySettings(bpy.types.PropertyGroup):
@@ -250,7 +256,7 @@ class RenderSettings(bpy.types.PropertyGroup):
         description="Cutoff for adaptive sampling. Once pixels are below this amount of noise,\n"
                     "no more samples are added. Set to 0 for no cutoff",
         min=0.0, max=1.0,
-        default=0.0,
+        default=0.05,
     )
     enable_alpha: BoolProperty(
         name="Enable Color Alpha",

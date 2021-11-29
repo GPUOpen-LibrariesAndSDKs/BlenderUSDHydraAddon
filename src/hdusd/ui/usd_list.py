@@ -21,8 +21,9 @@ from pxr import UsdGeom, Usd, Sdf
 from bpy_extras.io_utils import ExportHelper
 from pathlib import Path
 
-from . import HdUSD_Panel, HdUSD_Operator
+from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
+from .. import config
 
 from ..utils import logging, get_temp_file
 from ..utils.mx import export_mx_to_file, MX_LIBS_DIR
@@ -155,7 +156,7 @@ class HDUSD_UL_usd_list_item(bpy.types.UIList):
 
 
 class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
-    bl_label = "USD List"
+    bl_label = "USD Node Prims"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -189,7 +190,7 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
 
 
 class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
-    """Add basic USD nodes"""
+    """Add / Replace to basic USD nodes"""
     bl_idname = "hdusd.usd_nodetree_add_basic_nodes"
     bl_label = "Add Basic Nodes"
 
@@ -263,7 +264,8 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
         return {'FINISHED'}
 
 
-class HDUSD_UsdNodeTreePanel(HdUSD_Panel):
+class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
+    bl_label = "USD Tools"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -273,17 +275,32 @@ class HDUSD_UsdNodeTreePanel(HdUSD_Panel):
         tree = context.space_data.edit_tree
         return super().poll(context) and tree and tree.bl_idname == "hdusd.USDTree"
 
+    def draw(self, context):
+        layout = self.layout
 
-class HDUSD_NODE_PT_usd_nodetree_tree_tools(HDUSD_UsdNodeTreePanel):
-    bl_label = "Setup basic USD Node Tree"
+        layout.label(text="Replace current tree using")
+        layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
+                        text="Blender Scene", icon='SCENE_DATA').scene_source = "SCENE"
+        layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
+                        text="USD file", icon='FILE').scene_source = "USD_FILE"
+        layout.operator(HDUSD_NODE_OP_export_usd_file.bl_idname)
+
+
+class HDUSD_NODE_PT_usd_nodetree_dev(HdUSD_ChildPanel):
+    bl_label = "Dev"
+    bl_parent_id = 'HDUSD_NODE_PT_usd_nodetree_tools'
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(cls, context):
+        return config.show_dev_settings
 
     def draw(self, context):
-        col = self.layout.column()
-        col.label(text="Replace current tree using")
+        layout = self.layout
 
-        op_idname = HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname
-        col.operator(op_idname, text="Current Scene").scene_source = "SCENE"
-        col.operator(op_idname, text="USD file").scene_source = "USD_FILE"
+        layout.operator(HDUSD_OP_usd_tree_node_print_stage.bl_idname)
+        layout.operator(HDUSD_OP_usd_tree_node_print_root_layer.bl_idname)
 
 
 class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
@@ -395,7 +412,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                     dest_path = Path(f"{dest_path_root_dir}/{ref_name}")
 
                     ref_layer.Export(str(dest_path))
-                    
+
                     log(f"Export file {ref} to {dest_path}: completed successfuly")
 
                     rel_dest_path = dest_path.parent.relative_to(Path(self.filepath).parent) / dest_path.name
@@ -410,14 +427,3 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         _update_layer_refs(root_layer)
 
         return {'FINISHED'}
-
-
-class HDUSD_NODE_PT_usd_nodetree_node_tools(HDUSD_UsdNodeTreePanel):
-    bl_label = "USD Nodes Tools"
-
-    def draw(self, context):
-        col = self.layout.column()
-
-        col.operator(HDUSD_OP_usd_tree_node_print_stage.bl_idname)
-        col.operator(HDUSD_OP_usd_tree_node_print_root_layer.bl_idname)
-        col.operator(HDUSD_NODE_OP_export_usd_file.bl_idname)
