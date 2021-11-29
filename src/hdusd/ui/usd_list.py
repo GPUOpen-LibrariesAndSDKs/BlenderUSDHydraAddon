@@ -264,45 +264,6 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
         return {'FINISHED'}
 
 
-class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
-    bl_label = "USD Tools"
-    bl_space_type = "NODE_EDITOR"
-    bl_region_type = "UI"
-    bl_category = "Tool"
-
-    @classmethod
-    def poll(cls, context):
-        tree = context.space_data.edit_tree
-        return super().poll(context) and tree and tree.bl_idname == "hdusd.USDTree"
-
-    def draw(self, context):
-        layout = self.layout
-
-        layout.label(text="Replace current tree using")
-        layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
-                        text="Blender Scene", icon='SCENE_DATA').scene_source = "SCENE"
-        layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
-                        text="USD file", icon='FILE').scene_source = "USD_FILE"
-        layout.operator(HDUSD_NODE_OP_export_usd_file.bl_idname)
-
-
-class HDUSD_NODE_PT_usd_nodetree_dev(HdUSD_ChildPanel):
-    bl_label = "Dev"
-    bl_parent_id = 'HDUSD_NODE_PT_usd_nodetree_tools'
-    bl_space_type = "NODE_EDITOR"
-    bl_region_type = "UI"
-
-    @classmethod
-    def poll(cls, context):
-        return config.show_dev_settings
-
-    def draw(self, context):
-        layout = self.layout
-
-        layout.operator(HDUSD_OP_usd_tree_node_print_stage.bl_idname)
-        layout.operator(HDUSD_OP_usd_tree_node_print_root_layer.bl_idname)
-
-
 class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     bl_idname = "hdusd.export_usd_file"
     bl_label = "USD Export to File"
@@ -324,22 +285,22 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         tree = context.space_data.edit_tree
         node = context.active_node
         if not node:
-            log(f"Unable to export USD nodetree \"{tree.name}\" stage: no USD node selected")
+            log.warn(f"Unable to export USD nodetree \"{tree.name}\" stage: no USD node selected")
             return {'CANCELLED'}
 
         # get the USD stage from selected node
         stage = node.cached_stage()
         if not stage:
-            log(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
+            log.warn(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
             return {'CANCELLED'}
 
         if not Path(self.filepath).suffix:
-            log(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: write correct file name")
+            log.warn(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: write correct file name")
             return {'CANCELLED'}
 
         if self.is_pack_into_one_file:
             stage.Export(self.filepath)
-            log(f"Export of \"{tree.name}\":\"{node.name}\" stage to {self.filepath}: completed successfuly")
+            log.warn(f"Export of \"{tree.name}\":\"{node.name}\" stage to {self.filepath}: completed successfuly")
             return {'FINISHED'}
 
         new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
@@ -427,3 +388,43 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         _update_layer_refs(root_layer)
 
         return {'FINISHED'}
+
+
+class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
+    bl_label = "USD Tools"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_category = "Tool"
+
+    @classmethod
+    def poll(cls, context):
+        tree = context.space_data.edit_tree
+        return super().poll(context) and tree and tree.bl_idname == "hdusd.USDTree"
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator(HDUSD_NODE_OP_export_usd_file.bl_idname, icon='EXPORT')
+        layout.label(text="Replace current tree using")
+        layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
+                        text="Blender Scene", icon='SCENE_DATA').scene_source = "SCENE"
+        layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
+                        text="USD file", icon='FILE').scene_source = "USD_FILE"
+
+
+
+class HDUSD_NODE_PT_usd_nodetree_dev(HdUSD_ChildPanel):
+    bl_label = "Dev"
+    bl_parent_id = 'HDUSD_NODE_PT_usd_nodetree_tools'
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(cls, context):
+        return config.show_dev_settings
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator(HDUSD_OP_usd_tree_node_print_stage.bl_idname)
+        layout.operator(HDUSD_OP_usd_tree_node_print_root_layer.bl_idname)
