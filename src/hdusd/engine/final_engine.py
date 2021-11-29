@@ -14,26 +14,20 @@
 #********************************************************************
 import time
 import numpy as np
-import threading
-import math
 
 from pxr import Usd, UsdAppUtils, Glf, Tf, UsdGeom
 from pxr import UsdImagingGL, UsdImagingLite
-from concurrent import futures
 
 import bpy
 import bgl
 
 from .engine import Engine
-from ..utils import gl, time_str, get_temp_file
+from ..utils import gl, time_str
 from ..utils import usd as usd_utils
 from ..export import object, world
 
 from ..utils import logging
 log = logging.Log('final_engine')
-
-
-CHUNK_COUNT = 500
 
 
 class FinalEngine(Engine):
@@ -275,66 +269,16 @@ class FinalEngineScene(FinalEngine):
 
         root_prim = stage.GetPseudoRoot()
 
-        objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(depsgraph, use_scene_cameras=False))
-
-        objects_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
-        object_root_prim = objects_stage.GetPseudoRoot()
-
-        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_obj(depsgraph, use_scene_cameras=False)):
+        objects_len = sum(1 for _ in object.ObjectData.depsgraph_objects(
+                          depsgraph, use_scene_cameras=False))
+        for i, obj_data in enumerate(object.ObjectData.depsgraph_objects(
+                                     depsgraph, use_scene_cameras=False)):
             if self.render_engine.test_break():
                 return
 
             self.notify_status(0.0, f"Syncing object {i}/{objects_len}: {obj_data.object.name}")
 
-            object.sync(object_root_prim, obj_data)
-
-        for prim in objects_stage.GetPseudoRoot().GetAllChildren():
-            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-            override_prim.GetReferences().AddReference(objects_stage.GetRootLayer().realPath, prim.GetPath())
-
-        instance_len = sum(1 for _ in object.ObjectData.depsgraph_objects_inst(depsgraph, use_scene_cameras=False))
-        chunks = math.ceil(instance_len / CHUNK_COUNT)
-        chunks_data = {}
-
-        for i in range(chunks):
-            chunk_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
-            chunk_prim = stage.OverridePrim(f'/chunk_{i}')
-            chunks_data[i] = {'stage': chunk_stage, 'prim': chunk_prim}
-
-        objects_processed = 0
-        threadLock = threading.Lock()
-
-        def sync_chunk(idx, stage, prim):
-            nonlocal objects_processed
-
-            xform = UsdGeom.Xform.Define(stage, stage.GetPseudoRoot().GetPath().AppendChild(f'chunk_{idx}'))
-            obj_prim = xform.GetPrim()
-
-            for i, obj_data in enumerate(object.ObjectData.depsgraph_objects_inst(depsgraph, use_scene_cameras=False)):
-                if i >= (idx) * CHUNK_COUNT and i < (idx + 1) * CHUNK_COUNT:
-                    with threadLock:
-                        objects_processed += 1
-
-                    self.notify_status(0.0, f"Syncing instances: {objects_processed} / {instance_len}")
-                    object.sync(obj_prim, obj_data, objects_stage)
-
-            stage.SetDefaultPrim(obj_prim)
-
-
-        with futures.ThreadPoolExecutor() as executor:
-            chunk_sync = []
-
-            for idx in chunks_data:
-                chunk_sync.append(executor.submit(sync_chunk, idx,
-                                                  chunks_data[idx]['stage'],
-                                                  chunks_data[idx]["prim"]))
-
-            for idx, future in enumerate(futures.wait(chunk_sync)):
-                if idx == 0:
-                    for i in chunks_data:
-                        chunk_prim = stage.GetPrimAtPath(chunks_data[i]["prim"].GetPath())
-                        chunk_prim.GetReferences().AddReference(chunks_data[i]['stage'].GetRootLayer().realPath)
-                pass
+            object.sync(root_prim, obj_data)
 
         if depsgraph.scene.world is not None:
             world.sync(root_prim, depsgraph.scene.world)
