@@ -18,8 +18,8 @@ from pxr import UsdGeom
 
 from .base_node import USDNode
 from ...export import object, material, world
-from ...export.object import ObjectData, SUPPORTED_TYPES
 from ...utils import usd as usd_utils
+from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
 
 
 #
@@ -249,10 +249,16 @@ class BlenderDataNode(USDNode):
                             ObjectData.from_object(self.object).sdf_name != obj_data.sdf_name:
                         continue
 
-                # updating object
-                object.sync_update(root_prim, obj_data,
-                                   update.is_updated_geometry, update.is_updated_transform,
-                                   **kwargs)
+                # we need this "if" to prevent emergence of instancer object when we edit parent object
+                if not obj.parent:
+                    object.sync_update(root_prim, obj_data,
+                                       update.is_updated_geometry, update.is_updated_transform,
+                                       **kwargs)
+
+                for inst_obj_data in ObjectData.depsgraph_objects_inst(depsgraph):
+                    if obj_data.sdf_name == sdf_name(inst_obj_data.object):
+                        object.sync_update(root_prim, inst_obj_data, update.is_updated_geometry, update.is_updated_transform
+                                           , **kwargs)
 
                 is_updated = True
                 continue
@@ -272,8 +278,9 @@ class BlenderDataNode(USDNode):
 
                 current_keys = set(prim.GetName() for prim in root_prim.GetAllChildren())
                 required_keys = set()
-                depsgraph_keys = set(obj_data.sdf_name for obj_data in
-                                     ObjectData.depsgraph_objects(depsgraph))
+                depsgraph_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects(depsgraph))
+                instances_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects_inst(depsgraph))
+                parents_keys = set(obj_data.sdf_name for obj_data in ObjectData.parent_objects(depsgraph))
 
                 if self.data == 'SCENE':
                     required_keys = depsgraph_keys
@@ -287,6 +294,7 @@ class BlenderDataNode(USDNode):
 
                     required_keys = set(object.sdf_name(obj) for obj in coll.objects)
                     required_keys.intersection_update(depsgraph_keys)
+                    required_keys = required_keys | instances_keys
 
                 elif self.data == 'OBJECT':
                     if not self.object:
@@ -295,8 +303,8 @@ class BlenderDataNode(USDNode):
                     if object.sdf_name(self.object) in depsgraph_keys:
                         required_keys = {object.sdf_name(self.object)}
 
-                keys_to_remove = current_keys - required_keys
-                keys_to_add = required_keys - current_keys
+                keys_to_remove = (current_keys - required_keys) | parents_keys
+                keys_to_add = required_keys - current_keys - parents_keys
 
                 if keys_to_remove:
                     for key in keys_to_remove:
