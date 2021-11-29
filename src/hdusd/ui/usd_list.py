@@ -412,7 +412,6 @@ class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
                         text="USD file", icon='FILE').scene_source = "USD_FILE"
 
 
-
 class HDUSD_NODE_PT_usd_nodetree_dev(HdUSD_ChildPanel):
     bl_label = "Dev"
     bl_parent_id = 'HDUSD_NODE_PT_usd_nodetree_tools'
