@@ -70,11 +70,12 @@ class PreviewEngine(Engine):
         renderer.SetRendererAov('color')
 
         # setting camera
-        usd_camera = UsdAppUtils.GetCameraAtPath(
-            self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
+        usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
+        if not usd_camera.GetPrim().IsValid():
+            return
+
         gf_camera = usd_camera.GetCamera()
-        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
-                                gf_camera.frustum.ComputeProjectionMatrix())
+        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(), gf_camera.frustum.ComputeProjectionMatrix())
 
         params = UsdImagingLite.RenderParams()
         image = np.empty((width, height, 4), dtype=np.float32)
