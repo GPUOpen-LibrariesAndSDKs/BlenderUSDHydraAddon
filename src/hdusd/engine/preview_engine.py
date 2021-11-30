@@ -30,6 +30,11 @@ class PreviewEngine(Engine):
     TYPE = 'PREVIEW'
     SAMPLES_NUMBER = 50
 
+    def __init__(self, render_engine):
+        super().__init__(render_engine)
+
+        self.is_synced = False
+
     def _set_scene_camera(self, renderer, scene):
         usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
         gf_camera = usd_camera.GetCamera()
@@ -37,6 +42,8 @@ class PreviewEngine(Engine):
                                 gf_camera.frustum.ComputeProjectionMatrix())
 
     def sync(self, depsgraph):
+        self.is_synced = False
+
         stage = self.cached_stage.create()
 
         UsdGeom.SetStageMetersPerUnit(stage, 1)
@@ -55,9 +62,13 @@ class PreviewEngine(Engine):
         object.sync(stage.GetPseudoRoot(), object.ObjectData.from_object(depsgraph.scene.camera),
                     scene=depsgraph.scene)
 
+        self.is_synced = True
         log(f"Sync finished")
 
     def render(self, depsgraph):
+        if not self.is_synced:
+            return
+
         scene = depsgraph.scene
         width, height = scene.render.resolution_x, scene.render.resolution_y
 
@@ -71,8 +82,6 @@ class PreviewEngine(Engine):
 
         # setting camera
         usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
-        if not usd_camera.GetPrim().IsValid():
-            return
 
         gf_camera = usd_camera.GetCamera()
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(), gf_camera.frustum.ComputeProjectionMatrix())
