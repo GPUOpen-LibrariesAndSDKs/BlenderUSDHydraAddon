@@ -220,6 +220,8 @@ class ShaderNodeEmission(NodeParser):
 
 
 class ShaderNodeMixShader(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         factor = self.get_input_value(0)
         shader1 = self.get_input_link(1)
@@ -234,11 +236,12 @@ class ShaderNodeMixShader(NodeParser):
         if shader2 is None:
             return shader1
 
-        result = self.create_node('mix', 'BSDF', {
-            'fg': shader1,
-            'bg': shader2,
+        result = self.create_node('STD_mix', 'surfaceshader', {
+            'fg' : shader1,
+            'bg' : shader2,
             'mix': factor
         })
+
         return result
 
 
