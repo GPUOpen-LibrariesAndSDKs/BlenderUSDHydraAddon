@@ -237,8 +237,8 @@ class ShaderNodeMixShader(NodeParser):
             return shader1
 
         result = self.create_node('STD_mix', 'surfaceshader', {
-            'fg' : shader1,
-            'bg' : shader2,
+            'fg': shader1,
+            'bg': shader2,
             'mix': factor
         })
 
