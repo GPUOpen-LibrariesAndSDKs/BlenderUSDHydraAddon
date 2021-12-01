@@ -78,3 +78,6 @@ class HDUSD_OBJECT_PT_usd_settings(HdUSD_Panel):
                           text="Hide" if visible else 'Show',
                           icon='HIDE_OFF' if visible else 'HIDE_ON',
                           emboss=True, depress=False)
+
+        if prim.GetTypeName() in 'Mesh':
+            layout.prop(obj.hdusd, 'material')
