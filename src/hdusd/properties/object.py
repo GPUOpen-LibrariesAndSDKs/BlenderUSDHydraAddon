@@ -14,7 +14,7 @@
 #********************************************************************
 import bpy
 
-from pxr import UsdGeom, Gf
+from pxr import UsdGeom, Gf, UsdShade
 
 from . import HdUSDProperties, CachedStageProp
 from ..export import object, material
@@ -35,8 +35,12 @@ class ObjectProperties(HdUSDProperties):
         usd_mat = None
         if self.material:
             usd_mat = material.sync(prim, self.material, None)
-            
-        print(usd_mat)
+
+        usd_mesh = UsdGeom.Mesh.Define(prim.GetStage()), prim.GetPath()
+        if usd_mat:
+            UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_mat)
+        else:
+            UsdShade.MaterialBindingAPI(usd_mesh).Unbind(usd_mat)
 
     material: bpy.props.PointerProperty(type=bpy.types.Material, update=update_material)
 
