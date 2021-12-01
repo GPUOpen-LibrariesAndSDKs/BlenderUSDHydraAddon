@@ -246,10 +246,13 @@ class ShaderNodeMixShader(NodeParser):
         })
 
         log.warn(f"Known issue: node doesn't work correctly now: {result.nodedef.getName()}", self.material, self.node)
+
         return result
 
 
 class ShaderNodeAddShader(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         shader1 = self.get_input_link(0)
         shader2 = self.get_input_link(1)
@@ -263,8 +266,11 @@ class ShaderNodeAddShader(NodeParser):
         if shader2 is None:
             return shader1
 
-        result = self.create_node('add', 'BSDF', {
+        result = self.create_node('STD_add', 'surfaceshader', {
             'in1': shader1,
             'in2': shader2
         })
+
+        log.warn(f"Known issue: node doesn't work correctly now: {result.nodedef.getName()}", self.material, self.node)
+
         return result
