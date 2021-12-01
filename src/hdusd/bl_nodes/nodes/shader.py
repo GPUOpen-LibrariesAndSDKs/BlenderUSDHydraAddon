@@ -16,6 +16,9 @@ import math
 
 from ..node_parser import NodeParser
 
+from ...utils import logging
+log = logging.LogOnce("bl_nodes.nodes.shader")
+
 
 SSS_MIN_RADIUS = 0.0001
 
@@ -242,6 +245,7 @@ class ShaderNodeMixShader(NodeParser):
             'mix': factor
         })
 
+        log.warn(f"Known issue: node doesn't work correctly now: {result.nodedef.getName()}", self.material, self.node)
         return result
 
 
