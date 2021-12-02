@@ -264,22 +264,82 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
         return {'FINISHED'}
 
 
+def ensure_filepath_matches_export_format(filepath, export_format):
+    filename = Path(filepath).name
+    if not filename:
+        return filepath
+
+    stem = Path(filepath).stem
+    ext = Path(filepath).suffix
+    if stem.startswith('.') and not ext:
+        stem, ext = '', stem
+
+    if ext:
+        ext_lower = ext.lower()
+    else:
+        ext_lower = '.usdc'
+        filepath = f"{filepath}{ext_lower}"
+
+    if ext_lower not in ['.usda', '.usdc']:
+        return filepath + export_format
+    elif ext_lower != export_format:
+        filepath = filepath[:-len(ext)]  # strip off ext
+        return filepath + export_format
+    else:
+        return filepath
+
+
+def on_export_format_changed(self, context):
+    # Update the filename in the file browser when the format (.usda/.usdc) changes
+    sfile = context.space_data
+    if not isinstance(sfile, bpy.types.SpaceFileBrowser):
+        return
+    if not sfile.active_operator:
+        return
+    if sfile.active_operator.bl_idname != "HDUSD_OT_export_usd_file":
+        return
+
+    sfile.params.filename = ensure_filepath_matches_export_format(sfile.params.filename, self.export_format)
+
+
 class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     bl_idname = "hdusd.export_usd_file"
-    bl_label = "USD Export to File"
+    bl_label = "Export USD"
     bl_description = "Export USD node tree to .usda file"
 
-    filename_ext = ".usda"
+    filename_ext = ""
     filepath: bpy.props.StringProperty(
         name="File Path",
         description="File path used for exporting material as USD node tree to .usda file",
         maxlen=1024, subtype="FILE_PATH"
     )
-    filter_glob: bpy.props.StringProperty(default="*.usda", options={'HIDDEN'}, )
+    filter_glob: bpy.props.StringProperty(default="*.usda;*.usdc", options={'HIDDEN'}, )
 
     is_pack_into_one_file: bpy.props.BoolProperty(name="Pack into one file",
                                                   description="Pack all references into one file",
                                                   default=True)
+
+    export_format: bpy.props.EnumProperty(
+        name='Format',
+        items=(('.usda', 'ascii (.usda)',
+                'Exports a file, with all data in Human-readable form. '
+                'Less efficient than binary, but easier to edit later'),
+               ('.usdc', 'binary (.usdc)',
+                'Exports a file, with all data packed in binary form. '
+                'Most efficient and portable, but more difficult to edit later'),),
+        description=(
+            'Output format and embedding options. Binary is most efficient, '
+            'but JSON (embedded or separate) may be easier to edit later'
+        ),
+        default='.usdc',
+        update=on_export_format_changed,
+    )
+
+    def check(self, context):
+        # Ensure file extension matches format
+        old_filepath = self.filepath
+        self.filepath = ensure_filepath_matches_export_format(self.filepath, self.export_format)
+        return self.filepath != old_filepath
 
     def execute(self, context):
         tree = context.space_data.edit_tree
@@ -302,6 +362,8 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
             input_stage.Export(self.filepath)
             log.warn(f"Export of \"{tree.name}\":\"{node.name}\" stage to {self.filepath}: completed successfuly")
             return {'FINISHED'}
+
+        self.check(context)
 
         new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
 
@@ -422,7 +484,7 @@ class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator(HDUSD_NODE_OP_export_usd_file.bl_idname, icon='EXPORT')
+        layout.operator(HDUSD_NODE_OP_export_usd_file.bl_idname, icon='EXPORT', text="Export USD to file")
         layout.label(text="Replace current tree using")
         layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
                         text="Blender Scene", icon='SCENE_DATA').scene_source = "SCENE"
