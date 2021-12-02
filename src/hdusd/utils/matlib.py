@@ -133,7 +133,9 @@ class Render:
                                             self.cache_dir / self.thumbnail, cache_check)
 
     def thumbnail_load(self, pcoll):
-        thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
+        thumb = pcoll.get(self.thumbnail)
+        if not thumb:
+            thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
         self.thumbnail_icon_id = thumb.icon_id
 
 
@@ -408,14 +410,9 @@ class Manager:
                     self.status = "Library Updated"
 
                 except requests.exceptions.RequestException as err:
-                    executor.shutdown(wait=False, cancel_futures=True)
+                    executor.shutdown(wait=True, cancel_futures=True)
                     self.status = type(err).__name__
-                    log.error(str(err))
-
-                # bender pcoll.load issue with last thumbnail
-                except KeyError as err:
-                    log.warn(str(err))
-                    self.status = "Library Updated"
+                    log.error(err)
 
                 finally:
                     self.poll = True
