@@ -59,7 +59,7 @@ def get_renderer_percent_done(renderer):
     return percent
 
 
-def traverse_stage(stage, ignore=None):
+def traverse_stage(stage, *, ignore=None):
     def traverse(prim):
         for child in prim.GetAllChildren():
             if ignore and ignore(child):

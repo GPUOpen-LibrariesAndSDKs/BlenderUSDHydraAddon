@@ -17,12 +17,19 @@ import bpy
 from pxr import Sdf
 
 from ..engine import handlers
+from ..utils import usd as usd_utils
+from ..properties.object import GEOM_TYPES
 
 from ..utils import logging
 log = logging.Log('usd_collection')
 
 
 COLLECTION_NAME = "USD NodeTree"
+
+
+def ignore_prim(prim):
+    prim_type = prim.GetTypeName()
+    return not (prim_type in GEOM_TYPES or prim_type in ('Mesh', 'Camera') or prim_type.endswith('Light'))
 
 
 def update(context):
@@ -55,7 +62,7 @@ def update(context):
         obj_paths = set(objects.keys())
 
         prim_paths = set()
-        for prim in stage.TraverseAll():
+        for prim in usd_utils.traverse_stage(stage, ignore=ignore_prim):
             prim_paths.add(str(prim.GetPath()))
 
         paths_to_remove = obj_paths - prim_paths
