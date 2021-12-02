@@ -25,7 +25,7 @@ from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 from .. import config
 
-from ..utils import logging, get_temp_file
+from ..utils import logging, get_temp_file, temp_pid_dir
 from ..utils.mx import export_mx_to_file, MX_LIBS_DIR
 from ..mx_nodes.node_tree import MxNodeTree
 
@@ -306,14 +306,13 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
 
         root_layer = new_stage.GetRootLayer()
-        input_stage_root_layer = input_stage.GetRootLayer()
-        root_layer.TransferContent(input_stage_root_layer)
+        root_layer.TransferContent(input_stage.GetRootLayer())
 
         dest_path_root_dir = Path(self.filepath).parent
 
-        def _update_layer_refs(layer):
-            nonlocal new_stage, input_stage_root_layer
+        temp_dir = temp_pid_dir()
 
+        def _update_layer_refs(layer, root_path=[]):
             for ref in layer.GetCompositionAssetDependencies():
                 ref_name = Path(ref).name
                 if Path(ref).suffix == '.mtlx':
@@ -348,8 +347,6 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
                         # after mx_node_tree.import_ deps updated, so we need to change them back since we convert material only to get mx_node_tree
                         layer.UpdateCompositionAssetDependency(f'./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx', ref)
-                        # mx_node_tree.import_ changes  deps for input stage too
-                        input_stage_root_layer.UpdateCompositionAssetDependency(f'./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx', ref)
 
                         export_mx_to_file(doc, dest_path,
                                           is_export_textures=True,
@@ -369,19 +366,35 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                                       is_clean_texture_folder=False,
                                       is_clean_deps_folders=False)
                 else:
-                    ref_layer = Sdf.Layer.Find(ref)
-                    if ref_layer.GetCompositionAssetDependencies():
-                        _update_layer_refs(ref_layer)
+                    ref_layer_path = str(ref_path if (ref_path := Path(ref)).is_absolute() else Path(layer.realPath).parent.joinpath(ref_path))
 
-                    dest_path = Path(f"{dest_path_root_dir}/{ref_name}")
+                    ref_layer = Sdf.Layer.Find(ref_layer_path)
+
+                    if not temp_dir in Path(ref_layer_path).parents:
+                        # if deps is abs, then we need to add its parent dir name, otherwise we add relative path
+                        if Path(ref).is_absolute():
+                            val = Path(ref_layer_path).parent.name
+                        else:
+                            val = str(Path(ref).parent)
+
+                        root_path.append(val)
+
+                    if ref_layer.GetCompositionAssetDependencies():
+                        _update_layer_refs(ref_layer, root_path)
+
+                    # if deps is not abs, we need to build path from our list to get full path from root to curr layer
+                    if temp_dir in Path(ref_layer_path).parents:
+                        dest_path = Path(f"{dest_path_root_dir}/{ref_name}")
+                    else:
+                        dest_path = dest_path_root_dir / "\\".join(root_path) / ref_name
 
                     ref_layer.Export(str(dest_path))
 
                     log(f"Export file {ref} to {dest_path}: completed successfuly")
 
-                    rel_dest_path = dest_path.parent.relative_to(Path(self.filepath).parent) / dest_path.name
-
-                    layer.UpdateCompositionAssetDependency(ref, str(rel_dest_path))
+                    # removing path to the current layer before we append new path for the next layer
+                    if len(root_path):
+                        root_path.pop()
 
             if layer is root_layer:
                 dest_path = f"{dest_path_root_dir}/{Path(self.filepath).name}"
@@ -389,6 +402,8 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                 log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
 
         _update_layer_refs(root_layer)
+
+        log.info(f"Export of USD node tree {tree.name_full} finished")
 
         return {'FINISHED'}
 
