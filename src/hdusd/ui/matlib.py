@@ -48,10 +48,6 @@ class HDUSD_MATERIAL_OP_matlib_load(bpy.types.Operator):
         manager.check_load_materials(reset=True)
         return {"FINISHED"}
 
-    @classmethod
-    def poll(cls, context):
-        return manager.poll
-
 
 class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
     """Import Material Package to material"""
@@ -129,7 +125,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         col = layout.column(align=True)
         materials = matlib_prop.get_materials()
         if not materials:
-            col.label(text="No materials found")
+            col.label(text="Start syncing..." if not manager.materials else "No materials found")
             return
 
         row = col.row()
@@ -198,6 +194,7 @@ class HDUSD_MATLIB_PT_matlib_tools(HdUSD_Panel):
         layout = self.layout
         col = layout.column()
         col.label(text=manager.status)
-        col.operator(HDUSD_MATERIAL_OP_matlib_load.bl_idname, icon='FILE_REFRESH')
 
-
+        row = col.row()
+        row.enabled = manager.is_synced
+        row.operator(HDUSD_MATERIAL_OP_matlib_load.bl_idname, icon='FILE_REFRESH')

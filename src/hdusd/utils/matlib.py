@@ -29,7 +29,7 @@ from . import LIBS_DIR
 from ..utils import logging, update_ui
 log = logging.Log('utils.matlib')
 
-URL = "https://matlibapi.stvcis.com/api"
+URL = "https://api.matlib.gpuopen.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
@@ -308,12 +308,16 @@ class Manager:
         self.pcoll = None
         self.load_thread = None
         self.package_executor = None
-        self.status = "Library Updated"
-        self.poll = True
+        self.status = ""
+        self.is_synced = None
 
     def __del__(self):
         # bpy.utils.previews.remove(self.pcoll)
         pass
+
+    def set_status(self, msg):
+        self.status = msg
+        update_ui()
 
     @property
     def materials_list(self):
@@ -340,7 +344,7 @@ class Manager:
             cat.get_info()
             self.categories[cat.id] = cat
 
-        def material_load(mat):
+        def material_load(mat, is_cached):
             for render in mat.renders:
                 render.get_info()
                 render.get_thumbnail()
@@ -350,12 +354,12 @@ class Manager:
                 package.get_info()
 
             self.materials[mat.id] = mat
-            self.status = (f"Syncing {len(self.materials)} materials{'.' * (len(self.materials) % 10 + 1)}")
-            update_ui()
+
+            self.set_status(f"Syncing {len(self.materials)} {'cached' if is_cached else 'online'} materials...")
 
         def load():
-            self.poll = False
-            self.status = "Connecting..."
+            self.is_synced = False
+            self.set_status("Start syncing...")
             with futures.ThreadPoolExecutor() as executor:
                 try:
                     #
@@ -375,7 +379,7 @@ class Manager:
                         mat.category.get_info()
 
                     # loading cached materials
-                    material_loaders = [executor.submit(material_load, mat)
+                    material_loaders = [executor.submit(material_load, mat, True)
                                         for mat in materials.values()]
                     for future in futures.as_completed(material_loaders):
                         future.result()
@@ -402,21 +406,20 @@ class Manager:
                         mat.category.get_info()
 
                     # loading online materials
-                    material_loaders = [executor.submit(material_load, mat)
+                    material_loaders = [executor.submit(material_load, mat, False)
                                         for mat in online_materials.values()]
                     for future in futures.as_completed(material_loaders):
                         future.result()
 
-                    self.status = "Library Updated"
+                    self.set_status(f"Syncing {len(self.materials)} materials completed")
 
                 except requests.exceptions.RequestException as err:
                     executor.shutdown(wait=True, cancel_futures=True)
-                    self.status = type(err).__name__
+                    self.set_status(f"Connection error. Synced {len(self.materials)} materials")
                     log.error(err)
 
                 finally:
-                    self.poll = True
-                    update_ui()
+                    self.is_synced = True
 
         self.load_thread = threading.Thread(target=load)
         self.load_thread.daemon = True
@@ -429,20 +432,13 @@ class Manager:
 
         def package_load():
             try:
-                self.poll = False
                 package.download()
 
             except requests.exceptions.RequestException as err:
                 log.error(err)
-
                 package.size_load = None
-                raw_path = package.file_path.with_suffix(".raw")
-                raw_path.unlink(missing_ok=True)
-                log(f"Temporary file removed {raw_path}")
 
-            finally:
-                self.poll = True
-                update_ui()
+            update_ui()
 
         if not self.package_executor:
             self.package_executor = futures.ThreadPoolExecutor()
