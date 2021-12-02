@@ -36,11 +36,11 @@ class ObjectProperties(HdUSDProperties):
         if self.material:
             usd_mat = material.sync(prim, self.material, None)
 
-        usd_mesh = UsdGeom.Mesh.Define(prim.GetStage()), prim.GetPath()
+        usd_mesh = UsdGeom.Mesh.Define(prim.GetStage(), prim.GetPath())
+        bindings = UsdShade.MaterialBindingAPI(usd_mesh)
+        bindings.UnbindAllBindings()
         if usd_mat:
-            UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_mat)
-        else:
-            UsdShade.MaterialBindingAPI(usd_mesh).Unbind(usd_mat)
+            bindings.Bind(usd_mat)
 
     material: bpy.props.PointerProperty(type=bpy.types.Material, update=update_material)
 
