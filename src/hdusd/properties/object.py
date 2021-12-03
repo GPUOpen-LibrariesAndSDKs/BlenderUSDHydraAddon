@@ -42,7 +42,12 @@ class ObjectProperties(HdUSDProperties):
         if usd_mat:
             bindings.Bind(usd_mat)
 
-    material: bpy.props.PointerProperty(type=bpy.types.Material, update=update_material)
+    material: bpy.props.PointerProperty(
+        name="Material",
+        description="Select material for USD mesh",
+        type=bpy.types.Material,
+        update=update_material
+    )
 
     @property
     def is_usd(self):
