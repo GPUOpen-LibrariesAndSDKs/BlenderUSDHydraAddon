@@ -16,6 +16,8 @@ import math
 
 from ..node_parser import NodeParser
 
+from . import log
+
 
 SSS_MIN_RADIUS = 0.0001
 
@@ -220,6 +222,8 @@ class ShaderNodeEmission(NodeParser):
 
 
 class ShaderNodeMixShader(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         factor = self.get_input_value(0)
         shader1 = self.get_input_link(1)
@@ -234,15 +238,20 @@ class ShaderNodeMixShader(NodeParser):
         if shader2 is None:
             return shader1
 
-        result = self.create_node('mix', 'BSDF', {
+        result = self.create_node('STD_mix', 'surfaceshader', {
             'fg': shader1,
             'bg': shader2,
             'mix': factor
         })
+
+        log.warn(f"Known issue: node doesn't work correctly with {result.nodedef.getName()}", self.material, self.node)
+
         return result
 
 
 class ShaderNodeAddShader(NodeParser):
+    nodegraph_path = ""
+
     def export(self):
         shader1 = self.get_input_link(0)
         shader2 = self.get_input_link(1)
@@ -256,8 +265,11 @@ class ShaderNodeAddShader(NodeParser):
         if shader2 is None:
             return shader1
 
-        result = self.create_node('add', 'BSDF', {
+        result = self.create_node('STD_add', 'surfaceshader', {
             'in1': shader1,
             'in2': shader2
         })
+
+        log.warn(f"Known issue: node doesn't work correctly with {result.nodedef.getName()}", self.material, self.node)
+
         return result
