@@ -305,7 +305,7 @@ def on_export_format_changed(self, context):
 class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     bl_idname = "hdusd.export_usd_file"
     bl_label = "Export USD"
-    bl_description = "Export USD node tree to .usda file"
+    bl_description = "Export USD node tree to .usd file"
 
     filename_ext = ""
     filepath: bpy.props.StringProperty(
@@ -342,30 +342,26 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         return self.filepath != old_filepath
 
     def execute(self, context):
-        tree = context.space_data.edit_tree
-        node = context.active_node
-        if not node:
-            log.warn(f"Unable to export USD nodetree \"{tree.name}\" stage: no USD node selected")
-            return {'CANCELLED'}
+        node_tree = context.space_data.edit_tree
+        output_node = node_tree.get_output_node()
 
-        # get the USD stage from selected node
-        input_stage = node.cached_stage()
+        input_stage = output_node.cached_stage()
         if not input_stage:
-            log.warn(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: could not get the correct stage")
+            log.warn(f"Unable to export USD node \"{node_tree.name}\":\"{output_node.name}\" stage: could not get the correct stage")
             return {'CANCELLED'}
 
         if not Path(self.filepath).suffix:
-            log.warn(f"Unable to export USD node \"{tree.name}\":\"{node.name}\" stage: write correct file name")
+            log.warn(f"Unable to export USD node \"{node_tree.name}\":\"{output_node.name}\" stage: write correct file name")
             return {'CANCELLED'}
 
         if self.is_pack_into_one_file:
             input_stage.Export(self.filepath)
-            log.warn(f"Export of \"{tree.name}\":\"{node.name}\" stage to {self.filepath}: completed successfuly")
+            log.warn(f"Export of \"{node_tree.name}\":\"{output_node.name}\" stage to {self.filepath}: completed successfuly")
             return {'FINISHED'}
 
         self.check(context)
 
-        new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usda")))
+        new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usdc")))
 
         root_layer = new_stage.GetRootLayer()
         root_layer.TransferContent(input_stage.GetRootLayer())
@@ -465,7 +461,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
         _update_layer_refs(root_layer)
 
-        log.info(f"Export of USD node tree {tree.name_full} finished")
+        log.info(f"Export of USD node tree {node_tree.name_full} finished")
 
         return {'FINISHED'}
 
