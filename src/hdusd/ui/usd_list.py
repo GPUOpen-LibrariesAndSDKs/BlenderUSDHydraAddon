@@ -271,16 +271,16 @@ def ensure_filepath_matches_export_format(filepath, export_format):
 
     stem = Path(filepath).stem
     ext = Path(filepath).suffix
-    if stem.startswith('.') and not ext:
-        stem, ext = '', stem
+    if stem.startswith(".") and not ext:
+        stem, ext = "", stem
 
     if ext:
         ext_lower = ext.lower()
     else:
-        ext_lower = '.usdc'
+        ext_lower = ".usdc"
         filepath = f"{filepath}{ext_lower}"
 
-    if ext_lower not in ['.usda', '.usdc']:
+    if ext_lower not in [".usda", ".usdc"]:
         return filepath + export_format
     elif ext_lower != export_format:
         filepath = filepath[:-len(ext)]  # strip off ext
@@ -320,17 +320,15 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                                                   default=True)
 
     export_format: bpy.props.EnumProperty(
-        name='Format',
-        items=(('.usda', 'ascii (.usda)',
-                'Exports a file, with all data in Human-readable form. '
-                'Less efficient than binary, but easier to edit later'),
-               ('.usdc', 'binary (.usdc)',
-                'Exports a file, with all data packed in binary form. '
-                'Most efficient and portable, but more difficult to edit later'),),
-        description=(
-            'Output format and embedding options. Binary is most efficient, '
-            'but JSON (embedded or separate) may be easier to edit later'
-        ),
+        name="Format",
+        items=(('.usda', "Text (.usda)",
+                "Exports a file, with all data in Human-readable form. "
+                "Less efficient than binary, but easier to edit later"),
+               ('.usdc', "Binary (.usdc)",
+                "Exports a file, with all data packed in binary form. "
+                "Most efficient and portable, but more difficult to edit later"),),
+        description="Output format and embedding options. Binary is most efficient, "
+                    "but JSON (embedded or separate) may be easier to edit later",
         default='.usdc',
         update=on_export_format_changed,
     )
@@ -351,16 +349,16 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
         input_stage = output_node.cached_stage()
         if not input_stage:
-            log.warn(f"Unable to export USD node \"{node_tree.name}\":\"{output_node.name}\" stage: could not get the correct stage")
+            log.warn(f"Unable to export USD node '{node_tree.name}':'{output_node.name}' stage: could not get the correct stage")
             return {'CANCELLED'}
 
         if not Path(self.filepath).suffix:
-            log.warn(f"Unable to export USD node \"{node_tree.name}\":\"{output_node.name}\" stage: write correct file name")
+            log.warn(f"Unable to export USD node '{node_tree.name}':'{output_node.name}' stage: write correct file name")
             return {'CANCELLED'}
 
         if self.is_pack_into_one_file:
             input_stage.Export(self.filepath)
-            log.warn(f"Export of \"{node_tree.name}\":\"{output_node.name}\" stage to {self.filepath}: completed successfuly")
+            log.warn(f"Export of '{node_tree.name}':'{output_node.name}' stage to {self.filepath}: completed successfuly")
             return {'FINISHED'}
 
         self.check(context)
@@ -381,7 +379,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
             for ref in layer.GetCompositionAssetDependencies():
                 ref_path = Path(ref)
                 ref_name = ref_path.name
-                if ref_path.suffix == '.mtlx':
+                if ref_path.suffix == ".mtlx":
                     doc = mx.createDocument()
                     source_path = Path(f"{new_stage.GetPathResolverContext().GetSearchPath()[0]}/{ref}")
                     dest_path = f"{dest_path_root_dir}/{ref_name}"
@@ -399,8 +397,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                         if not mat:
                             continue
 
-                        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}",
-                                                                type=MxNodeTree.bl_idname)
+                        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
 
                         mat.hdusd.mx_node_tree = mx_node_tree
 
@@ -413,7 +410,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
                         # after mx_node_tree.import_ reference updated, so we need to change them back
                         # since we convert material only to get mx_node_tree
-                        layer.UpdateCompositionAssetDependency(f'./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx', ref)
+                        layer.UpdateCompositionAssetDependency(f"./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx", ref)
 
                         export_mx_to_file(doc, dest_path,
                                           is_export_textures=True,
