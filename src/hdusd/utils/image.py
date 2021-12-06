@@ -23,7 +23,6 @@ from . import log
 SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tga", ".bmp"}
 DEFAULT_FORMAT = ".hdr"
 BLENDER_DEFAULT_FORMAT = "HDR"
-READONLY_IMAGE_FORMATS = {".dds"}  # blender can read these formats, but can't write
 
 
 def cache_image_file(image: bpy.types.Image, cache_check=True):
@@ -33,12 +32,8 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
             log.warn("Image is missing", image, image_path)
             return None
 
-        image_suffix = Path(image.filepath).suffix.lower()
-
-        if image_suffix in SUPPORTED_FORMATS and f".{image.file_format.lower()}" in SUPPORTED_FORMATS:
-            return image_path
-
-        if image_suffix in READONLY_IMAGE_FORMATS:
+        if Path(image.filepath).suffix.lower() in SUPPORTED_FORMATS and \
+                f".{image.file_format.lower()}" in SUPPORTED_FORMATS:
             return image_path
 
     old_filepath = image.filepath_raw
