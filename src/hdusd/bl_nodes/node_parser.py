@@ -65,6 +65,11 @@ class NodeItem:
 
         val_data = value.data if isinstance(value, NodeItem) else value
         nd_input = self.nodedef.getInput(name)
+
+        if not isinstance(val_data, NodeItem) and not isinstance(val_data, mx.Node) \
+                and nd_input.getType() != type(val_data).__name__ and not nd_input.getType() == 'filename':
+            return
+
         input = self.data.addInput(name, nd_input.getType())
         mx_utils.set_param_value(input, val_data, input.getType())
 
