@@ -330,6 +330,7 @@ class Manager:
         return list(manager.categories.values())
 
     def check_load_materials(self, reset=False):
+        # required is not None condition to prevent further update if no material is found at first time.
         if self.materials is not None and not reset:
             return True
 
