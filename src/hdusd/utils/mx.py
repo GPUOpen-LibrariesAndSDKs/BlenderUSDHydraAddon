@@ -77,9 +77,11 @@ def set_param_value(mx_param, val, nd_type, nd_output=None):
     else:
         mx_type = getattr(mx, title_str(nd_type), None)
         if mx_type:
-            mx_param.setValue(mx_type(val))
-        else:
-            mx_param.setValue(val)
+            val = mx_type(val)
+        elif nd_type == 'float' and isinstance(val, tuple):
+            val = val[0]
+
+        mx_param.setValue(val)
 
 
 def is_value_equal(mx_val, val, nd_type):
