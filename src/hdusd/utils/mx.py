@@ -25,7 +25,6 @@ from .image import cache_image_file
 from . import logging
 log = logging.Log('utils.mx')
 
-
 MX_LIBS_FOLDER = "libraries"
 MX_LIBS_DIR = LIBS_DIR / MX_LIBS_FOLDER
 
@@ -267,6 +266,10 @@ def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
                 continue
 
             source_path = Path(mx_value)
+            if not os.path.isfile(source_path):
+                log.warn("Image is missing", source_path)
+                continue
+
             dest_path = texture_dir / source_path.name
 
             if source_path not in image_paths:
