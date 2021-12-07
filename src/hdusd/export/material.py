@@ -59,20 +59,6 @@ def sync(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
     return usd_mat
 
 
-def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
-    """ Recreates existing material """
-
-    log("sync_update", mat)
-
-    stage = materials_prim.GetStage()
-    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
-    usd_mat = stage.GetPrimAtPath(mat_path)
-    if usd_mat.IsValid():
-        stage.RemovePrim(mat_path)
-
-    sync(materials_prim, mat, obj)
-
-
 def sync_update_all(root_prim, mat: bpy.types.Material):
     sdf_mat_name = sdf_name(mat)
     mat_prims = []
@@ -89,9 +75,6 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
         # removing rpr_materialx_node in all material_prims
         return None
 
-    surfacematerial = next(node for node in doc.getNodes() if node.getCategory() == 'surfacematerial')
-
-    stage = root_prim.GetStage()
     mx_file = utils.get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}',
                                   is_rand=True)
     mx.writeToXmlFile(doc, str(mx_file))

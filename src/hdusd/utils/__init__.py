@@ -72,8 +72,8 @@ def get_temp_file(suffix, name=None, is_rand=False):
     if suffix:
         if is_rand:
             return Path(tempfile.mktemp(suffix, f"{name}_", temp_pid_dir()))
-        else:
-            name += suffix
+
+        name += suffix
 
     return temp_pid_dir() / name
 
