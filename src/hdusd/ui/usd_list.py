@@ -358,7 +358,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
         if self.is_pack_into_one_file:
             input_stage.Export(self.filepath)
-            log.warn(f"Export of '{node_tree.name}':'{output_node.name}' stage to {self.filepath}: completed successfuly")
+            log.info(f"Export of '{node_tree.name}':'{output_node.name}' stage to {self.filepath}: completed successfuly")
             return {'FINISHED'}
 
         self.check(context)
