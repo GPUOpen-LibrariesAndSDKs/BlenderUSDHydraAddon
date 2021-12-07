@@ -421,8 +421,7 @@ class Manager:
                 finally:
                     self.is_synced = True
 
-        self.load_thread = threading.Thread(target=load)
-        self.load_thread.daemon = True
+        self.load_thread = threading.Thread(target=load, daemon=True)
         self.load_thread.start()
 
         return False

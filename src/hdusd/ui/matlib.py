@@ -39,7 +39,7 @@ class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class HDUSD_MATERIAL_OP_matlib_load(bpy.types.Operator):
+class HDUSD_MATLIB_OP_load_materials(bpy.types.Operator):
     """Load materials"""
     bl_idname = "hdusd.matlib_load"
     bl_label = "Reload Library"
@@ -197,4 +197,4 @@ class HDUSD_MATLIB_PT_matlib_tools(HdUSD_Panel):
 
         row = col.row()
         row.enabled = manager.is_synced
-        row.operator(HDUSD_MATERIAL_OP_matlib_load.bl_idname, icon='FILE_REFRESH')
+        row.operator(HDUSD_MATLIB_OP_load_materials.bl_idname, icon='FILE_REFRESH')
