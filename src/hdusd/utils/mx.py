@@ -77,9 +77,11 @@ def set_param_value(mx_param, val, nd_type, nd_output=None):
     else:
         mx_type = getattr(mx, title_str(nd_type), None)
         if mx_type:
-            mx_param.setValue(mx_type(val))
-        else:
-            mx_param.setValue(get_correct_value(nd_type, val))
+            val = mx_type(val)
+        elif nd_type == 'float' and isinstance(val, tuple):
+            val = val[0]
+
+        mx_param.setValue(val)
 
 
 def is_value_equal(mx_val, val, nd_type):
@@ -215,14 +217,6 @@ def get_socket_color(mx_type):
         return (0.39, 0.78, 0.39, 1.0)
 
     return (0.63, 0.63, 0.63, 1.0)
-
-
-def get_correct_value(nd_type, val):
-    if nd_type == 'float':
-        if type(val).__name__ == 'tuple':
-            return val[0]
-
-    return val
 
 
 def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
