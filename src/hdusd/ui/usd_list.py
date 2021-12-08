@@ -24,10 +24,13 @@ from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
 from .. import config
 
-from ..utils import logging, get_temp_file, temp_pid_dir
+from ..utils import get_temp_file, temp_pid_dir
 from ..utils.mx import export_mx_to_file, MX_LIBS_DIR
 from ..mx_nodes.node_tree import MxNodeTree
+from ..export import material
+from ..utils import usd as usd_utils
 
+from ..utils import logging
 log = logging.Log('ui.usd_list')
 
 
@@ -206,18 +209,14 @@ class HDUSD_NODE_MT_material_select(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         materials = bpy.data.materials
-        usd_list = context.active_node.hdusd.usd_list
-        mesh_prim = usd_list.selected_prim
-
         for mat in materials:
+            if not mat.node_tree:
+                continue
+                
             row = layout.row()
             op = row.operator(HDUSD_NODE_OP_material_select.bl_idname, text=mat.name, icon='MATERIAL')
             op.material_name = mat.name
 
-        bindings = UsdShade.MaterialBindingAPI(mesh_prim)
-        rel_bind = bindings.GetDirectBindingRel()
-        print(rel_bind)
-        
 
 class HDUSD_NODE_OP_material_select(bpy.types.Operator):
     """Select camera"""
@@ -227,7 +226,16 @@ class HDUSD_NODE_OP_material_select(bpy.types.Operator):
     material_name: bpy.props.StringProperty(default="")
 
     def execute(self, context):
-        print(self.material_name)
+        mat = bpy.data.materials.get(self.material_name)
+        usd_list = context.active_node.hdusd.usd_list
+        prim = usd_list.selected_prim
+
+        usd_mat = None
+        if mat:
+            usd_mat = material.sync(prim, mat, None)
+
+        usd_utils.bind_material(prim, usd_mat)
+
         return {"FINISHED"}
 
 

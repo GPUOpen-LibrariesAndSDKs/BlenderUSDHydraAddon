@@ -17,6 +17,8 @@ import math
 import mathutils
 import bpy
 
+from pxr import UsdShade
+
 
 def get_xform_transform(xform):
     transform = mathutils.Matrix(xform.GetLocalTransformation())
@@ -69,3 +71,10 @@ def traverse_stage(stage, *, ignore=None):
             yield from traverse(child)
 
     yield from traverse(stage.GetPseudoRoot())
+
+
+def bind_material(mesh_prim, usd_mat):
+    bindings = UsdShade.MaterialBindingAPI(mesh_prim)
+    bindings.UnbindAllBindings()
+    if usd_mat:
+        bindings.Bind(usd_mat)

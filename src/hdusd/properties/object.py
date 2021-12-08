@@ -36,17 +36,17 @@ class ObjectProperties(HdUSDProperties):
         if self.material:
             usd_mat = material.sync(prim, self.material, None)
 
-        usd_mesh = UsdGeom.Mesh.Define(prim.GetStage(), prim.GetPath())
-        bindings = UsdShade.MaterialBindingAPI(usd_mesh)
-        bindings.UnbindAllBindings()
-        if usd_mat:
-            bindings.Bind(usd_mat)
+        usd_utils.bind_material(prim, usd_mat)
+
+    def poll_material(self, mat):
+        return bool(mat.node_tree)
 
     material: bpy.props.PointerProperty(
         name="Material",
         description="Select material for USD mesh",
         type=bpy.types.Material,
-        update=update_material
+        update=update_material,
+        poll=poll_material
     )
 
     @property
