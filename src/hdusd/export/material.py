@@ -65,12 +65,12 @@ def sync_update(materials_prim, mat: bpy.types.Material, obj: bpy.types.Object):
     log("sync_update", mat)
 
     stage = materials_prim.GetStage()
-    mat_path = f"{materials_prim.GetPath()}/{sdf_name(mat)}"
+    mat_path = materials_prim.GetPath().AppendChild(sdf_name(mat))
     usd_mat = stage.GetPrimAtPath(mat_path)
     if usd_mat.IsValid():
         stage.RemovePrim(mat_path)
 
-    sync(materials_prim, mat, obj)
+    return sync(materials_prim, mat, obj)
 
 
 def sync_update_all(root_prim, mat: bpy.types.Material):

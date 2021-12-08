@@ -34,7 +34,7 @@ class ObjectProperties(HdUSDProperties):
         prim = self.get_prim()
         usd_mat = None
         if self.material:
-            usd_mat = material.sync(prim, self.material, None)
+            usd_mat = material.sync_update(prim, self.material, None)
 
         usd_utils.bind_material(prim, usd_mat)
 

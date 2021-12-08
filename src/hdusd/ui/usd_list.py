@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import traceback
+from pathlib import Path
+
 import bpy
 import MaterialX as mx
-import traceback
 
 from pxr import UsdGeom, Usd, Sdf, UsdShade
 from bpy_extras.io_utils import ExportHelper
-from pathlib import Path
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
-from .. import config
-
-from ..utils import get_temp_file, temp_pid_dir
-from ..utils.mx import export_mx_to_file, MX_LIBS_DIR
 from ..mx_nodes.node_tree import MxNodeTree
+from ..engine.viewport_engine import ViewportEngineNodetree
+
+from .. import config
+from ..utils import get_temp_file, temp_pid_dir
+from ..utils import mx as mx_utils
 from ..export import material
 from ..utils import usd as usd_utils
 
@@ -212,7 +214,7 @@ class HDUSD_NODE_MT_material_select(bpy.types.Menu):
         for mat in materials:
             if not mat.node_tree:
                 continue
-                
+
             row = layout.row()
             op = row.operator(HDUSD_NODE_OP_material_select.bl_idname, text=mat.name, icon='MATERIAL')
             op.material_name = mat.name
@@ -232,10 +234,11 @@ class HDUSD_NODE_OP_material_select(bpy.types.Operator):
 
         usd_mat = None
         if mat:
-            usd_mat = material.sync(prim, mat, None)
+            usd_mat = material.sync_update(prim, mat, None)
 
         usd_utils.bind_material(prim, usd_mat)
 
+        ViewportEngineNodetree.tag_redraw()
         return {"FINISHED"}
 
 
@@ -434,7 +437,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                     source_path = Path(f"{new_stage.GetPathResolverContext().GetSearchPath()[0]}/{ref}")
                     dest_path = f"{dest_path_root_dir}/{ref_name}"
                     search_path = mx.FileSearchPath(str(source_path.parent))
-                    search_path.append(str(MX_LIBS_DIR))
+                    search_path.append(str(mx_utils.MX_LIBS_DIR))
                     mx.readFromXmlFile(doc, str(source_path), searchPath=search_path)
 
                     mx_node_tree = next((mat.hdusd.mx_node_tree for mat in bpy.data.materials
@@ -462,23 +465,25 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                         # since we convert material only to get mx_node_tree
                         layer.UpdateCompositionAssetDependency(f"./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx", ref)
 
-                        export_mx_to_file(doc, dest_path,
-                                          is_export_textures=True,
-                                          is_export_deps=True,
-                                          mx_node_tree=mx_node_tree,
-                                          is_clean_texture_folder=False,
-                                          is_clean_deps_folders=False)
+                        mx_utils.export_mx_to_file(
+                            doc, dest_path,
+                            is_export_textures=True,
+                            is_export_deps=True,
+                            mx_node_tree=mx_node_tree,
+                            is_clean_texture_folder=False,
+                            is_clean_deps_folders=False)
 
                         bpy.data.node_groups.remove(mx_node_tree)
-
                         continue
 
-                    export_mx_to_file(doc, dest_path,
-                                      is_export_textures=True,
-                                      is_export_deps=True,
-                                      mx_node_tree=mx_node_tree,
-                                      is_clean_texture_folder=False,
-                                      is_clean_deps_folders=False)
+                    mx_utils.export_mx_to_file(
+                        doc, dest_path,
+                        is_export_textures=True,
+                        is_export_deps=True,
+                        mx_node_tree=mx_node_tree,
+                        is_clean_texture_folder=False,
+                        is_clean_deps_folders=False)
+
                 else:
                     ref_layer_path = str(ref_path if ref_path.is_absolute()
                                          else Path(layer.realPath).parent.joinpath(ref_path))
