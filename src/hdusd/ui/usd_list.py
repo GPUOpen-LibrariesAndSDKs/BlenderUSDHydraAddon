@@ -13,11 +13,10 @@
 # limitations under the License.
 #********************************************************************
 import bpy
-import shutil
 import MaterialX as mx
 import traceback
 
-from pxr import UsdGeom, Usd, Sdf
+from pxr import UsdGeom, Usd, Sdf, UsdShade
 from bpy_extras.io_utils import ExportHelper
 from pathlib import Path
 
@@ -167,8 +166,7 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         return node and isinstance(node, USDNode)
 
     def draw(self, context):
-        node = context.active_node
-        usd_list = node.hdusd.usd_list
+        usd_list = context.active_node.hdusd.usd_list
         layout = self.layout
 
         layout.template_list(
@@ -180,6 +178,8 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
 
         prop_layout = layout.column()
         prop_layout.use_property_split = True
+        prop_layout.use_property_decorate = True
+
         for prop in usd_list.prim_properties:
             if prop.type == 'STR' and prop.value_str:
                 row = prop_layout.row()
@@ -187,6 +187,48 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
                 row.prop(prop, 'value_str', text=prop.name)
             elif prop.type == 'FLOAT':
                 prop_layout.prop(prop, 'value_float', text=prop.name)
+
+        prim = usd_list.selected_prim
+        if prim.GetTypeName() == 'Mesh':
+            bindings = UsdShade.MaterialBindingAPI(prim)
+            bind_paths = bindings.GetDirectBindingRel().GetTargets()
+            bind_path = str(bind_paths[0]) if bind_paths else ""
+
+            prop_layout.separator()
+            prop_layout.label(text="Assign material")
+            prop_layout.menu(HDUSD_NODE_MT_material_select.bl_idname, text=bind_path, icon='MATERIAL')
+
+
+class HDUSD_NODE_MT_material_select(bpy.types.Menu):
+    bl_idname = "HDUSD_NODE_MT_material_select"
+    bl_label = "Material"
+
+    def draw(self, context):
+        layout = self.layout
+        materials = bpy.data.materials
+        usd_list = context.active_node.hdusd.usd_list
+        mesh_prim = usd_list.selected_prim
+
+        for mat in materials:
+            row = layout.row()
+            op = row.operator(HDUSD_NODE_OP_material_select.bl_idname, text=mat.name, icon='MATERIAL')
+            op.material_name = mat.name
+
+        bindings = UsdShade.MaterialBindingAPI(mesh_prim)
+        rel_bind = bindings.GetDirectBindingRel()
+        print(rel_bind)
+        
+
+class HDUSD_NODE_OP_material_select(bpy.types.Operator):
+    """Select camera"""
+    bl_idname = "hdusd.usd_lis_material_select"
+    bl_label = "Material"
+
+    material_name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        print(self.material_name)
+        return {"FINISHED"}
 
 
 class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
