@@ -200,10 +200,10 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
             bind_path = str(bind_paths[0]) if bind_paths else ""
 
             prop_layout.separator()
-            prop_layout.label(text="Assign material")
-            row = prop_layout.row()
-            row.menu(HDUSD_NODE_MT_material_select.bl_idname, text="", icon='MATERIAL')
-            row.label(text=bind_path)
+            col = prop_layout.column(align=True)
+            col.menu(HDUSD_NODE_MT_material_select.bl_idname, text="Assign material", icon='MATERIAL')
+            if bind_path:
+                col.label(text=bind_path)
 
 
 class HDUSD_NODE_MT_material_select(bpy.types.Menu):
@@ -214,7 +214,7 @@ class HDUSD_NODE_MT_material_select(bpy.types.Menu):
         layout = self.layout
         materials = bpy.data.materials
 
-        op = layout.operator(HDUSD_NODE_OP_material_select.bl_idname, text="Unbind Material")
+        op = layout.operator(HDUSD_NODE_OP_material_select.bl_idname, text="Unbind", icon='X')
         op.material_name = ""
 
         for mat in materials:
