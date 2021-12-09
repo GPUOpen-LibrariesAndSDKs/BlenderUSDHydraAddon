@@ -39,7 +39,7 @@ class ObjectProperties(HdUSDProperties):
         usd_utils.bind_material(prim, usd_mat)
 
     def poll_material(self, mat):
-        return bool(mat.node_tree)
+        return mat.hdusd.mx_node_tree or mat.node_tree
 
     material: bpy.props.PointerProperty(
         name="Material",

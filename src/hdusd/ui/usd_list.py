@@ -218,7 +218,7 @@ class HDUSD_NODE_MT_material_select(bpy.types.Menu):
         op.material_name = ""
 
         for mat in materials:
-            if not mat.node_tree:
+            if not mat.node_tree and not mat.hdusd.mx_node_tree:
                 continue
 
             op = layout.operator(HDUSD_NODE_OP_material_select.bl_idname, text=mat.name, icon='MATERIAL')
