@@ -91,6 +91,10 @@ class HdUSDEngine(bpy.types.RenderEngine):
     # viewport render
     def view_update(self, context, depsgraph):
         """ Called when data is updated for viewport """
+        from . import handlers
+        if not handlers._do_depsgraph_update:
+            return
+
         log('view_update', self.as_pointer())
 
         try:

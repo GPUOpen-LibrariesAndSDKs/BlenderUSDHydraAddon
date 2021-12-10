@@ -1,0 +1,4 @@
+numpy
+requests
+PyOpenGL
+PySide2

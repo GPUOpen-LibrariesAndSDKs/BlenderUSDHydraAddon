@@ -120,6 +120,8 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     usd_list.HDUSD_NODE_PT_usd_nodetree_tools,
     usd_list.HDUSD_NODE_PT_usd_nodetree_dev,
     usd_list.HDUSD_NODE_OP_export_usd_file,
+    usd_list.HDUSD_NODE_MT_material_select,
+    usd_list.HDUSD_NODE_OP_material_select,
 
     mx_nodes.HDUSD_MX_OP_import_file,
     mx_nodes.HDUSD_MX_OP_export_file,

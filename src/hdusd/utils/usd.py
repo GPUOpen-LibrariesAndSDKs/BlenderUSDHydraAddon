@@ -17,6 +17,8 @@ import math
 import mathutils
 import bpy
 
+from pxr import UsdShade
+
 
 def get_xform_transform(xform):
     transform = mathutils.Matrix(xform.GetLocalTransformation())
@@ -57,3 +59,22 @@ def get_renderer_percent_done(renderer):
         percent = 0.0
 
     return percent
+
+
+def traverse_stage(stage, *, ignore=None):
+    def traverse(prim):
+        for child in prim.GetAllChildren():
+            if ignore and ignore(child):
+                continue
+
+            yield child
+            yield from traverse(child)
+
+    yield from traverse(stage.GetPseudoRoot())
+
+
+def bind_material(mesh_prim, usd_mat):
+    bindings = UsdShade.MaterialBindingAPI(mesh_prim)
+    bindings.UnbindAllBindings()
+    if usd_mat:
+        bindings.Bind(usd_mat)

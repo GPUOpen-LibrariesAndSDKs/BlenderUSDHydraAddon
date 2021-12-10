@@ -304,8 +304,7 @@ class BlenderDataNode(USDNode):
                             continue
                             
                         root_prim.GetStage().RemovePrim(root_prim.GetPath().AppendChild(key))
-
-                    is_updated = True
+                        is_updated = True
 
                 if keys_to_add:
                     for obj_data in ObjectData.depsgraph_objects(depsgraph):
@@ -313,8 +312,7 @@ class BlenderDataNode(USDNode):
                             continue
 
                         object.sync(root_prim, obj_data, **kwargs)
-
-                    is_updated = True
+                        is_updated = True
 
                 continue
 
