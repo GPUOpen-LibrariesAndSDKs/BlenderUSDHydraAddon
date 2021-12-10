@@ -193,6 +193,9 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
             elif prop.type == 'FLOAT':
                 prop_layout.prop(prop, 'value_float', text=prop.name)
 
+        if not config.usd_mesh_assign_material_enabled:
+            return
+
         prim = usd_list.selected_prim
         if prim.GetTypeName() == 'Mesh':
             bindings = UsdShade.MaterialBindingAPI(prim)
