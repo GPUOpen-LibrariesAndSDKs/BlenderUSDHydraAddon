@@ -176,10 +176,12 @@ def depsgraph_update(depsgraph):
         if isinstance(nodetree, USDTree):
             nodetree.depsgraph_update(depsgraph)
 
+
 def frame_change(depsgraph):
     for nodetree in bpy.data.node_groups:
         if isinstance(nodetree, USDTree):
             nodetree.frame_change(depsgraph)
+
 
 def material_update(material):
     for nodetree in bpy.data.node_groups:

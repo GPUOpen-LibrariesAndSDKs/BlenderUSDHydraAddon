@@ -14,10 +14,10 @@
 #********************************************************************
 import bpy
 
-from pxr import UsdGeom, Gf
+from pxr import UsdGeom, Gf, UsdShade
 
 from . import HdUSDProperties, CachedStageProp
-from ..export.object import get_transform_local
+from ..export import object, material
 from ..utils import usd as usd_utils
 
 
@@ -29,6 +29,25 @@ class ObjectProperties(HdUSDProperties):
 
     sdf_path: bpy.props.StringProperty(default="")
     cached_stage: bpy.props.PointerProperty(type=CachedStageProp)
+
+    def update_material(self, context):
+        prim = self.get_prim()
+        usd_mat = None
+        if self.material:
+            usd_mat = material.sync_update(prim, self.material, None)
+
+        usd_utils.bind_material(prim, usd_mat)
+
+    def poll_material(self, mat):
+        return mat.hdusd.mx_node_tree or mat.node_tree
+
+    material: bpy.props.PointerProperty(
+        name="Material",
+        description="Select material for USD mesh",
+        type=bpy.types.Material,
+        update=update_material,
+        poll=poll_material
+    )
 
     @property
     def is_usd(self):
@@ -59,7 +78,7 @@ class ObjectProperties(HdUSDProperties):
 
         obj = self.id_data
         xform = UsdGeom.Xform(prim)
-        xform.MakeMatrixXform().Set(Gf.Matrix4d(get_transform_local(obj)))
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(object.get_transform_local(obj)))
 
 
 def depsgraph_update(depsgraph):

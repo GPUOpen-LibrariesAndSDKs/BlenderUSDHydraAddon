@@ -136,6 +136,11 @@ class ViewportEngine(Engine):
             if isinstance(engine, cls):
                 yield engine
 
+    @classmethod
+    def tag_redraw(cls):
+        for engine in cls.get_engines():
+            engine.render_engine.tag_redraw()
+
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
 

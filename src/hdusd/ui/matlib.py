@@ -39,6 +39,16 @@ class HDUSD_MATERIAL_OP_matlib_clear_search(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class HDUSD_MATLIB_OP_load_materials(bpy.types.Operator):
+    """Load materials"""
+    bl_idname = "hdusd.matlib_load"
+    bl_label = "Reload Library"
+
+    def execute(self, context):
+        manager.check_load_materials(reset=True)
+        return {"FINISHED"}
+
+
 class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
     """Import Material Package to material"""
     bl_idname = "hdusd.matlib_import_material"
@@ -86,8 +96,10 @@ class HDUSD_MATLIB_OP_load_package(HdUSD_Operator):
 
 
 class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
+    bl_idname = "HDUSD_MATLIB_PT_matlib"
     bl_label = "Material Library"
     bl_context = "material"
+    bl_region_type = 'WINDOW'
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
@@ -113,7 +125,7 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
         col = layout.column(align=True)
         materials = matlib_prop.get_materials()
         if not materials:
-            col.label(text="No materials found")
+            col.label(text="Start syncing..." if not manager.materials else "No materials found")
             return
 
         row = col.row()
@@ -169,3 +181,20 @@ class HDUSD_MATLIB_PT_matlib(HdUSD_Panel):
                 row.operator(HDUSD_MATLIB_OP_load_package.bl_idname, icon='IMPORT',
                              text=f"Downloading Package...{percent}%")
                 row.enabled = False
+
+
+class HDUSD_MATLIB_PT_matlib_tools(HdUSD_Panel):
+    bl_label = "Tools"
+    bl_context = "material"
+    bl_region_type = 'WINDOW'
+    bl_parent_id = 'HDUSD_MATLIB_PT_matlib'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.label(text=manager.status)
+
+        row = col.row()
+        row.enabled = manager.is_synced
+        row.operator(HDUSD_MATLIB_OP_load_materials.bl_idname, icon='FILE_REFRESH')
