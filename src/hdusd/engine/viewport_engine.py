@@ -306,21 +306,20 @@ class ViewportEngine(Engine):
         settings = self.get_settings(scene)
 
         self.is_gl_delegate = settings.is_gl_delegate
+        self.renderer.SetRendererPlugin(settings.delegate)
+
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
             quality = hdrpr.interactive_quality
             denoise = hdrpr.denoise
 
-            # self.renderer.SetRendererPlugin(f"{settings.delegate}:{hdrpr.render_quality}")
-            self.renderer.SetRendererPlugin(settings.delegate)
-
-            self.renderer.SetRendererSetting('renderMode', 'interactive')
+            # self.renderer.SetRendererSetting('renderMode', 'interactive')
             # self.renderer.SetRendererSetting('rpr:interactive', True)
             self.renderer.SetRendererSetting('rpr:alpha:enable', False)
 
             # self.renderer.SetRendererSetting('renderDevice', hdrpr.device)
-            # self.renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
-            self.renderer.SetRendererSetting('coreRenderMode', hdrpr.render_mode)
+            self.renderer.SetRendererSetting('rpr:core:renderQuality', hdrpr.render_quality)
+            self.renderer.SetRendererSetting('rpr:core:renderMode', hdrpr.render_mode)
 
             self.renderer.SetRendererSetting('rpr:ambientOcclusion:radius', hdrpr.ao_radius)
 
@@ -335,9 +334,6 @@ class ViewportEngine(Engine):
             self.renderer.SetRendererSetting('rpr:denoising:enable', denoise.enable)
             self.renderer.SetRendererSetting('rpr:denoising:minIter', denoise.min_iter)
             self.renderer.SetRendererSetting('rpr:denoising:iterStep', denoise.iter_step)
-
-        else:
-            self.renderer.SetRendererPlugin(settings.delegate)
 
     def _check_restart_renderer(self, scene):
         restart = False

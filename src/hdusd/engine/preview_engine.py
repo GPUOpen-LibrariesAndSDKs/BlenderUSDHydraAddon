@@ -74,8 +74,11 @@ class PreviewEngine(Engine):
 
         renderer = UsdImagingLite.Engine()
         renderer.SetRendererPlugin('HdRprPlugin')
-        renderer.SetRendererSetting('maxSamples', self.SAMPLES_NUMBER)
-        renderer.SetRendererSetting('renderQuality', 'Northstar')
+        renderer.SetRendererSetting('rpr:maxSamples', self.SAMPLES_NUMBER)
+        renderer.SetRendererSetting('rpr:core:renderQuality', 'Northstar')
+        renderer.SetRendererSetting('rpr:alpha:enable', False)
+        renderer.SetRendererSetting('rpr:adaptiveSampling:minSamples', 16)
+        renderer.SetRendererSetting('rpr:adaptiveSampling:noiseTreshold', 0.05)
 
         renderer.SetRenderViewport((0, 0, width, height))
         renderer.SetRendererAov('color')
