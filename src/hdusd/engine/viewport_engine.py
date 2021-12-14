@@ -306,33 +306,38 @@ class ViewportEngine(Engine):
         settings = self.get_settings(scene)
 
         self.is_gl_delegate = settings.is_gl_delegate
-        self.renderer.SetRendererPlugin(settings.delegate)
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
             quality = hdrpr.interactive_quality
             denoise = hdrpr.denoise
 
+            # self.renderer.SetRendererPlugin(f"{settings.delegate}:{hdrpr.render_quality}")
+            self.renderer.SetRendererPlugin(settings.delegate)
+
             self.renderer.SetRendererSetting('renderMode', 'interactive')
             # self.renderer.SetRendererSetting('rpr:interactive', True)
-            self.renderer.SetRendererSetting('enableAlpha', False)
+            self.renderer.SetRendererSetting('rpr:alpha:enable', False)
 
-            self.renderer.SetRendererSetting('renderDevice', hdrpr.device)
-            self.renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
+            # self.renderer.SetRendererSetting('renderDevice', hdrpr.device)
+            # self.renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
             self.renderer.SetRendererSetting('coreRenderMode', hdrpr.render_mode)
 
-            self.renderer.SetRendererSetting('aoRadius', hdrpr.ao_radius)
+            self.renderer.SetRendererSetting('rpr:ambientOcclusion:radius', hdrpr.ao_radius)
 
-            self.renderer.SetRendererSetting('maxSamples', hdrpr.max_samples)
-            self.renderer.SetRendererSetting('minAdaptiveSamples', hdrpr.min_adaptive_samples)
-            self.renderer.SetRendererSetting('varianceThreshold', hdrpr.variance_threshold)
+            self.renderer.SetRendererSetting('rpr:maxSamples', hdrpr.max_samples)
+            self.renderer.SetRendererSetting('rpr:adaptiveSampling:minSamples', hdrpr.min_adaptive_samples)
+            self.renderer.SetRendererSetting('rpr:adaptiveSampling:noiseTreshold', hdrpr.variance_threshold)
 
-            self.renderer.SetRendererSetting('interactiveMaxRayDepth', quality.max_ray_depth)
-            self.renderer.SetRendererSetting('interactiveEnableDownscale', quality.enable_downscale)
-            self.renderer.SetRendererSetting('interactiveResolutionDownscale', quality.resolution_downscale)
+            self.renderer.SetRendererSetting('rpr:quality:interactive:rayDepth', quality.max_ray_depth)
+            self.renderer.SetRendererSetting('rpr:quality:interactive:downscale:enable', quality.enable_downscale)
+            self.renderer.SetRendererSetting('rpr:quality:interactive:downscale:resolution', quality.resolution_downscale)
 
-            self.renderer.SetRendererSetting('enableDenoising', denoise.enable)
-            self.renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
-            self.renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
+            self.renderer.SetRendererSetting('rpr:denoising:enable', denoise.enable)
+            self.renderer.SetRendererSetting('rpr:denoising:minIter', denoise.min_iter)
+            self.renderer.SetRendererSetting('rpr:denoising:iterStep', denoise.iter_step)
+
+        else:
+            self.renderer.SetRendererPlugin(settings.delegate)
 
     def _check_restart_renderer(self, scene):
         restart = False
