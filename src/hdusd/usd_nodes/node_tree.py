@@ -95,7 +95,8 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            node.frame_change(depsgraph)
+            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)):
+                node.frame_change(depsgraph)
 
     def material_update(self, depsgraph):
         if self._is_resetting:
