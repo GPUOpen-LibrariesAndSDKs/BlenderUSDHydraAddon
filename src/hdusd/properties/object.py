@@ -71,6 +71,10 @@ class ObjectProperties(HdUSDProperties):
         prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
         prim_obj.hide_viewport = prim.GetTypeName() not in GEOM_TYPES
 
+    def sync_transform_from_prim(self, prim):
+        prim_obj = self.id_data
+        prim_obj.matrix_local = usd_utils.get_xform_transform(UsdGeom.Xform(prim))
+
     def sync_to_prim(self):
         prim = self.get_prim()
         if not prim:

@@ -181,6 +181,9 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
             sort_lock=True
         )
 
+        if usd_list.item_index < 0:
+            return
+
         prop_layout = layout.column()
         prop_layout.use_property_split = True
         prop_layout.use_property_decorate = True
