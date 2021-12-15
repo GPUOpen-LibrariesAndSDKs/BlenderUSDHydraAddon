@@ -77,6 +77,7 @@ class QualitySettings(bpy.types.PropertyGroup):
         name="Ray Cast Epsilon",
         description="Determines an offset used to move light rays away from the geometry for\n"
                     "ray-surface intersection calculations",
+        subtype='DISTANCE',
         min=1e-6, max=1.0,
         default=2e-3,
     )
@@ -87,8 +88,8 @@ class QualitySettings(bpy.types.PropertyGroup):
     )
     radiance_clamping: FloatProperty(
         name="Max Radiance",
-        description="Limits the intensity, or the maximum brightness, of samples in the scene.\n"
-                    "Greater clamp radiance values produce more brightness",
+        description="Limits the intensity or the maximum brightness of samples in the scene.\n"
+                    "Greater clamp radiance values produce more brightness. Set to 0 ot disable clamping",
         min=0.0, max=1e6,
         default=0.0,
     )
