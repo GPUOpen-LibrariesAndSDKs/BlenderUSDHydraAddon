@@ -345,6 +345,11 @@ class ViewportEngine(Engine):
             hdrpr = settings.hdrpr
             restart = self.renderer.GetRendererSetting('renderQuality') != hdrpr.render_quality
 
+        # temporary solution due to "material preview red painting" issue
+        # we need to restart renderer to remove red from material after switching from material preview
+        if settings.delegate == "HdStormRendererPlugin" and self.shading_data.type == 'MATERIAL':
+            restart = True
+
         return restart
 
 
