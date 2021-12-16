@@ -28,6 +28,10 @@ mx_node_classes = []
 for mod in gen_modules:
     mx_node_classes.extend(mod.mx_node_classes)
 
+# sorting by category and label
+mx_node_classes = sorted(mx_node_classes, key=lambda cls: (cls.category.lower(), cls.bl_label.lower()))
+
+
 register_sockets, unregister_sockets = bpy.utils.register_classes_factory([
     base_node.MxNodeInputSocket,
     base_node.MxNodeOutputSocket,

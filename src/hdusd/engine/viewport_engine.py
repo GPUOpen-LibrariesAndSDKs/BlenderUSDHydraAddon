@@ -136,6 +136,11 @@ class ViewportEngine(Engine):
             if isinstance(engine, cls):
                 yield engine
 
+    @classmethod
+    def tag_redraw(cls):
+        for engine in cls.get_engines():
+            engine.render_engine.tag_redraw()
+
     def __init__(self, rpr_engine):
         super().__init__(rpr_engine)
 
@@ -188,7 +193,7 @@ class ViewportEngine(Engine):
         self.shading_data = world.ShadingData(context, depsgraph.scene.world)
 
         self.render_params = UsdImagingGL.RenderParams()
-        self.render_params.frame = Usd.TimeCode.Default()
+        self.render_params.frame = Usd.TimeCode(scene.frame_current)
 
         self.renderer = UsdImagingGL.Engine()
 
@@ -206,6 +211,7 @@ class ViewportEngine(Engine):
             return
 
         settings = self.get_settings(depsgraph.scene)
+        self.render_params.frame = Usd.TimeCode(depsgraph.scene.frame_current)
 
         if self.renderer.IsPauseRendererSupported():
             self.renderer.PauseRenderer()

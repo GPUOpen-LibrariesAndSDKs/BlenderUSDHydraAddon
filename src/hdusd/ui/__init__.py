@@ -102,9 +102,11 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     material.HDUSD_MATERIAL_PT_dev,
 
     matlib.HDUSD_MATERIAL_OP_matlib_clear_search,
+    matlib.HDUSD_MATLIB_OP_load_materials,
     matlib.HDUSD_MATLIB_OP_import_material,
     matlib.HDUSD_MATLIB_OP_load_package,
     matlib.HDUSD_MATLIB_PT_matlib,
+    matlib.HDUSD_MATLIB_PT_matlib_tools,
 
     world.HDUSD_WORLD_PT_surface,
 
@@ -117,6 +119,9 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     usd_list.HDUSD_OP_usd_nodetree_add_basic_nodes,
     usd_list.HDUSD_NODE_PT_usd_nodetree_tools,
     usd_list.HDUSD_NODE_PT_usd_nodetree_dev,
+    usd_list.HDUSD_NODE_OP_export_usd_file,
+    usd_list.HDUSD_NODE_MT_material_select,
+    usd_list.HDUSD_NODE_OP_material_select,
 
     mx_nodes.HDUSD_MX_OP_import_file,
     mx_nodes.HDUSD_MX_OP_export_file,

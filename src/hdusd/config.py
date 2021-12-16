@@ -20,6 +20,7 @@ logging_backups = 5
 # other settings
 matlib_enabled = False
 engine_use_preview = True
+usd_mesh_assign_material_enabled = False
 
 # dev settings
 show_dev_settings = False

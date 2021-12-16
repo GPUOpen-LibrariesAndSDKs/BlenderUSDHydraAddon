@@ -22,17 +22,12 @@ from pathlib import Path
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 from ..mx_nodes.nodes.base_node import is_mx_node_valid
-from ..utils import get_temp_file, pass_node_reroute
+from ..utils import get_temp_file, pass_node_reroute, title_str
 from ..utils import mx as mx_utils
 from .. import config
 
 from ..utils import logging
 log = logging.Log(tag='ui.mx_nodes')
-
-
-NODE_SHADER_CATEGORIES = set(['PBR'])
-NODE_EXCLUDE_CATEGORIES = set(['material'])
-NODE_LINK_CATEGORY = 'Link'
 
 
 class HDUSD_MATERIAL_PT_context(HdUSD_Panel):
@@ -285,52 +280,57 @@ class HDUSD_MATERIAL_OP_invoke_popup_input_nodes(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_popup(self, width=1000)
+        return context.window_manager.invoke_popup(self, width=600)
 
     def draw(self, context):
         from ..mx_nodes.nodes import mx_node_classes
 
-        row = self.layout.split().row()
-        col = row.column()
+        MAX_COLUMN_ITEMS = 34
 
-        categories = sorted(set(node.category for node in mx_node_classes)
-                            - NODE_SHADER_CATEGORIES - NODE_EXCLUDE_CATEGORIES)
-        for i, category in enumerate(categories):
-            if i % 4 == 0:
-                col = row.column()
+        split = self.layout.split()
+        cat = ""
+        i = 0
+        col = None
+        for cls in mx_node_classes:
+            if cls.category in ("PBR", "material"):
+                continue
+
+            if not col or i >= MAX_COLUMN_ITEMS:
+                i = 0
+                col = split.column()
+                col.emboss = 'PULLDOWN_MENU'
+
+            if cat != cls.category:
+                cat = cls.category
+                col.label(text=title_str(cat), icon='NODE')
+                i += 1
+
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname, text=cls.bl_label)
+            op.new_node_name = cls.bl_idname
+            op.input_num = self.input_num
+            op.current_node_name = self.current_node_name
+            i += 1
+
+        input = context.material.hdusd.mx_node_tree.nodes[self.current_node_name].inputs[self.input_num]
+        if input.is_linked:
+            link = input.links[0]
+
+            col = split.column()
             col.emboss = 'PULLDOWN_MENU'
-            col.label(text=category.title(), icon='NODE')
-            for node in mx_node_classes:
-                if node.category == category:
-                    row1 = col.row()
-                    row1.alignment = 'LEFT'
-                    op = row1.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
-                                      text=node.bl_label)
-                    op.new_node_name = node.bl_idname
-                    op.input_num = self.input_num
-                    op.current_node_name = self.current_node_name
+            col.label(text="Link")
 
-        node_tree = context.material.hdusd.mx_node_tree
-        node_inputs = node_tree.nodes[self.current_node_name].inputs
-        if node_inputs[self.input_num].is_linked:
-            col = row.column()
-            col.emboss = 'PULLDOWN_MENU'
-            col.label(text=NODE_LINK_CATEGORY)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname)
+            op.input_node_name = link.from_node.name
 
-            link = next((link for link in node_inputs[self.input_num].links), None)
-            
-            if link:
-                row1 = col.row()
-                row1.alignment = 'LEFT'
-                op = row1.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
-                                  text=HDUSD_MATERIAL_OP_remove_node.bl_label)
-                op.input_node_name = link.from_node.name
-                row1 = col.row()
-                row1.alignment = 'LEFT'
-                op = row1.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
-                                  text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
-                op.output_node_name = link.to_node.name
-                op.input_num = self.input_num
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname)
+            op.output_node_name = link.to_node.name
+            op.input_num = self.input_num
 
 
 class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
@@ -345,49 +345,46 @@ class HDUSD_MATERIAL_OP_invoke_popup_shader_nodes(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_popup(self, width=400)
+        return context.window_manager.invoke_popup(self, width=300)
 
     def draw(self, context):
         from ..mx_nodes.nodes import mx_node_classes
 
-        row = self.layout.split().row()
+        split = self.layout.split()
+        col = split.column()
+        col.emboss = 'PULLDOWN_MENU'
+        col.label(text="PBR", icon='NODE')
 
         output_node = context.material.hdusd.mx_node_tree.output_node
-        for category in sorted(NODE_SHADER_CATEGORIES):
-            col = row.column()
+        for cls in mx_node_classes:
+            if cls.category != "PBR":
+                continue
+
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname, text=cls.bl_label)
+            op.new_node_name = cls.bl_idname
+            op.input_num = self.input_num
+            op.current_node_name = output_node.name
+
+        input = output_node.inputs[self.input_num]
+        if input.is_linked:
+            link = input.links[0]
+
+            col = split.column()
             col.emboss = 'PULLDOWN_MENU'
-            col.label(text=category, icon='NODE')
-            for node in mx_node_classes:
-                if node.category == category:
-                    row1 = col.row()
-                    row1.alignment = 'LEFT'
-                    op = row1.operator(HDUSD_MATERIAL_OP_link_mx_node.bl_idname,
-                                      text=node.bl_label)
-                    op.new_node_name = node.bl_idname
-                    op.input_num = self.input_num
-                    op.current_node_name = output_node.name
+            col.label(text="Link")
 
-        node_inputs = output_node.inputs
-        if node_inputs[self.input_num].is_linked:
-            col = row.column()
-            col.emboss = 'PULLDOWN_MENU'
-            col.label(text=NODE_LINK_CATEGORY)
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname)
+            op.input_node_name = link.from_node.name
 
-            link = next((link for link in node_inputs[self.input_num].links), None)
-
-            if link:
-                row1 = col.row()
-                row1.alignment = 'LEFT'
-                op = row1.operator(HDUSD_MATERIAL_OP_remove_node.bl_idname,
-                                  text=HDUSD_MATERIAL_OP_remove_node.bl_label)
-                op.input_node_name = link.from_node.name
-
-                row1 = col.row()
-                row1.alignment = 'LEFT'
-                op = row1.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname,
-                                  text=HDUSD_MATERIAL_OP_disconnect_node.bl_label)
-                op.output_node_name = link.to_node.name
-                op.input_num = self.input_num
+            row = col.row()
+            row.alignment = 'LEFT'
+            op = row.operator(HDUSD_MATERIAL_OP_disconnect_node.bl_idname)
+            op.output_node_name = link.to_node.name
+            op.input_num = self.input_num
 
 
 class HDUSD_MATERIAL_OP_remove_node(bpy.types.Operator):

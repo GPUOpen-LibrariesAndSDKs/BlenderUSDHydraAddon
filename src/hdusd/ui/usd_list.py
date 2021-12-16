@@ -12,13 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import bpy
+import traceback
+from pathlib import Path
 
-from pxr import UsdGeom
+import bpy
+import MaterialX as mx
+
+from pxr import UsdGeom, Usd, Sdf, UsdShade
+from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
+from ..mx_nodes.node_tree import MxNodeTree
+from ..engine.viewport_engine import ViewportEngineNodetree
+
 from .. import config
+from ..utils import get_temp_file, temp_pid_dir
+from ..utils import mx as mx_utils
+from ..export import material
+from ..utils import usd as usd_utils
 
 from ..utils import logging
 log = logging.Log('ui.usd_list')
@@ -159,8 +171,7 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
         return node and isinstance(node, USDNode)
 
     def draw(self, context):
-        node = context.active_node
-        usd_list = node.hdusd.usd_list
+        usd_list = context.active_node.hdusd.usd_list
         layout = self.layout
 
         layout.template_list(
@@ -170,8 +181,13 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
             sort_lock=True
         )
 
+        if usd_list.item_index < 0:
+            return
+
         prop_layout = layout.column()
         prop_layout.use_property_split = True
+        prop_layout.use_property_decorate = True
+
         for prop in usd_list.prim_properties:
             if prop.type == 'STR' and prop.value_str:
                 row = prop_layout.row()
@@ -179,6 +195,62 @@ class HDUSD_NODE_PT_usd_list(HdUSD_Panel):
                 row.prop(prop, 'value_str', text=prop.name)
             elif prop.type == 'FLOAT':
                 prop_layout.prop(prop, 'value_float', text=prop.name)
+
+        if not config.usd_mesh_assign_material_enabled:
+            return
+
+        prim = usd_list.selected_prim
+        if prim.GetTypeName() == 'Mesh':
+            bindings = UsdShade.MaterialBindingAPI(prim)
+            bind_paths = bindings.GetDirectBindingRel().GetTargets()
+            bind_path = str(bind_paths[0]) if bind_paths else ""
+
+            prop_layout.separator()
+            col = prop_layout.column(align=True)
+            col.menu(HDUSD_NODE_MT_material_select.bl_idname, text="Assign material", icon='MATERIAL')
+            if bind_path:
+                col.label(text=bind_path)
+
+
+class HDUSD_NODE_MT_material_select(bpy.types.Menu):
+    bl_idname = "HDUSD_NODE_MT_material_select"
+    bl_label = "Material"
+
+    def draw(self, context):
+        layout = self.layout
+        materials = bpy.data.materials
+
+        op = layout.operator(HDUSD_NODE_OP_material_select.bl_idname, text="Unbind", icon='X')
+        op.material_name = ""
+
+        for mat in materials:
+            if not mat.node_tree and not mat.hdusd.mx_node_tree:
+                continue
+
+            op = layout.operator(HDUSD_NODE_OP_material_select.bl_idname, text=mat.name, icon='MATERIAL')
+            op.material_name = mat.name
+
+
+class HDUSD_NODE_OP_material_select(bpy.types.Operator):
+    """Select camera"""
+    bl_idname = "hdusd.usd_lis_material_select"
+    bl_label = "Material"
+
+    material_name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        mat = bpy.data.materials.get(self.material_name)
+        usd_list = context.active_node.hdusd.usd_list
+        prim = usd_list.selected_prim
+
+        usd_mat = None
+        if mat:
+            usd_mat = material.sync_update(prim, mat, None)
+
+        usd_utils.bind_material(prim, usd_mat)
+
+        ViewportEngineNodetree.tag_redraw()
+        return {"FINISHED"}
 
 
 class HDUSD_OP_usd_nodetree_add_basic_nodes(bpy.types.Operator):
@@ -256,6 +328,241 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
         return {'FINISHED'}
 
 
+def ensure_filepath_matches_export_format(filepath, export_format):
+    filename = Path(filepath).name
+    if not filename:
+        return filepath
+
+    stem = Path(filepath).stem
+    ext = Path(filepath).suffix
+    if stem.startswith(".") and not ext:
+        stem, ext = "", stem
+
+    if ext:
+        ext_lower = ext.lower()
+    else:
+        ext_lower = ".usdc"
+        filepath = f"{filepath}{ext_lower}"
+
+    if ext_lower not in [".usda", ".usdc"]:
+        return filepath + export_format
+    elif ext_lower != export_format:
+        filepath = filepath[:-len(ext)]  # strip off ext
+        return filepath + export_format
+    else:
+        return filepath
+
+
+def on_export_format_changed(self, context):
+    # Update the filename in the file browser when the format (.usda/.usdc) changes
+    sfile = context.space_data
+    if not isinstance(sfile, bpy.types.SpaceFileBrowser):
+        return
+    if not sfile.active_operator:
+        return
+    if sfile.active_operator.bl_idname != "HDUSD_OT_export_usd_file":
+        return
+
+    sfile.params.filename = ensure_filepath_matches_export_format(sfile.params.filename, self.export_format)
+
+
+class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
+    bl_idname = "hdusd.export_usd_file"
+    bl_label = "Export USD"
+    bl_description = "Export USD node tree to .usd file"
+
+    filename_ext = ""
+    filepath: bpy.props.StringProperty(
+        name="File Path",
+        description="File path used for exporting material as USD node tree to .usda file",
+        maxlen=1024, subtype="FILE_PATH"
+    )
+    filter_glob: bpy.props.StringProperty(default="*.usda;*.usdc", options={'HIDDEN'}, )
+
+    is_pack_into_one_file: bpy.props.BoolProperty(name="Pack into one file",
+                                                  description="Pack all references into one file",
+                                                  default=True)
+
+    export_format: bpy.props.EnumProperty(
+        name="Format",
+        items=(('.usda', "Text (.usda)",
+                "Exports a file, with all data in Human-readable form. "
+                "Less efficient than binary, but easier to edit later"),
+               ('.usdc', "Binary (.usdc)",
+                "Exports a file, with all data packed in binary form. "
+                "Most efficient and portable, but more difficult to edit later"),),
+        description="Output format and embedding options. Binary is most efficient, "
+                    "but JSON (embedded or separate) may be easier to edit later",
+        default='.usdc',
+        update=on_export_format_changed,
+    )
+
+    def check(self, context):
+        # Ensure file extension matches format
+        old_filepath = self.filepath
+        self.filepath = ensure_filepath_matches_export_format(self.filepath, self.export_format)
+        return self.filepath != old_filepath
+
+    def draw(self, context):
+        self.layout.prop(self, 'is_pack_into_one_file')
+        self.layout.prop(self, 'export_format')
+
+    def execute(self, context):
+        node_tree = context.space_data.edit_tree
+        output_node = node_tree.get_output_node()
+
+        input_stage = output_node.cached_stage()
+        if not input_stage:
+            log.warn(f"Unable to export USD node '{node_tree.name}':'{output_node.name}' stage: could not get the correct stage")
+            return {'CANCELLED'}
+
+        if not Path(self.filepath).suffix:
+            log.warn(f"Unable to export USD node '{node_tree.name}':'{output_node.name}' stage: write correct file name")
+            return {'CANCELLED'}
+
+        if self.is_pack_into_one_file:
+            input_stage.Export(self.filepath)
+            log.info(f"Export of '{node_tree.name}':'{output_node.name}' stage to {self.filepath}: completed successfuly")
+            return {'FINISHED'}
+
+        self.check(context)
+
+        new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usdc")))
+
+        root_layer = new_stage.GetRootLayer()
+        root_layer.TransferContent(input_stage.GetRootLayer())
+
+        dest_path_root_dir = Path(self.filepath).parent
+
+        temp_dir = temp_pid_dir()
+
+        # we need to store all absolute paths and their relative destinations to change absolute references to relative ones
+        paths_dict = {}
+
+        def _update_layer_refs(layer, root_path=[]):
+            for ref in layer.GetCompositionAssetDependencies():
+                ref_path = Path(ref)
+                ref_name = ref_path.name
+                if ref_path.suffix == ".mtlx":
+                    doc = mx.createDocument()
+                    source_path = Path(f"{new_stage.GetPathResolverContext().GetSearchPath()[0]}/{ref}")
+                    dest_path = f"{dest_path_root_dir}/{ref_name}"
+                    search_path = mx.FileSearchPath(str(source_path.parent))
+                    search_path.append(str(mx_utils.MX_LIBS_DIR))
+                    mx.readFromXmlFile(doc, str(source_path), searchPath=search_path)
+
+                    mx_node_tree = next((mat.hdusd.mx_node_tree for mat in bpy.data.materials
+                                         if mat.hdusd.mx_node_tree
+                                         and source_path.stem.startswith(mat.name_full)
+                                         and source_path.stem.endswith(mat.hdusd.mx_node_tree.name_full)), None)
+
+                    if not mx_node_tree:
+                        mat = bpy.data.materials.get(source_path.stem, None)
+                        if not mat:
+                            continue
+
+                        mx_node_tree = bpy.data.node_groups.new(f"MX_{mat.name}", type=MxNodeTree.bl_idname)
+
+                        mat.hdusd.mx_node_tree = mx_node_tree
+
+                        try:
+                            mx_node_tree.import_(doc, source_path)
+                        except Exception as e:
+                            log.error(traceback.format_exc(), source_path)
+                            bpy.data.node_groups.remove(mx_node_tree)
+                            continue
+
+                        # after mx_node_tree.import_ reference updated, so we need to change them back
+                        # since we convert material only to get mx_node_tree
+                        layer.UpdateCompositionAssetDependency(f"./{mat.name}{mat.hdusd.mx_node_tree.name}.mtlx", ref)
+
+                        mx_utils.export_mx_to_file(
+                            doc, dest_path,
+                            is_export_textures=True,
+                            is_export_deps=True,
+                            mx_node_tree=mx_node_tree,
+                            is_clean_texture_folder=False,
+                            is_clean_deps_folders=False)
+
+                        bpy.data.node_groups.remove(mx_node_tree)
+                        continue
+
+                    mx_utils.export_mx_to_file(
+                        doc, dest_path,
+                        is_export_textures=True,
+                        is_export_deps=True,
+                        mx_node_tree=mx_node_tree,
+                        is_clean_texture_folder=False,
+                        is_clean_deps_folders=False)
+
+                else:
+                    ref_layer_path = str(ref_path if ref_path.is_absolute()
+                                         else Path(layer.realPath).parent.joinpath(ref_path))
+
+                    ref_layer = Sdf.Layer.Find(ref_layer_path)
+
+                    if not temp_dir in Path(ref_layer_path).parents:
+                        # if reference is absolute, then we need to add its parent dir name, otherwise we add relative path
+                        if ref_path.is_absolute():
+                            val = Path(ref_layer_path).parent.name
+                        else:
+                            val = str(ref_path.parent)
+
+                        root_path.append(val)
+
+                    if ref_layer.GetCompositionAssetDependencies():
+                        _update_layer_refs(ref_layer, root_path)
+
+                    # if reference is not absolute, we need to build path from our list to get full path from root to curr layer
+                    if temp_dir in Path(ref_layer_path).parents:
+                        dest_path = Path(f"{dest_path_root_dir}/{ref_name}")
+                    else:
+                        dest_path = dest_path_root_dir / "\\".join(root_path) / ref_name
+
+                    ref_layer.Export(str(dest_path))
+
+                    rel_dest_path = dest_path.relative_to(dest_path_root_dir)
+
+                    if ref_path.is_absolute():
+                        paths_dict[ref_path] = rel_dest_path
+
+                    # after we export reference, we need to open it from destination
+                    # to edit its own absolute references to make them relative
+                    exported_ref_stage = Usd.Stage.Open(str(dest_path))
+                    exported_ref_stage_root_layer = exported_ref_stage.GetRootLayer()
+                    for source_ref in exported_ref_stage_root_layer.GetCompositionAssetDependencies():
+                        source_ref_path = Path(source_ref)
+
+                        if source_ref_path.is_absolute():
+                            exported_ref_stage_root_layer.UpdateCompositionAssetDependency(source_ref, str(paths_dict[source_ref_path]))
+                            exported_ref_stage_root_layer.Save()
+
+                    log(f"Export file {ref} to {dest_path}: completed successfuly")
+
+                    # removing path to the current layer before we append new path for the next layer
+                    if len(root_path):
+                        root_path.pop()
+
+            # it is the last layer - root exported layer
+            if layer is root_layer:
+                dest_path = f"{dest_path_root_dir}/{Path(self.filepath).name}"
+                # editing its absolute references to make them relative
+                for source_ref in layer.GetCompositionAssetDependencies():
+                    source_ref_path = Path(source_ref)
+
+                    if source_ref_path.is_absolute():
+                        layer.UpdateCompositionAssetDependency(source_ref, str(paths_dict[source_ref_path]))
+
+                layer.Export(dest_path)
+                log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
+
+        _update_layer_refs(root_layer)
+
+        log.info(f"Export of USD node tree {node_tree.name_full} finished")
+
+        return {'FINISHED'}
+
+
 class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
     bl_label = "USD Tools"
     bl_space_type = "NODE_EDITOR"
@@ -270,6 +577,7 @@ class HDUSD_NODE_PT_usd_nodetree_tools(HdUSD_Panel):
     def draw(self, context):
         layout = self.layout
 
+        layout.operator(HDUSD_NODE_OP_export_usd_file.bl_idname, icon='EXPORT', text="Export USD to file")
         layout.label(text="Replace current tree using")
         layout.operator(HDUSD_OP_usd_nodetree_add_basic_nodes.bl_idname,
                         text="Blender Scene", icon='SCENE_DATA').scene_source = "SCENE"
