@@ -264,11 +264,14 @@ class ViewportEngine(Engine):
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
         self.render_params.clipPlanes = [Gf.Vec4d(i) for i in gf_camera.clippingPlanes]
 
-        if self.shading_data.type == 'MATERIAL' and self.is_gl_delegate:
+        if self.is_gl_delegate:
             l = Glf.SimpleLight()
             l.ambient = (0, 0, 0, 0)
             l.position = (*gf_camera.frustum.position, 1)
 
+            if not self.shading_data.type == 'MATERIAL':
+                l.isDomeLight = True
+                
             mat = Glf.SimpleMaterial()
 
             self.renderer.SetLightingState((l,), mat, (0, 0, 0, 0))
