@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import bpy
+from ..utils import mx as mx_utils
 
 
 def get_panels():
@@ -81,9 +82,15 @@ def register():
     for panel in get_panels():
         panel.COMPAT_ENGINES.add('HdUSD')
 
+    # set update for material ui according to MaterialX nodetree header changes
+    bpy.types.NODE_HT_header.append(mx_utils.update_material_iu)
+
 
 def unregister():
     # remove HdUSD panels filter
     for panel in get_panels():
         if 'HdUSD' in panel.COMPAT_ENGINES:
             panel.COMPAT_ENGINES.remove('HdUSD')
+
+    # remove update for material ui according to MaterialX nodetree header changes
+    bpy.types.NODE_HT_header.remove(mx_utils.update_material_iu)

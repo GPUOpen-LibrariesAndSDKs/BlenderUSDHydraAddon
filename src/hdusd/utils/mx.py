@@ -289,3 +289,17 @@ def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
 
     mx.writeToXmlFile(doc, filepath)
     log(f"Export MaterialX to {filepath}: completed successfuly")
+
+
+# update for material ui according to MaterialX nodetree header changes
+def update_material_iu(self, context):
+    space = context.space_data
+    if space.tree_type != 'hdusd.MxNodeTree':
+        return
+
+    mat = context.object.active_material
+    ui_mx_node_tree = mat.hdusd.mx_node_tree
+    editor_node_tree = space.node_tree
+
+    if editor_node_tree != ui_mx_node_tree:
+        mat.hdusd.mx_node_tree = editor_node_tree

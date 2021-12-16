@@ -735,13 +735,18 @@ def depsgraph_update(depsgraph):
             if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
                 continue
 
-            area.ui_type = 'hdusd.MxNodeTree'
             space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-            space.node_tree = mx_node_tree
+            if not space.pin:
+                bpy.types.NODE_HT_header.remove(mx_utils.update_material_iu)
+                area.ui_type = 'hdusd.MxNodeTree'
+                space.node_tree = mx_node_tree
+                bpy.types.NODE_HT_header.append(mx_utils.update_material_iu)
 
     else:
         for area in screen.areas:
             if area.ui_type != 'hdusd.MxNodeTree':
                 continue
 
-            area.ui_type = 'ShaderNodeTree'
+            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+            if not space.pin:
+                area.ui_type = 'ShaderNodeTree'
