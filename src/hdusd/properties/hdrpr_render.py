@@ -212,7 +212,7 @@ class RenderSettings(bpy.types.PropertyGroup):
         description="Render Quality",
         items=(
             ('Northstar', "Full", "Full render quality"),
-            ('HybridPro', "Hybrid Pro", "Hybrid Pro render quality"),
+            ('HybridPro', "Interactive", "Interactive render quality"),
         ),
         default='Northstar',
     )
