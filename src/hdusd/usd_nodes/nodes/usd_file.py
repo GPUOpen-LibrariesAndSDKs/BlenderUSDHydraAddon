@@ -13,9 +13,10 @@
 # limitations under the License.
 # ********************************************************************
 import os
+import re
 
 import bpy
-from pxr import Usd
+from pxr import Usd, UsdGeom, Sdf, Gf
 
 from .base_node import USDNode
 from . import log
@@ -26,6 +27,8 @@ class UsdFileNode(USDNode):
     bl_idname = 'usd.UsdFileNode'
     bl_label = "USD File"
     bl_icon = "FILE"
+    bl_width_default = 250
+    bl_width_min = 250
 
     input_names = ()
     use_hard_reset = False
@@ -39,8 +42,19 @@ class UsdFileNode(USDNode):
         update=update_data,
     )
 
+    filter_path: bpy.props.StringProperty(
+        name="Pattern",
+        description="USD Path pattern. Use special characters means:\n"
+                    "  * - any word or subword\n"
+                    "  ** - several words separated by '/' or subword",
+        default='/*',
+        update=update_data
+    )
+
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filename')
+        layout.prop(self, 'filter_path')
+
 
     def compute(self, **kwargs):
         if not self.filename:
@@ -53,4 +67,50 @@ class UsdFileNode(USDNode):
 
         stage = Usd.Stage.Open(file_path)
         self.cached_stage.insert(stage)
+        return stage
+
+
+    def compute(self, **kwargs):
+        if not self.filename:
+            return None
+
+        file_path = bpy.path.abspath(self.filename)
+        if not os.path.isfile(file_path):
+            log.warn("Couldn't find USD file", self.filename, self)
+            return None
+
+        input_stage = Usd.Stage.Open(file_path)
+
+        if self.filter_path == '/*':
+            self.cached_stage.insert(input_stage)
+            return input_stage
+
+        # creating search regex pattern and getting filtered rpims
+        prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
+                          .replace('/', '\/')       # for correct regex pattern
+                          .replace('##', '[\w\/]*') # creation
+                          .replace('#', '\w*'))
+
+        def get_child_prims(prim):
+            if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
+                yield prim
+                return
+
+            for child in prim.GetAllChildren():
+                yield from get_child_prims(child)
+
+        prims = tuple(get_child_prims(input_stage.GetPseudoRoot()))
+        if not prims:
+            return None
+
+        stage = self.cached_stage.create()
+        stage.SetInterpolationType(Usd.InterpolationTypeHeld)
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.GetPseudoRoot()
+        for i, prim in enumerate(prims, 1):
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+
         return stage

@@ -33,8 +33,15 @@ def on_load_post(*args):
     node_tree.reset()
 
 
+_do_depsgraph_update = True
+
+
 @bpy.app.handlers.persistent
 def on_depsgraph_update_post(scene, depsgraph):
+    global _do_depsgraph_update
+    if not _do_depsgraph_update:
+        return
+
     log("on_depsgraph_update", depsgraph)
     from ..properties import object, material
     from ..usd_nodes import node_tree
@@ -44,6 +51,19 @@ def on_depsgraph_update_post(scene, depsgraph):
     material.depsgraph_update(depsgraph)
     node_tree.depsgraph_update(depsgraph)
     material_ui.depsgraph_update(depsgraph)
+
+
+def no_depsgraph_update_call(op, *args, **kwargs):
+    """This function prevents call of self.update() during calling our function"""
+    global _do_depsgraph_update
+    if not _do_depsgraph_update:
+        return op(*args, **kwargs)
+
+    _do_depsgraph_update = False
+    try:
+        return op(*args, **kwargs)
+    finally:
+        _do_depsgraph_update = True
 
 
 @bpy.app.handlers.persistent

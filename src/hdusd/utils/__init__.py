@@ -130,3 +130,12 @@ def pass_node_reroute(link):
         link = link.from_node.inputs[0].links[0]
 
     return link if link.is_valid else None
+
+
+def update_ui(area_type='PROPERTIES', region_type='WINDOW'):
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == area_type:
+                for region in area.regions:
+                    if region.type == region_type:
+                        region.tag_redraw()

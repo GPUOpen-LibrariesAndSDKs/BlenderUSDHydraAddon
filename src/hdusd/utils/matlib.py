@@ -26,10 +26,10 @@ import bpy.utils.previews
 
 from . import LIBS_DIR
 
-from ..utils import logging
+from ..utils import logging, update_ui
 log = logging.Log('utils.matlib')
 
-URL = "https://matlibapi.stvcis.com/api"
+URL = "https://api.matlib.gpuopen.com/api"
 MATLIB_DIR = LIBS_DIR.parent / "matlib"
 
 
@@ -133,7 +133,9 @@ class Render:
                                             self.cache_dir / self.thumbnail, cache_check)
 
     def thumbnail_load(self, pcoll):
-        thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
+        thumb = pcoll.get(self.thumbnail)
+        if not thumb:
+            thumb = pcoll.load(self.thumbnail, str(self.thumbnail_path), 'IMAGE')
         self.thumbnail_icon_id = thumb.icon_id
 
 
@@ -176,6 +178,7 @@ class Package:
     def download(self, cache_check=True):
         def callback(size):
             self.size_load = size
+            update_ui()
 
         download_file_callback(self.file_url, self.file_path, callback, cache_check)
 
@@ -305,10 +308,16 @@ class Manager:
         self.pcoll = None
         self.load_thread = None
         self.package_executor = None
+        self.status = ""
+        self.is_synced = None
 
     def __del__(self):
         # bpy.utils.previews.remove(self.pcoll)
         pass
+
+    def set_status(self, msg):
+        self.status = msg
+        update_ui()
 
     @property
     def materials_list(self):
@@ -320,9 +329,13 @@ class Manager:
         # required for thread safe purposes
         return list(manager.categories.values())
 
-    def check_load_materials(self):
-        if self.materials is not None:
+    def check_load_materials(self, reset=False):
+        # required is not None condition to prevent further update if no material is found at first time.
+        if self.materials is not None and not reset:
             return True
+
+        if reset:
+            bpy.utils.previews.remove(self.pcoll)
 
         self.materials = {}
         self.categories = {}
@@ -332,7 +345,7 @@ class Manager:
             cat.get_info()
             self.categories[cat.id] = cat
 
-        def material_load(mat):
+        def material_load(mat, is_cached):
             for render in mat.renders:
                 render.get_info()
                 render.get_thumbnail()
@@ -343,58 +356,73 @@ class Manager:
 
             self.materials[mat.id] = mat
 
+            self.set_status(f"Syncing {len(self.materials)} {'cached' if is_cached else 'online'} materials...")
+
         def load():
+            self.is_synced = False
+            self.set_status("Start syncing...")
             with futures.ThreadPoolExecutor() as executor:
-                #
-                # getting cached materials
-                #
-                materials = {mat.id: mat for mat in Material.get_materials_cache()}
-                categories = {mat.category.id: mat.category for mat in materials.values()}
+                try:
+                    #
+                    # getting cached materials
+                    #
+                    materials = {mat.id: mat for mat in Material.get_materials_cache()}
+                    categories = {mat.category.id: mat.category for mat in materials.values()}
 
-                # loading categories
-                category_loaders = [executor.submit(category_load, cat)
-                                    for cat in categories.values()]
-                for _ in futures.as_completed(category_loaders):
-                    pass
+                    # loading categories
+                    category_loaders = [executor.submit(category_load, cat)
+                                        for cat in categories.values()]
+                    for future in futures.as_completed(category_loaders):
+                        future.result()
 
-                # updating category for cached materials
-                for mat in materials.values():
-                    mat.category.get_info()
+                    # updating category for cached materials
+                    for mat in materials.values():
+                        mat.category.get_info()
 
-                # loading cached materials
-                material_loaders = [executor.submit(material_load, mat)
-                                    for mat in materials.values()]
-                for _ in futures.as_completed(material_loaders):
-                    pass
+                    # loading cached materials
+                    material_loaders = [executor.submit(material_load, mat, True)
+                                        for mat in materials.values()]
+                    for future in futures.as_completed(material_loaders):
+                        future.result()
 
-                #
-                # getting and syncing with online materials
-                #
-                online_materials = {mat.id: mat for mat in Material.get_materials()}
+                    #
+                    # getting and syncing with online materials
+                    #
+                    online_materials = {mat.id: mat for mat in Material.get_materials()}
 
-                # loading new categories
-                new_categories = {}
-                for mat in online_materials.values():
-                    cat = mat.category
-                    if cat.id not in categories and cat.id not in new_categories:
-                        new_categories[cat.id] = cat
+                    # loading new categories
+                    new_categories = {}
+                    for mat in online_materials.values():
+                        cat = mat.category
+                        if cat.id not in categories and cat.id not in new_categories:
+                            new_categories[cat.id] = cat
 
-                category_loaders = [executor.submit(category_load, cat)
-                                    for cat in new_categories.values()]
-                for _ in futures.as_completed(category_loaders):
-                    pass
+                    category_loaders = [executor.submit(category_load, cat)
+                                        for cat in new_categories.values()]
+                    for future in futures.as_completed(category_loaders):
+                        future.result()
 
-                # updating categories for online materials
-                for mat in online_materials.values():
-                    mat.category.get_info()
+                    # updating categories for online materials
+                    for mat in online_materials.values():
+                        mat.category.get_info()
 
-                # loading online materials
-                material_loaders = [executor.submit(material_load, mat)
-                                    for mat in online_materials.values()]
-                for _ in futures.as_completed(material_loaders):
-                    pass
+                    # loading online materials
+                    material_loaders = [executor.submit(material_load, mat, False)
+                                        for mat in online_materials.values()]
+                    for future in futures.as_completed(material_loaders):
+                        future.result()
 
-        self.load_thread = threading.Thread(target=load)
+                    self.set_status(f"Syncing {len(self.materials)} materials completed")
+
+                except requests.exceptions.RequestException as err:
+                    executor.shutdown(wait=True, cancel_futures=True)
+                    self.set_status(f"Connection error. Synced {len(self.materials)} materials")
+                    log.error(err)
+
+                finally:
+                    self.is_synced = True
+
+        self.load_thread = threading.Thread(target=load, daemon=True)
         self.load_thread.start()
 
         return False
@@ -403,7 +431,14 @@ class Manager:
         package.size_load = 0
 
         def package_load():
-            package.download()
+            try:
+                package.download()
+
+            except requests.exceptions.RequestException as err:
+                log.error(err)
+                package.size_load = None
+
+            update_ui()
 
         if not self.package_executor:
             self.package_executor = futures.ThreadPoolExecutor()
