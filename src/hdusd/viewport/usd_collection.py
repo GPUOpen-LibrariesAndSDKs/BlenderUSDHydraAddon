@@ -67,11 +67,18 @@ def update(context):
 
         paths_to_remove = obj_paths - prim_paths
         paths_to_add = prim_paths - obj_paths
+        path_to_update = obj_paths.intersection(prim_paths)
 
         log(f"Removing {len(paths_to_remove)} objects")
         for path in paths_to_remove:
             obj = objects.pop(path)
             bpy.data.objects.remove(obj)
+
+        log(f"Updated {len(path_to_update)} objects")
+        for path in path_to_update:
+            prim = stage.GetPrimAtPath(path)
+            if prim.GetTypeName() in GEOM_TYPES:
+                objects[path].hdusd.sync_transform_from_prim(prim)
 
         log(f"Adding {len(paths_to_add)} objects")
         for path in sorted(paths_to_add):

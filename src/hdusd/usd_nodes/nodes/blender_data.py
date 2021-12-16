@@ -234,7 +234,7 @@ class BlenderDataNode(USDNode):
 
             if isinstance(update.id, bpy.types.Object):
                 obj = update.id
-                if obj.hdusd.is_usd:
+                if obj.hdusd.is_usd or obj.type == 'EMPTY':
                     continue
 
                 obj_data = ObjectData.from_object(obj)
@@ -302,7 +302,7 @@ class BlenderDataNode(USDNode):
                     for key in keys_to_remove:
                         if key == world.OBJ_PRIM_NAME:
                             continue
-                            
+
                         root_prim.GetStage().RemovePrim(root_prim.GetPath().AppendChild(key))
                         is_updated = True
 
