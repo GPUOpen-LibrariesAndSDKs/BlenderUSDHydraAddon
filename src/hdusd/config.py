@@ -18,7 +18,7 @@ logging_level = 'INFO'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR',
 logging_backups = 5
 
 # other settings
-matlib_enabled = False
+matlib_enabled = True
 engine_use_preview = True
 usd_mesh_assign_material_enabled = False
 
