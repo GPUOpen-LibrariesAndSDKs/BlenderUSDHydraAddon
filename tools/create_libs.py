@@ -60,19 +60,19 @@ def main(bin_dir):
              "IlmImf-2_3.dll", libs_dir / "lib/IlmImf-2_3.dll")
 
     if OS == 'Linux':
-        rif_bin_dir = Path("deps/HdRPR/deps/RIF/Ubuntu20/Dynamic")
+        rif_bin_dir = repo_dir / "deps/HdRPR/deps/RIF/Ubuntu20/Dynamic"
         sdk_bin_dir = libs_dir / "lib"
 
-        shutil.copy(str(find_file(rif_bin_dir, "libRadeonImageFilters.so*")),
-                    str(sdk_bin_dir / "libRadeonImageFilters.so"))
-        shutil.copy(str(find_file(rif_bin_dir, "libRadeonML_MIOpen.so*")),
-                    str(sdk_bin_dir / "libRadeonML_MIOpen.so"))
-        shutil.copy(str(find_file(rif_bin_dir, "libOpenImageDenoise.so*")),
-                    str(sdk_bin_dir / "libOpenImageDenoise.so"))
-        shutil.copy(str(find_file(rif_bin_dir, "libMIOpen.so.2*")),
-                    str(sdk_bin_dir / "libMIOpen.so.2"))
-        shutil.copy(str(find_file(rif_bin_dir, "libRadeonML.so.0*")),
-                    str(sdk_bin_dir / "libRadeonML.so.0"))
+        copy(find_file(rif_bin_dir, "libRadeonImageFilters.so*"),
+             sdk_bin_dir / "libRadeonImageFilters.so")
+        copy(find_file(rif_bin_dir, "libRadeonML_MIOpen.so*"),
+             sdk_bin_dir / "libRadeonML_MIOpen.so")
+        copy(find_file(rif_bin_dir, "libOpenImageDenoise.so*"),
+             sdk_bin_dir / "libOpenImageDenoise.so")
+        copy(find_file(rif_bin_dir, "libMIOpen.so.2*"),
+             sdk_bin_dir / "libMIOpen.so.2")
+        copy(find_file(rif_bin_dir, "libRadeonML.so.0*"),
+             sdk_bin_dir / "libRadeonML.so.0")
 
         print("Configuring rpath")
         patchelf_args = ['patchelf', '--remove-rpath', str(libs_dir / 'plugin/usd/hdRpr.so')]
