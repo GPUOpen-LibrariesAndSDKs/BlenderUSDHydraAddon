@@ -725,28 +725,26 @@ def depsgraph_update(depsgraph):
     if hasattr(context, 'object') and context.object and context.object.active_material:
         mx_node_tree = context.object.active_material.hdusd.mx_node_tree
 
-    # trying to show MaterialX area with node tree or Shader area
-    screen = context.screen
-    if not hasattr(screen, 'areas'):
-        return
-
-    if mx_node_tree:
-        for area in screen.areas:
+    bpy.types.NODE_HT_header.remove(mx_utils.update_material_iu)
+    for window in context.window_manager.windows:
+        if not hasattr(window.screen, 'areas'):
+            continue
+        for area in window.screen.areas:
             if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
                 continue
 
             space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-            if not space.pin:
-                bpy.types.NODE_HT_header.remove(mx_utils.update_material_iu)
+            if space.pin:
+                continue
+
+            if mx_node_tree:
                 area.ui_type = 'hdusd.MxNodeTree'
                 space.node_tree = mx_node_tree
-                bpy.types.NODE_HT_header.append(mx_utils.update_material_iu)
+                continue
 
-    else:
-        for area in screen.areas:
             if area.ui_type != 'hdusd.MxNodeTree':
                 continue
 
-            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-            if not space.pin:
-                area.ui_type = 'ShaderNodeTree'
+            area.ui_type = 'ShaderNodeTree'
+
+    bpy.types.NODE_HT_header.append(mx_utils.update_material_iu)

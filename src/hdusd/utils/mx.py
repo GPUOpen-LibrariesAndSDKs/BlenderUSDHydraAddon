@@ -19,7 +19,7 @@ import shutil
 
 from pathlib import Path
 
-from . import LIBS_DIR, title_str, code_str
+from . import LIBS_DIR, title_str, code_str, BLENDER_VERSION
 from .image import cache_image_file
 
 from . import logging
@@ -293,13 +293,22 @@ def export_mx_to_file(doc, filepath, *, mx_node_tree=None, is_export_deps=False,
 
 # update for material ui according to MaterialX nodetree header changes
 def update_material_iu(self, context):
+    if BLENDER_VERSION >= '3.0':
+        return
+
     space = context.space_data
+    mat = context.object.active_material
+    if space.tree_type == 'ShaderNodeTree':
+        if space.node_tree != mat.node_tree:
+            space.node_tree = mat.node_tree
+            mat.hdusd.mx_node_tree = None
+            return
+
     if space.tree_type != 'hdusd.MxNodeTree':
         return
 
-    mat = context.object.active_material
     ui_mx_node_tree = mat.hdusd.mx_node_tree
     editor_node_tree = space.node_tree
 
-    if editor_node_tree != ui_mx_node_tree:
+    if editor_node_tree != ui_mx_node_tree and not space.pin:
         mat.hdusd.mx_node_tree = editor_node_tree
