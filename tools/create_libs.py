@@ -33,10 +33,6 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
         yield f
 
 
-def find_file(path, glob):
-    return next(f for f in path.glob(glob) if not f.is_symlink())
-
-
 def main(bin_dir):
     repo_dir = Path(__file__).parent.parent
     libs_dir = repo_dir / "libs"
@@ -60,20 +56,6 @@ def main(bin_dir):
              "IlmImf-2_3.dll", libs_dir / "lib/IlmImf-2_3.dll")
 
     if OS == 'Linux':
-        rif_bin_dir = repo_dir / "deps/HdRPR/deps/RIF/Ubuntu20/Dynamic"
-        sdk_bin_dir = libs_dir / "lib"
-
-        copy(find_file(rif_bin_dir, "libRadeonImageFilters.so*"),
-             sdk_bin_dir / "libRadeonImageFilters.so")
-        copy(find_file(rif_bin_dir, "libRadeonML_MIOpen.so*"),
-             sdk_bin_dir / "libRadeonML_MIOpen.so")
-        copy(find_file(rif_bin_dir, "libOpenImageDenoise.so*"),
-             sdk_bin_dir / "libOpenImageDenoise.so")
-        copy(find_file(rif_bin_dir, "libMIOpen.so.2*"),
-             sdk_bin_dir / "libMIOpen.so.2")
-        copy(find_file(rif_bin_dir, "libRadeonML.so.0*"),
-             sdk_bin_dir / "libRadeonML.so.0")
-
         print("Configuring rpath")
         patchelf_args = ['patchelf', '--remove-rpath', str(libs_dir / 'plugin/usd/hdRpr.so')]
         print(patchelf_args)
