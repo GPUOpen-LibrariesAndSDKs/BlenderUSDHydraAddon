@@ -73,6 +73,7 @@ class FinalEngine(Engine):
         params = UsdImagingGL.RenderParams()
         params.renderResolution = (self.width, self.height)
         params.frame = Usd.TimeCode.Default()
+        params.enableSampleAlphaToCoverage = True
 
         if scene.hdusd.final.data_source:
             world_data = world.WorldData.init_from_stage(self.stage)
@@ -232,7 +233,7 @@ class FinalEngine(Engine):
 
             renderer.SetRendererSetting('renderMode', 'batch')
             renderer.SetRendererSetting('progressive', True)
-            renderer.SetRendererSetting('enableAlpha', False)
+            renderer.SetRendererSetting('enableAlpha', hdrpr.enable_alpha)
 
             renderer.SetRendererSetting('renderDevice', hdrpr.device)
             renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
