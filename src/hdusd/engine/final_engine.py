@@ -73,7 +73,6 @@ class FinalEngine(Engine):
         params = UsdImagingGL.RenderParams()
         params.renderResolution = (self.width, self.height)
         params.frame = Usd.TimeCode.Default()
-        params.enableSampleAlphaToCoverage = True
 
         if scene.hdusd.final.data_source:
             world_data = world.WorldData.init_from_stage(self.stage)
