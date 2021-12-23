@@ -254,6 +254,8 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
             if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
                 material.hdusd.update()
 
+        self.update_invalid_links()
+
         for window in bpy.context.window_manager.windows:
             for area in window.screen.areas:
                 if area.type == AREA_TO_UPDATE:
@@ -262,3 +264,18 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                             region.tag_redraw()
                             break
                     break
+
+
+    def update_invalid_links(self):
+        for link in self.links:
+            node_from = link.from_socket.node
+            socket_from_type = node_from.nodedef.getOutput(link.from_socket.name).getType()
+
+            node_to = link.to_socket.node
+            socket_to_type = node_to.nodedef.getInput(link.to_socket.name).getType()
+
+            if socket_to_type != socket_from_type:
+                link.is_valid = False
+                continue
+
+            link.is_valid = True

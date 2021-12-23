@@ -739,6 +739,8 @@ def depsgraph_update(depsgraph):
             space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
             space.node_tree = mx_node_tree
 
+            mx_node_tree.update_invalid_links()
+
     else:
         for area in screen.areas:
             if area.ui_type != 'hdusd.MxNodeTree':

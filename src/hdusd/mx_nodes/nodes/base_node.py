@@ -365,8 +365,20 @@ class MxNode(bpy.types.ShaderNode):
             return None
 
         link = socket_in.links[0]
+
+        node_from = link.from_socket.node
+        socket_from_type = node_from.nodedef.getOutput(link.from_socket.name).getType()
+
+        node_to = link.to_socket.node
+        socket_to_type = node_to.nodedef.getInput(link.to_socket.name).getType()
+
+        if socket_to_type != socket_from_type:
+            log.error("Invalid link found", link, socket_in, self)
+            return None
+
         if not link.is_valid:
             log.error("Invalid link found", link, socket_in, self)
+            return None
 
         link = pass_node_reroute(link)
         if not link:

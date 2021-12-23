@@ -340,6 +340,10 @@ class NodeParser:
 
         link = socket_in.links[0]
 
+        if link.from_socket.type != link.to_socket.type:
+            log.warn("Invalid link ignored", link, socket_in, self.node, self.material)
+            return None
+
         if not link.is_valid:
             log.warn("Invalid link ignored", link, socket_in, self.node, self.material)
             return None
