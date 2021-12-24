@@ -232,7 +232,7 @@ class FinalEngine(Engine):
 
             renderer.SetRendererSetting('renderMode', 'batch')
             renderer.SetRendererSetting('progressive', True)
-            renderer.SetRendererSetting('enableAlpha', False)
+            renderer.SetRendererSetting('enableAlpha', hdrpr.enable_alpha)
 
             renderer.SetRendererSetting('renderDevice', hdrpr.device)
             renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)

@@ -111,6 +111,21 @@ class HDUSD_RENDER_PT_hdrpr_settings_denoise_final(HdUSD_Panel):
         layout.prop(denoise, "iter_step")
 
 
+class HDUSD_RENDER_PT_hdrpr_settings_film_final(HdUSD_Panel):
+    bl_label = "Film"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_final'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        hdrpr = context.scene.hdusd.final.hdrpr
+
+        layout.prop(hdrpr, "enable_alpha", text="Transparent Background")
+
+
 #
 # VIEWPORT RENDER SETTINGS
 #

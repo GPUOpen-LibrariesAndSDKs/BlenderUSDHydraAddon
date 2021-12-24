@@ -260,8 +260,8 @@ class RenderSettings(bpy.types.PropertyGroup):
     )
     enable_alpha: BoolProperty(
         name="Enable Color Alpha",
-        description="Enable Color Alpha",
-        default=True,
+        description="World background is transparent, for compositing the render over another background",
+        default=False,
     )
     enable_motion_blur: BoolProperty(
         name="Enable Beauty Motion Blur",
