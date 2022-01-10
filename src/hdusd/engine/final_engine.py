@@ -230,9 +230,8 @@ class FinalEngine(Engine):
             quality = hdrpr.quality
             denoise = hdrpr.denoise
 
-            renderer.SetRendererSetting('rpr:alpha:enable', False)
+            renderer.SetRendererSetting('rpr:alpha:enable', hdrpr.enable_alpha)
 
-            # renderer.SetRendererSetting('renderDevice', hdrpr.device)
             renderer.SetRendererSetting('rpr:core:renderQuality', hdrpr.render_quality)
             renderer.SetRendererSetting('rpr:core:renderMode', hdrpr.render_mode)
 
@@ -246,8 +245,7 @@ class FinalEngine(Engine):
             renderer.SetRendererSetting('rpr:quality:rayDepthDiffuse', quality.max_ray_depth_diffuse)
             renderer.SetRendererSetting('rpr:quality:rayDepthGlossy', quality.max_ray_depth_glossy)
             renderer.SetRendererSetting('rpr:quality:rayDepthRefraction', quality.max_ray_depth_refraction)
-            renderer.SetRendererSetting('rpr:quality:rayDepthGlossyRefraction',
-                                        quality.max_ray_depth_glossy_refraction)
+            renderer.SetRendererSetting('rpr:quality:rayDepthGlossyRefraction', quality.max_ray_depth_glossy_refraction)
             renderer.SetRendererSetting('rpr:quality:rayDepthShadow', quality.max_ray_depth_shadow)
             renderer.SetRendererSetting('rpr:quality:raycastEpsilon', quality.raycast_epsilon)
             renderer.SetRendererSetting('rpr:quality:radianceClamping', quality.radiance_clamping)
