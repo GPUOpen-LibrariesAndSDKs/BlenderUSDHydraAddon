@@ -16,7 +16,6 @@ from pathlib import Path
 import subprocess
 import os
 import argparse
-import sys
 import platform
 import shutil
 
@@ -30,7 +29,7 @@ def rm_dir(d: Path):
         return
 
     print(f"Removing: {d}")
-    shutil.rmtree(str(d))
+    shutil.rmtree(str(d), ignore_errors=True)
 
 
 def copy(src: Path, dest, ignore=()):
@@ -41,7 +40,16 @@ def copy(src: Path, dest, ignore=()):
         shutil.copy(str(src), str(dest), follow_symlinks=False)
 
 
+def print_start(msg):
+    print(f"""
+-------------------------------------------------------------
+{msg}
+-------------------------------------------------------------""")
+
+
 def usd(bin_dir, jobs, clean):
+    print_start("Building USD")
+
     import build_usd
     args = []
     if jobs > 0:
@@ -75,29 +83,40 @@ def _cmake(ch_dir, compiler, jobs, args):
 
 
 def hdrpr(bin_dir, compiler, jobs, clean):
+    print_start("Building HdRPR")
+
     hdrpr_dir = repo_dir / "deps/HdRPR"
+    usd_dir = bin_dir / "USD/install"
 
     if clean:
         rm_dir(hdrpr_dir / "build")
 
+    os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
+
     _cmake(hdrpr_dir, compiler, jobs, [
-        f'-Dpxr_DIR={bin_dir / "USD/install"}',
+        f'-Dpxr_DIR={usd_dir}',
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "USD/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
     ])
 
 
 def libs(bin_dir):
+    print_start("Copying binaries to libs")
+
     import create_libs
     create_libs.main(bin_dir)
 
 
 def mx_classes():
+    print_start("Generating code for MaterialX classes")
+
     import generate_mx_classes
     generate_mx_classes.main()
 
 
 def zip_addon():
+    print_start("Creating zip Addon")
+
     import create_zip_addon
     create_zip_addon.main()
 
@@ -162,6 +181,8 @@ def main():
 
     if args.usd_debug_libs:
         usd_debug_libs(bin_dir)
+
+    print_start("Finished")
 
 
 if __name__ == "__main__":
