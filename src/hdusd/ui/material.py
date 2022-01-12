@@ -22,7 +22,7 @@ from pathlib import Path
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 from ..mx_nodes.nodes.base_node import is_mx_node_valid
-from ..utils import get_temp_file, pass_node_reroute, title_str
+from ..utils import pass_node_reroute, title_str, BLENDER_VERSION
 from ..utils import mx as mx_utils
 from .. import config
 
@@ -725,7 +725,7 @@ def depsgraph_update(depsgraph):
     if hasattr(context, 'object') and context.object and context.object.active_material:
         mx_node_tree = context.object.active_material.hdusd.mx_node_tree
 
-    bpy.types.NODE_HT_header.remove(mx_utils.update_material_iu)
+    bpy.types.NODE_HT_header.remove(update_material_iu)
     for window in context.window_manager.windows:
         if not hasattr(window.screen, 'areas'):
             continue
@@ -747,4 +747,24 @@ def depsgraph_update(depsgraph):
 
             area.ui_type = 'ShaderNodeTree'
 
-    bpy.types.NODE_HT_header.append(mx_utils.update_material_iu)
+    bpy.types.NODE_HT_header.append(update_material_iu)
+
+
+# update for material ui according to MaterialX nodetree header changes
+def update_material_iu(self, context):
+    if BLENDER_VERSION >= '3.0':
+        return
+
+    mat = context.object.active_material
+    if not mat:
+        return
+
+    space = context.space_data
+    if space.tree_type != 'hdusd.MxNodeTree':
+        return
+
+    ui_mx_node_tree = mat.hdusd.mx_node_tree
+    editor_node_tree = space.node_tree
+
+    if editor_node_tree != ui_mx_node_tree and not space.pin and editor_node_tree:
+        mat.hdusd.mx_node_tree = editor_node_tree
