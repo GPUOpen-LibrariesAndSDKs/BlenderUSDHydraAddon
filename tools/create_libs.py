@@ -56,9 +56,6 @@ def main(bin_dir):
              "IlmImf-2_3.dll", libs_dir / "lib/IlmImf-2_3.dll")
 
     if OS == 'Linux':
-        for f in iterate_files(repo_dir / "deps/HdRPR/deps/RIF/Ubuntu20/Dynamic", "libRadeonML.so*"):
-            copy(f, libs_dir / "lib")
-
         print("Configuring rpath")
         patchelf_args = ['patchelf', '--remove-rpath', str(libs_dir / 'plugin/usd/hdRpr.so')]
         print(patchelf_args)
@@ -78,8 +75,6 @@ def main(bin_dir):
     rpr_usd_init_py = libs_dir / "lib/python/rpr/RprUsd/__init__.py"
     print(f"Clearing {rpr_usd_init_py}")
     rpr_usd_init_py.write_text("")
-
-    print("Done.")
 
 
 def copy_usd_debug_files(bin_dir):

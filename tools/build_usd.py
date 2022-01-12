@@ -55,11 +55,13 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
 
         bin_usd_dir = bin_dir / "USD"
         call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
+                     '--verbose',
                      '--build', str(bin_usd_dir / "build"),
                      '--src', str(bin_usd_dir / "deps"),
                      '--materialx',
                      '--openvdb',
-                     '--build-args', 'MATERIALX,"-DMATERIALX_BUILD_PYTHON=ON -DMATERIALX_INSTALL_PYTHON=OFF"',
+                     '--build-args', f'MATERIALX,-DMATERIALX_BUILD_PYTHON=ON -DMATERIALX_INSTALL_PYTHON=OFF '
+                                     f'-DMATERIALX_PYTHON_EXECUTABLE="{sys.executable}"',
                      '--python',
                      '--build-release',
                      str(bin_usd_dir / "install"),

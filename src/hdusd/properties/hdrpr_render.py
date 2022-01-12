@@ -77,6 +77,7 @@ class QualitySettings(bpy.types.PropertyGroup):
         name="Ray Cast Epsilon",
         description="Determines an offset used to move light rays away from the geometry for\n"
                     "ray-surface intersection calculations",
+        subtype='DISTANCE',
         min=1e-6, max=1.0,
         default=2e-3,
     )
@@ -87,8 +88,8 @@ class QualitySettings(bpy.types.PropertyGroup):
     )
     radiance_clamping: FloatProperty(
         name="Max Radiance",
-        description="Limits the intensity, or the maximum brightness, of samples in the scene.\n"
-                    "Greater clamp radiance values produce more brightness",
+        description="Limits the intensity or the maximum brightness of samples in the scene.\n"
+                    "Greater clamp radiance values produce more brightness. Set to 0 ot disable clamping",
         min=0.0, max=1e6,
         default=0.0,
     )
@@ -211,7 +212,7 @@ class RenderSettings(bpy.types.PropertyGroup):
         description="Render Quality",
         items=(
             ('Northstar', "Full", "Full render quality"),
-            ('HybridPro', "Hybrid Pro", "Hybrid Pro render quality"),
+            ('HybridPro', "Interactive", "Interactive render quality"),
         ),
         default='Northstar',
     )
@@ -260,8 +261,8 @@ class RenderSettings(bpy.types.PropertyGroup):
     )
     enable_alpha: BoolProperty(
         name="Enable Color Alpha",
-        description="Enable Color Alpha",
-        default=True,
+        description="World background is transparent, for compositing the render over another background",
+        default=False,
     )
     enable_motion_blur: BoolProperty(
         name="Enable Beauty Motion Blur",
