@@ -340,7 +340,7 @@ class ViewportEngine(Engine):
         settings = self.get_settings(scene)
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
-            restart = self.renderer.GetRendererSetting('renderQuality') != hdrpr.render_quality
+            restart = self.renderer.GetRendererSetting('rpr:core:renderQuality') != hdrpr.render_quality
 
         return restart
 
