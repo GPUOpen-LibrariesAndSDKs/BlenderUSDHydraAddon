@@ -1,4 +1,4 @@
-#**********************************************************************
+# **********************************************************************
 # Copyright 2020 Advanced Micro Devices, Inc
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#********************************************************************
+# ********************************************************************
 import math
 import numpy as np
 
@@ -21,6 +21,7 @@ import bpy
 from ..utils import usd as usd_utils
 
 from ..utils import logging
+
 log = logging.Log('export.light')
 
 
@@ -32,13 +33,13 @@ def get_radiant_power(light: bpy.types.Light):
     intensity = color * light.energy
 
     if light.type == 'POINT':
-        return intensity * 4            # coefficient approximated to follow Cycles results
+        return intensity * 12  # coefficient approximated to follow Cycles results
 
     elif light.type == 'SPOT':
-        return intensity
+        return intensity / 4  # coefficient approximated to follow Cycles results
 
     elif light.type == 'SUN':
-        return intensity * 0.000025     # coefficient approximated to follow Cycles results
+        return intensity * 0.001  # coefficient approximated to follow Cycles results
 
     elif light.type == 'AREA':
         area = 1.0
@@ -47,10 +48,10 @@ def get_radiant_power(light: bpy.types.Light):
         elif light.shape == 'RECTANGLE':
             area = light.size * light.size_y
         elif light.shape == 'DISK':
-            area = math.pi * light.size * light.size
+            area = math.pi * light.size * light.size / 7  # coefficient approximated to follow Cycles results
         else:
             # roughly approximated ellipse area
-            area = math.pi * light.size * light.size_y
+            area = math.pi * light.size * light.size_y / 7  # coefficient approximated to follow Cycles results
 
         intensity /= area
 
@@ -108,11 +109,11 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
         elif shape_type == 'DISK':
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
-            usd_light.CreateRadiusAttr(light.size)
+            usd_light.CreateRadiusAttr(light.size / 2)  # coefficient approximated to follow Cycles results
 
         else:  # shape_type == 'ELLIPSE':
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
-            usd_light.CreateRadiusAttr(light.size)
+            usd_light.CreateRadiusAttr((light.size + light.size_y) / 2 / 2)  # coefficient approximated to follow Cycles results
 
     else:
         raise ValueError("Unsupported light type", light, light.type)
@@ -129,7 +130,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
     else:
         usd_utils.add_delegate_variants(obj_prim, {
-            'GL': lambda: color_attr.Set(tuple(power / 1000)),
+            'GL': lambda: color_attr.Set(tuple(power / 10)),
             'RPR': lambda: color_attr.Set(tuple(power))
         })
 
