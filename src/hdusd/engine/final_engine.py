@@ -230,34 +230,29 @@ class FinalEngine(Engine):
             quality = hdrpr.quality
             denoise = hdrpr.denoise
 
-            renderer.SetRendererSetting('renderMode', 'batch')
-            renderer.SetRendererSetting('progressive', True)
-            renderer.SetRendererSetting('enableAlpha', False)
+            renderer.SetRendererSetting('rpr:alpha:enable', hdrpr.enable_alpha)
 
-            renderer.SetRendererSetting('renderDevice', hdrpr.device)
-            renderer.SetRendererSetting('renderQuality', hdrpr.render_quality)
-            renderer.SetRendererSetting('coreRenderMode', hdrpr.render_mode)
+            renderer.SetRendererSetting('rpr:core:renderQuality', hdrpr.render_quality)
+            renderer.SetRendererSetting('rpr:core:renderMode', hdrpr.render_mode)
 
-            renderer.SetRendererSetting('aoRadius', hdrpr.ao_radius)
+            renderer.SetRendererSetting('rpr:ambientOcclusion:radius', hdrpr.ao_radius)
 
-            renderer.SetRendererSetting('maxSamples', hdrpr.max_samples)
-            renderer.SetRendererSetting('minAdaptiveSamples', hdrpr.min_adaptive_samples)
-            renderer.SetRendererSetting('varianceThreshold', hdrpr.variance_threshold)
+            renderer.SetRendererSetting('rpr:maxSamples', hdrpr.max_samples)
+            renderer.SetRendererSetting('rpr:adaptiveSampling:minSamples', hdrpr.min_adaptive_samples)
+            renderer.SetRendererSetting('rpr:adaptiveSampling:noiseTreshold', hdrpr.variance_threshold)
 
-            renderer.SetRendererSetting('maxRayDepth', quality.max_ray_depth)
-            renderer.SetRendererSetting('maxRayDepthDiffuse', quality.max_ray_depth_diffuse)
-            renderer.SetRendererSetting('maxRayDepthGlossy', quality.max_ray_depth_glossy)
-            renderer.SetRendererSetting('maxRayDepthRefraction', quality.max_ray_depth_refraction)
-            renderer.SetRendererSetting('maxRayDepthGlossyRefraction',
-                                        quality.max_ray_depth_glossy_refraction)
-            renderer.SetRendererSetting('maxRayDepthShadow', quality.max_ray_depth_shadow)
-            renderer.SetRendererSetting('raycastEpsilon', quality.raycast_epsilon)
-            renderer.SetRendererSetting('enableRadianceClamping', quality.enable_radiance_clamping)
-            renderer.SetRendererSetting('radianceClamping', quality.radiance_clamping)
+            renderer.SetRendererSetting('rpr:quality:rayDepth', quality.max_ray_depth)
+            renderer.SetRendererSetting('rpr:quality:rayDepthDiffuse', quality.max_ray_depth_diffuse)
+            renderer.SetRendererSetting('rpr:quality:rayDepthGlossy', quality.max_ray_depth_glossy)
+            renderer.SetRendererSetting('rpr:quality:rayDepthRefraction', quality.max_ray_depth_refraction)
+            renderer.SetRendererSetting('rpr:quality:rayDepthGlossyRefraction', quality.max_ray_depth_glossy_refraction)
+            renderer.SetRendererSetting('rpr:quality:rayDepthShadow', quality.max_ray_depth_shadow)
+            renderer.SetRendererSetting('rpr:quality:raycastEpsilon', quality.raycast_epsilon)
+            renderer.SetRendererSetting('rpr:quality:radianceClamping', quality.radiance_clamping)
 
-            renderer.SetRendererSetting('enableDenoising', denoise.enable)
-            renderer.SetRendererSetting('denoiseMinIter', denoise.min_iter)
-            renderer.SetRendererSetting('denoiseIterStep', denoise.iter_step)
+            renderer.SetRendererSetting('rpr:denoising:enable', denoise.enable)
+            renderer.SetRendererSetting('rpr:denoising:minIter', denoise.min_iter)
+            renderer.SetRendererSetting('rpr:denoising:iterStep', denoise.iter_step)
 
 
 class FinalEngineScene(FinalEngine):

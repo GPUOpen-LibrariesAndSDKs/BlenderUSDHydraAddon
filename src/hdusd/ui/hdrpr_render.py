@@ -34,7 +34,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_final(HdUSD_Panel):
         layout.use_property_decorate = False
 
         col = layout.column()
-        col.prop(hdrpr, "device")
+        # col.prop(hdrpr, "device")
         col.prop(hdrpr, "render_quality")
         col.prop(hdrpr, "render_mode")
 
@@ -82,12 +82,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_quality_final(HdUSD_Panel):
         col.prop(quality, "max_ray_depth_glossy_refraction")
 
         layout.prop(quality, "raycast_epsilon")
-
-        col = layout.column(align=True)
-        col.prop(quality, "enable_radiance_clamping")
-        row = col.row()
-        row.enabled = quality.enable_radiance_clamping
-        row.prop(quality, "radiance_clamping")
+        layout.prop(quality, "radiance_clamping")
 
 
 class HDUSD_RENDER_PT_hdrpr_settings_denoise_final(HdUSD_Panel):
@@ -111,6 +106,21 @@ class HDUSD_RENDER_PT_hdrpr_settings_denoise_final(HdUSD_Panel):
         layout.prop(denoise, "iter_step")
 
 
+class HDUSD_RENDER_PT_hdrpr_settings_film_final(HdUSD_Panel):
+    bl_label = "Film"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_final'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        hdrpr = context.scene.hdusd.final.hdrpr
+
+        layout.prop(hdrpr, "enable_alpha", text="Transparent Background")
+
+
 #
 # VIEWPORT RENDER SETTINGS
 #
@@ -130,7 +140,7 @@ class HDUSD_RENDER_PT_hdrpr_settings_viewport(HdUSD_Panel):
         layout.use_property_decorate = False
 
         layout = layout.column()
-        layout.prop(hdrpr, "device")
+        # layout.prop(hdrpr, "device")
         layout.prop(hdrpr, "render_quality")
         layout.prop(hdrpr, "render_mode")
 
