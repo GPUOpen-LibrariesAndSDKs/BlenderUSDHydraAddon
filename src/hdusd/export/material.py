@@ -89,32 +89,10 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
         # removing rpr_materialx_node in all material_prims
         return None
 
-    surfacematerial = next(node for node in doc.getNodes()
-                           if node.getCategory() == 'surfacematerial')
-
-    stage = root_prim.GetStage()
-    mx_file = utils.get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}')
+    mx_file = utils.get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}',
+                                  is_rand=True)
     mx.writeToXmlFile(doc, str(mx_file))
 
     for mat_prim in mat_prims:
         mat_prim.GetReferences().ClearReferences()
         mat_prim.GetReferences().AddReference(f"./{mx_file.name}", "/MaterialX")
-
-        # apply new bind if shader switched to MaterialX or vice versa
-        mesh_prim = next((prim for prim in mat_prim.GetParent().GetChildren() if prim.GetTypeName() == 'Mesh'), None)
-        if not mesh_prim:
-            return None
-
-        bindings = UsdShade.MaterialBindingAPI(mesh_prim)
-        rel_bind = bindings.GetDirectBindingRel()
-
-        sdf_path = mat_prim.GetPath().AppendChild('Materials').AppendChild(surfacematerial.getName())
-        sdf_path_old = next((target for target in rel_bind.GetTargets()), None)
-
-        # check if bind path is changed
-        if not sdf_path_old or sdf_path == sdf_path_old:
-            return None
-
-        usd_mat = UsdShade.Material.Define(stage, sdf_path)
-        bindings.UnbindAllBindings()
-        bindings.Bind(usd_mat)

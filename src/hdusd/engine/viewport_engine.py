@@ -404,10 +404,18 @@ class ViewportEngineScene(ViewportEngine):
                 if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
                     continue
 
-                object.sync_update(root_prim, object.ObjectData.from_object(obj),
+                obj_data = object.ObjectData.from_object(obj)
+
+                object.sync_update(root_prim, obj_data,
                                    update.is_updated_geometry,
                                    update.is_updated_transform,
                                    is_gl_delegate=self.is_gl_delegate)
+
+                for inst_obj_data in object.ObjectData.depsgraph_objects_inst(depsgraph):
+                    if obj_data.sdf_name == object.sdf_name(inst_obj_data.object):
+                        object.sync_update(root_prim, inst_obj_data, update.is_updated_geometry,
+                                           update.is_updated_transform)
+
                 continue
 
             if isinstance(update.id, bpy.types.World):
