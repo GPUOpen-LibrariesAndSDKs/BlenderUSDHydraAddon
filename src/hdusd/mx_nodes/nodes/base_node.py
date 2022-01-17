@@ -373,11 +373,11 @@ class MxNode(bpy.types.ShaderNode):
         socket_to_type = node_to.nodedef.getInput(link.to_socket.name).getType()
 
         if socket_to_type != socket_from_type:
-            log.error("Invalid link found", link, socket_in, self)
+            log.warn("Different input and output types", link, socket_to_type, socket_from_type, self)
             return None
 
         if not link.is_valid:
-            log.error("Invalid link found", link, socket_in, self)
+            log.warn("Invalid link found", link, socket_in, self)
             return None
 
         link = pass_node_reroute(link)
