@@ -250,6 +250,8 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         self.update_()
 
     def update_(self):
+        self.update_links()
+
         for material in bpy.data.materials:
             if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
                 material.hdusd.update()

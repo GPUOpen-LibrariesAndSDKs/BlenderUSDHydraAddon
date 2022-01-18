@@ -365,13 +365,6 @@ class MxNode(bpy.types.ShaderNode):
             return None
 
         link = socket_in.links[0]
-        socket_from_type = link.from_socket.node.nodedef.getOutput(link.from_socket.name).getType()
-        socket_to_type = link.to_socket.node.nodedef.getInput(link.to_socket.name).getType()
-
-        if socket_to_type != socket_from_type:
-            log.warn("Different input and output types", link, socket_to_type, socket_from_type, self)
-            return None
-
         if not link.is_valid:
             log.warn("Invalid link found", link, socket_in, self)
             return None
