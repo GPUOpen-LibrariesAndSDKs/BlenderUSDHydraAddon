@@ -748,4 +748,4 @@ def depsgraph_update(depsgraph):
                 if area.ui_type != 'hdusd.MxNodeTree':
                     continue
 
-            area.ui_type = 'ShaderNodeTree'
+                area.ui_type = 'ShaderNodeTree'
