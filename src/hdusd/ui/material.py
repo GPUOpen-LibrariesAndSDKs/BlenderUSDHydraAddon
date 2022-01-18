@@ -731,19 +731,21 @@ def depsgraph_update(depsgraph):
         return
 
     if mx_node_tree:
-        for area in screen.areas:
-            if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
-                continue
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
+                    continue
 
-            area.ui_type = 'hdusd.MxNodeTree'
-            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-            space.node_tree = mx_node_tree
+                area.ui_type = 'hdusd.MxNodeTree'
+                space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+                space.node_tree = mx_node_tree
 
-            mx_node_tree.update_invalid_links()
+                mx_node_tree.update_links()
 
     else:
-        for area in screen.areas:
-            if area.ui_type != 'hdusd.MxNodeTree':
-                continue
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.ui_type != 'hdusd.MxNodeTree':
+                    continue
 
             area.ui_type = 'ShaderNodeTree'

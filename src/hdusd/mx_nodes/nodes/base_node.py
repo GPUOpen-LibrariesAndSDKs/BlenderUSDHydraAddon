@@ -365,12 +365,8 @@ class MxNode(bpy.types.ShaderNode):
             return None
 
         link = socket_in.links[0]
-
-        node_from = link.from_socket.node
-        socket_from_type = node_from.nodedef.getOutput(link.from_socket.name).getType()
-
-        node_to = link.to_socket.node
-        socket_to_type = node_to.nodedef.getInput(link.to_socket.name).getType()
+        socket_from_type = link.from_socket.node.nodedef.getOutput(link.from_socket.name).getType()
+        socket_to_type = link.to_socket.node.nodedef.getInput(link.to_socket.name).getType()
 
         if socket_to_type != socket_from_type:
             log.warn("Different input and output types", link, socket_to_type, socket_from_type, self)
