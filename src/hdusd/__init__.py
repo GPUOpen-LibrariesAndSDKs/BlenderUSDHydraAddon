@@ -27,16 +27,12 @@ bl_info = {
 }
 version_build = ""
 
-import os
 
 from . import config
 from .utils import logging
 
-
 log = logging.Log('init')
 log.info(f"Loading USD Hydra addon version={bl_info['version']}, build={version_build}")
-
-os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "false"
 
 from . import engine, properties, ui, usd_nodes, mx_nodes, bl_nodes
 

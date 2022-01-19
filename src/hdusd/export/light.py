@@ -1,4 +1,4 @@
-# **********************************************************************
+#**********************************************************************
 # Copyright 2020 Advanced Micro Devices, Inc
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ********************************************************************
+#********************************************************************
 import math
 import numpy as np
 
@@ -21,7 +21,6 @@ import bpy
 from ..utils import usd as usd_utils
 
 from ..utils import logging
-
 log = logging.Log('export.light')
 
 
@@ -43,17 +42,20 @@ def get_radiant_power(light: bpy.types.Light):
 
     elif light.type == 'AREA':
         area = 1.0
+        approx_coef = 1.0
         if light.shape == 'SQUARE':
             area = light.size * light.size
         elif light.shape == 'RECTANGLE':
             area = light.size * light.size_y
         elif light.shape == 'DISK':
-            area = math.pi * light.size * light.size / 7  # coefficient approximated to follow Cycles results
+            area = math.pi * light.size * light.size
+            approx_coef = 7  # coefficient approximated to follow Cycles results
         else:
             # roughly approximated ellipse area
-            area = math.pi * light.size * light.size_y / 7  # coefficient approximated to follow Cycles results
+            area = math.pi * light.size * light.size_y
+            approx_coef = 7  # coefficient approximated to follow Cycles results
 
-        intensity /= area
+        intensity /= area / approx_coef
 
     return intensity
 
@@ -109,11 +111,11 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
         elif shape_type == 'DISK':
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
-            usd_light.CreateRadiusAttr(light.size / 2)  # coefficient approximated to follow Cycles results
+            usd_light.CreateRadiusAttr(light.size / 2)  # light.size is diameter
 
         else:  # shape_type == 'ELLIPSE':
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
-            usd_light.CreateRadiusAttr((light.size + light.size_y) / 2 / 2)  # coefficient approximated to follow Cycles results
+            usd_light.CreateRadiusAttr((light.size + light.size_y) / 2 / 2)  # average + light.size is diameter
 
     else:
         raise ValueError("Unsupported light type", light, light.type)
