@@ -14,7 +14,7 @@
 #********************************************************************
 import bpy
 from ..utils import mx as mx_utils
-from .material import update_material_iu
+from .material import update_material_ui
 
 
 def get_panels():
@@ -84,7 +84,7 @@ def register():
         panel.COMPAT_ENGINES.add('HdUSD')
 
     # set update for material ui according to MaterialX nodetree header changes
-    bpy.types.NODE_HT_header.append(update_material_iu)
+    bpy.types.NODE_HT_header.append(update_material_ui)
 
 
 def unregister():
@@ -94,4 +94,4 @@ def unregister():
             panel.COMPAT_ENGINES.remove('HdUSD')
 
     # remove update for material ui according to MaterialX nodetree header changes
-    bpy.types.NODE_HT_header.remove(update_material_iu)
+    bpy.types.NODE_HT_header.remove(update_material_ui)

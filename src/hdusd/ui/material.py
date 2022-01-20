@@ -725,7 +725,7 @@ def depsgraph_update(depsgraph):
     if hasattr(context, 'object') and context.object and context.object.active_material:
         mx_node_tree = context.object.active_material.hdusd.mx_node_tree
 
-    bpy.types.NODE_HT_header.remove(update_material_iu)
+    bpy.types.NODE_HT_header.remove(update_material_ui)
     for window in context.window_manager.windows:
         if not hasattr(window.screen, 'areas'):
             continue
@@ -747,11 +747,11 @@ def depsgraph_update(depsgraph):
 
             area.ui_type = 'ShaderNodeTree'
 
-    bpy.types.NODE_HT_header.append(update_material_iu)
+    bpy.types.NODE_HT_header.append(update_material_ui)
 
 
 # update for material ui according to MaterialX nodetree header changes
-def update_material_iu(self, context):
+def update_material_ui(self, context):
     if BLENDER_VERSION >= '3.0':
         return
 
