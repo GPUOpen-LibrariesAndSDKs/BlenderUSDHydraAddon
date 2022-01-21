@@ -265,11 +265,14 @@ class ViewportEngine(Engine):
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
         self.render_params.clipPlanes = [Gf.Vec4d(i) for i in gf_camera.clippingPlanes]
 
-        if self.shading_data.type == 'MATERIAL' and self.is_gl_delegate:
+        if self.is_gl_delegate:
             l = Glf.SimpleLight()
             l.ambient = (0, 0, 0, 0)
             l.position = (*gf_camera.frustum.position, 1)
 
+            if not self.shading_data.type == 'MATERIAL':
+                l.isDomeLight = True
+                
             mat = Glf.SimpleMaterial()
 
             self.renderer.SetLightingState((l,), mat, (0, 0, 0, 0))
@@ -342,6 +345,11 @@ class ViewportEngine(Engine):
             hdrpr = settings.hdrpr
             restart = self.renderer.GetRendererSetting('rpr:core:renderQuality') != hdrpr.render_quality
 
+        # temporary solution due to "material preview red painting" issue
+        # we need to restart renderer to remove red from material after switching from material preview
+        if settings.delegate == "HdStormRendererPlugin" and self.shading_data.type == 'MATERIAL':
+            restart = True
+
         return restart
 
 
@@ -404,10 +412,18 @@ class ViewportEngineScene(ViewportEngine):
                 if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
                     continue
 
-                object.sync_update(root_prim, object.ObjectData.from_object(obj),
+                obj_data = object.ObjectData.from_object(obj)
+
+                object.sync_update(root_prim, obj_data,
                                    update.is_updated_geometry,
                                    update.is_updated_transform,
                                    is_gl_delegate=self.is_gl_delegate)
+
+                for inst_obj_data in object.ObjectData.depsgraph_objects_inst(depsgraph):
+                    if obj_data.sdf_name == object.sdf_name(inst_obj_data.object):
+                        object.sync_update(root_prim, inst_obj_data, update.is_updated_geometry,
+                                           update.is_updated_transform)
+
                 continue
 
             if isinstance(update.id, bpy.types.World):

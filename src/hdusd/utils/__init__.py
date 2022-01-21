@@ -23,7 +23,6 @@ import math
 import bpy
 import hdusd
 
-
 # saving current process id
 PID = os.getpid()
 
@@ -66,12 +65,16 @@ def temp_pid_dir():
     return d
 
 
-def get_temp_file(suffix, name=None):
+def get_temp_file(suffix, name=None, is_rand=False):
     if not name:
         return Path(tempfile.mktemp(suffix, "tmp", temp_pid_dir()))
 
     if suffix:
+        if is_rand:
+            return Path(tempfile.mktemp(suffix, f"{name}_", temp_pid_dir()))
+
         name += suffix
+
     return temp_pid_dir() / name
 
 
