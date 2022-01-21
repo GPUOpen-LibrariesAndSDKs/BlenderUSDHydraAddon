@@ -115,7 +115,7 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
         else:  # shape_type == 'ELLIPSE':
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
-            usd_light.CreateRadiusAttr((light.size + light.size_y) / 2 / 2)  # average + light.size is diameter
+            usd_light.CreateRadiusAttr((light.size + light.size_y) / 4)  # average of light.size is diameter
 
     else:
         raise ValueError("Unsupported light type", light, light.type)
@@ -128,13 +128,8 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         # Material Previews are overly bright, that's why
         # decreasing light intensity for material preview by 10 times
         power *= 0.1
-        color_attr.Set(tuple(power))
 
-    else:
-        usd_utils.add_delegate_variants(obj_prim, {
-            'GL': lambda: color_attr.Set(tuple(power / 10)),
-            'RPR': lambda: color_attr.Set(tuple(power))
-        })
+    color_attr.Set(tuple(power))
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):

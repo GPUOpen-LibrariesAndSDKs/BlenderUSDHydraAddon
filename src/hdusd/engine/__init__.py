@@ -34,7 +34,7 @@ os.environ['RPR'] = str(utils.LIBS_DIR)
 
 # internal scene index representation in hydra,
 # see https://github.com/PixarAnimationStudios/USD/blob/release/CHANGELOG.md#imaging
-os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "false"
+os.environ["HD_ENABLE_SCENE_INDEX_EMULATION"] = "0"
 
 sys.path.append(str(utils.LIBS_DIR / 'lib/python'))
 sys.path.append(str(utils.LIBS_DIR / 'python'))
