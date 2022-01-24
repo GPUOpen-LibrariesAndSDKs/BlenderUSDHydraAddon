@@ -16,7 +16,7 @@ import MaterialX as mx
 
 import bpy
 
-from ...utils import title_str, code_str, LIBS_DIR, pass_node_reroute
+from ...utils import title_str, code_str, LIBS_DIR, pass_node_reroute, BLENDER_VERSION
 from ...utils import mx as mx_utils
 from . import log
 
@@ -234,7 +234,7 @@ class MxNode(bpy.types.ShaderNode):
                 box = row.box()
                 box.scale_x = 0.7
                 box.scale_y = 0.5
-                box.emboss = 'UI_EMBOSS_NONE_OR_STATUS'
+                box.emboss = 'NONE_OR_STATUS' if BLENDER_VERSION >= "3.0" else 'UI_EMBOSS_NONE_OR_STATUS'
 
                 op = box.operator(HDUSD_MATERIAL_OP_invoke_popup_input_nodes.bl_idname, icon='HANDLETYPE_AUTO_CLAMP_VEC')
                 op.input_num = i
@@ -366,7 +366,8 @@ class MxNode(bpy.types.ShaderNode):
 
         link = socket_in.links[0]
         if not link.is_valid:
-            log.error("Invalid link found", link, socket_in, self)
+            log.warn("Invalid link found", link, socket_in, self)
+            return None
 
         link = pass_node_reroute(link)
         if not link:

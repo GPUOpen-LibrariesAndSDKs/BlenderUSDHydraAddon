@@ -79,6 +79,34 @@ class ObjectData:
 
             yield ObjectData.from_instance(instance)
 
+    @classmethod
+    def depsgraph_objects_obj(cls, depsgraph, *, space_data=None,
+                              use_scene_lights=True, use_scene_cameras=True):
+        for obj_data in cls.depsgraph_objects(depsgraph, space_data=space_data,
+                                              use_scene_lights=use_scene_lights,
+                                              use_scene_cameras=use_scene_cameras):
+            if obj_data.instance_id == 0:
+                yield obj_data
+
+    @classmethod
+    def depsgraph_objects_inst(cls, depsgraph, *, space_data=None,
+                               use_scene_lights=True, use_scene_cameras=True):
+        for obj_data in cls.depsgraph_objects(depsgraph, space_data=space_data,
+                                              use_scene_lights=use_scene_lights,
+                                              use_scene_cameras=use_scene_cameras):
+            if obj_data.instance_id != 0:
+                yield obj_data
+
+    @staticmethod            
+    def parent_objects(depsgraph):
+        for instance in depsgraph.object_instances:
+            obj = instance.object
+            if obj.type not in SUPPORTED_TYPES or instance.object.hdusd.is_usd:
+                continue
+
+            if obj.parent:
+                yield ObjectData.from_object(obj)
+
 
 def sdf_name(obj: bpy.types.Object):
     return Tf.MakeValidIdentifier(obj.name_full)
@@ -92,11 +120,14 @@ def get_transform_local(obj: bpy.types.Object):
     return obj.matrix_local.transposed()
 
 
-def sync(objects_prim, obj_data: ObjectData, **kwargs):
+def sync(objects_prim, obj_data: ObjectData, parent_stage = None, **kwargs):
     """ sync the object and any data attached """
     log("sync", obj_data.object, obj_data.instance_id)
 
     stage = objects_prim.GetStage()
+    if stage.GetPrimAtPath(f"/{obj_data.sdf_name}") and stage.GetPrimAtPath(f"/{obj_data.sdf_name}").IsValid():
+        return
+
     xform = UsdGeom.Xform.Define(stage, objects_prim.GetPath().AppendChild(obj_data.sdf_name))
     obj_prim = xform.GetPrim()
 
@@ -118,6 +149,23 @@ def sync(objects_prim, obj_data: ObjectData, **kwargs):
 
             usd_material = UsdShade.Material.Get(stage, material_prim.GetPath())
             UsdShade.MaterialBindingAPI(usd_mesh).Bind(usd_material)
+
+        return
+
+    if obj.parent and obj_data.sdf_name != sdf_name(obj) and parent_stage:
+        sync(parent_stage.GetPseudoRoot(), ObjectData.from_object(obj))
+        parent_root_prim = stage.OverridePrim('/parent')
+        parent_prim = stage.OverridePrim(f"{parent_root_prim.GetPath()}/{sdf_name(obj)}")
+        parent_prim.GetReferences().AddReference(parent_stage.GetRootLayer().realPath, f"/{sdf_name(obj)}")
+
+        if not parent_prim or not parent_prim.IsValid():
+           return
+
+        if not parent_prim.IsInstanceable():
+            parent_prim.SetInstanceable(True)
+
+        obj_prim.GetReferences().AddInternalReference(parent_prim.GetPath())
+        obj_prim.SetInstanceable(False)
 
         return
 

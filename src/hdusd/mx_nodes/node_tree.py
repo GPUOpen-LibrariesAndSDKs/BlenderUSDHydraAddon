@@ -250,6 +250,8 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
         self.update_()
 
     def update_(self):
+        self.update_links()
+
         for material in bpy.data.materials:
             if material.hdusd.mx_node_tree and material.hdusd.mx_node_tree.name == self.name:
                 material.hdusd.update()
@@ -260,5 +262,14 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     for region in area.regions:
                         if region.type == REGION_TO_UPDATE:
                             region.tag_redraw()
-                            break
-                    break
+
+    def update_links(self):
+        for link in self.links:
+            socket_from_type = link.from_socket.node.nodedef.getOutput(link.from_socket.name).getType()
+            socket_to_type = link.to_socket.node.nodedef.getInput(link.to_socket.name).getType()
+
+            if socket_to_type != socket_from_type:
+                link.is_valid = False
+                continue
+
+            link.is_valid = True

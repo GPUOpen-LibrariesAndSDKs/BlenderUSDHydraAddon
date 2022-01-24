@@ -256,7 +256,7 @@ class NodeParser:
 
         link = socket_in.links[0]
 
-        # # check if linked is correct
+        # check if linked is correct
         if not link.is_valid:
             log.warn("Invalid link ignored", link, socket_in, self.node, self.world)
             return None
