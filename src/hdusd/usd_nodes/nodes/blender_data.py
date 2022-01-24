@@ -280,7 +280,6 @@ class BlenderDataNode(USDNode):
                 required_keys = set()
                 depsgraph_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects(depsgraph))
                 instances_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects_inst(depsgraph))
-                parents_keys = set(obj_data.sdf_name for obj_data in ObjectData.parent_objects(depsgraph))
 
                 if self.data == 'SCENE':
                     required_keys = depsgraph_keys
