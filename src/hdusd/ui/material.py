@@ -22,7 +22,7 @@ from pathlib import Path
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..mx_nodes.node_tree import MxNodeTree, NODE_LAYER_SEPARATION_WIDTH
 from ..mx_nodes.nodes.base_node import is_mx_node_valid
-from ..utils import get_temp_file, pass_node_reroute, title_str
+from ..utils import pass_node_reroute, title_str, BLENDER_VERSION
 from ..utils import mx as mx_utils
 from .. import config
 
@@ -730,22 +730,47 @@ def depsgraph_update(depsgraph):
     if not hasattr(screen, 'areas'):
         return
 
-    if mx_node_tree:
-        for window in context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
-                    continue
+    bpy.types.NODE_HT_header.remove(update_material_ui)
 
-                area.ui_type = 'hdusd.MxNodeTree'
-                space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-                space.node_tree = mx_node_tree
-
-                mx_node_tree.update_links()
-
-    else:
-        for window in context.window_manager.windows:
-            for area in window.screen.areas:
+    for window in context.window_manager.windows:
+        for area in window.screen.areas:
+            if not mx_node_tree:
                 if area.ui_type != 'hdusd.MxNodeTree':
                     continue
 
                 area.ui_type = 'ShaderNodeTree'
+                continue
+
+            if area.ui_type not in ('hdusd.MxNodeTree', 'ShaderNodeTree'):
+                continue
+
+            space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
+            if space.pin:
+                continue
+
+            area.ui_type = 'hdusd.MxNodeTree'
+            space.node_tree = mx_node_tree
+
+            mx_node_tree.update_links()
+
+    bpy.types.NODE_HT_header.append(update_material_ui)
+
+
+# update for material ui according to MaterialX nodetree header changes
+def update_material_ui(self, context):
+    if BLENDER_VERSION >= '3.0':
+        return
+
+    mat = context.object.active_material
+    if not mat:
+        return
+
+    space = context.space_data
+    if space.tree_type != 'hdusd.MxNodeTree':
+        return
+
+    ui_mx_node_tree = mat.hdusd.mx_node_tree
+    editor_node_tree = space.node_tree
+
+    if editor_node_tree != ui_mx_node_tree and not space.pin and editor_node_tree:
+        mat.hdusd.mx_node_tree = editor_node_tree
