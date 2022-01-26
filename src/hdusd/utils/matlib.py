@@ -334,7 +334,7 @@ class Manager:
         if self.materials is not None and not reset:
             return True
 
-        if reset:
+        if reset and self.pcoll:
             bpy.utils.previews.remove(self.pcoll)
 
         self.materials = {}
