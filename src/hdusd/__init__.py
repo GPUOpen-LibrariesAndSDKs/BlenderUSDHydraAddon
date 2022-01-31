@@ -13,6 +13,10 @@
 # limitations under the License.
 #********************************************************************
 
+from .utils import BLENDER_VERSION
+
+url_key = 'doc_url' if BLENDER_VERSION >= "3.0" else 'wiki_url'
+
 bl_info = {
     "name": "USD Hydra",
     "author": "AMD",
@@ -22,7 +26,7 @@ bl_info = {
     "description": "USD Hydra rendering plugin for Blender",
     "warning": "",
     "tracker_url": "",
-    "wiki_url": "",
+    url_key: "",
     "category": "Render"
 }
 version_build = ""
