@@ -15,15 +15,12 @@
 
 """Blender's start script, which loads USD Hydra addon"""
 
-import faulthandler
 from pathlib import Path
 import sys
 
 import bpy
 
 sys.path.append(str((Path(__file__).parent.parent.parent / 'src').resolve()))
-
-faulthandler.enable()
 
 import hdusd
 

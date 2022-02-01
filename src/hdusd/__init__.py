@@ -22,7 +22,7 @@ bl_info = {
     "description": "USD Hydra rendering plugin for Blender",
     "warning": "",
     "tracker_url": "",
-    "wiki_url": "",
+    "doc_url": "",
     "category": "Render"
 }
 version_build = ""
