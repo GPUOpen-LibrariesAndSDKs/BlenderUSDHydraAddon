@@ -32,27 +32,30 @@ def get_radiant_power(light: bpy.types.Light):
     intensity = color * light.energy
 
     if light.type == 'POINT':
-        return intensity * 4            # coefficient approximated to follow Cycles results
+        return intensity * 12  # coefficient approximated to follow Cycles results
 
     elif light.type == 'SPOT':
-        return intensity
+        return intensity / 4  # coefficient approximated to follow Cycles results
 
     elif light.type == 'SUN':
-        return intensity * 0.000025     # coefficient approximated to follow Cycles results
+        return intensity * 0.001  # coefficient approximated to follow Cycles results
 
     elif light.type == 'AREA':
         area = 1.0
+        approx_coef = 1.0
         if light.shape == 'SQUARE':
             area = light.size * light.size
         elif light.shape == 'RECTANGLE':
             area = light.size * light.size_y
         elif light.shape == 'DISK':
             area = math.pi * light.size * light.size
+            approx_coef = 7  # coefficient approximated to follow Cycles results
         else:
             # roughly approximated ellipse area
             area = math.pi * light.size * light.size_y
+            approx_coef = 7  # coefficient approximated to follow Cycles results
 
-        intensity /= area
+        intensity /= area / approx_coef
 
     return intensity
 
@@ -108,11 +111,11 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
 
         elif shape_type == 'DISK':
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
-            usd_light.CreateRadiusAttr(light.size)
+            usd_light.CreateRadiusAttr(light.size / 2)  # light.size is diameter
 
         else:  # shape_type == 'ELLIPSE':
             usd_light = UsdLux.DiskLight.Define(stage, light_path)
-            usd_light.CreateRadiusAttr(light.size)
+            usd_light.CreateRadiusAttr((light.size + light.size_y) / 4)  # average of light.size is diameter
 
     else:
         raise ValueError("Unsupported light type", light, light.type)
@@ -125,13 +128,8 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         # Material Previews are overly bright, that's why
         # decreasing light intensity for material preview by 10 times
         power *= 0.1
-        color_attr.Set(tuple(power))
 
-    else:
-        usd_utils.add_delegate_variants(obj_prim, {
-            'GL': lambda: color_attr.Set(tuple(power / 1000)),
-            'RPR': lambda: color_attr.Set(tuple(power))
-        })
+    color_attr.Set(tuple(power))
 
 
 def sync_update(obj_prim, obj: bpy.types.Object, **kwargs):
