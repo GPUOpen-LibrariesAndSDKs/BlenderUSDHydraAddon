@@ -54,7 +54,7 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
     scene.render.image_settings.color_mode = BLENDER_DEFAULT_COLOR_MODE
 
     try:
-        image.save_render(filepath=str(temp_path), scene=bpy.context.scene)
+        image.save_render(filepath=str(temp_path))
     finally:
         scene.render.image_settings.file_format = user_format
         scene.render.image_settings.color_mode = user_color_mode
