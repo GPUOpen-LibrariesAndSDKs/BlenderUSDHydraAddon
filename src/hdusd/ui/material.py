@@ -745,7 +745,7 @@ def depsgraph_update(depsgraph):
                 continue
 
             space = next(s for s in area.spaces if s.type == 'NODE_EDITOR')
-            if space.pin:
+            if space.pin or space.shader_type != 'OBJECT':
                 continue
 
             area.ui_type = 'hdusd.MxNodeTree'
@@ -761,7 +761,11 @@ def update_material_ui(self, context):
     if BLENDER_VERSION >= '3.0':
         return
 
-    mat = context.object.active_material
+    obj = context.active_object
+    if not obj:
+        return
+
+    mat = obj.active_material
     if not mat:
         return
 
