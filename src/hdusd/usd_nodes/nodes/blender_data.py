@@ -280,7 +280,6 @@ class BlenderDataNode(USDNode):
                 required_keys = set()
                 depsgraph_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects(depsgraph))
                 instances_keys = set(obj_data.sdf_name for obj_data in ObjectData.depsgraph_objects_inst(depsgraph))
-                parents_keys = set(obj_data.sdf_name for obj_data in ObjectData.parent_objects(depsgraph))
 
                 if self.data == 'SCENE':
                     required_keys = depsgraph_keys
@@ -303,8 +302,8 @@ class BlenderDataNode(USDNode):
                     if object.sdf_name(self.object) in depsgraph_keys:
                         required_keys = {object.sdf_name(self.object)}
 
-                keys_to_remove = (current_keys - required_keys) | parents_keys
-                keys_to_add = required_keys - current_keys - parents_keys
+                keys_to_remove = current_keys - required_keys
+                keys_to_add = required_keys - current_keys
 
                 if keys_to_remove:
                     for key in keys_to_remove:
