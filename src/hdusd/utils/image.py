@@ -23,6 +23,7 @@ from . import log
 SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tga", ".bmp"}
 DEFAULT_FORMAT = ".hdr"
 BLENDER_DEFAULT_FORMAT = "HDR"
+BLENDER_DEFAULT_COLOR_MODE = "RGB"
 READONLY_IMAGE_FORMATS = {".dds"}  # blender can read these formats, but can't write
 
 
@@ -33,31 +34,30 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
             log.warn("Image is missing", image, image_path)
             return None
 
-        image_suffix = Path(image.filepath).suffix.lower()
+        image_suffix = image_path.suffix.lower()
 
-        if image_suffix in SUPPORTED_FORMATS and f".{image.file_format.lower()}" in SUPPORTED_FORMATS:
+        if image_suffix in SUPPORTED_FORMATS and\
+                f".{image.file_format.lower()}" in SUPPORTED_FORMATS and not image.is_dirty:
             return image_path
 
         if image_suffix in READONLY_IMAGE_FORMATS:
             return image_path
 
-    old_filepath = image.filepath_raw
-    old_file_format = image.file_format
-
-    temp_path = get_temp_file(DEFAULT_FORMAT, image.name)
+    temp_path = get_temp_file(DEFAULT_FORMAT, image_path.stem)
     if cache_check and image.source != 'GENERATED' and temp_path.is_file():
         return temp_path
 
-    image_source = image.source
-    image.filepath_raw = str(temp_path)
-    image.file_format = BLENDER_DEFAULT_FORMAT
+    scene = bpy.context.scene
+    user_format = scene.render.image_settings.file_format
+    user_color_mode = scene.render.image_settings.color_mode
+    scene.render.image_settings.file_format = BLENDER_DEFAULT_FORMAT
+    scene.render.image_settings.color_mode = BLENDER_DEFAULT_COLOR_MODE
 
     try:
-        image.save()
+        image.save_render(filepath=str(temp_path))
     finally:
-        image.filepath_raw = old_filepath
-        image.file_format = old_file_format
-        image.source = image_source
+        scene.render.image_settings.file_format = user_format
+        scene.render.image_settings.color_mode = user_color_mode
 
     return temp_path
 
