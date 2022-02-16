@@ -314,7 +314,7 @@ class MxNode(bpy.types.ShaderNode):
                 continue
 
             nd_val = nd_input.getValue()
-            if nd_val is None or mx_utils.is_value_equal(nd_val, val, nd_type):
+            if nd_val is None:
                 continue
 
             mx_input = mx_node.addInput(nd_input.getName(), nd_type)
@@ -327,8 +327,6 @@ class MxNode(bpy.types.ShaderNode):
 
             val = self.get_param_value(nd_input.getName())
             nd_type = nd_input.getType()
-            if mx_utils.is_value_equal(nd_input.getValue(), val, nd_type):
-                continue
 
             mx_param = mx_node.addInput(nd_input.getName(), nd_type)
             mx_utils.set_param_value(mx_param, val, nd_type)
