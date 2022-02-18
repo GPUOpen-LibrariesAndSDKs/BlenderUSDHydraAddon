@@ -14,11 +14,9 @@
 #********************************************************************
 import sys
 import os
-import subprocess
-import shutil
 from pathlib import Path
 
-from build import rm_dir
+from build import rm_dir, check_call
 
 
 def main(bin_dir, clean, *args):
@@ -68,13 +66,12 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
                      *args)
 
         try:
-            print("Running:", call_args)
-            subprocess.check_call(call_args)
+            check_call(*call_args)
 
         finally:
             print("Reverting USD repo")
-            subprocess.check_call(('git', 'checkout', '--', '*'))
-            subprocess.check_call(('git', 'clean', '-f'))
+            check_call('git', 'checkout', '--', '*')
+            check_call('git', 'clean', '-f')
 
     finally:
         os.chdir(cur_dir)
