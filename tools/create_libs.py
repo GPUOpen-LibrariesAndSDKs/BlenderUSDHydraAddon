@@ -15,12 +15,14 @@
 import platform
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from build import rm_dir, copy
 
 
 OS = platform.system()
+PYTHON_VERSION = str(sys.version_info.major) + str(sys.version_info.minor)
 
 
 def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
@@ -35,9 +37,9 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
 
 def main(bin_dir):
     repo_dir = Path(__file__).parent.parent
-    libs_dir = repo_dir / "libs"
+    libs_dir = repo_dir / f"libs/{PYTHON_VERSION}"
 
-    rm_dir(libs_dir)
+    rm_dir(libs_dir/f'{PYTHON_VERSION}')
 
     print(f"Copying libs to: {libs_dir}")
 
