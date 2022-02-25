@@ -94,15 +94,11 @@ def hdrpr(bin_dir, compiler, jobs, clean):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    # If Python version from PATH differs from chosen version we need to add chosen version on top of PATH because
-    # HdRPR doesn't get python version from argument
-    if (python_dir := str(Path(sys.executable).parent)) not in os.environ['PATH']:
-        os.environ['PATH'] = python_dir + ';' + os.environ['PATH']
-
     _cmake(hdrpr_dir, compiler, jobs, [
         f'-Dpxr_DIR={usd_dir}',
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "USD/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
+        f'-DPYTHON_EXECUTABLE={sys.executable}',
     ])
 
 

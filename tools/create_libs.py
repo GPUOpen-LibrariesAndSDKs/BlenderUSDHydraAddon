@@ -39,7 +39,7 @@ def main(bin_dir):
     repo_dir = Path(__file__).parent.parent
     libs_dir = repo_dir / f"libs/{PYTHON_VERSION}"
 
-    rm_dir(libs_dir/f'{PYTHON_VERSION}')
+    rm_dir(libs_dir)
 
     print(f"Copying libs to: {libs_dir}")
 
