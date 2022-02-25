@@ -125,6 +125,8 @@ Use Open x64 Native Tools Command Prompt for Visual Studio 2019 Community and ru
 > python tools/build.py -all -bin-dir bin
 ```
 
+For building on non-default system python version you should change it with `update-alternatives --config python` command.
+
 #### Build tool
 You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
 - `-all` - builds all binaries, equals to `-usd -hdrpr -libs -mx-classes -addon` 
