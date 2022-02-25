@@ -65,9 +65,9 @@ Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a 
   - requests - `pip install requests`
   - PyOpenGL - `pip install PyOpenGL`
   - PySide2 - `pip install PySide2`
+  - jinja2 - `pip install jinja2`
 
-- [Visual Studio 2017 Community](https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads) _(Windows only)_
->_Not recommended to use for build Visual Studio 2019._
+- [Visual Studio 2019 Community](https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads) _(Windows only)_
 - [CMake 3.x](https://cmake.org/download/). Make sure it's added to the PATH environment variable
 
 ### Recommended software
@@ -109,12 +109,12 @@ Once SSH keys are installed update/checkout submodules for active branch:
 Require `python 3.9` to be set by default.
 
 #### Windows:
-Use Open x64 Native Tools Command Prompt for Visual Studio 2017 Community and run.
+Use Open x64 Native Tools Command Prompt for Visual Studio 2019 Community and run.
 ```commandline
 > git clone https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon
 > cd BlenderUSDHydraAddon
 > git submodule update --init --recursive
-> python tools/build.py -all -bin-dir bin -G "Visual Studio 15 2017 Win64"
+> python tools/build.py -all -bin-dir bin
 ```
 
 #### Linux:
@@ -127,15 +127,14 @@ Use Open x64 Native Tools Command Prompt for Visual Studio 2017 Community and ru
 
 #### Build tool
 You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
-- `-all` - builds all binaries, equals to `-usd -hdrpr -mx -libs -mx-classes -addon` 
+- `-all` - builds all binaries, equals to `-usd -hdrpr -libs -mx-classes -addon` 
 - `-usd` - builds usd binaries
 - `-hdrpr` - builds HdRPR plugin binaries
-- `-mx` - builds binaries for MaterialX library
 - `-bin-dir <bin dir>` - define folder to build binaries
 - `-libs` - copies all the necessary for development libraries to `lib` folder, needs to be passed with `-usd`, `-hdrpr`
 - `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders in `<bin dir>`, `-usd -hdrpr -clean` removes only `<bin dir>/Usd` and `<bin dir>/HdRPR`
 - `-mx-classes` - generates classes for MaterialX nodes
-- `-G "Visual Studio 15 2017 Win64"` - set builder, passing with `-all`, `-usd`, `-hdrpr` _(Windows only)_ 
+- `-G "Visual Studio 16 2019"` - set builder, passing with `-all` and `-hdrpr` _(Windows only)_ 
 - `-addon` - generates zip archive with plugin to `/install` folder
 
 Arguments are mostly used to skip build unneeded binaries. For example, you want switch to prebuild binary folder `bin/dir_01`:

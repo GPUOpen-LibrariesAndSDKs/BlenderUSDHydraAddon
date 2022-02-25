@@ -445,7 +445,7 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                 ref_name = ref_path.name
                 if ref_path.suffix == ".mtlx":
                     doc = mx.createDocument()
-                    source_path = Path(f"{new_stage.GetPathResolverContext().GetSearchPath()[0]}/{ref}")
+                    source_path = Path(f"{new_stage.GetPathResolverContext().Get()[0].GetSearchPath()[0]}/{ref}")
                     dest_path = f"{dest_path_root_dir}/{ref_name}"
                     search_path = mx.FileSearchPath(str(source_path.parent))
                     search_path.append(str(mx_utils.MX_LIBS_DIR))

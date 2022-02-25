@@ -33,6 +33,17 @@ def rm_dir(d: Path):
     shutil.rmtree(str(d), ignore_errors=True)
 
 
+def ch_dir(d: [Path, str]):
+    print(f"Chdir: {d}")
+    os.chdir(str(d))
+
+
+def check_call(*args):
+    args_str = " ".join((f'"{arg}"' if ' ' in arg else arg) for arg in (arg.replace('"', r'\"') for arg in args))
+    print(f"Running: {args_str}")
+    subprocess.check_call(args)
+
+
 def copy(src: Path, dest, ignore=()):
     print(f"Copying: {src} -> {dest}")
     if src.is_dir():
@@ -59,9 +70,9 @@ def usd(bin_dir, jobs, clean):
     build_usd.main(bin_dir, clean, *args)
 
 
-def _cmake(ch_dir, compiler, jobs, args):
+def _cmake(d, compiler, jobs, args):
     cur_dir = os.getcwd()
-    os.chdir(str(ch_dir))
+    ch_dir(d)
 
     build_args = ['-B', 'build', *args]
     if compiler:
@@ -76,11 +87,11 @@ def _cmake(ch_dir, compiler, jobs, args):
         compile_args += ['--', '-j', str(jobs)]
 
     try:
-        subprocess.check_call(['cmake', *build_args])
-        subprocess.check_call(['cmake', *compile_args])
+        check_call('cmake', *build_args)
+        check_call('cmake', *compile_args)
 
     finally:
-        os.chdir(cur_dir)
+        ch_dir(cur_dir)
 
 
 def hdrpr(bin_dir, compiler, jobs, clean):
@@ -148,8 +159,8 @@ def main():
                     help="Create zip addon")
     ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
-                         'For example: -G "Visual Studio 15 2017 Win64"',
-                    default="Visual Studio 15 2017 Win64" if OS == 'Windows' else "")
+                         'For example: -G "Visual Studio 16 2019"',
+                    default="Visual Studio 16 2019" if OS == 'Windows' else "")
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
     ap.add_argument("-usd-debug-libs", required=False, action="store_true",
@@ -158,10 +169,6 @@ def main():
                     help="Clean build dirs before start USD, HdRPR or MaterialX build")
 
     args = ap.parse_args()
-
-    if OS == 'Windows' and (args.all or args.hdrpr) and not args.G:
-        print('Please select compiler. For example: -G "Visual Studio 15 2017 Win64"')
-        return
 
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
     bin_dir.mkdir(parents=True, exist_ok=True)
