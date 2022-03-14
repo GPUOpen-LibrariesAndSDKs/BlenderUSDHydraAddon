@@ -41,8 +41,9 @@ in USD repository.
     os.chdir(str(usd_dir))
 
     try:
-        # applying patch data/USD.path
-        check_call('git', 'apply', str(repo_dir / "tools/data/USD.patch"))
+        # applying patch data/USD_deps.patch
+        # fixes issues with building USD on python 3.10
+        check_call('git', 'apply', str(repo_dir / "tools/data/USD_deps.patch"))
 
         # modifying pxr/usdImaging/CMakeLists.txt
         usd_imaging_lite_path = repo_dir / "deps/UsdImagingLite/pxr/usdImaging/usdImagingLite"
