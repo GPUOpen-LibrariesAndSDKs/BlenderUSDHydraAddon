@@ -42,7 +42,7 @@ in USD repository.
 
     try:
         # applying patch data/USD.path
-        check_call('git', 'apply', str(repo_dir / "tools/data/USD.patch"))
+        check_call('git', 'apply', str(repo_dir / "tools/data/USD_MaterialX.patch"))
 
         # modifying pxr/usdImaging/CMakeLists.txt
         usd_imaging_lite_path = repo_dir / "deps/UsdImagingLite/pxr/usdImaging/usdImagingLite"
