@@ -32,7 +32,7 @@ On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAdd
 
 Download the add-on from the releases page [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases). Open Blender preferences and got to the Add-ons section click Install button and pick the add-on in File Browser. Enable the add-on from the Add-ons section. 
 
->_WINDOWS USERS: Please note that old versions need to be disabled and uninstalled, and then Blender restarted. This is the case with many Blender addons that use C++ extenstions: https://developer.blender.org/T77837_
+>_WINDOWS USERS: Please note that old versions need to be disabled and uninstalled, and then Blender restarted. This is the case with many Blender addons that use C++ extensions: https://developer.blender.org/T77837_
 
 For users who wish to install 3rd party render delegates (see above), they should be installed to the `libs/plugins/usd` directory in the addon folder similar to a regular USD installation.
 
@@ -88,7 +88,7 @@ Converts pull to do, essentially, fetch&rebase:
 ```commandline
 > git config [--global] pull.rebase true
 ```
-Also, make more meaningful commits(one commit per feature) the easy way. This will create a single change set from multiple commits coming from `<branch>`:
+Also, make more meaningful commits (one commit per feature) the easy way. This will create a single change set from multiple commits coming from `<branch>`:
 ```commandline
 > git merge <branch> --squash 
 ```
