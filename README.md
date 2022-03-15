@@ -26,7 +26,7 @@ In short, this addon will allow an artist or studio to assembled and compose USD
 ## Requirements
 Currently, this addon works only with [Blender 2.93+](https://www.blender.org/download/) in Windows and Linux. We hope to remove the restriction in the future, but there are a few things preventing this.
 
-On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the addon. These include a copy of the USD library, as well as the Radeon ProRender Hydra delegate (under the directory `/libs`).
+On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the addon. These include a copy of the USD library, as well as the Radeon ProRender Hydra delegate (under the directory `/libs/{python_version}`).
 
 ## Installing Add-on
 
@@ -34,7 +34,7 @@ Download the add-on from the releases page [releases](https://github.com/GPUOpen
 
 >_WINDOWS USERS: Please note that old versions need to be disabled and uninstalled, and then Blender restarted. This is the case with many Blender addons that use C++ extenstions: https://developer.blender.org/T77837_
 
-For users who wish to install 3rd party render delegates (see above), they should be installed to the `libs/plugins/usd` directory in the addon folder similar to a regular USD installation.
+For users who wish to install 3rd party render delegates (see above), they should be installed to the `libs/{python_version}/plugins/usd` directory in the addon folder similar to a regular USD installation.
 
 ## Usage
 ### Rendering
@@ -128,7 +128,7 @@ Use Open x64 Native Tools Command Prompt for Visual Studio 2019 Community and ru
 For building on non-default system python version you should change it with `update-alternatives --config python` command.
 
 #### Build tool
-You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
+You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs/{python_version}` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
 - `-all` - builds all binaries, equals to `-usd -hdrpr -libs -mx-classes -addon` 
 - `-usd` - builds usd binaries
 - `-hdrpr` - builds HdRPR plugin binaries
