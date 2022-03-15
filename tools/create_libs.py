@@ -81,15 +81,15 @@ def main(bin_dir):
 
 def copy_usd_debug_files(bin_dir):
     repo_dir = Path(__file__).parent.parent
-    libs_dir = repo_dir / "libs"
+    libs_dir = repo_dir / f"libs/{PYTHON_VERSION}"
 
-    print(f"Copying USD debug build files to: {libs_dir / 'usd'}")
+    print(f"Copying USD debug build files to: {libs_dir / 'lib'}")
 
     for f in iterate_files(bin_dir / "USD/build/USD/pxr", "**/RelWithDebInfo/*"):
         if f.suffix not in ('.dll', '.pyd', '.pdb'):
             continue
 
-        relative = Path("usd") / f.name
+        relative = Path("lib") / f.name
         print(f, '->', relative)
 
         f_copy = libs_dir / relative
