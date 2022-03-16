@@ -29,7 +29,9 @@ from pathlib import Path
 
 
 OS = platform.system()
-LIBS_DIR = Path(__file__).parent.parent / 'libs'
+PYTHON_VERSION = str(sys.version_info.major) + str(sys.version_info.minor)
+LIBS_DIR = Path(__file__).parent.parent / f'libs/{PYTHON_VERSION}'
+
 
 if OS == 'Windows':
     path_str = ""
