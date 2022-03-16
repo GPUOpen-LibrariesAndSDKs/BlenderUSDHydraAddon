@@ -57,7 +57,7 @@ node_categories = [
         NodeItem('ShaderNodeMixRGB'),
     ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_CONVERTER', "Converter", items=[
-        NodeItem('ShaderNodeMixRGB'),
+        NodeItem('ShaderNodeMath'),
     ], ),
     HdUSD_CompatibleShaderNodeCategory('HDUSD_SHADER_NODE_CATEGORY_VECTOR', "Vector", items=[
         NodeItem('ShaderNodeNormalMap'),

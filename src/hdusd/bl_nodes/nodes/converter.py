@@ -47,7 +47,7 @@ class ShaderNodeMath(NodeParser):
             res = in1.ceil()
         elif op == 'ROUND':
             f = in1.floor()
-            res = (in1 % 1.0 < 0.5).if_else(f, f + 1.0)
+            res = (in1 % 1.0).if_else('>=', 0.5, f + 1.0, f)
 
         else:  # 2-operand operations
             in2 = self.get_input_value(1)
