@@ -89,9 +89,7 @@ def depsgraph_update(depsgraph):
     if not depsgraph.updates:
         return
 
-    upd = depsgraph.updates[0]
-    obj = upd.id
-    if not isinstance(obj, bpy.types.Object) or not obj.hdusd.is_usd:
-        return
-
-    obj.hdusd.sync_to_prim()
+    # Undo operation sends modified object with other stuff (scene, collection, etc...)
+    obj = next((upd.id for upd in depsgraph.updates if isinstance(upd.id, bpy.types.Object) and upd.id.hdusd.is_usd), None)
+    if obj:
+        obj.hdusd.sync_to_prim()
