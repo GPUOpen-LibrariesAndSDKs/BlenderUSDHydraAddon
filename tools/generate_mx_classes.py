@@ -18,11 +18,11 @@ from pathlib import Path
 from collections import defaultdict
 
 
-PYTHON_VERSION = str(sys.version_info.major) + str(sys.version_info.minor)
+PYTHON_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
 
 
 repo_dir = Path(__file__).parent.parent
-libs_dir = repo_dir / f"libs/{PYTHON_VERSION}"
+libs_dir = repo_dir / f"libs-{PYTHON_VERSION}"
 mx_libs_dir = libs_dir / "libraries"
 
 
