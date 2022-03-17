@@ -20,6 +20,7 @@ from . import log
 
 
 SSS_MIN_RADIUS = 0.0001
+DEFAULT_WHITE_COLOR = (1.0, 1.0, 1.0)
 
 
 def enabled(val):
@@ -56,7 +57,7 @@ class ShaderNodeBsdfPrincipled(NodeParser):
 
         metallic = self.get_input_value('Metallic')
         specular = self.get_input_value('Specular')
-        specular_tint = self.get_input_value('Specular Tint')
+        # specular_tint = self.get_input_value('Specular Tint')
         roughness = self.get_input_value('Roughness')
 
         anisotropic = None
@@ -69,9 +70,9 @@ class ShaderNodeBsdfPrincipled(NodeParser):
                 # anisotropic_rotation = 0.5 - (anisotropic_rotation % 1.0)
 
         sheen = self.get_input_value('Sheen')
-        sheen_tint = None
-        if enabled(sheen):
-            sheen_tint = self.get_input_value('Sheen Tint')
+        # sheen_tint = None
+        # if enabled(sheen):
+        #     sheen_tint = self.get_input_value('Sheen Tint')
 
         clearcoat = self.get_input_value('Clearcoat')
         clearcoat_roughness = None
@@ -110,7 +111,7 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         if enabled(specular):
             result.set_inputs({
                 'specular': specular,
-                'specular_color': base_color,
+                'specular_color': DEFAULT_WHITE_COLOR,
                 'specular_roughness': roughness,
                 'specular_IOR': ior,
                 'specular_anisotropy': anisotropic,
@@ -120,7 +121,7 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         if enabled(transmission):
             result.set_inputs({
                 'transmission': transmission,
-                'transmission_color': base_color,
+                'transmission_color': DEFAULT_WHITE_COLOR,
                 'transmission_extra_roughness': transmission_roughness,
             })
 
@@ -135,14 +136,14 @@ class ShaderNodeBsdfPrincipled(NodeParser):
         if enabled(sheen):
             result.set_inputs({
                 'sheen': sheen,
-                'sheen_color': base_color,
+                'sheen_color': DEFAULT_WHITE_COLOR,
                 'sheen_roughness': roughness,
             })
 
         if enabled(clearcoat):
             result.set_inputs({
                 'coat': clearcoat,
-                'coat_color': base_color,
+                'coat_color': DEFAULT_WHITE_COLOR,
                 'coat_roughness': clearcoat_roughness,
                 'coat_IOR': ior,
                 'coat_anisotropy': anisotropic,
