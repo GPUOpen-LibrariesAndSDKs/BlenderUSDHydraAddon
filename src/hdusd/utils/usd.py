@@ -18,7 +18,7 @@ import mathutils
 import bpy
 
 from pxr import UsdShade
-
+from ..utils import log
 
 def get_xform_transform(xform):
     transform = mathutils.Matrix(xform.GetLocalTransformation())
@@ -65,6 +65,7 @@ def traverse_stage(stage, *, ignore=None):
     def traverse(prim):
         for child in prim.GetAllChildren():
             if ignore and ignore(child):
+                log.warn(f'Ignoring prim {child.GetTypeName()}, {child}')
                 continue
 
             yield child
