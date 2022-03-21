@@ -55,21 +55,6 @@ class UsdFileNode(USDNode):
         layout.prop(self, 'filename')
         layout.prop(self, 'filter_path')
 
-
-    def compute(self, **kwargs):
-        if not self.filename:
-            return None
-
-        file_path = bpy.path.abspath(self.filename)
-        if not os.path.isfile(file_path):
-            log.warn("Couldn't find USD file", self.filename, self)
-            return None
-
-        stage = Usd.Stage.Open(file_path)
-        self.cached_stage.insert(stage)
-        return stage
-
-
     def compute(self, **kwargs):
         if not self.filename:
             return None
