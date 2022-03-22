@@ -48,87 +48,13 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdRenderDelegate* GetRenderDelegate(TfToken const& id) {
-    HdRendererPlugin* plugin = nullptr;
-    TfToken actualId = id;
-
-    // Special case: TfToken() selects the first plugin in the list.
-    if (actualId.IsEmpty()) {
-        actualId = HdRendererPluginRegistry::GetInstance().GetDefaultPluginId();
-    }
-    plugin = HdRendererPluginRegistry::GetInstance().GetRendererPlugin(actualId);
-
-    if (plugin == nullptr) {
-        TF_CODING_ERROR("Couldn't find plugin for id %s", actualId.GetText());
-        return nullptr;
-    } else if (!plugin->IsSupported()) {
-        // Don't do anything if the plugin isn't supported on the running
-        // system, just return that we're not able to set it.
-        HdRendererPluginRegistry::GetInstance().ReleasePlugin(plugin);
-        return nullptr;
-    }
-
-    HdRenderDelegate* renderDelegate = plugin->CreateRenderDelegate();
-    if (!renderDelegate) {
-        HdRendererPluginRegistry::GetInstance().ReleasePlugin(plugin);
-        return nullptr;
-    }
-
-    return renderDelegate;
-}
-
-static GfCamera
-_ComputeCameraToFrameStage(const UsdStageRefPtr& stage, UsdTimeCode timeCode,
-    const TfTokenVector& includedPurposes) {
-    // Start with a default (50mm) perspective GfCamera.
-    GfCamera gfCamera;
-    UsdGeomBBoxCache bboxCache(timeCode, includedPurposes,
-        /* useExtentsHint = */ true);
-    GfBBox3d bbox = bboxCache.ComputeWorldBound(stage->GetPseudoRoot());
-    GfVec3d center = bbox.ComputeCentroid();
-    GfRange3d range = bbox.ComputeAlignedRange();
-    GfVec3d dim = range.GetSize();
-    TfToken upAxis = UsdGeomGetStageUpAxis(stage);
-    // Find corner of bbox in the focal plane.
-    GfVec2d plane_corner;
-    if (upAxis == UsdGeomTokens->y) {
-        plane_corner = GfVec2d(dim[0], dim[1]) / 2;
-    } else {
-        plane_corner = GfVec2d(dim[0], dim[2]) / 2;
-    }
-    float plane_radius = sqrt(GfDot(plane_corner, plane_corner));
-    // Compute distance to focal plane.
-    float half_fov = gfCamera.GetFieldOfView(GfCamera::FOVHorizontal) / 2.0;
-    float distance = plane_radius / tan(GfDegreesToRadians(half_fov));
-    // Back up to frame the front face of the bbox.
-    if (upAxis == UsdGeomTokens->y) {
-        distance += dim[2] / 2;
-    } else {
-        distance += dim[1] / 2;
-    }
-    // Compute local-to-world transform for camera filmback.
-    GfMatrix4d xf;
-    //if (upAxis == UsdGeomTokens->y) {
-        xf.SetTranslate(center + GfVec3d(0, 0, distance));
-    /*} else {
-        xf.SetRotate(GfRotation(GfVec3d(1, 0, 0), 90));
-        xf.SetTranslateOnly(center + GfVec3d(0, -distance, 0));
-    }*/
-    gfCamera.SetTransform(xf);
-    return gfCamera;
-}
-
 UsdImagingLiteEngine::UsdImagingLiteEngine()
-    : _renderIndex(nullptr)
-    , _delegate(nullptr)
-    , _rendererPlugin(nullptr)
-    , _taskDataDelegate(nullptr)
 {
 }
 
 UsdImagingLiteEngine::~UsdImagingLiteEngine()
 {
-    _DeleteHydraResources();
+    _DestroyHydraObjects();
 }
 
 bool UsdImagingLiteEngine::SetRendererAov(TfToken const &id)
@@ -137,14 +63,14 @@ bool UsdImagingLiteEngine::SetRendererAov(TfToken const &id)
     TF_VERIFY(_renderIndex->IsBprimTypeSupported(HdPrimTypeTokens->renderBuffer));
 
     SdfPath taskDataDelegateId = _taskDataDelegate->GetDelegateID();
-    HdAovDescriptor aovDesc = _renderIndex->GetRenderDelegate()->GetDefaultAovDescriptor(id);
+    HdAovDescriptor aovDesc = _renderDelegate->GetDefaultAovDescriptor(id);
     if (aovDesc.format == HdFormatInvalid) {
         TF_RUNTIME_ERROR("Could not set \"%s\" AOV: unsupported by render delegate\n", id.GetText());
         return false;
     }
 
     SdfPath renderBufferId = taskDataDelegateId.AppendElementString("aov_" + id.GetString());
-    _renderIndex->InsertBprim(HdPrimTypeTokens->renderBuffer, _taskDataDelegate, renderBufferId);
+    _renderIndex->InsertBprim(HdPrimTypeTokens->renderBuffer, _taskDataDelegate.get(), renderBufferId);
 
     HdRenderBufferDescriptor desc;
     desc.dimensions = GfVec3i(_renderTaskParams.viewport[2] - _renderTaskParams.viewport[0],
@@ -175,10 +101,7 @@ bool UsdImagingLiteEngine::GetRendererAov(TfToken const &id, void *buf)
 
 UsdImagingGLRendererSettingsList UsdImagingLiteEngine::GetRendererSettingsList() const
 {
-    HdRenderDelegate *_renderDelegate = _renderIndex->GetRenderDelegate();
-
-    const HdRenderSettingDescriptorList descriptors =
-        _renderDelegate->GetRenderSettingDescriptors();
+    const HdRenderSettingDescriptorList descriptors = _renderDelegate->GetRenderSettingDescriptors();
     UsdImagingGLRendererSettingsList ret;
 
     for (auto const& desc : descriptors) {
@@ -217,20 +140,20 @@ UsdImagingGLRendererSettingsList UsdImagingLiteEngine::GetRendererSettingsList()
 
 VtValue UsdImagingLiteEngine::GetRendererSetting(TfToken const& id) const
 {
-    return _renderIndex->GetRenderDelegate()->GetRenderSetting(id);
+    return _renderDelegate->GetRenderSetting(id);
 }
 
 void UsdImagingLiteEngine::SetRendererSetting(TfToken const& id, VtValue const& value)
 {
-    _renderIndex->GetRenderDelegate()->SetRenderSetting(id, value);
+    _renderDelegate->SetRenderSetting(id, value);
 }
 
 void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams &params)
 {
-    _delegate->Populate(root);
+    _sceneDelegate->Populate(root);
 
     SdfPath renderTaskId = _taskDataDelegate->GetDelegateID().AppendElementString("renderTask");
-    _renderIndex->InsertTask<HdRenderTask>(_taskDataDelegate, renderTaskId);
+    _renderIndex->InsertTask<HdRenderTask>(_taskDataDelegate.get(), renderTaskId);
 
     _taskDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
@@ -248,7 +171,7 @@ void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams
     std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
     HdTaskSharedPtrVector tasks = { renderTask };
 
-    _engine.Execute(_renderIndex, &tasks);
+    _engine->Execute(_renderIndex.get(), &tasks);
 }
 
 void UsdImagingLiteEngine::InvalidateBuffers()
@@ -276,7 +199,7 @@ void UsdImagingLiteEngine::SetCameraState(const GfMatrix4d & viewMatrix, const G
     SdfPath freeCameraId = _taskDataDelegate->GetDelegateID().AppendElementString("freeCamera");
     HdCamera *cam = dynamic_cast<HdCamera *>(_renderIndex->GetSprim(HdPrimTypeTokens->camera, freeCameraId));
     if (cam == nullptr) {
-        _renderIndex->InsertSprim(HdPrimTypeTokens->camera, _taskDataDelegate, freeCameraId);
+        _renderIndex->InsertSprim(HdPrimTypeTokens->camera, _taskDataDelegate.get(), freeCameraId);
         _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->windowPolicy, VtValue(CameraUtilFit));
         _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->worldToViewMatrix, VtValue(viewMatrix));
         _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->projectionMatrix, VtValue(projectionMatrix));
@@ -298,84 +221,66 @@ TfTokenVector UsdImagingLiteEngine::GetRendererPlugins()
     HfPluginDescVector pluginDescriptors;
     HdRendererPluginRegistry::GetInstance().GetPluginDescs(&pluginDescriptors);
 
-    TfTokenVector plugins;
-    for (size_t i = 0; i < pluginDescriptors.size(); ++i) {
-        plugins.push_back(pluginDescriptors[i].id);
+    TfTokenVector pluginsIds;
+    for (auto &descr : pluginDescriptors) {
+        pluginsIds.push_back(descr.id);
     }
-    return plugins;
+    return pluginsIds;
 }
 
 std::string UsdImagingLiteEngine::GetRendererDisplayName(TfToken const & id)
 {
     HfPluginDesc pluginDescriptor;
-    if (!TF_VERIFY(HdRendererPluginRegistry::GetInstance().
-        GetPluginDesc(id, &pluginDescriptor))) {
-        return std::string();
+    if (!TF_VERIFY(HdRendererPluginRegistry::GetInstance().GetPluginDesc(id, &pluginDescriptor))) {
+        return "";
     }
-
     return pluginDescriptor.displayName;
 }
 
 bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
 {
-    HdRendererPlugin *plugin = nullptr;
-    TfToken actualId = id;
+    HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
-    // Special case: TfToken() selects the first plugin in the list.
-    if (actualId.IsEmpty()) {
-        actualId = HdRendererPluginRegistry::GetInstance().GetDefaultPluginId();
-    }
-    plugin = HdRendererPluginRegistry::GetInstance().GetRendererPlugin(actualId);
+    // Special case: id = TfToken() selects the first plugin in the list.
+    const TfToken resolvedId = id.IsEmpty() ? registry.GetDefaultPluginId() : id;
 
-    if (plugin == nullptr) {
-        TF_CODING_ERROR("Couldn't find plugin for id %s", actualId.GetText());
-        return false;
-    }
-    if (plugin == _rendererPlugin) {
-        // It's a no-op to load the same plugin twice.
-        HdRendererPluginRegistry::GetInstance().ReleasePlugin(plugin);
+    if (_renderDelegate && _renderDelegate.GetPluginId() == resolvedId) {
         return true;
     }
-    if (!plugin->IsSupported()) {
-        // Don't do anything if the plugin isn't supported on the running
-        // system, just return that we're not able to set it.
-        HdRendererPluginRegistry::GetInstance().ReleasePlugin(plugin);
-        return false;
-    }
 
-    HdRenderDelegate *renderDelegate = plugin->CreateRenderDelegate();
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+
+    HdPluginRenderDelegateUniqueHandle renderDelegate = registry.CreateRenderDelegate(resolvedId);
     if (!renderDelegate) {
-        HdRendererPluginRegistry::GetInstance().ReleasePlugin(plugin);
         return false;
     }
 
-    // Pull old delegate/task controller state.
-    GfMatrix4d rootTransform = GfMatrix4d(1.0);
-    bool isVisible = true;
-    if (_delegate != nullptr) {
-        rootTransform = _delegate->GetRootTransform();
-        isVisible = _delegate->GetRootVisibility();
-    }
+    const GfMatrix4d rootTransform = _sceneDelegate ? _sceneDelegate->GetRootTransform() : GfMatrix4d(1.0);
+    const bool isVisible = _sceneDelegate ? _sceneDelegate->GetRootVisibility() : true;
 
-    // Delete hydra state.
-    _DeleteHydraResources();
+    _DestroyHydraObjects();
 
-    // Recreate the render index.
-    _rendererPlugin = plugin;
-    _rendererId = actualId;
+    // Use the new render delegate.
+    _renderDelegate = std::move(renderDelegate);
 
-    _renderIndex = HdRenderIndex::New(renderDelegate, {});
+    // Recreate the render index
+    _renderIndex.reset(HdRenderIndex::New(_renderDelegate.Get(), {}));
 
-    // Create the new delegate & task controller.
-    SdfPath delegateId = SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate");
-    _delegate = new UsdImagingDelegate(_renderIndex, delegateId);
+    // Create the new delegate
+    _sceneDelegate = std::make_unique<UsdImagingDelegate>(_renderIndex.get(), 
+        SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
 
-    _taskDataDelegate = new HdRenderDataDelegate(_renderIndex,
+    _taskDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
         SdfPath::AbsoluteRootPath().AppendElementString("taskDataDelegate"));
 
+    // The task context holds on to resources in the render
+    // deletegate, so we want to destroy it first and thus
+    // create it last.
+    _engine = std::make_unique<HdEngine>();
+
     // Rebuild state in the new delegate/task controller.
-    _delegate->SetRootVisibility(isVisible);
-    _delegate->SetRootTransform(rootTransform);
+    _sceneDelegate->SetRootVisibility(isVisible);
+    _sceneDelegate->SetRootTransform(rootTransform);
 
     return true;
 }
@@ -402,37 +307,18 @@ bool UsdImagingLiteEngine::StopRenderer()
 
 bool UsdImagingLiteEngine::RestartRenderer()
 {
-    return _renderIndex->GetRenderDelegate()->Restart();
+    return _renderDelegate->Restart();
 }
 
-void UsdImagingLiteEngine::_DeleteHydraResources()
+void UsdImagingLiteEngine::_DestroyHydraObjects()
 {
-    // Unwinding order: remove data sources first (task controller, scene
-    // delegate); then render index; then render delegate; finally the
-    // renderer plugin used to manage the render delegate.
-
-    if (_taskDataDelegate != nullptr) {
-        delete _taskDataDelegate;
-        _taskDataDelegate = nullptr;
-    }
-    if (_delegate != nullptr) {
-        delete _delegate;
-        _delegate = nullptr;
-    }
-    HdRenderDelegate *renderDelegate = nullptr;
-    if (_renderIndex != nullptr) {
-        renderDelegate = _renderIndex->GetRenderDelegate();
-        delete _renderIndex;
-        _renderIndex = nullptr;
-    }
-    if (_rendererPlugin != nullptr) {
-        if (renderDelegate != nullptr) {
-            _rendererPlugin->DeleteRenderDelegate(renderDelegate);
-        }
-        HdRendererPluginRegistry::GetInstance().ReleasePlugin(_rendererPlugin);
-        _rendererPlugin = nullptr;
-        _rendererId = TfToken();
-    }
+    // Destroy objects in opposite order of construction.
+    _engine = nullptr;
+    _taskController = nullptr;
+    _taskDataDelegate = nullptr;
+    _sceneDelegate = nullptr;
+    _renderIndex = nullptr;
+    _renderDelegate = nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -441,7 +327,7 @@ void UsdImagingLiteEngine::_DeleteHydraResources()
 
 VtDictionary UsdImagingLiteEngine::GetRenderStats() const
 {
-    return _renderIndex->GetRenderDelegate()->GetRenderStats();
+    return _renderDelegate->GetRenderStats();
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

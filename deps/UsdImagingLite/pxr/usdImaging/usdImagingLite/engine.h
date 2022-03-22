@@ -29,6 +29,7 @@
 
 #include "pxr/imaging/hd/engine.h"
 #include "pxr/imaging/hd/rendererPlugin.h"
+#include "pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h"
 #include "pxr/imaging/hdx/taskController.h"
 #include "pxr/usdImaging/usdImaging/delegate.h"
 #include "pxr/usdImaging/usdImagingGL/rendererSettings.h"
@@ -197,13 +198,11 @@ public:
     /// @}
 
 protected:
-    HdEngine _engine;
-    HdRenderIndex *_renderIndex;
-    UsdImagingDelegate *_delegate;
+    HdPluginRenderDelegateUniqueHandle _renderDelegate;
+    std::unique_ptr<HdRenderIndex> _renderIndex;
 
     HdRendererPlugin *_rendererPlugin;
     TfToken _rendererId;
-    HdRenderDataDelegate *_taskDataDelegate;
     HdRenderPassAovBindingVector _aovBindings;
     HdRenderTaskParams _renderTaskParams;
 
@@ -211,11 +210,12 @@ protected:
 
     // This function disposes of: the render index, the render plugin,
     // the task controller, and the usd imaging delegate.
-    void _DeleteHydraResources();
+    void _DestroyHydraObjects();
 
 private:
-    
-
+    std::unique_ptr<HdRenderDataDelegate> _taskDataDelegate;
+    std::unique_ptr<UsdImagingDelegate> _sceneDelegate;
+    std::unique_ptr<HdEngine> _engine;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
