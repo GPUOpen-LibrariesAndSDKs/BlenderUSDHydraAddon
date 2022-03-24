@@ -80,7 +80,12 @@ def sync(obj_prim, obj: bpy.types.Object, **kwargs):
         usd_light = UsdLux.DistantLight.Define(stage, light_path)
         angle = math.degrees(light.angle)
         usd_light.CreateAngleAttr(angle)
-        usd_light.CreateIntensityAttr(light.energy)
+        intensity_attr = usd_light.CreateIntensityAttr()
+
+        usd_utils.add_delegate_variants(obj_prim, {
+            'GL': lambda: intensity_attr.Set(light.energy * 1736000000), # coefficient approximated to follow RPR results
+            'RPR': lambda: intensity_attr.Set(light.energy)
+        })
 
     elif light.type == 'SPOT':
         usd_light = UsdLux.SphereLight.Define(stage, light_path)
