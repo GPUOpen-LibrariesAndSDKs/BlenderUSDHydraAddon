@@ -61,12 +61,8 @@ wrapEngine()
             .def("SetRenderViewport", &Cls::SetRenderViewport)
             .def("SetRendererAov", &Cls::SetRendererAov)
             .def("GetRendererAov", &Cls::GetRendererAov_wrap)
-            .def("GetRendererSettingsList",
-                &Cls::GetRendererSettingsList,
-                return_value_policy< TfPySequenceToList >())
             .def("GetRendererSetting", &Cls::GetRendererSetting)
             .def("SetRendererSetting", &Cls::SetRendererSetting)
-            .def("SetCameraPath", &Cls::SetCameraPath)
             .def("SetCameraState", &Cls::SetCameraState)
             .def("IsConverged", &Cls::IsConverged)
             .def("GetRendererDisplayName", &Cls::GetRendererDisplayName)

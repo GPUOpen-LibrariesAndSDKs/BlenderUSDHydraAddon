@@ -49,12 +49,13 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 UsdImagingLiteEngine::UsdImagingLiteEngine()
+    : _isPopulated(false)
 {
 }
 
 UsdImagingLiteEngine::~UsdImagingLiteEngine()
 {
-    _DestroyHydraObjects();
+    _DeleteHydraResources();
 }
 
 bool UsdImagingLiteEngine::SetRendererAov(TfToken const &id)
@@ -62,22 +63,21 @@ bool UsdImagingLiteEngine::SetRendererAov(TfToken const &id)
     TF_VERIFY(_renderIndex);
     TF_VERIFY(_renderIndex->IsBprimTypeSupported(HdPrimTypeTokens->renderBuffer));
 
-    SdfPath taskDataDelegateId = _taskDataDelegate->GetDelegateID();
     HdAovDescriptor aovDesc = _renderDelegate->GetDefaultAovDescriptor(id);
     if (aovDesc.format == HdFormatInvalid) {
         TF_RUNTIME_ERROR("Could not set \"%s\" AOV: unsupported by render delegate\n", id.GetText());
         return false;
     }
 
-    SdfPath renderBufferId = taskDataDelegateId.AppendElementString("aov_" + id.GetString());
-    _renderIndex->InsertBprim(HdPrimTypeTokens->renderBuffer, _taskDataDelegate.get(), renderBufferId);
+    SdfPath renderBufferId = _renderDataDelegate->GetDelegateID().AppendElementString("aov_" + id.GetString());
+    _renderIndex->InsertBprim(HdPrimTypeTokens->renderBuffer, _renderDataDelegate.get(), renderBufferId);
 
     HdRenderBufferDescriptor desc;
     desc.dimensions = GfVec3i(_renderTaskParams.viewport[2] - _renderTaskParams.viewport[0],
                               _renderTaskParams.viewport[3] - _renderTaskParams.viewport[1], 1);
     desc.format = aovDesc.format;
     desc.multiSampled = aovDesc.multiSampled;
-    _taskDataDelegate->SetParameter(renderBufferId, _tokens->renderBufferDescriptor, desc);
+    _renderDataDelegate->SetParameter(renderBufferId, _tokens->renderBufferDescriptor, desc);
     _renderIndex->GetChangeTracker().MarkBprimDirty(renderBufferId, HdRenderBuffer::DirtyDescription);
 
     HdRenderPassAovBinding binding;
@@ -91,7 +91,7 @@ bool UsdImagingLiteEngine::SetRendererAov(TfToken const &id)
 
 bool UsdImagingLiteEngine::GetRendererAov(TfToken const &id, void *buf)
 {
-    SdfPath renderBufferId = _taskDataDelegate->GetDelegateID().AppendElementString("aov_" + id.GetString());
+    SdfPath renderBufferId = _renderDataDelegate->GetDelegateID().AppendElementString("aov_" + id.GetString());
     HdRenderBuffer *rBuf = static_cast<HdRenderBuffer*>(_renderIndex->GetBprim(HdPrimTypeTokens->renderBuffer, renderBufferId));
     void *data = rBuf->Map();
     memcpy(buf, data, rBuf->GetWidth() * rBuf->GetHeight() * HdDataSizeOfFormat(rBuf->GetFormat()));
@@ -99,89 +99,66 @@ bool UsdImagingLiteEngine::GetRendererAov(TfToken const &id, void *buf)
     return true;
 }
 
-UsdImagingGLRendererSettingsList UsdImagingLiteEngine::GetRendererSettingsList() const
-{
-    const HdRenderSettingDescriptorList descriptors = _renderDelegate->GetRenderSettingDescriptors();
-    UsdImagingGLRendererSettingsList ret;
-
-    for (auto const& desc : descriptors) {
-        UsdImagingGLRendererSetting r;
-        r.key = desc.key;
-        r.name = desc.name;
-        r.defValue = desc.defaultValue;
-
-        // Use the type of the default value to tell us what kind of
-        // widget to create...
-        if (r.defValue.IsHolding<bool>()) {
-            r.type = UsdImagingGLRendererSetting::TYPE_FLAG;
-        }
-        else if (r.defValue.IsHolding<int>() ||
-            r.defValue.IsHolding<unsigned int>()) {
-            r.type = UsdImagingGLRendererSetting::TYPE_INT;
-        }
-        else if (r.defValue.IsHolding<float>()) {
-            r.type = UsdImagingGLRendererSetting::TYPE_FLOAT;
-        }
-        else if (r.defValue.IsHolding<std::string>()) {
-            r.type = UsdImagingGLRendererSetting::TYPE_STRING;
-        }
-        else {
-            TF_WARN("Setting '%s' with type '%s' doesn't have a UI"
-                " implementation...",
-                r.name.c_str(),
-                r.defValue.GetTypeName().c_str());
-            continue;
-        }
-        ret.push_back(r);
-    }
-
-    return ret;
-}
-
 VtValue UsdImagingLiteEngine::GetRendererSetting(TfToken const& id) const
 {
+    TF_VERIFY(_renderDelegate);
     return _renderDelegate->GetRenderSetting(id);
 }
 
 void UsdImagingLiteEngine::SetRendererSetting(TfToken const& id, VtValue const& value)
 {
+    TF_VERIFY(_renderDelegate);
     _renderDelegate->SetRenderSetting(id, value);
 }
 
 void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams &params)
 {
-    _sceneDelegate->Populate(root);
+    TF_VERIFY(_sceneDelegate);
 
-    SdfPath renderTaskId = _taskDataDelegate->GetDelegateID().AppendElementString("renderTask");
-    _renderIndex->InsertTask<HdRenderTask>(_taskDataDelegate.get(), renderTaskId);
+    if (!_isPopulated) {
+        _sceneDelegate->Populate(root);
+        _isPopulated = true;
+    }
 
-    _taskDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
+    // SetTime will only react if time actually changes.
+    _sceneDelegate->SetTime(params.frame);
+
+    const SdfPathVector paths = { _sceneDelegate->ConvertCachePathToIndexPath(root.GetPath()) };
+    _UpdateHydraCollection(&_renderCollection, paths, params);
+
+    SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
+    _renderIndex->InsertTask<HdRenderTask>(_renderDataDelegate.get(), renderTaskId);
+
+    _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
 
     HdReprSelector reprSelector = HdReprSelector(HdReprTokens->smoothHull);
     HdRprimCollection rprimCollection(HdTokens->geometry, reprSelector, false, TfToken());
     rprimCollection.SetRootPath(SdfPath::AbsoluteRootPath());
-    _taskDataDelegate->SetParameter(renderTaskId, HdTokens->collection, rprimCollection);
+    _renderDataDelegate->SetParameter(renderTaskId, HdTokens->collection, rprimCollection);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyCollection);
 
     TfTokenVector renderTags{ HdRenderTagTokens->geometry };
-    _taskDataDelegate->SetParameter(renderTaskId, HdTokens->renderTags, renderTags);
+    _renderDataDelegate->SetParameter(renderTaskId, HdTokens->renderTags, renderTags);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyRenderTags);
 
     std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
     HdTaskSharedPtrVector tasks = { renderTask };
 
-    _engine->Execute(_renderIndex.get(), &tasks);
-}
-
-void UsdImagingLiteEngine::InvalidateBuffers()
-{
+    {
+        // Release the GIL before calling into hydra, in case any hydra plugins
+        // call into python.
+        TF_PY_ALLOW_THREADS_IN_SCOPE();
+        _engine->Execute(_renderIndex.get(), &tasks);
+    }
 }
 
 bool UsdImagingLiteEngine::IsConverged() const
 {
-    SdfPath renderTaskId = _taskDataDelegate->GetDelegateID().AppendElementString("renderTask");
-    std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
+    TF_VERIFY(_renderIndex);
+
+    std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(
+        _renderDataDelegate->GetDelegateID().AppendElementString("renderTask")));
     return renderTask->IsConverged();
 }
 
@@ -190,30 +167,21 @@ void UsdImagingLiteEngine::SetRenderViewport(GfVec4d const & viewport)
     _renderTaskParams.viewport = viewport;
 }
 
-void UsdImagingLiteEngine::SetCameraPath(SdfPath const & id)
-{
-}
-
 void UsdImagingLiteEngine::SetCameraState(const GfMatrix4d & viewMatrix, const GfMatrix4d & projectionMatrix)
 {
-    SdfPath freeCameraId = _taskDataDelegate->GetDelegateID().AppendElementString("freeCamera");
-    HdCamera *cam = dynamic_cast<HdCamera *>(_renderIndex->GetSprim(HdPrimTypeTokens->camera, freeCameraId));
-    if (cam == nullptr) {
-        _renderIndex->InsertSprim(HdPrimTypeTokens->camera, _taskDataDelegate.get(), freeCameraId);
-        _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->windowPolicy, VtValue(CameraUtilFit));
-        _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->worldToViewMatrix, VtValue(viewMatrix));
-        _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->projectionMatrix, VtValue(projectionMatrix));
-        _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->clipPlanes, VtValue(std::vector<GfVec4d>()));
+    TF_VERIFY(_renderIndex);
 
-        _renderTaskParams.camera = freeCameraId;
+    SdfPath freeCameraId = _renderDataDelegate->GetDelegateID().AppendElementString("freeCamera");
+    if (_renderIndex->GetSprim(HdPrimTypeTokens->camera, freeCameraId)) {
+        _renderIndex->RemoveSprim(HdPrimTypeTokens->camera, freeCameraId);
     }
-    else {
-        _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->worldToViewMatrix, VtValue(viewMatrix));
-        _taskDataDelegate->SetParameter(freeCameraId, HdCameraTokens->projectionMatrix, VtValue(projectionMatrix));
-        _renderIndex->GetChangeTracker().MarkSprimDirty(freeCameraId, HdCamera::DirtyViewMatrix);
-        _renderIndex->GetChangeTracker().MarkSprimDirty(freeCameraId, HdCamera::DirtyProjMatrix);
-    }
-    
+    _renderIndex->InsertSprim(HdPrimTypeTokens->camera, _renderDataDelegate.get(), freeCameraId);
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->windowPolicy, VtValue(CameraUtilFit));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->worldToViewMatrix, VtValue(viewMatrix));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->projectionMatrix, VtValue(projectionMatrix));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->clipPlanes, VtValue(std::vector<GfVec4d>()));
+
+    _renderTaskParams.camera = freeCameraId;
  }
 
 TfTokenVector UsdImagingLiteEngine::GetRendererPlugins()
@@ -258,7 +226,9 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
     const GfMatrix4d rootTransform = _sceneDelegate ? _sceneDelegate->GetRootTransform() : GfMatrix4d(1.0);
     const bool isVisible = _sceneDelegate ? _sceneDelegate->GetRootVisibility() : true;
 
-    _DestroyHydraObjects();
+    _DeleteHydraResources();
+
+    _isPopulated = false;
 
     // Use the new render delegate.
     _renderDelegate = std::move(renderDelegate);
@@ -270,7 +240,7 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
     _sceneDelegate = std::make_unique<UsdImagingDelegate>(_renderIndex.get(), 
         SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
 
-    _taskDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
+    _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
         SdfPath::AbsoluteRootPath().AppendElementString("taskDataDelegate"));
 
     // The task context holds on to resources in the render
@@ -287,38 +257,98 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
 
 bool UsdImagingLiteEngine::IsPauseRendererSupported() const
 {
-    return false;
+    TF_VERIFY(_renderDelegate);
+    return _renderDelegate->IsPauseSupported();
 }
 
 bool UsdImagingLiteEngine::PauseRenderer()
 {
-    return false;
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+
+    TF_VERIFY(_renderDelegate);
+    return _renderDelegate->Pause();
 }
 
 bool UsdImagingLiteEngine::ResumeRenderer()
 {
-    return false;
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+
+    TF_VERIFY(_renderDelegate);
+    return _renderDelegate->Resume();
 }
 
 bool UsdImagingLiteEngine::StopRenderer()
 {
-    return false;
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+
+    TF_VERIFY(_renderDelegate);
+    return _renderDelegate->Stop();
 }
 
 bool UsdImagingLiteEngine::RestartRenderer()
 {
+    TF_PY_ALLOW_THREADS_IN_SCOPE();
+
+    TF_VERIFY(_renderDelegate);
     return _renderDelegate->Restart();
 }
 
-void UsdImagingLiteEngine::_DestroyHydraObjects()
+void UsdImagingLiteEngine::_DeleteHydraResources()
 {
     // Destroy objects in opposite order of construction.
     _engine = nullptr;
-    _taskController = nullptr;
-    _taskDataDelegate = nullptr;
+    _renderDataDelegate = nullptr;
     _sceneDelegate = nullptr;
     _renderIndex = nullptr;
     _renderDelegate = nullptr;
+}
+
+/* static */
+bool UsdImagingLiteEngine::_UpdateHydraCollection(
+    HdRprimCollection* collection,
+    SdfPathVector const& roots,
+    UsdImagingLiteRenderParams const& params)
+{
+    if (collection == nullptr) {
+        TF_CODING_ERROR("Null passed to _UpdateHydraCollection");
+        return false;
+    }
+
+    HdReprSelector reprSelector = HdReprSelector(HdReprTokens->smoothHull);
+
+    // By default our main collection will be called geometry
+    const TfToken colName = HdTokens->geometry;
+
+    // Check if the collection needs to be updated (so we can avoid the sort).
+    SdfPathVector const& oldRoots = collection->GetRootPaths();
+
+    // inexpensive comparison first
+    bool match = collection->GetName() == colName && oldRoots.size() == roots.size();
+
+    // Only take the time to compare root paths if everything else matches.
+    if (match) {
+        // Note that oldRoots is guaranteed to be sorted.
+        for (size_t i = 0; i < roots.size(); i++) {
+            // Avoid binary search when both vectors are sorted.
+            if (oldRoots[i] == roots[i])
+                continue;
+            // Binary search to find the current root.
+            if (!std::binary_search(oldRoots.begin(), oldRoots.end(), roots[i]))
+            {
+                match = false;
+                break;
+            }
+        }
+
+        // if everything matches, do nothing.
+        if (match) return false;
+    }
+
+    // Recreate the collection.
+    *collection = HdRprimCollection(colName, reprSelector);
+    collection->SetRootPaths(roots);
+
+    return true;
 }
 
 //----------------------------------------------------------------------------

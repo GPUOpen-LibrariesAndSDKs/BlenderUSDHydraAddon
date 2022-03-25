@@ -31,21 +31,23 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 HdRenderTask::HdRenderTask(HdSceneDelegate* delegate, SdfPath const& id)
-    : HdTask(id) {
-
+    : HdTask(id)
+{
 }
 
-HdRenderTask::~HdRenderTask() {
-
+HdRenderTask::~HdRenderTask()
+{
 }
 
-bool HdRenderTask::IsConverged() const {
+bool HdRenderTask::IsConverged() const
+{
     return m_pass ? m_pass->IsConverged() : true;
 }
 
 void HdRenderTask::Sync(HdSceneDelegate* delegate,
                            HdTaskContext* ctx,
-                           HdDirtyBits* dirtyBits) {
+                           HdDirtyBits* dirtyBits)
+{
     auto renderIndex = &delegate->GetRenderIndex();
 
     if ((*dirtyBits) & HdChangeTracker::DirtyCollection) {
@@ -93,7 +95,8 @@ void HdRenderTask::Sync(HdSceneDelegate* delegate,
 }
 
 void HdRenderTask::Prepare(HdTaskContext* ctx,
-                              HdRenderIndex* renderIndex) {
+                              HdRenderIndex* renderIndex)
+{
     if (!m_passState) {
         m_passState = renderIndex->GetRenderDelegate()->CreateRenderPassState();
     }
@@ -124,14 +127,16 @@ void HdRenderTask::Prepare(HdTaskContext* ctx,
     m_passState->Prepare(renderIndex->GetResourceRegistry());
 }
 
-void HdRenderTask::Execute(HdTaskContext* ctx) {
+void HdRenderTask::Execute(HdTaskContext* ctx)
+{
     // Bind the render state and render geometry with the rendertags (if any)
     if (m_pass) {
         m_pass->Execute(m_passState, GetRenderTags());
     }
 }
 
-TfTokenVector const& HdRenderTask::GetRenderTags() const {
+TfTokenVector const& HdRenderTask::GetRenderTags() const
+{
     return m_renderTags;
 }
 
