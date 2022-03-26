@@ -18,6 +18,7 @@ from pxr import UsdGeom, UsdAppUtils, Tf
 from pxr import UsdImagingLite
 
 from .engine import Engine
+from ..utils.stage_cache import CachedStage
 from ..export import object, world
 
 from ..utils import logging
@@ -29,11 +30,34 @@ class PreviewEngine(Engine):
 
     TYPE = 'PREVIEW'
     SAMPLES_NUMBER = 50
+    renderer: UsdImagingLite.Engine = None
+    cashed_stage: CachedStage = None
+
+    @classmethod
+    def get_renderer(cls):
+        if not cls.renderer:
+            cls.renderer = UsdImagingLite.Engine()
+
+        return cls.renderer
+
+    @classmethod
+    def get_stage(cls):
+        if not cls.cashed_stage:
+            cls.cashed_stage = CachedStage()
+            stage = cls.cashed_stage.create()
+            UsdGeom.SetStageMetersPerUnit(stage, 1)
+            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        return cls.cashed_stage()
 
     def __init__(self, render_engine):
         super().__init__(render_engine)
 
         self.is_synced = False
+
+    @property
+    def stage(self):
+        return self.get_stage()
 
     def _set_scene_camera(self, renderer, scene):
         usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
@@ -44,10 +68,10 @@ class PreviewEngine(Engine):
     def sync(self, depsgraph):
         self.is_synced = False
 
-        stage = self.cached_stage.create()
+        stage = self.stage
 
-        UsdGeom.SetStageMetersPerUnit(stage, 1)
-        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+        for prim in stage.GetPseudoRoot().GetAllChildren():
+            stage.RemovePrim(prim.GetPath())
 
         root_prim = stage.GetPseudoRoot()
 
@@ -72,7 +96,7 @@ class PreviewEngine(Engine):
         scene = depsgraph.scene
         width, height = scene.render.resolution_x, scene.render.resolution_y
 
-        renderer = UsdImagingLite.Engine()
+        renderer = self.get_renderer()
         renderer.SetRendererPlugin('HdRprPlugin')
         renderer.SetRendererSetting('rpr:maxSamples', self.SAMPLES_NUMBER)
         renderer.SetRendererSetting('rpr:core:renderQuality', 'Northstar')
