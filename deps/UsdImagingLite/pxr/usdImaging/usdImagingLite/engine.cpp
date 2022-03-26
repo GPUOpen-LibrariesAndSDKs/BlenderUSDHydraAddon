@@ -128,6 +128,7 @@ void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams
 
     SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
     _renderIndex->InsertTask<HdRenderTask>(_renderDataDelegate.get(), renderTaskId);
+    std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
 
     _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);
@@ -142,9 +143,7 @@ void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams
     _renderDataDelegate->SetParameter(renderTaskId, HdTokens->renderTags, renderTags);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyRenderTags);
 
-    std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
     HdTaskSharedPtrVector tasks = { renderTask };
-
     {
         // Release the GIL before calling into hydra, in case any hydra plugins
         // call into python.
@@ -361,4 +360,3 @@ VtDictionary UsdImagingLiteEngine::GetRenderStats() const
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE
-

@@ -30,7 +30,8 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdRenderTask : public HdTask {
+class HdRenderTask : public HdTask
+{
 public:
     HdRenderTask(HdSceneDelegate* delegate, SdfPath const& id);
 
@@ -58,16 +59,17 @@ public:
     TfTokenVector const& GetRenderTags() const override;
 
 private:
-    HdRenderPassSharedPtr m_pass;
-    HdRenderPassStateSharedPtr m_passState;
+    HdRenderPassSharedPtr _pass;
+    HdRenderPassStateSharedPtr _passState;
 
-    TfTokenVector m_renderTags;
-    GfVec4d m_viewport;
-    SdfPath m_cameraId;
-    HdRenderPassAovBindingVector m_aovBindings;
+    TfTokenVector _renderTags;
+    GfVec4d _viewport;
+    SdfPath _cameraId;
+    HdRenderPassAovBindingVector _aovBindings;
 };
 
-struct HdRenderTaskParams {
+struct HdRenderTaskParams
+{
     // Should not be empty.
     HdRenderPassAovBindingVector aovBindings;
 
