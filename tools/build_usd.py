@@ -81,7 +81,6 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
         finally:
             print("Reverting USD repo")
             check_call('git', 'checkout', '--', '*')
-            check_call('git', f'--git-dir={usd_dir}/.git', 'clean', '-xdf')
             check_call('git', 'clean', '-f')
 
     finally:
