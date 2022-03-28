@@ -119,7 +119,7 @@ def depsgraph_update(depsgraph):
     if not depsgraph.updates:
         return
 
-    update_id = depsgraph.updates[0].id
-    if isinstance(update_id, bpy.types.Material):
-        material = update_id
-        material.hdusd.update(True)
+    # Undo operation sends modified object with other stuff (scene, collection, etc...)
+    mat = next((upd.id for upd in depsgraph.updates if isinstance(upd.id, bpy.types.Material)), None)
+    if mat:
+        mat.hdusd.update(True)
