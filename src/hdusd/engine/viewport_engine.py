@@ -343,7 +343,8 @@ class ViewportEngine(Engine):
         settings = self.get_settings(scene)
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
-            restart = self.renderer.GetRendererSetting('rpr:core:renderQuality') != hdrpr.render_quality
+            restart = self.renderer.GetRendererSetting('rpr:core:renderQuality') != hdrpr.render_quality \
+                      or self.renderer.GetRendererSetting('rpr:core:renderMode') != hdrpr.render_mode
 
         # temporary solution due to "material preview red painting" issue
         # we need to restart renderer to remove red from material after switching from material preview
