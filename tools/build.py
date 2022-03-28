@@ -59,7 +59,7 @@ def print_start(msg):
 -------------------------------------------------------------""")
 
 
-def usd(bin_dir, jobs, clean):
+def usd(bin_dir, jobs, clean, build_var):
     print_start("Building USD")
 
     import build_usd
@@ -67,10 +67,10 @@ def usd(bin_dir, jobs, clean):
     if jobs > 0:
         args += ['-j', str(jobs)]
 
-    build_usd.main(bin_dir, clean, *args)
+    build_usd.main(bin_dir, clean, build_var, *args)
 
 
-def _cmake(d, compiler, jobs, args):
+def _cmake(d, compiler, jobs, build_var, args):
     cur_dir = os.getcwd()
     ch_dir(d)
 
@@ -78,9 +78,13 @@ def _cmake(d, compiler, jobs, args):
     if compiler:
         build_args += ['-G', compiler]
 
+    build_name = {'release': 'Release',
+                  'debug': 'Debug',
+                  'relwithdebuginfo': 'RelWithDebInfo'}[build_var]
+
     compile_args = [
         '--build', 'build',
-        '--config', 'Release',
+        '--config', build_name,
         '--target', 'install'
     ]
     if jobs > 0:
@@ -94,7 +98,7 @@ def _cmake(d, compiler, jobs, args):
         ch_dir(cur_dir)
 
 
-def hdrpr(bin_dir, compiler, jobs, clean):
+def hdrpr(bin_dir, compiler, jobs, clean, build_var):
     print_start("Building HdRPR")
 
     hdrpr_dir = repo_dir / "deps/HdRPR"
@@ -105,7 +109,7 @@ def hdrpr(bin_dir, compiler, jobs, clean):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    _cmake(hdrpr_dir, compiler, jobs, [
+    _cmake(hdrpr_dir, compiler, jobs, build_var, [
         f'-Dpxr_DIR={usd_dir}',
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "USD/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
@@ -113,11 +117,11 @@ def hdrpr(bin_dir, compiler, jobs, clean):
     ])
 
 
-def libs(bin_dir):
+def libs(bin_dir, build_var):
     print_start("Copying binaries to libs")
 
     import create_libs
-    create_libs.main(bin_dir)
+    create_libs.main(bin_dir, build_var)
 
 
 def mx_classes():
@@ -132,11 +136,6 @@ def zip_addon():
 
     import create_zip_addon
     create_zip_addon.main()
-
-
-def usd_debug_libs(bin_dir):
-    import create_libs
-    create_libs.copy_usd_debug_files(bin_dir)
 
 
 def main():
@@ -163,33 +162,32 @@ def main():
                     default="Visual Studio 16 2019" if OS == 'Windows' else "")
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
-    ap.add_argument("-usd-debug-libs", required=False, action="store_true",
-                    help="Copy RelWithDebInfo USD libs")
+    ap.add_argument("-build-var", required=False, type=str, default="release",
+                    choices=('release', 'relwithdebuginfo'),    # TODO: add 'debug' build variant
+                    help="Build variant for USD, HdRPR and dependencies. (default: release)")
     ap.add_argument("-clean", required=False, action="store_true",
-                    help="Clean build dirs before start USD, HdRPR or MaterialX build")
+                    help="Clean build dirs before start USD or HdRPR build")
 
     args = ap.parse_args()
 
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
+    bin_dir = bin_dir.absolute()
     bin_dir.mkdir(parents=True, exist_ok=True)
 
     if args.all or args.usd:
-        usd(bin_dir, args.j, args.clean)
+        usd(bin_dir, args.j, args.clean, args.build_var)
 
     if args.all or args.hdrpr:
-        hdrpr(bin_dir, args.G, args.j, args.clean)
+        hdrpr(bin_dir, args.G, args.j, args.clean, args.build_var)
 
     if args.all or args.libs:
-        libs(bin_dir)
+        libs(bin_dir, args.build_var)
 
     if args.all or args.mx_classes:
         mx_classes()
 
     if args.all or args.addon:
         zip_addon()
-
-    if args.usd_debug_libs:
-        usd_debug_libs(bin_dir)
 
     print_start("Finished")
 

@@ -19,7 +19,7 @@ from pathlib import Path
 from build import rm_dir, check_call
 
 
-def main(bin_dir, clean, *args):
+def main(bin_dir, clean, build_var, *args):
     if len(args) == 1 and args[0] in ("--help", "-h"):
         print("""
 Usage
@@ -71,7 +71,7 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
                      '--build-args', f'MATERIALX,-DMATERIALX_BUILD_PYTHON=ON -DMATERIALX_INSTALL_PYTHON=OFF '
                                      f'-DMATERIALX_PYTHON_EXECUTABLE="{sys.executable}"',
                      '--python',
-                     '--build-variant', 'release',
+                     '--build-variant', build_var,
                      str(bin_usd_dir / "install"),
                      *args)
 

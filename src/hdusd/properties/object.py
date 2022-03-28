@@ -21,7 +21,7 @@ from ..export import object, material
 from ..utils import usd as usd_utils
 
 
-GEOM_TYPES = ('Xform', 'SkelRoot')
+GEOM_TYPES = ('Xform', 'SkelRoot', 'Scope')
 
 
 class ObjectProperties(HdUSDProperties):

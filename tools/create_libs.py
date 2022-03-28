@@ -35,7 +35,7 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
         yield f
 
 
-def main(bin_dir):
+def main(bin_dir, build_var):
     repo_dir = Path(__file__).parent.parent
     libs_dir = repo_dir / f"libs-{PYTHON_VERSION}"
 
@@ -46,16 +46,30 @@ def main(bin_dir):
     usd_dir = bin_dir / "USD/install"
     libs_dir.mkdir(parents=True)
 
-    copy(usd_dir / "bin", libs_dir / "bin", ('*.pdb',))
-    copy(usd_dir / "lib", libs_dir / "lib", ("*.pdb", "*.lib", "*.def", "cmake", "__pycache__"))
-    copy(usd_dir / "plugin", libs_dir / "plugin", ("*.pdb", "*.lib"))
+    ignore_base = ("*.pdb",) if build_var == 'release' else ()
+    build_name = {'release': 'Release',
+                  'debug': 'Debug',
+                  'relwithdebuginfo': 'RelWithDebInfo'}[build_var]
+
+    copy(usd_dir / "bin", libs_dir / "bin", ignore_base)
+    copy(usd_dir / "lib", libs_dir / "lib",
+         ignore_base + ("*.lib", "*.def", "cmake", "__pycache__"))
+    copy(usd_dir / "plugin", libs_dir / "plugin", ignore_base + ("*.lib",))
     copy(usd_dir / "python", libs_dir / "python", ("*.lib", "build"))
     copy(usd_dir / "libraries", libs_dir / "libraries")
     copy(repo_dir / "deps/mx_libs/alglib", libs_dir / "libraries/alglib")
 
     if OS == 'Windows':
-        copy(bin_dir / "USD/build/openexr-2.3.0/OpenEXR/IlmImf/Release/"
-             "IlmImf-2_3.dll", libs_dir / "lib/IlmImf-2_3.dll")
+        copy(bin_dir / f"USD/build/openexr-2.3.0/OpenEXR/IlmImf/{build_name}/IlmImf-2_3.dll",
+             libs_dir / "lib/IlmImf-2_3.dll")
+
+        if build_var != 'release':
+            copy(bin_dir / f"USD/build/openexr-2.3.0/OpenEXR/IlmImf/{build_name}/IlmImf-2_3.pdb",
+                 libs_dir / "lib/IlmImf-2_3.pdb")
+            copy(repo_dir / f"deps/HdRPR/build/pxr/imaging/rprUsd/{build_name}/rprUsd.pdb",
+                 libs_dir / "lib/rprUsd.pdb")
+            copy(repo_dir / f"deps/HdRPR/build/pxr/imaging/plugin/hdRpr/{build_name}/hdRpr.pdb",
+                 libs_dir / "plugin/usd/hdRpr.pdb")
 
     if OS == 'Linux':
         print("Configuring rpath")

@@ -29,6 +29,9 @@ COLLECTION_NAME = "USD NodeTree"
 
 def ignore_prim(prim):
     prim_type = prim.GetTypeName()
+    if not prim_type:
+        return False
+
     return not (prim_type in GEOM_TYPES or prim_type in ('Mesh', 'Camera') or prim_type.endswith('Light'))
 
 
