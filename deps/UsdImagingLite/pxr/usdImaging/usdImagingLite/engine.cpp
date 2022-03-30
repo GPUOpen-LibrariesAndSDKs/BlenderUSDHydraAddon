@@ -99,6 +99,16 @@ bool UsdImagingLiteEngine::GetRendererAov(TfToken const &id, void *buf)
     return true;
 }
 
+void UsdImagingLiteEngine::ClearRendererAovs()
+{
+    TF_VERIFY(_renderIndex);
+
+    for (HdRenderPassAovBinding& binding : _renderTaskParams.aovBindings) {
+        _renderIndex->RemoveBprim(HdPrimTypeTokens->renderBuffer, binding.renderBufferId);
+    }
+    _renderTaskParams.aovBindings.clear();
+}
+
 VtValue UsdImagingLiteEngine::GetRendererSetting(TfToken const& id) const
 {
     TF_VERIFY(_renderDelegate);

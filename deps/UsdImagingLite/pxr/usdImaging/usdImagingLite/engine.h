@@ -85,6 +85,9 @@ public:
 
     USDIMAGINGLITE_API
     bool GetRendererAov(TfToken const &id, void *buf);
+
+    USDIMAGINGLITE_API
+    void ClearRendererAovs();
     /// @}
 
     /// Returns the list of renderer settings.

@@ -55,6 +55,11 @@ class PreviewEngine(Engine):
 
         self.is_synced = False
 
+    def __del__(self):
+        renderer = self.get_renderer()
+        renderer.StopRenderer()
+        print("StopRenderer")
+
     @property
     def stage(self):
         return self.get_stage()
@@ -79,7 +84,7 @@ class PreviewEngine(Engine):
             if self.render_engine.test_break():
                 return None
 
-            object.sync(root_prim, obj_data)
+            object.sync(root_prim, obj_data, is_preview_render=True)
 
         world.sync(root_prim, depsgraph.scene.world)
 
@@ -104,6 +109,7 @@ class PreviewEngine(Engine):
         renderer.SetRendererSetting('rpr:adaptiveSampling:minSamples', 16)
         renderer.SetRendererSetting('rpr:adaptiveSampling:noiseTreshold', 0.05)
 
+        renderer.ClearRendererAovs()
         renderer.SetRenderViewport((0, 0, width, height))
         renderer.SetRendererAov('color')
 
@@ -136,6 +142,3 @@ class PreviewEngine(Engine):
 
         renderer.GetRendererAov('color', image.ctypes.data)
         update_render_result()
-
-        # its important to clear data explicitly
-        renderer = None
