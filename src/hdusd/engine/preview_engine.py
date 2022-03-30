@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import threading
 import numpy as np
 
 from pxr import UsdGeom, UsdAppUtils, Tf
@@ -30,39 +31,45 @@ class PreviewEngine(Engine):
 
     TYPE = 'PREVIEW'
     SAMPLES_NUMBER = 50
+    RENDERER_LIFETIME = 60.0    # 1 minute in seconds
+
     renderer: UsdImagingLite.Engine = None
-    cashed_stage: CachedStage = None
+    cached_stage: CachedStage = None
+    timer: threading.Timer = None    # timer to remove rpr_context
 
     @classmethod
-    def get_renderer(cls):
-        if not cls.renderer:
-            cls.renderer = UsdImagingLite.Engine()
-
-        return cls.renderer
-
-    @classmethod
-    def get_stage(cls):
-        if not cls.cashed_stage:
-            cls.cashed_stage = CachedStage()
-            stage = cls.cashed_stage.create()
-            UsdGeom.SetStageMetersPerUnit(stage, 1)
-            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
-
-        return cls.cashed_stage()
+    def _remove_renderer(cls):
+        log("Removing renderer")
+        cls.renderer = None
+        cls.cached_stage = None
+        cls.timer = None
 
     def __init__(self, render_engine):
         super().__init__(render_engine)
 
+        cls = self.__class__
+
+        if cls.timer:
+            cls.timer.cancel()
+
+        if not cls.renderer:
+            log("Creating renderer")
+            cls.renderer = UsdImagingLite.Engine()
+            cls.cached_stage = CachedStage()
+            stage = cls.cached_stage.create()
+            UsdGeom.SetStageMetersPerUnit(stage, 1)
+            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        self.renderer = cls.renderer
+        self.cached_stage = cls.cached_stage
         self.is_synced = False
 
     def __del__(self):
-        renderer = self.get_renderer()
-        renderer.StopRenderer()
-        print("StopRenderer")
+        self.renderer.StopRenderer()
 
-    @property
-    def stage(self):
-        return self.get_stage()
+        cls = self.__class__
+        cls.timer = threading.Timer(cls.RENDERER_LIFETIME, cls._remove_renderer)
+        cls.timer.start()
 
     def _set_scene_camera(self, renderer, scene):
         usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
@@ -101,26 +108,25 @@ class PreviewEngine(Engine):
         scene = depsgraph.scene
         width, height = scene.render.resolution_x, scene.render.resolution_y
 
-        renderer = self.get_renderer()
-        renderer.SetRendererPlugin('HdRprPlugin')
-        renderer.SetRendererSetting('rpr:maxSamples', self.SAMPLES_NUMBER)
-        renderer.SetRendererSetting('rpr:core:renderQuality', 'Northstar')
-        renderer.SetRendererSetting('rpr:alpha:enable', False)
-        renderer.SetRendererSetting('rpr:adaptiveSampling:minSamples', 16)
-        renderer.SetRendererSetting('rpr:adaptiveSampling:noiseTreshold', 0.05)
+        self.renderer.SetRendererPlugin('HdRprPlugin')
+        self.renderer.SetRendererSetting('rpr:maxSamples', self.SAMPLES_NUMBER)
+        self.renderer.SetRendererSetting('rpr:core:renderQuality', 'Northstar')
+        self.renderer.SetRendererSetting('rpr:alpha:enable', False)
+        self.renderer.SetRendererSetting('rpr:adaptiveSampling:minSamples', 16)
+        self.renderer.SetRendererSetting('rpr:adaptiveSampling:noiseTreshold', 0.05)
 
-        renderer.ClearRendererAovs()
-        renderer.SetRenderViewport((0, 0, width, height))
-        renderer.SetRendererAov('color')
+        self.renderer.ClearRendererAovs()
+        self.renderer.SetRenderViewport((0, 0, width, height))
+        self.renderer.SetRendererAov('color')
 
         # setting camera
         usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
 
         gf_camera = usd_camera.GetCamera()
-        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(), gf_camera.frustum.ComputeProjectionMatrix())
+        self.renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(), gf_camera.frustum.ComputeProjectionMatrix())
 
         params = UsdImagingLite.RenderParams()
-        image = np.empty((width, height, 4), dtype=np.float32)
+        image = np.zeros((width, height, 4), dtype=np.float32)
 
         def update_render_result():
             result = self.render_engine.begin_result(0, 0, width, height)
@@ -128,17 +134,17 @@ class PreviewEngine(Engine):
             render_passes.foreach_set('rect', image.flatten())
             self.render_engine.end_result(result)
 
-        renderer.Render(self.stage.GetPseudoRoot(), params)
+        self.renderer.Render(self.stage.GetPseudoRoot(), params)
 
         while True:
             if self.render_engine.test_break():
                 break
 
-            if renderer.IsConverged():
+            if self.renderer.IsConverged():
                 break
 
-            renderer.GetRendererAov('color', image.ctypes.data)
+            self.renderer.GetRendererAov('color', image.ctypes.data)
             update_render_result()
 
-        renderer.GetRendererAov('color', image.ctypes.data)
+        self.renderer.GetRendererAov('color', image.ctypes.data)
         update_render_result()
