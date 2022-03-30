@@ -133,9 +133,6 @@ void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams
     // SetTime will only react if time actually changes.
     _sceneDelegate->SetTime(params.frame);
 
-    const SdfPathVector paths = { _sceneDelegate->ConvertCachePathToIndexPath(root.GetPath()) };
-    _UpdateHydraCollection(&_renderCollection, paths, params);
-
     SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
     _renderIndex->InsertTask<HdRenderTask>(_renderDataDelegate.get(), renderTaskId);
     std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
@@ -310,54 +307,6 @@ void UsdImagingLiteEngine::_DeleteHydraResources()
     _sceneDelegate = nullptr;
     _renderIndex = nullptr;
     _renderDelegate = nullptr;
-}
-
-/* static */
-bool UsdImagingLiteEngine::_UpdateHydraCollection(
-    HdRprimCollection* collection,
-    SdfPathVector const& roots,
-    UsdImagingLiteRenderParams const& params)
-{
-    if (collection == nullptr) {
-        TF_CODING_ERROR("Null passed to _UpdateHydraCollection");
-        return false;
-    }
-
-    HdReprSelector reprSelector = HdReprSelector(HdReprTokens->smoothHull);
-
-    // By default our main collection will be called geometry
-    const TfToken colName = HdTokens->geometry;
-
-    // Check if the collection needs to be updated (so we can avoid the sort).
-    SdfPathVector const& oldRoots = collection->GetRootPaths();
-
-    // inexpensive comparison first
-    bool match = collection->GetName() == colName && oldRoots.size() == roots.size();
-
-    // Only take the time to compare root paths if everything else matches.
-    if (match) {
-        // Note that oldRoots is guaranteed to be sorted.
-        for (size_t i = 0; i < roots.size(); i++) {
-            // Avoid binary search when both vectors are sorted.
-            if (oldRoots[i] == roots[i])
-                continue;
-            // Binary search to find the current root.
-            if (!std::binary_search(oldRoots.begin(), oldRoots.end(), roots[i]))
-            {
-                match = false;
-                break;
-            }
-        }
-
-        // if everything matches, do nothing.
-        if (match) return false;
-    }
-
-    // Recreate the collection.
-    *collection = HdRprimCollection(colName, reprSelector);
-    collection->SetRootPaths(roots);
-
-    return true;
 }
 
 //----------------------------------------------------------------------------

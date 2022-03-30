@@ -193,14 +193,6 @@ public:
     /// @}
 
 private:
-    // Create a hydra collection given root paths and render params.
-    // Returns true if the collection was updated.
-    USDIMAGINGLITE_API
-    static bool _UpdateHydraCollection(HdRprimCollection* collection,
-        SdfPathVector const& roots,
-        UsdImagingLiteRenderParams const& params);
-
-private:
     std::unique_ptr<HdRenderIndex> _renderIndex;
     HdPluginRenderDelegateUniqueHandle _renderDelegate;
     std::unique_ptr<UsdImagingDelegate> _sceneDelegate;
