@@ -52,6 +52,11 @@ def update(context):
             clear(context)
             return
 
+        # workaround for Undo operation - Blender doesn't send bpy.data.scenes and bpy.data.collections
+        # so we need to do nothing to prevent Blender crash
+        if len(bpy.data.scenes) == 0:
+            return
+
         collection = bpy.data.collections.get(COLLECTION_NAME)
         if not collection:
             collection = bpy.data.collections.new(COLLECTION_NAME)
