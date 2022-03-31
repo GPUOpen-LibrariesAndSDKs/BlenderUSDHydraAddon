@@ -413,6 +413,9 @@ class ViewportEngineScene(ViewportEngine):
                 if obj.type == 'LIGHT' and not self.shading_data.use_scene_lights:
                     continue
 
+                # We need to update collection in any case of editing object because Blender doesn't have "is_hide" property
+                update_collection = True
+
                 obj_data = object.ObjectData.from_object(obj)
 
                 object.sync_update(root_prim, obj_data,
