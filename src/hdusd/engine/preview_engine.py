@@ -55,6 +55,7 @@ class PreviewEngine(Engine):
         if not cls.renderer:
             log("Creating renderer")
             cls.renderer = UsdImagingLite.Engine()
+            cls.renderer.SetRendererPlugin('HdRprPlugin')
             cls.cached_stage = CachedStage()
             stage = cls.cached_stage.create()
             UsdGeom.SetStageMetersPerUnit(stage, 1)
@@ -108,7 +109,6 @@ class PreviewEngine(Engine):
         scene = depsgraph.scene
         width, height = scene.render.resolution_x, scene.render.resolution_y
 
-        self.renderer.SetRendererPlugin('HdRprPlugin')
         self.renderer.SetRendererSetting('rpr:maxSamples', self.SAMPLES_NUMBER)
         self.renderer.SetRendererSetting('rpr:core:renderQuality', 'Northstar')
         self.renderer.SetRendererSetting('rpr:alpha:enable', False)
