@@ -194,6 +194,7 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
 
     if data.image:
         tex_attr = usd_light.CreateTextureFileAttr()
+        tex_attr.ClearDefault()
         usd_utils.add_delegate_variants(obj_prim, {
             'GL': lambda: tex_attr.Set(""),
             'RPR': lambda: tex_attr.Set(str(data.image))
@@ -219,7 +220,7 @@ def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):
     usd_light.CreateIntensityAttr().Clear()
 
     if usd_light.GetTextureFileAttr().Get() is not None:
-        usd_light.CreateTextureFileAttr().Clear()
+        usd_light.GetTextureFileAttr().Block()
 
     usd_light.ClearXformOpOrder()
 
