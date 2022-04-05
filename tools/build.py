@@ -77,6 +77,10 @@ def _cmake(d, compiler, jobs, build_var, args):
     if compiler:
         build_args += ['-G', compiler]
 
+    if build_var == 'relwithdebuginfo' and OS == 'Windows':
+        # disabling optimization for debug purposes
+        build_args.append(f'USD,-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="/Od"')
+
     build_name = {'release': 'Release',
                   'debug': 'Debug',
                   'relwithdebuginfo': 'RelWithDebInfo'}[build_var]

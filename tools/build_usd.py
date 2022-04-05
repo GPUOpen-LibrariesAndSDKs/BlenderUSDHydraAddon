@@ -16,7 +16,7 @@ import sys
 import os
 from pathlib import Path
 
-from build import rm_dir, check_call
+from build import rm_dir, check_call, OS
 
 
 def main(bin_dir, clean, build_var, *args):
@@ -58,14 +58,19 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
         """)
 
         bin_usd_dir = bin_dir / "USD"
+        build_args = [f'MATERIALX,-DMATERIALX_BUILD_PYTHON=ON -DMATERIALX_INSTALL_PYTHON=OFF '
+                      f'-DMATERIALX_PYTHON_EXECUTABLE="{sys.executable}"']
+        if build_var == 'relwithdebuginfo' and OS == 'Windows':
+            # disabling optimization for debug purposes
+            build_args.append(f'USD,-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="/Od"')
+
         call_args = (sys.executable, str(usd_dir / "build_scripts/build_usd.py"),
                      '--verbose',
                      '--build', str(bin_usd_dir / "build"),
                      '--src', str(bin_usd_dir / "deps"),
                      '--materialx',
                      '--openvdb',
-                     '--build-args', f'MATERIALX,-DMATERIALX_BUILD_PYTHON=ON -DMATERIALX_INSTALL_PYTHON=OFF '
-                                     f'-DMATERIALX_PYTHON_EXECUTABLE="{sys.executable}"',
+                     '--build-args', *build_args,
                      '--python',
                      '--build-variant', build_var,
                      str(bin_usd_dir / "install"),
