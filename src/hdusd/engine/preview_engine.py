@@ -109,9 +109,12 @@ class PreviewEngine(Engine):
         scene = depsgraph.scene
         width, height = scene.render.resolution_x, scene.render.resolution_y
 
+        # uses for creating a transparent background icon to follow blender UI style
+        is_preview_icon = width == 32 and height == 32
+
         self.renderer.SetRendererSetting('rpr:maxSamples', self.SAMPLES_NUMBER)
         self.renderer.SetRendererSetting('rpr:core:renderQuality', 'Northstar')
-        self.renderer.SetRendererSetting('rpr:alpha:enable', False)
+        self.renderer.SetRendererSetting('rpr:alpha:enable', is_preview_icon)
         self.renderer.SetRendererSetting('rpr:adaptiveSampling:minSamples', 16)
         self.renderer.SetRendererSetting('rpr:adaptiveSampling:noiseTreshold', 0.05)
 
