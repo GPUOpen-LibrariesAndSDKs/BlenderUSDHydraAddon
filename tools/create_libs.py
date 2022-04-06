@@ -15,12 +15,14 @@
 import platform
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from build import rm_dir, copy
 
 
 OS = platform.system()
+PYTHON_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
 
 
 def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
@@ -35,7 +37,7 @@ def iterate_files(path, glob, *, ignore_parts=(), ignore_suffix=()):
 
 def main(bin_dir, build_var):
     repo_dir = Path(__file__).parent.parent
-    libs_dir = repo_dir / "libs"
+    libs_dir = repo_dir / f"libs-{PYTHON_VERSION}"
 
     rm_dir(libs_dir)
 
@@ -93,15 +95,15 @@ def main(bin_dir, build_var):
 
 def copy_usd_debug_files(bin_dir):
     repo_dir = Path(__file__).parent.parent
-    libs_dir = repo_dir / "libs"
+    libs_dir = repo_dir / f"libs-{PYTHON_VERSION}"
 
-    print(f"Copying USD debug build files to: {libs_dir / 'usd'}")
+    print(f"Copying USD debug build files to: {libs_dir / 'lib'}")
 
     for f in iterate_files(bin_dir / "USD/build/USD/pxr", "**/RelWithDebInfo/*"):
         if f.suffix not in ('.dll', '.pyd', '.pdb'):
             continue
 
-        relative = Path("usd") / f.name
+        relative = Path("lib") / f.name
         print(f, '->', relative)
 
         f_copy = libs_dir / relative

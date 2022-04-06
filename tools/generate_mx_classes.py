@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import os
 import re
 import sys
 from pathlib import Path
 from collections import defaultdict
 
 
+PYTHON_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
+
+
 repo_dir = Path(__file__).parent.parent
-libs_dir = repo_dir / "libs"
+libs_dir = repo_dir / f"libs-{PYTHON_VERSION}"
 mx_libs_dir = libs_dir / "libraries"
 
 

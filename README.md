@@ -26,7 +26,7 @@ In short, this addon will allow an artist or studio to assembled and compose USD
 ## Requirements
 Currently, this addon works only with [Blender 2.93+](https://www.blender.org/download/) in Windows and Linux. We hope to remove the restriction in the future, but there are a few things preventing this.
 
-On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the addon. These include a copy of the USD library, as well as the Radeon ProRender Hydra delegate (under the directory `/libs`).
+On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the addon. These include a copy of the USD library, as well as the Radeon ProRender Hydra delegate (under the directory `/libs-{python_version}`).
 
 ## Installing Add-on
 
@@ -34,7 +34,7 @@ Download the add-on from the releases page [releases](https://github.com/GPUOpen
 
 >_WINDOWS USERS: Please note that old versions need to be disabled and uninstalled, and then Blender restarted. This is the case with many Blender addons that use C++ extensions: https://developer.blender.org/T77837_
 
-For users who wish to install 3rd party render delegates (see above), they should be installed to the `libs/plugins/usd` directory in the addon folder similar to a regular USD installation.
+For users who wish to install 3rd party render delegates (see above), they should be installed to the `libs-{python_version}/plugins/usd` directory in the addon folder similar to a regular USD installation.
 
 ## Usage
 ### Rendering
@@ -60,7 +60,7 @@ Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a 
 ## Contributing
 ### Build Requirements
 - [Blender 2.93+](https://www.blender.org/download/)
-- [Python 3.9 x64](https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe) _(Blender 2.93+ uses 3.9)_
+- [Python 3.9 x64](https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe) _(Blender 2.93+ uses 3.9)_ or [Python 3.10 x64](https://www.python.org/ftp/python/3.10.2/python-3.10.2-amd64.exe) _(Blender 3.1+ uses 3.10)_
   - numpy - `pip install numpy`
   - requests - `pip install requests`
   - PyOpenGL - `pip install PyOpenGL`
@@ -68,7 +68,7 @@ Therefore the material solution in the USD Hydra addon uses MaterialX. Here's a 
   - jinja2 - `pip install jinja2`
 
 - [Visual Studio 2019 Community](https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads) _(Windows only)_
-- [CMake 3.x](https://cmake.org/download/). Make sure it's added to the PATH environment variable
+- [CMake 3.22.2+](https://cmake.org/download/). Make sure it's added to the PATH environment variable
 
 ### Recommended software
 - [epydoc](http://epydoc.sourceforge.net/) - enable PyCharm to parse Core's documentation. Use `py -m pip install epydoc` with your selected python interpreter or install it from PyCharm.
@@ -106,7 +106,7 @@ Once SSH keys are installed update/checkout submodules for active branch:
 ```
 
 ### Build
-Require `python 3.9` to be set by default.
+Require `python 3.9+` to be set by default.
 
 #### Windows:
 Use Open x64 Native Tools Command Prompt for Visual Studio 2019 Community and run.
@@ -125,17 +125,19 @@ Use Open x64 Native Tools Command Prompt for Visual Studio 2019 Community and ru
 > python tools/build.py -all -bin-dir bin
 ```
 
+For building on non-default system python version you should change it with `update-alternatives --config python` command or via setting venv.
+
 #### Build tool
-You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
+You can build project using `tools/build.py` with different flag combinations. It allows you to create a folder with binaries and copy all the necessary files for development to `/libs-{python_version}` folder. Also `tools/build.py` provides a verity of ways to make a project builds:
 - `-all` - builds all binaries, equals to `-usd -hdrpr -libs -mx-classes -addon` 
 - `-usd` - builds usd binaries
 - `-hdrpr` - builds HdRPR plugin binaries
 - `-bin-dir <bin dir>` - define folder to build binaries
-- `-libs` - copies all the necessary for development libraries to `lib` folder, needs to be passed with `-usd`, `-hdrpr`
+- `-libs` - copies all the necessary for development libraries to `lib-{python_version}` folder, needs to be passed with `-usd`, `-hdrpr`
 - `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders in `<bin dir>`, `-usd -hdrpr -clean` removes only `<bin dir>/Usd` and `<bin dir>/HdRPR`
 - `-mx-classes` - generates classes for MaterialX nodes
 - `-G "Visual Studio 16 2019"` - set builder, passing with `-all` and `-hdrpr` _(Windows only)_ 
-- `-addon` - generates zip archive with plugin to `/install` folder
+- `-addon` - generates zip archive with plugin to `/install` folder. Resulted build writes python version to zipped file (i.e., {archive_name}-3.10.zip);
 
 Arguments are mostly used to skip build unneeded binaries. For example, you want switch to prebuild binary folder `bin/dir_01`:
 ```commandline

@@ -19,6 +19,7 @@ import shutil
 import platform
 import numpy as np
 import math
+import sys
 
 import bpy
 import hdusd
@@ -32,13 +33,14 @@ IS_MAC = OS == 'Darwin'
 IS_LINUX = OS == 'Linux'
 
 BLENDER_VERSION = f'{bpy.app.version[0]}.{bpy.app.version[1]}'
+PYTHON_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
 
 PLUGIN_ROOT_DIR = Path(hdusd.__file__).parent
 BLENDER_DATA_DIR = Path(bpy.utils.resource_path('LOCAL')) / 'datafiles'
 
 DEBUG_MODE = bool(int(os.environ.get('HDUSD_BLENDER_DEBUG', 0)))
-LIBS_DIR = PLUGIN_ROOT_DIR.parent.parent / 'libs' if DEBUG_MODE else \
-                 PLUGIN_ROOT_DIR / 'libs'
+LIBS_DIR = PLUGIN_ROOT_DIR.parent.parent / f'libs-{PYTHON_VERSION}' if DEBUG_MODE else \
+                 PLUGIN_ROOT_DIR / f'libs-{PYTHON_VERSION}'
 
 
 from . import logging

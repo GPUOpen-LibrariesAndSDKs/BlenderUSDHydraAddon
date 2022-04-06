@@ -310,7 +310,18 @@ class ViewportEngine(Engine):
         settings = self.get_settings(scene)
 
         self.is_gl_delegate = settings.is_gl_delegate
-        self.renderer.SetRendererPlugin(settings.delegate)
+
+        try:
+            self.renderer.SetRendererPlugin(settings.delegate)
+
+        # special case for python 3.10 - first enable of viewport rendering throws exception
+        # GlfSimpleShadowArray::_FreeBindlessTextures(void)'
+        # called from UsdImagingGLEngine::_DestroyHydraObjects()
+        except Exception as e:
+            if isinstance(e, Tf.ErrorException) and "GL error: invalid value" in str(e):
+                pass  # we won't log error "GL error: invalid value"
+            else:
+                log.error(e)
 
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr

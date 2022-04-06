@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+import sys
 from pathlib import Path
 import subprocess
 import os
@@ -112,6 +113,7 @@ def hdrpr(bin_dir, compiler, jobs, clean, build_var):
         f'-Dpxr_DIR={usd_dir}',
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "USD/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
+        f'-DPYTHON_EXECUTABLE={sys.executable}',
     ])
 
 

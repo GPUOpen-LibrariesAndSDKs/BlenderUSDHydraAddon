@@ -16,6 +16,7 @@
 import zipfile
 import zlib
 import os
+import sys
 import platform
 from pathlib import Path
 import subprocess
@@ -24,6 +25,7 @@ import re
 
 
 OS = platform.system()
+PYTHON_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
 
 repo_dir = Path(__file__).parent.parent
 
@@ -49,7 +51,7 @@ def enumerate_addon_data():
             yield f, f.name
 
     # copy HDUSD libraries
-    libs_dir = repo_dir / "libs"
+    libs_dir = repo_dir / f"libs-{PYTHON_VERSION}"
     for f in libs_dir.glob("**/*"):
         if f.is_dir():
             continue
@@ -76,11 +78,9 @@ def get_version():
     return (*plugin_ver, build_ver)
 
 
-def create_zip_addon(build_dir):
+def create_zip_addon(build_dir, name, ver):
     """ Pack addon files to zip archive """
-    ver = get_version()
-
-    zip_addon = build_dir / f"hdusd-{ver[0]}.{ver[1]}.{ver[2]}-{ver[3]}-{OS.lower()}.zip"
+    zip_addon = build_dir / name
 
     print(f"Compressing addon files to: {zip_addon}")
     with zipfile.ZipFile(zip_addon, 'w', compression=zipfile.ZIP_DEFLATED,
@@ -104,11 +104,18 @@ def create_zip_addon(build_dir):
 
 def main():
     install_dir = repo_dir / "install"
-    if install_dir.is_dir():
-        shutil.rmtree(install_dir)
-    install_dir.mkdir()
+    ver = get_version()
+    name = f"hdusd-{ver[0]}.{ver[1]}.{ver[2]}-{ver[3]}-{OS.lower()}-{PYTHON_VERSION}.zip"
 
-    zip_addon = create_zip_addon(install_dir)
+    if install_dir.is_dir():
+        for file in os.listdir(install_dir):
+            if file == name:
+                os.remove(install_dir / file)
+                break
+    else:
+        install_dir.mkdir()
+
+    zip_addon = create_zip_addon(install_dir, name, ver)
     print(f"Addon was compressed to: {zip_addon}")
 
 
