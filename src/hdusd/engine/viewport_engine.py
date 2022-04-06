@@ -424,7 +424,10 @@ class ViewportEngineScene(ViewportEngine):
                                    is_gl_delegate=self.is_gl_delegate)
 
                 for inst_obj_data in object.ObjectData.depsgraph_objects_inst(depsgraph):
-                    if obj_data.sdf_name == object.sdf_name(inst_obj_data.object):
+
+                    if obj_data.sdf_name == object.sdf_name(inst_obj_data.parent) \
+                            or obj_data.sdf_name == object.sdf_name(inst_obj_data.object):
+
                         object.sync_update(root_prim, inst_obj_data, update.is_updated_geometry,
                                            update.is_updated_transform)
 
