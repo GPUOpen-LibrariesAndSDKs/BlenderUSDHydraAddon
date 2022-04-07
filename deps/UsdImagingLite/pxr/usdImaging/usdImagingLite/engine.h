@@ -29,6 +29,7 @@
 
 #include "pxr/imaging/hd/engine.h"
 #include "pxr/imaging/hd/rendererPlugin.h"
+#include "pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h"
 #include "pxr/imaging/hdx/taskController.h"
 #include "pxr/usdImaging/usdImaging/delegate.h"
 #include "pxr/usdImaging/usdImagingGL/rendererSettings.h"
@@ -74,9 +75,6 @@ public:
     USDIMAGINGLITE_API
     void Render(UsdPrim root, const UsdImagingLiteRenderParams &params);
 
-    USDIMAGINGLITE_API
-    void InvalidateBuffers();
-
     /// Returns true if the resulting image is fully converged.
     /// (otherwise, caller may need to call Render() again to refine the result)
     USDIMAGINGLITE_API
@@ -87,6 +85,9 @@ public:
 
     USDIMAGINGLITE_API
     bool GetRendererAov(TfToken const &id, void *buf);
+
+    USDIMAGINGLITE_API
+    void ClearRendererAovs();
     /// @}
 
     /// Returns the list of renderer settings.
@@ -111,11 +112,6 @@ public:
     /// is the width and height of the viewport in pixels.
     USDIMAGINGLITE_API
     void SetRenderViewport(GfVec4d const& viewport);
-
-    /// Scene camera API
-    /// Set the scene camera path to use for rendering.
-    USDIMAGINGLITE_API
-    void SetCameraPath(SdfPath const& id);
 
     /// Free camera API
     /// Set camera framing state directly (without pointing to a camera on the 
@@ -196,25 +192,23 @@ public:
 
     /// @}
 
-protected:
-    HdEngine _engine;
-    HdRenderIndex *_renderIndex;
-    UsdImagingDelegate *_delegate;
+private:
+    std::unique_ptr<HdRenderIndex> _renderIndex;
+    HdPluginRenderDelegateUniqueHandle _renderDelegate;
+    std::unique_ptr<UsdImagingDelegate> _sceneDelegate;
+    std::unique_ptr<HdRenderDataDelegate> _renderDataDelegate;
+    std::unique_ptr<HdEngine> _engine;
 
-    HdRendererPlugin *_rendererPlugin;
-    TfToken _rendererId;
-    HdRenderDataDelegate *_taskDataDelegate;
     HdRenderPassAovBindingVector _aovBindings;
     HdRenderTaskParams _renderTaskParams;
 
-    HdxTaskController *_taskController;
+    bool _isPopulated;
+    HdRprimCollection _renderCollection;
 
     // This function disposes of: the render index, the render plugin,
     // the task controller, and the usd imaging delegate.
     void _DeleteHydraResources();
 
-private:
-    
 
 };
 

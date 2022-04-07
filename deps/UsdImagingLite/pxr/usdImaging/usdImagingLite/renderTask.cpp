@@ -31,21 +31,23 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 HdRenderTask::HdRenderTask(HdSceneDelegate* delegate, SdfPath const& id)
-    : HdTask(id) {
-
+    : HdTask(id)
+{
 }
 
-HdRenderTask::~HdRenderTask() {
-
+HdRenderTask::~HdRenderTask()
+{
 }
 
-bool HdRenderTask::IsConverged() const {
-    return m_pass ? m_pass->IsConverged() : true;
+bool HdRenderTask::IsConverged() const
+{
+    return _pass ? _pass->IsConverged() : true;
 }
 
 void HdRenderTask::Sync(HdSceneDelegate* delegate,
-                           HdTaskContext* ctx,
-                           HdDirtyBits* dirtyBits) {
+                        HdTaskContext* ctx,
+                        HdDirtyBits* dirtyBits)
+{
     auto renderIndex = &delegate->GetRenderIndex();
 
     if ((*dirtyBits) & HdChangeTracker::DirtyCollection) {
@@ -57,13 +59,13 @@ void HdRenderTask::Sync(HdSceneDelegate* delegate,
         // if it is empty, the collection doesn't refer to any prims at
         // all.
         if (collection.GetName().IsEmpty()) {
-            m_pass.reset();
+            _pass.reset();
         } else {
-            if (!m_pass) {
+            if (!_pass) {
                 auto renderDelegate = renderIndex->GetRenderDelegate();
-                m_pass = renderDelegate->CreateRenderPass(renderIndex, collection);
+                _pass = renderDelegate->CreateRenderPass(renderIndex, collection);
             } else {
-                m_pass->SetRprimCollection(collection);
+                _pass->SetRprimCollection(collection);
             }
         }
     }
@@ -76,70 +78,74 @@ void HdRenderTask::Sync(HdSceneDelegate* delegate,
             params = value.UncheckedGet<HdRenderTaskParams>();
         }
 
-        m_aovBindings = params.aovBindings;
-        m_viewport = params.viewport;
-        m_cameraId = params.camera;
+        _aovBindings = params.aovBindings;
+        _viewport = params.viewport;
+        _cameraId = params.camera;
     }
 
     if ((*dirtyBits) & HdChangeTracker::DirtyRenderTags) {
-        m_renderTags = _GetTaskRenderTags(delegate);
+        _renderTags = _GetTaskRenderTags(delegate);
     }
 
-    if (m_pass) {
-        m_pass->Sync();
+    if (_pass) {
+        _pass->Sync();
     }
 
     *dirtyBits = HdChangeTracker::Clean;
 }
 
 void HdRenderTask::Prepare(HdTaskContext* ctx,
-                              HdRenderIndex* renderIndex) {
-    if (!m_passState) {
-        m_passState = renderIndex->GetRenderDelegate()->CreateRenderPassState();
+                           HdRenderIndex* renderIndex)
+{
+    if (!_passState) {
+        _passState = renderIndex->GetRenderDelegate()->CreateRenderPassState();
     }
 
     // Prepare AOVS
     {
         // Walk the aov bindings, resolving the render index references as they're
         // encountered.
-        for (size_t i = 0; i < m_aovBindings.size(); ++i) {
-            if (m_aovBindings[i].renderBuffer == nullptr) {
-                m_aovBindings[i].renderBuffer = static_cast<HdRenderBuffer*>(renderIndex->GetBprim(HdPrimTypeTokens->renderBuffer, m_aovBindings[i].renderBufferId));
+        for (size_t i = 0; i < _aovBindings.size(); ++i) {
+            if (_aovBindings[i].renderBuffer == nullptr) {
+                _aovBindings[i].renderBuffer = static_cast<HdRenderBuffer*>(renderIndex->GetBprim(HdPrimTypeTokens->renderBuffer, _aovBindings[i].renderBufferId));
             }
         }
-        m_passState->SetAovBindings(m_aovBindings);
+        _passState->SetAovBindings(_aovBindings);
 
         // XXX Tasks that are not RenderTasks (OIT, ColorCorrection etc) also need
         // access to AOVs, but cannot access SetupTask or RenderPassState.
-        //(*ctx)[HdxTokens->aovBindings] = VtValue(m_aovBindings);
+        //(*ctx)[HdxTokens->aovBindings] = VtValue(_aovBindings);
     }
 
     // Prepare Camera
     {
-        auto camera = static_cast<const HdCamera*>(renderIndex->GetSprim(HdPrimTypeTokens->camera, m_cameraId));
+        auto camera = static_cast<const HdCamera*>(renderIndex->GetSprim(HdPrimTypeTokens->camera, _cameraId));
         TF_VERIFY(camera);
-        m_passState->SetCameraAndViewport(camera, m_viewport);
+        _passState->SetCameraAndViewport(camera, _viewport);
     }
 
-    m_passState->Prepare(renderIndex->GetResourceRegistry());
+    _passState->Prepare(renderIndex->GetResourceRegistry());
 }
 
-void HdRenderTask::Execute(HdTaskContext* ctx) {
+void HdRenderTask::Execute(HdTaskContext* ctx)
+{
     // Bind the render state and render geometry with the rendertags (if any)
-    if (m_pass) {
-        m_pass->Execute(m_passState, GetRenderTags());
+    if (_pass) {
+        _pass->Execute(_passState, GetRenderTags());
     }
 }
 
-TfTokenVector const& HdRenderTask::GetRenderTags() const {
-    return m_renderTags;
+TfTokenVector const& HdRenderTask::GetRenderTags() const
+{
+    return _renderTags;
 }
 
 // --------------------------------------------------------------------------- //
 // VtValue Requirements
 // --------------------------------------------------------------------------- //
 
-std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv) {
+std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv)
+{
     out << "RenderTask Params:\n";
     out << "camera: " << pv.camera << '\n';
     out << "viewport: " << pv.viewport << '\n';
@@ -151,13 +157,15 @@ std::ostream& operator<<(std::ostream& out, const HdRenderTaskParams& pv) {
     return out;
 }
 
-bool operator==(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs) {
+bool operator==(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs)
+{
     return lhs.aovBindings == rhs.aovBindings &&
            lhs.camera == rhs.camera &&
            lhs.viewport == rhs.viewport;
 }
 
-bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs) {
+bool operator!=(const HdRenderTaskParams& lhs, const HdRenderTaskParams& rhs)
+{
     return !(lhs == rhs);
 }
 
