@@ -78,7 +78,7 @@ class FinalEngine(Engine):
         root = self.stage.GetPseudoRoot()
         params = UsdImagingGL.RenderParams()
         params.renderResolution = (self.width, self.height)
-        params.frame = Usd.TimeCode.Default()
+        params.frame = Usd.TimeCode(scene.frame_current)
 
         if scene.hdusd.final.data_source:
             world_data = world.WorldData.init_from_stage(self.stage)
@@ -115,6 +115,8 @@ class FinalEngine(Engine):
         self._set_scene_camera(renderer, scene)
 
         params = UsdImagingLite.RenderParams()
+        params.frame = Usd.TimeCode(scene.frame_current)
+
         render_images = {
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }
