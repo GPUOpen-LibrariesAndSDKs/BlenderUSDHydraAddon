@@ -59,7 +59,7 @@ def print_start(msg):
 -------------------------------------------------------------""")
 
 
-def usd(bin_dir, jobs, clean, build_var):
+def usd(bin_dir, jobs, clean, build_var, prman, prman_location):
     print_start("Building USD")
 
     import build_usd
@@ -67,6 +67,10 @@ def usd(bin_dir, jobs, clean, build_var):
     if jobs > 0:
         args += ['-j', str(jobs)]
 
+    if prman:
+        args += ['--prman']
+        args += ['--prman-location', prman_location]
+    
     build_usd.main(bin_dir, clean, build_var, *args)
 
 
@@ -171,6 +175,10 @@ def main():
                     help="Build variant for USD, HdRPR and dependencies. (default: release)")
     ap.add_argument("-clean", required=False, action="store_true",
                     help="Clean build dirs before start USD or HdRPR build")
+    ap.add_argument("--prman", required=False, action="store_true",
+                    help="Build with RenderMan render delegate")
+    ap.add_argument("--prman-location", required=False, type=str, default="",
+                    help="Path to RenderMan directory")
 
     args = ap.parse_args()
 
@@ -179,7 +187,7 @@ def main():
     bin_dir.mkdir(parents=True, exist_ok=True)
 
     if args.all or args.usd:
-        usd(bin_dir, args.j, args.clean, args.build_var)
+        usd(bin_dir, args.j, args.clean, args.build_var, args.prman, args.prman_location)
 
     if args.all or args.hdrpr:
         hdrpr(bin_dir, args.G, args.j, args.clean, args.build_var)

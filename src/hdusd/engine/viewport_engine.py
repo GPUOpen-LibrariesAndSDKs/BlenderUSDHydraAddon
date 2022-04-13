@@ -288,7 +288,9 @@ class ViewportEngine(Engine):
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
 
         except Exception as e:
-            if isinstance(e, Tf.ErrorException) and "GL error: invalid operation" in str(e):
+            if isinstance(e, Tf.ErrorException) and ("GL error: invalid operation" in str(e)
+                                                     # known RenderMan issue https://github.com/PixarAnimationStudios/USD/issues/1415
+                                                     or "Failed to load plugin 'rmanOslParser'" in str(e)):
                 pass    # we won't log error "GL error: invalid operation"
             else:
                 log.error(e)
