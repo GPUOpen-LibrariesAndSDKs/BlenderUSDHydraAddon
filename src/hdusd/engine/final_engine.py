@@ -250,8 +250,8 @@ class FinalEngine(Engine):
             # RenderMan is not available for final and viewport render at the same time
             if isinstance(e, Tf.ErrorException) and "Could not initialize riley API" in str(e):
                 self.render_engine.error_set('Cannot start final render when viewport render is running')
-            else
-                self.render_engine.error_set(str(e)):
+            else:
+                self.render_engine.error_set(str(e))
                 log.error(e)
 
             return False

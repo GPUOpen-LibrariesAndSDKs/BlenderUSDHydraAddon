@@ -137,11 +137,19 @@ class PreviewEngine(Engine):
             render_passes.foreach_set('rect', image.flatten())
             self.render_engine.end_result(result)
 
-        self.renderer.Render(self.stage.GetPseudoRoot(), params)
-
         while True:
             if self.render_engine.test_break():
                 break
+
+            try:
+                self.renderer.Render(self.stage.GetPseudoRoot(), params)
+
+            except Exception as e:
+                # known RenderMan issue https://github.com/PixarAnimationStudios/USD/issues/1415
+                if isinstance(e, Tf.ErrorException) and "Failed to load plugin 'rmanOslParser'" in str(e):
+                    pass  # we won't log error "GL error: invalid operation"
+                else:
+                    log.error(e)
 
             if self.renderer.IsConverged():
                 break
