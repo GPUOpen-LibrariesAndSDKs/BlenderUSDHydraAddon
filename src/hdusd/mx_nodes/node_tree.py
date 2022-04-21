@@ -171,6 +171,10 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                     if node_name:
                         new_mx_node = mx_nodegraph.getNode(node_name)
+                        if not new_mx_node:
+                            log.error(f"Couldn't find node '{node_name}' in nodegraph '{mx_nodegraph.getNamePath()}'")
+                            continue
+
                         new_node = import_node(new_mx_node, layer + 1)
 
                         out_name = mx_input.getAttribute('output')
