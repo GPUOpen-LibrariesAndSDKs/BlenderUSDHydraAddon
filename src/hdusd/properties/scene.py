@@ -13,6 +13,7 @@
 # limitations under the License.
 #********************************************************************
 import bpy
+import os
 from pxr import UsdImagingGL
 
 from ..viewport import usd_collection
@@ -21,6 +22,10 @@ from . import HdUSDProperties, hdrpr_render, log
 
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
                      for name in UsdImagingGL.Engine.GetRendererPlugins()}
+
+if not os.path.isdir(os.environ.get('RMANTREE', "")):
+    _render_delegates.pop('HdPrmanLoaderRendererPlugin', None)
+
 log("Render Delegates", _render_delegates)
 
 

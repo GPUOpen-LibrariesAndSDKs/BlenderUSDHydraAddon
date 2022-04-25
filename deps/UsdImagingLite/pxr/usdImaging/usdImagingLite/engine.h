@@ -209,7 +209,7 @@ private:
     // the task controller, and the usd imaging delegate.
     void _DeleteHydraResources();
 
-
+    SdfPath _GetRendererAovPath(TfToken const &aov) const;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

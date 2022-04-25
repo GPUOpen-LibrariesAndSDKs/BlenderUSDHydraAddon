@@ -7,8 +7,8 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
 - Rendering in Blender via the USD Hydra Framework. This is a middle layer for renderers, meaning that once a renderer is adapted to Hydra, it can work in many places including this addon for rendering. Known Hydra render delegates are:
   - AMD's Radeon ProRender (included)
   - Hydra's default Storm delegate (included)
+  - Pixar RenderMan delegate (included)  
   - Intel Embree (cpu) delegate
-  - Pixar RenderMan delegate.
   - Autodesk Arnold
   - Otoy Octane
   - Redshift
@@ -138,6 +138,10 @@ You can build project using `tools/build.py` with different flag combinations. I
 - `-mx-classes` - generates classes for MaterialX nodes
 - `-G "Visual Studio 16 2019"` - set builder, passing with `-all` and `-hdrpr` _(Windows only)_ 
 - `-addon` - generates zip archive with plugin to `/install` folder. Resulted build writes python version to zipped file (i.e., {archive_name}-3.10.zip);
+- `--prman` - build with RenderMan delegate
+- `--prman-location` - path to RenderMan directory (e.g. 'C:/Program Files/Pixar/RenderManProServer-24.3')
+
+To build addon with RenderMan you need to install RenderMan first (https://renderman.pixar.com/install) and then set environment variables according to instruction [Running hdPrman](https://graphics.pixar.com/usd/release/plugins_renderman.html#running-hdprman)  
 
 Arguments are mostly used to skip build unneeded binaries. For example, you want switch to prebuild binary folder `bin/dir_01`:
 ```commandline

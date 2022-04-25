@@ -99,6 +99,11 @@ bool UsdImagingLiteEngine::GetRendererAov(TfToken const &id, void *buf)
     return true;
 }
 
+SdfPath UsdImagingLiteEngine::_GetRendererAovPath(TfToken const &aov) const
+{
+    return _renderDataDelegate->GetDelegateID().AppendElementString("aov_" + aov.GetString());
+}
+
 void UsdImagingLiteEngine::ClearRendererAovs()
 {
     TF_VERIFY(_renderIndex);
@@ -136,6 +141,15 @@ void UsdImagingLiteEngine::Render(UsdPrim root, const UsdImagingLiteRenderParams
     SdfPath renderTaskId = _renderDataDelegate->GetDelegateID().AppendElementString("renderTask");
     _renderIndex->InsertTask<HdRenderTask>(_renderDataDelegate.get(), renderTaskId);
     std::shared_ptr<HdRenderTask> renderTask = std::static_pointer_cast<HdRenderTask>(_renderIndex->GetTask(renderTaskId));
+
+    SdfPath renderBufferId = _GetRendererAovPath(HdAovTokens->color);
+
+    for (size_t i = 0; i < _renderTaskParams.aovBindings.size(); ++i) {
+        if (_renderTaskParams.aovBindings[i].renderBufferId == renderBufferId) {
+            _renderTaskParams.aovBindings[i].clearValue = params.clearColor;
+            break;
+        }
+    }
 
     _renderDataDelegate->SetParameter(renderTaskId, HdTokens->params, _renderTaskParams);
     _renderIndex->GetChangeTracker().MarkTaskDirty(renderTaskId, HdChangeTracker::DirtyParams);

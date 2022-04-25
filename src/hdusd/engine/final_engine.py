@@ -67,7 +67,9 @@ class FinalEngine(Engine):
 
         # creating renderer
         renderer = UsdImagingGL.Engine()
-        self._sync_render_settings(renderer, scene)
+        if not self._sync_render_settings(renderer, scene):
+            renderer = None
+            return
 
         # setting camera
         self._set_scene_camera(renderer, scene)
@@ -106,7 +108,9 @@ class FinalEngine(Engine):
     def _render(self, scene):
         # creating renderer
         renderer = UsdImagingLite.Engine()
-        self._sync_render_settings(renderer, scene)
+        if not self._sync_render_settings(renderer, scene):
+            renderer = None
+            return
 
         renderer.SetRenderViewport((0, 0, self.width, self.height))
         renderer.SetRendererAov('color')
@@ -121,12 +125,20 @@ class FinalEngine(Engine):
             'Combined': np.empty((self.width, self.height, 4), dtype=np.float32)
         }
 
-        renderer.Render(self.stage.GetPseudoRoot(), params)
-
         time_begin = time.perf_counter()
         while True:
             if self.render_engine.test_break():
                 break
+
+            try:
+                renderer.Render(self.stage.GetPseudoRoot(), params)
+
+            except Exception as e:
+                # known RenderMan issue https://github.com/PixarAnimationStudios/USD/issues/1415
+                if isinstance(e, Tf.ErrorException) and "Failed to load plugin 'rmanOslParser'" in str(e):
+                    pass  # we won't log error "GL error: invalid operation"
+                else:
+                    log.error(e)
 
             percent_done = usd_utils.get_renderer_percent_done(renderer)
             self.notify_status(percent_done / 100,
@@ -232,7 +244,18 @@ class FinalEngine(Engine):
     def _sync_render_settings(self, renderer, scene):
         settings = scene.hdusd.final
 
-        renderer.SetRendererPlugin(settings.delegate)
+        try:
+            renderer.SetRendererPlugin(settings.delegate)
+        except Exception as e:
+            # RenderMan is not available for final and viewport render at the same time
+            if isinstance(e, Tf.ErrorException) and "Could not initialize riley API" in str(e):
+                self.render_engine.error_set('Cannot start final render when viewport render is running')
+            else:
+                self.render_engine.error_set(str(e))
+                log.error(e)
+
+            return False
+
         if settings.delegate == 'HdRprPlugin':
             hdrpr = settings.hdrpr
             quality = hdrpr.quality
@@ -261,6 +284,8 @@ class FinalEngine(Engine):
             renderer.SetRendererSetting('rpr:denoising:enable', denoise.enable)
             renderer.SetRendererSetting('rpr:denoising:minIter', denoise.min_iter)
             renderer.SetRendererSetting('rpr:denoising:iterStep', denoise.iter_step)
+
+        return True
 
 
 class FinalEngineScene(FinalEngine):
@@ -316,7 +341,6 @@ class FinalEngineScene(FinalEngine):
                     object.sync(obj_prim, obj_data, objects_stage)
 
             stage.SetDefaultPrim(obj_prim)
-
 
         with futures.ThreadPoolExecutor() as executor:
             chunk_sync = []
