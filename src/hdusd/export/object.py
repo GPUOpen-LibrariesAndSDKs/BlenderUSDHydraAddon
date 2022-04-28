@@ -25,6 +25,7 @@ log = logging.Log('export.object')
 
 
 SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA', 'EMPTY')
+USD_CAMERA = "USD Camera"
 
 
 @dataclass(init=False)
@@ -71,7 +72,7 @@ class ObjectData:
             if obj.type == 'LIGHT' and not use_scene_lights:
                 continue
 
-            if obj.type == 'CAMERA' and not use_scene_cameras:
+            if obj.type == 'CAMERA' and not use_scene_cameras or obj.name == USD_CAMERA:
                 continue
 
             if space_data and not instance.is_instance and not obj.visible_in_viewport_get(space_data):
