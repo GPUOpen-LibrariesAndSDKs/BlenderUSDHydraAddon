@@ -188,12 +188,14 @@ class CameraData:
         data.mode = usd_camera.GetProjectionAttr().Get()
         data.focal_length = usd_camera.GetFocalLengthAttr().Get()
 
+        aperture = (usd_camera.GetHorizontalApertureAttr().Get(), usd_camera.GetVerticalApertureAttr().Get())
         if data.mode == 'perspective':
-            data.sensor_size = (usd_camera.GetHorizontalApertureAttr().Get(),
-                                usd_camera.GetVerticalApertureAttr().Get())
+            data.sensor_size = aperture
+
         elif data.mode == 'orthographic':
-            data.ortho_size = (usd_camera.GetHorizontalApertureAttr().Get(),
-                               usd_camera.GetVerticalApertureAttr().Get())
+            # Use tenths of a world unit accorging to USD docs https://graphics.pixar.com/usd/docs/api/class_gf_camera.html
+            data.ortho_size = tuple(i / 10 for i in aperture)
+
         return data
 
     def export(self, usd_camera, tile=((0.0, 0.0), (1.0, 1.0))):
