@@ -18,7 +18,7 @@ from pxr import UsdImagingGL, UsdGeom
 
 from ..viewport import usd_collection
 from ..export.camera import CameraData
-from ..export.object import USD_CAMERA
+from ..viewport.usd_collection import USD_CAMERA
 from . import HdUSDProperties, hdrpr_render, log
 
 

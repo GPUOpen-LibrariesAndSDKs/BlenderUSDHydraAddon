@@ -19,7 +19,8 @@ from pxr import UsdGeom
 from .base_node import USDNode
 from ...export import object, material, world
 from ...utils import usd as usd_utils
-from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name, USD_CAMERA
+from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
+from ...viewport.usd_collection import USD_CAMERA
 
 
 #

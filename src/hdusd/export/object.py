@@ -25,7 +25,6 @@ log = logging.Log('export.object')
 
 
 SUPPORTED_TYPES = ('MESH', 'LIGHT', 'CURVE', 'FONT', 'SURFACE', 'META', 'CAMERA', 'EMPTY')
-USD_CAMERA = "USD Camera"
 
 
 @dataclass(init=False)
@@ -64,6 +63,7 @@ class ObjectData:
     @staticmethod
     def depsgraph_objects(depsgraph, *, space_data=None,
                           use_scene_lights=True, use_scene_cameras=True):
+        from ..viewport.usd_collection import USD_CAMERA
         for instance in depsgraph.object_instances:
             obj = instance.object
             if obj.type not in SUPPORTED_TYPES or instance.object.hdusd.is_usd:
