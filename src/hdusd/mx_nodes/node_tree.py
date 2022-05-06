@@ -110,15 +110,13 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
         def do_import():
             self.nodes.clear()
-            layers = {}
 
-            def import_node(mx_node, layer, mx_output_name=None, look_nodedef=True):
+            def import_node(mx_node, mx_output_name=None, look_nodedef=True):
                 mx_nodegraph = mx_node.getParent()
                 node_path = mx_node.getNamePath()
                 file_prefix = mx_utils.get_file_prefix(mx_node, file_path)
 
                 if node_path in self.nodes:
-                    layers[node_path] = max(layers[node_path], layer)
                     return self.nodes[node_path]
 
                 try:
@@ -140,13 +138,12 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     node_name = mx_output.getNodeName()
                     new_mx_node = new_mx_nodegraph.getNode(node_name)
 
-                    return import_node(new_mx_node, layer, None, False)
+                    return import_node(new_mx_node, None, False)
 
                 node = self.nodes.new(MxNode_cls.bl_idname)
                 node.name = node_path
                 node.data_type = data_type
                 nodedef = node.nodedef
-                layers[node_path] = layer
 
                 for mx_input in mx_node.getInputs():
                     input_name = mx_input.getName()
@@ -171,7 +168,11 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
                     if node_name:
                         new_mx_node = mx_nodegraph.getNode(node_name)
-                        new_node = import_node(new_mx_node, layer + 1)
+                        if not new_mx_node:
+                            log.error(f"Couldn't find node '{node_name}' in nodegraph '{mx_nodegraph.getNamePath()}'")
+                            continue
+
+                        new_node = import_node(new_mx_node)
 
                         out_name = mx_input.getAttribute('output')
                         if len(new_node.nodedef.getOutputs()) > 1 and out_name:
@@ -189,7 +190,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         mx_output = new_mx_nodegraph.getOutput(mx_output_name)
                         node_name = mx_output.getNodeName()
                         new_mx_node = new_mx_nodegraph.getNode(node_name)
-                        new_node = import_node(new_mx_node, layer + 1, mx_output_name)
+                        new_node = import_node(new_mx_node, mx_output_name)
                         if not new_node:
                             continue
 
@@ -206,18 +207,34 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                 return node
 
             mx_node = next(n for n in doc.getNodes() if n.getCategory() == 'surfacematerial')
-            import_node(mx_node, 0)
+            output_node = import_node(mx_node, 0)
 
-            # placing nodes by layers
+            if not output_node:
+                return
+
+            # arranging nodes by layers
+            layer = {output_node}
+            layer_index = 0
+            layers = {}
+            while layer:
+                new_layer = set()
+                for node in layer:
+                    layers[node] = layer_index
+                    for inp in node.inputs:
+                        for link in inp.links:
+                            new_layer.add(link.from_node)
+                layer = new_layer
+                layer_index += 1
+
             node_layers = [[] for _ in range(max(layers.values()) + 1)]
             for node in self.nodes:
-                node_layers[layers[node.name]].append(node.name)
+                node_layers[layers[node]].append(node)
 
+            # placing nodes by layers
             loc_x = 0
-            for i, node_names in enumerate(node_layers):
+            for i, nodes in enumerate(node_layers):
                 loc_y = 0
-                for name in node_names:
-                    node = self.nodes[name]
+                for node in nodes:
                     node.location = (loc_x, loc_y)
                     loc_y -= NODE_LAYER_SHIFT_Y
                     loc_x -= NODE_LAYER_SHIFT_X

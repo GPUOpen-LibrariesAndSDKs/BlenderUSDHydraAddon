@@ -12,7 +12,8 @@ venv
 /*.cmd
 /*.sh
 /tmp
-/libs
+/libs-3.9
+/libs-3.10
 /install
 /bin
 /cache
