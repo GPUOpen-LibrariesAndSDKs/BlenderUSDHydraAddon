@@ -109,7 +109,13 @@ class ViewportRenderSettings(RenderSettings):
             return
 
         output_node = bpy.data.node_groups[self.data_source].get_output_node()
+        if not output_node:
+            return
+
         stage = output_node.cached_stage()
+        if not stage:
+            return
+
         camera_prim = stage.GetPrimAtPath(self.nodetree_camera)
         if not camera_prim:
             if viewport_camera:
