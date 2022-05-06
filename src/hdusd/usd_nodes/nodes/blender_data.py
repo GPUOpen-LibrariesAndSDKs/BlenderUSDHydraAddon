@@ -20,6 +20,7 @@ from .base_node import USDNode
 from ...export import object, material, world
 from ...utils import usd as usd_utils
 from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
+from ...viewport.usd_collection import USD_CAMERA
 
 
 #
@@ -99,7 +100,7 @@ class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
         objects = bpy.data.objects
 
         for obj in objects:
-            if obj.hdusd.is_usd or obj.type not in SUPPORTED_TYPES:
+            if (obj.type == 'CAMERA' and obj.name == USD_CAMERA) or obj.hdusd.is_usd or obj.type not in SUPPORTED_TYPES:
                 continue
 
             row = layout.row()
@@ -197,7 +198,7 @@ class BlenderDataNode(USDNode):
                 return
 
             for obj_col in self.collection.objects:
-                if obj_col.hdusd.is_usd:
+                if obj_col.hdusd.is_usd or (obj_col.type == 'CAMERA' and obj_col.name == USD_CAMERA ):
                     continue
 
                 object.sync(root_prim, ObjectData.from_object(
@@ -235,6 +236,9 @@ class BlenderDataNode(USDNode):
             if isinstance(update.id, bpy.types.Object):
                 obj = update.id
                 if obj.hdusd.is_usd or obj.type == 'EMPTY':
+                    continue
+
+                if obj.type == 'CAMERA' and obj.name == USD_CAMERA:
                     continue
 
                 obj_data = ObjectData.from_object(obj)

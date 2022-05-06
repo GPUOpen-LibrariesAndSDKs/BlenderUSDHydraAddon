@@ -63,6 +63,7 @@ class ObjectData:
     @staticmethod
     def depsgraph_objects(depsgraph, *, space_data=None,
                           use_scene_lights=True, use_scene_cameras=True):
+        from ..viewport.usd_collection import USD_CAMERA
         for instance in depsgraph.object_instances:
             obj = instance.object
             if obj.type not in SUPPORTED_TYPES or instance.object.hdusd.is_usd:
@@ -71,7 +72,7 @@ class ObjectData:
             if obj.type == 'LIGHT' and not use_scene_lights:
                 continue
 
-            if obj.type == 'CAMERA' and not use_scene_cameras:
+            if obj.type == 'CAMERA' and not use_scene_cameras or obj.name == USD_CAMERA:
                 continue
 
             if space_data and not instance.is_instance and not obj.visible_in_viewport_get(space_data):
