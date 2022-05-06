@@ -68,7 +68,7 @@ class HDUSD_MATLIB_OP_import_material(HdUSD_Operator):
                                                     type=MxNodeTree.bl_idname)
             bl_material.hdusd.mx_node_tree = mx_node_tree
 
-        log("Reading", mtlx_file)
+        log(f"Reading: {mtlx_file}")
         doc = mx.createDocument()
         search_path = mx.FileSearchPath(str(mtlx_file.parent))
         search_path.append(str(mx_utils.MX_LIBS_DIR))

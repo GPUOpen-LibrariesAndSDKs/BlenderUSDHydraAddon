@@ -51,7 +51,7 @@ class CameraData:
         data.clip_plane = (camera.clip_start, camera.clip_end)
         data.transform = tuple(transform)
         data.mode = camera.type
-        
+
         if camera.dof.use_dof:
             # calculating focus_distance
             if not camera.dof.focus_object:
@@ -175,6 +175,29 @@ class CameraData:
 
         return data
 
+    @staticmethod
+    def init_from_usd_camera(prim):
+        data = CameraData()
+
+        stage = prim.GetStage()
+        xform_camera = stage.DefinePrim(prim.GetPath().pathString, prim.GetTypeName())
+        usd_camera = UsdGeom.Camera.Get(stage, prim.GetPath())
+
+        data.transform = UsdGeom.XformCache(bpy.context.scene.frame_current).GetLocalToWorldTransform(xform_camera)
+
+        data.mode = usd_camera.GetProjectionAttr().Get()
+        data.focal_length = usd_camera.GetFocalLengthAttr().Get()
+
+        aperture = (usd_camera.GetHorizontalApertureAttr().Get(), usd_camera.GetVerticalApertureAttr().Get())
+        if data.mode == 'perspective':
+            data.sensor_size = aperture
+
+        elif data.mode == 'orthographic':
+            # Use tenths of a world unit accorging to USD docs https://graphics.pixar.com/usd/docs/api/class_gf_camera.html
+            data.ortho_size = tuple(i / 10 for i in aperture)
+
+        return data
+
     def export(self, usd_camera, tile=((0.0, 0.0), (1.0, 1.0))):
         tile_pos, tile_size = tile
 
@@ -238,7 +261,7 @@ class CameraData:
         # following formula is used:
         # lens_shift = lens_shift * resolution / tile_size + (center - resolution/2) / tile_size
         # where: center = tile_pos + tile_size/2
-        lens_shift = tuple((self.lens_shift[i] + tile_pos[i] + tile_size[i] * 0.5 - 0.5) / tile_size[i] for i in (0, 1))        
+        lens_shift = tuple((self.lens_shift[i] + tile_pos[i] + tile_size[i] * 0.5 - 0.5) / tile_size[i] for i in (0, 1))
 
         if self.mode == 'PERSP':
             gf_camera.projection = Gf.Camera.Perspective
@@ -284,6 +307,20 @@ class CameraData:
         gf_camera.transform = Gf.Matrix4d(np.transpose(self.transform))
 
         return gf_camera
+
+    def export_to_camera(self, camera: bpy.types.Object):
+        camera.matrix_world = self.transform
+        camera_data = camera.data
+        if self.mode == 'orthographic':
+            camera_data.type = 'ORTHO'
+            ratio = self.ortho_size[0]/self.ortho_size[1]
+            camera_data.ortho_scale = max(self.ortho_size)
+        else:
+            camera_data.type = 'PERSP'
+            ratio = self.sensor_size[0]/self.sensor_size[1]
+            camera_data.lens = self.focal_length
+
+        camera_data.sensor_fit = 'HORIZONTAL' if ratio > 1 else 'VERTICAL'
 
 
 def sync(obj_prim, obj: bpy.types.Object, **kwargs):

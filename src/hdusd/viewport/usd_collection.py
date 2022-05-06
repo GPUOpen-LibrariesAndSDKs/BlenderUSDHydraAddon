@@ -25,6 +25,7 @@ log = logging.Log('usd_collection')
 
 
 COLLECTION_NAME = "USD NodeTree"
+USD_CAMERA = "USD Camera"
 
 
 def ignore_prim(prim):
