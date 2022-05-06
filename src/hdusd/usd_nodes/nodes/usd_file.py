@@ -16,11 +16,10 @@ import os
 import re
 
 import bpy
-from pxr import Usd, UsdGeom, Sdf, Gf, UsdLux, UsdShade
+from pxr import Usd, UsdGeom, Sdf, Gf
 
 from .base_node import USDNode
 from . import log
-from ...utils import get_temp_file
 
 
 class UsdFileNode(USDNode):
@@ -66,35 +65,8 @@ class UsdFileNode(USDNode):
             return None
 
         input_stage = Usd.Stage.Open(file_path)
-
-        def _resolve_world_path(light_obj):
-            tex_attr = light_obj.GetTextureFileAttr()
-            src_filepath = tex_attr.Get()
-            if src_filepath:
-                tex_attr.Set(src_filepath.resolvedPath)
-
-        for prim in input_stage.TraverseAll():
-            # perform world texture paths to be absolute
-            if prim.GetTypeName() == 'DomeLight':
-                world_prim = prim.GetParent()
-                if not world_prim.IsValid():
-                    continue
-
-                light_obj = UsdLux.DomeLight.Get(input_stage, prim.GetPath())
-                if 'delegate' in world_prim.GetVariantSets().GetNames():
-                    vset = world_prim.GetVariantSet('delegate')
-                    for name in world_prim.GetVariantSet('delegate').GetVariantNames():
-                        vset.SetVariantSelection(name)
-                        with vset.GetVariantEditContext():
-                            _resolve_world_path(light_obj)
-
-                else:
-                    _resolve_world_path(light_obj)
-
-        # perform all texture paths in MaterialX to be absolute
-        tempfile = str(get_temp_file(".usda"))
-        input_stage.Export(tempfile, False)
-        input_stage = Usd.Stage.Open(tempfile)
+        root_layer = input_stage.GetRootLayer()
+        root_layer.TransferContent(input_stage.Flatten(False))
 
         if self.filter_path == '/*':
             self.cached_stage.insert(input_stage)

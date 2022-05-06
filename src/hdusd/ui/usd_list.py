@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
-import os
 import shutil
 import traceback
 from pathlib import Path
@@ -422,64 +421,59 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
             log.warn(f"Unable to export USD node '{node_tree.name}':'{output_node.name}' stage: write correct file name")
             return {'CANCELLED'}
 
-        # important to save stage to export all packed textures and flatten the stage to one file
-        if self.is_pack_into_one_file:
-            tempfile = str(get_temp_file(".usda"))
-            input_stage.Export(tempfile, False)
-            input_stage = Usd.Stage.Open(tempfile)
+        self.check(context)
 
-        # default primitive is considered as camera object while importing to external software
-        scene_camera = context.scene.camera
-        if scene_camera:
-            camera = input_stage.GetPrimAtPath(f'/{context.scene.camera.data.name}')
-            if camera:
-                input_stage.SetDefaultPrim(camera)
+        new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usdc")))
+
+        root_layer = new_stage.GetRootLayer()
+        sdf_layer = input_stage.Flatten(False) if self.is_pack_into_one_file else input_stage.GetRootLayer()
+        root_layer.TransferContent(sdf_layer)
 
         dest_path_root_dir = Path(self.filepath).parent
+
+        temp_dir = temp_pid_dir()
+
         texture_dir_abs = dest_path_root_dir / "textures"
         texture_dir_rel = texture_dir_abs.relative_to(dest_path_root_dir)
         image_paths = set()
         index = 0
 
         def _resolve_texture_filepath(tex_attr):
-            global index
+            nonlocal index
             src_filepath = tex_attr.Get()
             if not src_filepath:
                 return
 
             src_filepath = Path(src_filepath.path)
 
-            if not os.path.exists(texture_dir_abs):
+            if not texture_dir_abs.is_dir():
                 Path(texture_dir_abs).mkdir(parents=True, exist_ok=True)
 
             dest_filepath = texture_dir_abs / src_filepath.name
             if src_filepath not in image_paths:
                 image_paths.update([src_filepath])
-                if os.path.isfile(dest_filepath):
+                if dest_filepath.is_file():
                     index += 1
                     dest_filepath = texture_dir_abs / f"{src_filepath.stem}_{index}{src_filepath.suffix}"
 
                 shutil.copy(str(src_filepath), str(dest_filepath))
             tex_attr.Set(str(texture_dir_rel / dest_filepath.name))
 
-        for prim in input_stage.TraverseAll():
+        for prim in new_stage.TraverseAll():
             # perform world texture paths to be relative
             if prim.GetTypeName() == 'DomeLight':
                 world_prim = prim.GetParent()
                 if not world_prim.IsValid():
                     continue
 
-                light_obj = UsdLux.DomeLight.Get(input_stage, prim.GetPath())
-                if 'delegate' in world_prim.GetVariantSets().GetNames():
+                light_obj = UsdLux.DomeLight.Get(new_stage, prim.GetPath())
+                if world_prim.HasVariantSets() and 'delegate' in world_prim.GetVariantSets().GetNames():
                     vset = world_prim.GetVariantSet('delegate')
                     for name in vset.GetVariantNames():
                         vset.SetVariantSelection(name)
                         with vset.GetVariantEditContext():
                             tex_attr = light_obj.GetTextureFileAttr()
                             _resolve_texture_filepath(tex_attr)
-
-                        if self.is_pack_into_one_file:
-                            vset.ClearVariantSelection()
                 else:
                     tex_attr = light_obj.GetTextureFileAttr()
                     _resolve_texture_filepath(tex_attr)
@@ -490,24 +484,15 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                 if not prim.GetTypeName() == 'Shader':
                     continue
 
-                tex_attr = prim.GetAttribute('inputs:file')
-                _resolve_texture_filepath(tex_attr)
+                shader = UsdShade.Shader.Get(new_stage, prim.GetPath())
+                for input in shader.GetInputs():
+                    if input.GetTypeName() == 'asset':
+                        _resolve_texture_filepath(input)
 
         if self.is_pack_into_one_file:
-            input_stage.Export(self.filepath, False)
+            new_stage.Export(self.filepath, False)
             log.info(f"Export of '{node_tree.name}':'{output_node.name}' stage to {self.filepath}: completed successfuly")
             return {'FINISHED'}
-
-        self.check(context)
-
-        new_stage = Usd.Stage.CreateNew(str(get_temp_file(".usdc")))
-
-        root_layer = new_stage.GetRootLayer()
-        root_layer.TransferContent(input_stage.GetRootLayer())
-
-        dest_path_root_dir = Path(self.filepath).parent
-
-        temp_dir = temp_pid_dir()
 
         # we need to store all absolute paths and their relative destinations to change absolute references to relative ones
         paths_dict = {}
@@ -620,7 +605,6 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
             # it is the last layer - root exported layer
             if layer is root_layer:
-                dest_path = f"{dest_path_root_dir}/{Path(self.filepath).name}"
                 # editing its absolute references to make them relative
                 for source_ref in layer.GetCompositionAssetDependencies():
                     source_ref_path = Path(source_ref)
@@ -628,8 +612,8 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                     if source_ref_path.is_absolute():
                         layer.UpdateCompositionAssetDependency(source_ref, str(paths_dict[source_ref_path]))
 
-                layer.Export(dest_path)
-                log(f"Export file {layer.realPath} to {dest_path}: completed successfuly")
+                layer.Export(self.filepath)
+                log(f"Export file {layer.realPath} to {self.filepath}: completed successfuly")
 
         _update_layer_refs(root_layer)
 
