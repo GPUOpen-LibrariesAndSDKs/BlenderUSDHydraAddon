@@ -23,6 +23,11 @@ from ..mx_nodes.nodes import get_mx_node_cls
 from . import log
 
 
+OUTPUT_TYPE = {'RGBA': 'color3',
+               'VALUE': 'float',
+               'VECTOR': 'vector3'}
+
+
 class Id:
     def __init__(self):
         self.id = 0
@@ -248,7 +253,7 @@ class NodeParser:
     nodegraph_path = "NG"
 
     def __init__(self, id: Id, doc: mx.Document, material: bpy.types.Material,
-                 node: bpy.types.Node, obj: bpy.types.Object, out_key, cached_nodes,
+                 node: bpy.types.Node, obj: bpy.types.Object, out_key, output_type, cached_nodes,
                  group_nodes=(), **kwargs):
         self.id = id
         self.doc = doc
@@ -256,9 +261,16 @@ class NodeParser:
         self.node = node
         self.object = obj
         self.out_key = out_key
+        self.out_type = output_type
         self.cached_nodes = cached_nodes
         self.group_nodes = group_nodes
         self.kwargs = kwargs
+
+    @staticmethod
+    def get_output_type(to_socket):
+        # Need to check ShaderNodeNormalMap separately because
+        # if has input color3 type but materialx normalmap got vector3
+        return 'vector3' if to_socket.node.type == 'NORMAL_MAP' else OUTPUT_TYPE.get(to_socket.type, 'color3')
 
     @staticmethod
     def get_node_parser_cls(bl_idname):
@@ -267,7 +279,7 @@ class NodeParser:
         return getattr(nodes, bl_idname, None)
 
     # INTERNAL FUNCTIONS
-    def _export_node(self, node, out_key, group_node=None):
+    def _export_node(self, node, out_key, to_socket, group_node=None):
         if group_node:
             if self.group_nodes:
                 group_nodes = self.group_nodes + (group_node,)
@@ -276,8 +288,11 @@ class NodeParser:
         else:
             group_nodes = self.group_nodes
 
+        # dynamically define output type of node
+        output_type = self.get_output_type(to_socket)
+
         # check if this node was already parsed and cached
-        node_item = self.cached_nodes.get((node.name, out_key))
+        node_item = self.cached_nodes.get((node.name, out_key, output_type))
         if node_item:
             return node_item
 
@@ -285,15 +300,15 @@ class NodeParser:
         NodeParser_cls = self.get_node_parser_cls(node.bl_idname)
         if not NodeParser_cls:
             log.warn(f"Ignoring unsupported node {node.bl_idname}", node, self.material)
-            self.cached_nodes[(node.name, out_key)] = None
+            self.cached_nodes[(node.name, out_key, output_type)] = None
             return None
 
         node_parser = NodeParser_cls(self.id, self.doc, self.material, node, self.object,
-                                     out_key, self.cached_nodes, group_nodes, **self.kwargs)
+                                     out_key, output_type, self.cached_nodes, group_nodes, **self.kwargs)
 
         node_item = node_parser.export()
 
-        self.cached_nodes[(node.name, out_key)] = node_item
+        self.cached_nodes[(node.name, out_key, output_type)] = node_item
         return node_item
 
     def _parse_val(self, val):
@@ -348,7 +363,7 @@ class NodeParser:
         if not link:
             return None
 
-        return self._export_node(link.from_node, link.from_socket.identifier)
+        return self._export_node(link.from_node, link.from_socket.identifier, link.to_socket)
 
     def get_input_value(self, in_key):
         """ Returns linked node or default socket value """

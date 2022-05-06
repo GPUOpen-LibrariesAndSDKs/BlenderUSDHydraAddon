@@ -19,7 +19,7 @@ class ShaderNodeOutputMaterial(NodeParser):
     nodegraph_path = ""
 
     def __init__(self, doc, material, node, obj, **kwargs):
-        super().__init__(Id(), doc, material, node, obj, None, {}, **kwargs)
+        super().__init__(Id(), doc, material, node, obj, None, None, {}, **kwargs)
 
     def export(self):
         surface = self.get_input_link('Surface')
