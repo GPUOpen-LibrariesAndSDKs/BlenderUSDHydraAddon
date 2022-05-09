@@ -13,40 +13,9 @@
 # limitations under the License.
 #********************************************************************
 import bpy
-import webbrowser
 
-from . import HdUSD_Panel, HdUSD_Operator
-
-from hdusd import bl_info
-
-
-class HDUSD_OP_open_web_page(HdUSD_Operator):
-    """
-    Operator to open web pages. Available page types:
-    - 'main_site'
-    - 'documentation'
-    - 'downloads'
-    - 'community'
-    - 'bug_reports'
-    """
-
-    bl_idname = "hdusd.op_open_web_page"
-    bl_label = "Open Web Page"
-    bl_description = "Open web page in browser"
-
-    page: bpy.props.StringProperty(name="Page")
-
-    def execute(self, context):
-        url = {
-            'main_site':     "https://www.amd.com/en/technologies/radeon-prorender",
-            'documentation': "https://radeon-pro.github.io/RadeonProRenderDocs/en/usd_hydra/about.html",
-            'downloads':     "https://www.amd.com/en/technologies/radeon-prorender-downloads",
-            'community':     "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/discussions",
-            'bug_reports':   "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/issues",
-        }[self.page]
-
-        webbrowser.open(url)
-        return {'FINISHED'}
+from . import HdUSD_Panel
+from .. import bl_info
 
 
 class HDUSD_OP_data_source(bpy.types.Operator):
@@ -242,11 +211,11 @@ class HDUSD_RENDER_PT_help_about(HdUSD_Panel):
         col = layout.column()
         row = col.row(align=True)
         row.alignment = 'CENTER'
-        row.operator('hdusd.op_open_web_page', text="Main Site").page = 'main_site'
-        row.operator('hdusd.op_open_web_page', text="Documentation").page = 'documentation'
-        row.operator('hdusd.op_open_web_page', text="Downloads").page = 'downloads'
+        row.operator("wm.url_open", text="Main Site").url = bl_info["main_web"]
+        row.operator("wm.url_open", text="Documentation").url = bl_info["doc_url"]
+        row.operator("wm.url_open", text="Downloads").url = bl_info["downloads"]
 
         row = col.row(align=True)
         row.alignment = 'CENTER'
-        row.operator('hdusd.op_open_web_page', text="Community").page = 'community'
-        row.operator('hdusd.op_open_web_page', text="Bug Reports").page = 'bug_reports'
+        row.operator("wm.url_open", text="Community").url = bl_info["community"]
+        row.operator("wm.url_open", text="Bug Reports").url = bl_info["tracker_url"]

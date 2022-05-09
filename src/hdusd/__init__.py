@@ -21,15 +21,80 @@ bl_info = {
     "location": "Info header, render engine menu",
     "description": "USD Hydra rendering plugin for Blender",
     "warning": "",
-    "tracker_url": "",
-    "doc_url": "",
-    "category": "Render"
+    "tracker_url": "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/issues",
+    "doc_url": "https://radeon-pro.github.io/RadeonProRenderDocs/en/usd_hydra/about.html",
+    "category": "Render",
+    "community": "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/discussions",
+    "downloads": "https://www.amd.com/en/technologies/radeon-prorender-downloads",
+    "main_web": "https://www.amd.com/en/technologies/radeon-prorender",
 }
 version_build = ""
 
 
+import tempfile
+from pathlib import Path
+
 from . import config
-from .utils import logging
+from .utils import logging, temp_dir
+
+import bpy
+from bpy.types import AddonPreferences
+from bpy.props import StringProperty, BoolProperty
+
+
+class UsdAddonPreferences(AddonPreferences):
+    bl_idname = __name__
+
+    def update_temp_dir(self, value):
+        if not Path(self.tmp_dir).exists() or tempfile.gettempdir() == str(Path(self.tmp_dir)):
+            log.info(f"Current temp directory is {tempfile.gettempdir()}")
+            return
+
+        tempfile.tempdir = Path(self.tmp_dir)
+        bpy.context.preferences.addons[__name__].preferences['tmp_dir'] = str(temp_dir())
+        log.info(f"Current temp directory is changed to {bpy.context.preferences.addons[__name__].preferences.tmp_dir}")
+
+    def update_dev_tools(self, context):
+        config.show_dev_settings = self.dev_tools
+        log.info(f"Developer settings is {'enabled' if self.dev_tools else 'disabled'}")
+
+    def update_debug_log(self, context):
+        logging_level = 'DEBUG' if self.debug_log else config.logging_level
+        logging.logger.setLevel(logging_level)
+        log.info(f"Log level is set to {logging_level}")
+
+    tmp_dir: StringProperty(
+        name="Temp Directory",
+        description="Set temp directory",
+        maxlen=1024,
+        subtype='DIR_PATH',
+        default=str(temp_dir()),
+        update=update_temp_dir,
+    )
+    dev_tools: BoolProperty(
+        name="Developer Tools",
+        description="Enable developer tools",
+        default=config.show_dev_settings,
+        update=update_dev_tools,
+    )
+    debug_log: BoolProperty(
+        name="Debug",
+        description="Enable debug console output",
+        default=logging.logger.level == 'DEBUG',
+        update=update_debug_log,
+    )
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.prop(self, "tmp_dir", icon='NONE' if Path(self.tmp_dir).exists() else 'ERROR')
+        col.prop(self, "dev_tools")
+        col.prop(self, "debug_log")
+        col.separator()
+        row = col.row()
+        row.operator("wm.url_open", text="Main Site", icon='URL').url = bl_info["main_web"]
+        row.operator("wm.url_open", text="Community", icon='COMMUNITY').url = bl_info["community"]
+        row.operator("wm.url_open", text="Downloads", icon='TRIA_DOWN_BAR').url = bl_info["downloads"]
+
 
 log = logging.Log('init')
 log.info(f"Loading USD Hydra addon version={bl_info['version']}, build={version_build}")
@@ -47,6 +112,7 @@ def register():
     usd_nodes.register()
     properties.register()
     ui.register()
+    bpy.utils.register_class(UsdAddonPreferences)
 
 
 def unregister():
@@ -59,3 +125,4 @@ def unregister():
     ui.unregister()
     properties.unregister()
     engine.unregister()
+    bpy.utils.unregister_class(UsdAddonPreferences)

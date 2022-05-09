@@ -55,7 +55,6 @@ from . import (
 
 
 register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    render.HDUSD_OP_open_web_page,
     render.HDUSD_OP_data_source,
     render.HDUSD_OP_nodetree_camera,
     render.HDUSD_MT_data_source_final,
