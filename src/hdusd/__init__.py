@@ -42,7 +42,7 @@ from bpy.types import AddonPreferences
 from bpy.props import StringProperty, BoolProperty
 
 
-class UsdAddonPreferences(AddonPreferences):
+class HDUSD_ADDON_PT_preferences(AddonPreferences):
     bl_idname = __name__
 
     def update_temp_dir(self, value):
@@ -112,7 +112,7 @@ def register():
     usd_nodes.register()
     properties.register()
     ui.register()
-    bpy.utils.register_class(UsdAddonPreferences)
+    bpy.utils.register_class(HDUSD_ADDON_PT_preferences)
 
 
 def unregister():
@@ -125,4 +125,4 @@ def unregister():
     ui.unregister()
     properties.unregister()
     engine.unregister()
-    bpy.utils.unregister_class(UsdAddonPreferences)
+    bpy.utils.unregister_class(HDUSD_ADDON_PT_preferences)
