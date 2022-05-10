@@ -65,6 +65,8 @@ class UsdFileNode(USDNode):
             return None
 
         input_stage = Usd.Stage.Open(file_path)
+        root_layer = input_stage.GetRootLayer()
+        root_layer.TransferContent(input_stage.Flatten(False))
 
         if self.filter_path == '/*':
             self.cached_stage.insert(input_stage)
