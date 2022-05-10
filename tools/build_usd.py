@@ -76,6 +76,7 @@ add_subdirectory("{usd_imaging_lite_path.absolute().as_posix()}" usdImagingLite)
                      '--openvdb',
                      '--build-args', *build_args,
                      '--python',
+                     '--force', "OpenSubDiv",
                      '--build-variant', build_var,
                      str(bin_usd_dir / "install"),
                      *args)
