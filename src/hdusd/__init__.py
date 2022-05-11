@@ -78,7 +78,7 @@ class HDUSD_ADDON_PT_preferences(AddonPreferences):
         update=update_dev_tools,
     )
     debug_log: BoolProperty(
-        name="Debug",
+        name="Debug Logging",
         description="Enable debug console output",
         default=logging.logger.level == 'DEBUG',
         update=update_debug_log,
