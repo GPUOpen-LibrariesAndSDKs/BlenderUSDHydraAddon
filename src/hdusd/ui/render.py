@@ -15,7 +15,6 @@
 import bpy
 
 from . import HdUSD_Panel
-from .. import bl_info
 
 
 class HDUSD_OP_data_source(bpy.types.Operator):
