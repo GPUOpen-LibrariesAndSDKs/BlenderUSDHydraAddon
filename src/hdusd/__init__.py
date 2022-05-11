@@ -25,7 +25,7 @@ bl_info = {
     "doc_url": "https://radeon-pro.github.io/RadeonProRenderDocs/en/usd_hydra/about.html",
     "category": "Render",
     "community": "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/discussions",
-    "downloads": "https://www.amd.com/en/technologies/radeon-prorender-downloads",
+    "downloads": "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases",
     "main_web": "https://www.amd.com/en/technologies/radeon-prorender",
 }
 version_build = ""
