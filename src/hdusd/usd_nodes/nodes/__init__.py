@@ -43,6 +43,7 @@ node_categories = [
     USDNodeCategory('HdUSD_USD_CONVERTER', 'Converter', items=[
         NodeItem('usd.MergeNode'),
         NodeItem('usd.FilterNode'),
+        NodeItem('usd.FilterRootNode'),
         NodeItem('usd.RootNode'),
         NodeItem('usd.InstancingNode'),
     ]),
@@ -72,6 +73,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     merge.MergeNode,
     # print_file.PrintFileNode,
     filter.FilterNode,
+    filter.FilterRootNode,
     root.RootNode,
     instancing.InstancingNode,
     usd_to_blender.USDToBlenderNode,

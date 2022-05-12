@@ -76,3 +76,52 @@ class FilterNode(USDNode):
                                                        prim.GetPath())
 
         return stage
+
+
+class FilterRootNode(USDNode):
+    """Takes in USD and filters out matching path or names from root only"""
+    bl_idname = 'usd.FilterRootNode'
+    bl_label = "Filter Root"
+    bl_icon = "FILTER"
+
+    def update_data(self, context):
+        self.reset()
+
+    filter_names: bpy.props.StringProperty(
+        name="Names",
+        description="USD prims names. Use delimiter ',' to split input into separated names",
+        default='',
+        update=update_data
+    )
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, 'filter_names')
+
+    def compute(self, **kwargs):
+        input_stage = self.get_input_link('Input', **kwargs)
+        if not input_stage:
+            return None
+
+        if not self.filter_names:
+            return input_stage
+
+        filter_names = (name.strip().lower() for name in self.filter_names.split(','))
+
+        prims = (child for child in input_stage.GetPseudoRoot().GetAllChildren()
+                 if child.GetName().lower() not in filter_names)
+
+        if not prims:
+            return input_stage
+
+        stage = self.cached_stage.create()
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        root_prim = stage.GetPseudoRoot()
+
+        for i, prim in enumerate(prims, 1):
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
+                                                       prim.GetPath())
+
+        return stage
