@@ -121,7 +121,6 @@ class FilterRootNode(USDNode):
 
         for i, prim in enumerate(prims, 1):
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
-            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
-                                                       prim.GetPath())
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
