@@ -105,10 +105,12 @@ class IgnoreNode(USDNode):
         if not self.ignore_names:
             return input_stage
 
-        ignore_names = [Tf.MakeValidIdentifier(name) for name in self.ignore_names.split(',')]
+        ignore_names = [name for name in self.ignore_names.replace(" ", ",").split(",") if name]
 
-        prims = (child for child in input_stage.GetPseudoRoot().GetAllChildren()
-                 if child.GetName() not in ignore_names)
+        prog = re.compile('|'.join(ignore_names).replace('*', '\w*'))
+
+        prims = (child for child in input_stage.GetPseudoRoot().GetAllChildren() 
+                 if not prog.fullmatch(child.GetName()))
 
         stage = self.cached_stage.create()
         UsdGeom.SetStageMetersPerUnit(stage, 1)
