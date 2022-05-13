@@ -31,7 +31,8 @@ class FilterNode(USDNode):
 
     filter_path: bpy.props.StringProperty(
         name="Pattern",
-        description="USD Path pattern. Use special characters means:\n"
+        description="USD Path pattern. Use delimiter ',' or whitespace to split input into separated names.\n"
+                    "Use special characters means:\n"
                     "  * - any word or subword\n"
                     "  ** - several words separated by '/' or subword",
         default='/*',
@@ -46,11 +47,16 @@ class FilterNode(USDNode):
         if not input_stage:
             return None
 
+        if not self.filter_path:
+            return input_stage
+
+        filter_path = [name for name in self.filter_path.replace(" ", ",").split(",") if name]
+
         # creating search regex pattern and getting filtered rpims
-        prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
-                                          .replace('/', '\/')       # for correct regex pattern
-                                          .replace('##', '[\w\/]*') # creation
-                                          .replace('#', '\w*'))
+        prog = re.compile('|'.join(filter_path).replace('*', '#')        # temporary replacing '*' to '#'
+                                               .replace('/', '\/')       # for correct regex pattern
+                                               .replace('##', '[\w\/]*') # creation
+                                               .replace('#', '\w*'))
 
         def get_child_prims(prim):
             if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
@@ -88,8 +94,9 @@ class IgnoreNode(USDNode):
         self.reset()
 
     ignore_names: bpy.props.StringProperty(
-        name="Names",
-        description="USD prims names. Use delimiter ',' to split input into separated names",
+        name="Pattern",
+        description="USD prims names pattern. Use delimiter ',' or whitespace to split input into separated names\n"
+                    "Use * - matches any character",
         default='',
         update=update_data
     )
@@ -109,7 +116,7 @@ class IgnoreNode(USDNode):
 
         prog = re.compile('|'.join(ignore_names).replace('*', '\w*'))
 
-        prims = (child for child in input_stage.GetPseudoRoot().GetAllChildren() 
+        prims = (child for child in input_stage.GetPseudoRoot().GetAllChildren()
                  if not prog.fullmatch(child.GetName()))
 
         stage = self.cached_stage.create()
