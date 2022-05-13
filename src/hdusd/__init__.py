@@ -33,13 +33,14 @@ version_build = ""
 
 import tempfile
 from pathlib import Path
+from logging import getLevelName
 
 from . import config
 from .utils import logging, temp_dir
 
 import bpy
 from bpy.types import AddonPreferences
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 
 
 class HDUSD_ADDON_PT_preferences(AddonPreferences):
@@ -58,10 +59,9 @@ class HDUSD_ADDON_PT_preferences(AddonPreferences):
         config.show_dev_settings = self.dev_tools
         log.info(f"Developer settings is {'enabled' if self.dev_tools else 'disabled'}")
 
-    def update_debug_log(self, context):
-        logging_level = 'DEBUG' if self.debug_log else config.logging_level
-        logging.logger.setLevel(logging_level)
-        log.info(f"Log level is set to {logging_level}")
+    def update_log_level(self, context):
+        logging.logger.setLevel(self.log_level)
+        log.critical(f"Log level is set to {self.log_level}")
 
     tmp_dir: StringProperty(
         name="Temp Directory",
@@ -77,18 +77,24 @@ class HDUSD_ADDON_PT_preferences(AddonPreferences):
         default=config.show_dev_settings,
         update=update_dev_tools,
     )
-    debug_log: BoolProperty(
-        name="Debug Logging",
-        description="Enable debug console output",
-        default=logging.logger.level == 'DEBUG',
-        update=update_debug_log,
+    log_level: EnumProperty(
+        name="Log Level",
+        description="Select logging level",
+        items=(('DEBUG', "Debug", "Log level DEBUG"),
+               ('INFO', "Info", "Log level INFO"),
+               ('WARNING', "Warning", "Log level WARN"),
+               ('ERROR', "Error", "Log level ERROR"),
+               ('CRITICAL', "Critical", "Log level CRITICAL")),
+        default=getLevelName(logging.logger.level),
+        update=update_log_level,
+
     )
     def draw(self, context):
         layout = self.layout
         col = layout.column()
         col.prop(self, "tmp_dir", icon='NONE' if Path(self.tmp_dir).exists() else 'ERROR')
         col.prop(self, "dev_tools")
-        col.prop(self, "debug_log")
+        col.prop(self, "log_level")
         col.separator()
         row = col.row()
         row.operator("wm.url_open", text="Main Site", icon='URL').url = bl_info["main_web"]
