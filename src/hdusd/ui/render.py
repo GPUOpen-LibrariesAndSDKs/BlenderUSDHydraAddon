@@ -13,40 +13,8 @@
 # limitations under the License.
 #********************************************************************
 import bpy
-import webbrowser
 
-from . import HdUSD_Panel, HdUSD_Operator
-
-from hdusd import bl_info
-
-
-class HDUSD_OP_open_web_page(HdUSD_Operator):
-    """
-    Operator to open web pages. Available page types:
-    - 'main_site'
-    - 'documentation'
-    - 'downloads'
-    - 'community'
-    - 'bug_reports'
-    """
-
-    bl_idname = "hdusd.op_open_web_page"
-    bl_label = "Open Web Page"
-    bl_description = "Open web page in browser"
-
-    page: bpy.props.StringProperty(name="Page")
-
-    def execute(self, context):
-        url = {
-            'main_site':     "https://www.amd.com/en/technologies/radeon-prorender",
-            'documentation': "https://radeon-pro.github.io/RadeonProRenderDocs/en/usd_hydra/about.html",
-            'downloads':     "https://www.amd.com/en/technologies/radeon-prorender-downloads",
-            'community':     "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/discussions",
-            'bug_reports':   "https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/issues",
-        }[self.page]
-
-        webbrowser.open(url)
-        return {'FINISHED'}
+from . import HdUSD_Panel
 
 
 class HDUSD_OP_data_source(bpy.types.Operator):
@@ -212,41 +180,3 @@ class HDUSD_RENDER_PT_render_settings_viewport(RenderSettingsPanel):
     """Viewport render delegate and settings"""
     bl_label = "Viewport Render Settings"
     engine_type = 'VIEWPORT'
-
-
-class HDUSD_RENDER_PT_help_about(HdUSD_Panel):
-    """Help & About USD Hydra addon"""
-
-    bl_label = "Help & About"
-    bl_context = 'render'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        def label_center(lay, text):
-            row = lay.row()
-            row.alignment = 'CENTER'
-            row.label(text=text)
-
-        layout = self.layout
-
-        # Drawing info about plugin
-        col = layout.column(align=True)
-        version = bl_info['version']
-        label_center(col, f"{bl_info['name']} for Blender {version[0]}.{version[1]}.{version[2]}")
-        label_center(col, "© 2021 Advanced Micro Devices, Inc. (AMD)")
-        label_center(col, "Portions of this software are created")
-        label_center(col, "and copyrighted to other third parties.")
-
-        # Drawing buttons to open web pages
-        layout.separator()
-        col = layout.column()
-        row = col.row(align=True)
-        row.alignment = 'CENTER'
-        row.operator('hdusd.op_open_web_page', text="Main Site").page = 'main_site'
-        row.operator('hdusd.op_open_web_page', text="Documentation").page = 'documentation'
-        row.operator('hdusd.op_open_web_page', text="Downloads").page = 'downloads'
-
-        row = col.row(align=True)
-        row.alignment = 'CENTER'
-        row.operator('hdusd.op_open_web_page', text="Community").page = 'community'
-        row.operator('hdusd.op_open_web_page', text="Bug Reports").page = 'bug_reports'
