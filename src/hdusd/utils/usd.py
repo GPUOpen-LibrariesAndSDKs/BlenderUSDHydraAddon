@@ -17,7 +17,7 @@ import math
 import mathutils
 import bpy
 
-from pxr import UsdShade
+from pxr import UsdShade, Gf
 from ..utils import log
 
 def get_xform_transform(xform):
@@ -79,3 +79,34 @@ def bind_material(mesh_prim, usd_mat):
     bindings.UnbindAllBindings()
     if usd_mat:
         bindings.Bind(usd_mat)
+
+
+def set_timesamples(prim, start, end):
+    for attr in prim.GetAuthoredAttributes():
+        time_samples = attr.GetTimeSamplesInInterval(Gf.Interval(start, end))
+        if len(time_samples) > 0:
+            nearest_min_sample = min(time_samples, key=lambda x: abs(x - start))
+            nearest_max_sample = min(time_samples, key=lambda x: abs(x - end))
+
+            if end > start:
+                value = {sample: attr.Get(sample) for sample in time_samples}
+            else:
+                value = attr.Get(nearest_min_sample)
+
+            attr.Clear()
+
+            if isinstance(value, dict):
+                for sample, val in value.items():
+                    attr.Set(val, sample)
+            else:
+                attr.Set(value)
+
+            return nearest_min_sample, nearest_max_sample
+
+        else:
+            if value := attr.Get(0):
+                attr.Clear()
+                attr.Set(value)
+
+            return None, None
+    return None, None

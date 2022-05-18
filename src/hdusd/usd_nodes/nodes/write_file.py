@@ -13,7 +13,11 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
+
+from pxr import Usd, UsdGeom
+
 from .base_node import USDNode
+from ...utils.usd import set_timesamples
 
 
 class WriteFileNode(USDNode):
@@ -22,16 +26,98 @@ class WriteFileNode(USDNode):
     bl_label = "Write USD File"
     bl_icon = "FILE_TICK"
 
+    def set_end_frame(self, value):
+        self['end_frame'] = self.start_frame if value < self.start_frame else value
+
+    def get_end_frame(self):
+        return self.get('end_frame', 0)
+
+    def update_start_frame(self, context):
+        if self.start_frame > self.end_frame:
+            self.end_frame = self.start_frame
+
+    def is_frames_restricted(self):
+        return self.is_restrict_frames
+
+    def is_animation_exported(self):
+        return self.is_export_animation
+
     file_path: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
+
+    is_export_animation: bpy.props.BoolProperty(
+        name="Export animation",
+        description="Export animation",
+        default=True,
+    )
+
+    is_restrict_frames: bpy.props.BoolProperty(
+        name="Set frames",
+        description="Set frames to export",
+        default=False,
+    )
+
+    start_frame: bpy.props.IntProperty(
+        name="Start frame",
+        description="Start frame to export",
+        default=0,
+        update=update_start_frame
+    )
+
+    end_frame: bpy.props.IntProperty(
+        name="End frame",
+        description="End frame to export",
+        default=0,
+        set=set_end_frame, get=get_end_frame
+    )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'file_path')
+        layout.prop(self, 'is_export_animation')
+
+        if self.is_export_animation:
+            layout.prop(self, 'is_restrict_frames')
+
+        if self.is_restrict_frames:
+            layout.prop(self, 'start_frame')
+            layout.prop(self, 'end_frame')
 
     def compute(self, **kwargs):
-        stage = self.get_input_link('Input', **kwargs)
+        input_stage = self.get_input_link('Input', **kwargs)
 
-        if stage and self.file_path:
-            file_path = bpy.path.abspath(self.file_path)
-            stage.Export(file_path)
+        if not input_stage:
+            return None
+
+        if not self.file_path:
+            return input_stage
+
+        stage = self.cached_stage.create()
+
+        root_layer = stage.GetRootLayer()
+        root_layer.TransferContent(input_stage.GetRootLayer())
+
+        file_path = bpy.path.abspath(self.file_path)
+
+        start_time_code = stage.GetMetadata('startTimeCode')
+        end_time_code = stage.GetMetadata('endTimeCode')
+
+        if self.is_export_animation:
+            if self.is_restrict_frames:
+                for prim in stage.TraverseAll():
+                    min_sample, max_sample = set_timesamples(prim, self.start_frame, self.end_frame)
+
+                    if self.start_frame == self.end_frame:
+                        stage.ClearMetadata('startTimeCode')
+                        stage.ClearMetadata('endTimeCode')
+                    else:
+                        if min_sample and min_sample > start_time_code:
+                            stage.SetMetadata('startTimeCode', min_sample)
+
+                        if max_sample and max_sample < end_time_code:
+                            stage.SetMetadata('endTimeCode', max_sample)
+        else:
+            for prim in stage.TraverseAll():
+                set_timesamples(prim, 0, 0)
+
+        stage.Export(file_path)
 
         return stage

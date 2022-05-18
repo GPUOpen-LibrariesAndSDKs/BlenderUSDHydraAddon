@@ -17,6 +17,7 @@ import bpy
 from .nodes.hydra_render import HydraRenderNode
 from .nodes.print_file import PrintFileNode
 from .nodes.write_file import WriteFileNode
+from .nodes.blender_data import BlenderDataNode
 from ..viewport import usd_collection
 from ..engine.viewport_engine import ViewportEngineNodetree
 
@@ -87,7 +88,8 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)):
+            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)) \
+                    and not (isinstance(node, BlenderDataNode) and node.is_use_animation):
                 node.depsgraph_update(depsgraph)
 
     def frame_change(self, depsgraph):
@@ -95,7 +97,8 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)):
+            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)) \
+                    and not (isinstance(node, BlenderDataNode) and node.is_use_animation):
                 node.frame_change(depsgraph)
 
     def material_update(self, depsgraph):

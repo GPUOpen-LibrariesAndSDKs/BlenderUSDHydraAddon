@@ -51,9 +51,16 @@ class UsdFileNode(USDNode):
         update=update_data
     )
 
+    is_import_animation: bpy.props.BoolProperty(
+        name="Import animation",
+        description="Import animation",
+        default=True,
+    )
+
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filename')
         layout.prop(self, 'filter_path')
+        layout.prop(self, 'is_import_animation')
 
     def compute(self, **kwargs):
         if not self.filename:
@@ -67,6 +74,12 @@ class UsdFileNode(USDNode):
         input_stage = Usd.Stage.Open(file_path)
         root_layer = input_stage.GetRootLayer()
         root_layer.TransferContent(input_stage.Flatten(False))
+
+        if self.is_import_animation:
+            scene = bpy.context.evaluated_depsgraph_get().scene
+
+            scene.frame_start = input_stage.GetStartTimeCode()
+            scene.frame_end = input_stage.GetEndTimeCode()
 
         if self.filter_path == '/*':
             self.cached_stage.insert(input_stage)

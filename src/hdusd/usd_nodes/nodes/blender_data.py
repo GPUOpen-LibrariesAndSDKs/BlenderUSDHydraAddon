@@ -144,6 +144,13 @@ class BlenderDataNode(USDNode):
         update=update_data
     )
 
+    is_use_animation: bpy.props.BoolProperty(
+        name="Use animation",
+        description="Use animation",
+        default=True,
+        update=update_data
+    )
+
     def draw_buttons(self, context, layout):
         col = layout.column(align=True)
         col.prop(self, 'data')
@@ -176,6 +183,8 @@ class BlenderDataNode(USDNode):
                 row.menu(HDUSD_USD_NODETREE_MT_blender_data_object.bl_idname,
                          text=" ", icon='OBJECT_DATAMODE')
 
+        col.prop(self, 'is_use_animation')
+
     def compute(self, **kwargs):
         depsgraph = bpy.context.evaluated_depsgraph_get()
 
@@ -184,7 +193,12 @@ class BlenderDataNode(USDNode):
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         root_prim = stage.GetPseudoRoot()
-        kwargs = {'scene': depsgraph.scene}
+
+        if self.is_use_animation:
+            stage.SetStartTimeCode(depsgraph.scene.frame_start)
+            stage.SetEndTimeCode(depsgraph.scene.frame_end)
+
+        kwargs = {'scene': depsgraph.scene, 'is_use_animation': self.is_use_animation}
 
         if self.data == 'SCENE':
             for obj_data in ObjectData.depsgraph_objects(depsgraph):
@@ -222,7 +236,7 @@ class BlenderDataNode(USDNode):
         is_updated = False
 
         root_prim = stage.GetPseudoRoot()
-        kwargs = {'scene': depsgraph.scene}
+        kwargs = {'scene': depsgraph.scene, 'is_use_animation': self.is_use_animation}
 
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Scene):
@@ -256,8 +270,8 @@ class BlenderDataNode(USDNode):
                 # we need this "if" to prevent emergence of instancer object when we edit parent object
                 if not obj.parent:
                     object.sync_update(root_prim, obj_data,
-                                       update.is_updated_geometry, update.is_updated_transform,
-                                       **kwargs)
+                                      update.is_updated_geometry, update.is_updated_transform,
+                                      **kwargs)
 
                 for inst_obj_data in ObjectData.depsgraph_objects_inst(depsgraph):
                     if obj_data.sdf_name == sdf_name(inst_obj_data.object):

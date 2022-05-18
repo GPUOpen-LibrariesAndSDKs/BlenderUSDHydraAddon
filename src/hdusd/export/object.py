@@ -121,6 +121,21 @@ def get_transform_local(obj: bpy.types.Object):
     return obj.matrix_local.transposed()
 
 
+def set_matrix_xform(scene, is_use_animation, obj_data, transform_matrix):
+    if is_use_animation and obj_data.object.animation_data:
+
+        frame_current = scene.frame_current
+
+        for frame in range(scene.frame_start, scene.frame_end + 1):
+            scene.frame_set(frame)
+            transform_matrix.Set(Gf.Matrix4d(obj_data.object.matrix_world.transposed()), frame)
+
+        scene.frame_set(frame_current)
+
+    else:
+        transform_matrix.Set(Gf.Matrix4d(obj_data.transform))
+
+
 def sync(objects_prim, obj_data: ObjectData, parent_stage=None, **kwargs):
     """ sync the object and any data attached """
     log("sync", obj_data.object, obj_data.instance_id)
@@ -133,7 +148,8 @@ def sync(objects_prim, obj_data: ObjectData, parent_stage=None, **kwargs):
     obj_prim = xform.GetPrim()
 
     # setting transform
-    xform.MakeMatrixXform().Set(Gf.Matrix4d(obj_data.transform))
+    transform_matrix = xform.MakeMatrixXform()
+    set_matrix_xform(kwargs.get('scene'), kwargs.get('is_use_animation'), obj_data, transform_matrix)
 
     obj = obj_data.object
 
@@ -204,7 +220,9 @@ def sync_update(root_prim, obj_data: ObjectData, is_updated_geometry, is_updated
 
     if is_updated_transform:
         xform = UsdGeom.Xform(obj_prim)
-        xform.MakeMatrixXform().Set(Gf.Matrix4d(obj_data.transform))
+        transform_matrix = xform.MakeMatrixXform()
+
+        set_matrix_xform(kwargs.get('scene'), kwargs.get('is_use_animation'), obj_data, transform_matrix)
 
     if is_updated_geometry:
         obj = obj_data.object

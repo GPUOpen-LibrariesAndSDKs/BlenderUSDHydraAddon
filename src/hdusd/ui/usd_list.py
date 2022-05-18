@@ -24,6 +24,7 @@ from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
+from ..usd_nodes.nodes.blender_data import BlenderDataNode
 from ..mx_nodes.node_tree import MxNodeTree
 from ..engine.viewport_engine import ViewportEngineNodetree
 
@@ -283,6 +284,10 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
 
     def execute(self, context):
         tree = context.space_data.edit_tree
+        blender_data_node = next((node for node in tree.nodes if isinstance(node, BlenderDataNode) and node.is_use_animation), None)
+        if blender_data_node:
+            blender_data_node.reset(True)
+
         node = context.active_node
         if not node:
             log(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")
@@ -296,7 +301,7 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
 
         print(f"Node \"{tree.name}\":\"{node.name}\" USD stage is:")
         print(stage.ExportToString())
-
+        
         return {'FINISHED'}
 
 
@@ -312,6 +317,10 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
 
     def execute(self, context):
         tree = context.space_data.edit_tree
+        blender_data_node = next((node for node in tree.nodes if isinstance(node, BlenderDataNode) and node.is_use_animation), None)
+        if blender_data_node:
+            blender_data_node.reset(True)
+
         node = context.active_node
         if not node:
             log(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")
