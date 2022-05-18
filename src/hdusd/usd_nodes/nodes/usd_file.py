@@ -20,7 +20,7 @@ from pxr import Usd, UsdGeom, Sdf, Gf
 
 from .base_node import USDNode
 from . import log
-
+from ...utils.usd import set_timesamples_for_stage
 
 class UsdFileNode(USDNode):
     ''' read USD file '''
@@ -31,10 +31,22 @@ class UsdFileNode(USDNode):
     bl_width_min = 250
 
     input_names = ()
-    use_hard_reset = False
+    use_hard_reset = True
 
     def update_data(self, context):
         self.reset(True)
+
+    def set_end_frame(self, value):
+        self['end_frame'] = self.start_frame if value < self.start_frame else value
+
+    def get_end_frame(self):
+        return self.get('end_frame', 0)
+
+    def update_start_frame(self, context):
+        if self.start_frame > self.end_frame:
+            self.end_frame = self.start_frame
+
+        self.update_data(context)
 
     filename: bpy.props.StringProperty(
         name="USD File",
@@ -55,12 +67,42 @@ class UsdFileNode(USDNode):
         name="Import animation",
         description="Import animation",
         default=True,
+        update=update_data
+    )
+
+    is_restrict_frames: bpy.props.BoolProperty(
+        name="Set frames",
+        description="Set frames to export",
+        default=False,
+        update=update_data
+    )
+
+    start_frame: bpy.props.IntProperty(
+        name="Start frame",
+        description="Start frame to export",
+        default=0,
+        update=update_start_frame
+    )
+
+    end_frame: bpy.props.IntProperty(
+        name="End frame",
+        description="End frame to export",
+        default=0,
+        set=set_end_frame, get=get_end_frame,
+        update=update_data
     )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'filename')
         layout.prop(self, 'filter_path')
         layout.prop(self, 'is_import_animation')
+
+        if self.is_import_animation:
+            layout.prop(self, 'is_restrict_frames')
+
+        if self.is_import_animation and self.is_restrict_frames:
+            layout.prop(self, 'start_frame')
+            layout.prop(self, 'end_frame')
 
     def compute(self, **kwargs):
         if not self.filename:
@@ -72,16 +114,17 @@ class UsdFileNode(USDNode):
             return None
 
         input_stage = Usd.Stage.Open(file_path)
+        print(input_stage.ExportToString())
         root_layer = input_stage.GetRootLayer()
         root_layer.TransferContent(input_stage.Flatten(False))
 
-        if self.is_import_animation:
-            scene = bpy.context.evaluated_depsgraph_get().scene
-
-            scene.frame_start = input_stage.GetStartTimeCode()
-            scene.frame_end = input_stage.GetEndTimeCode()
-
         if self.filter_path == '/*':
+            set_timesamples_for_stage(input_stage,
+                                      is_use_animation=self.is_import_animation,
+                                      is_restrict_frames=self.is_restrict_frames,
+                                      start=self.start_frame,
+                                      end=self.end_frame)
+
             self.cached_stage.insert(input_stage)
             return input_stage
 
@@ -108,9 +151,18 @@ class UsdFileNode(USDNode):
         UsdGeom.SetStageMetersPerUnit(stage, 1)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
+        stage.SetMetadata('startTimeCode', input_stage.GetStartTimeCode())
+        stage.SetMetadata('endTimeCode', input_stage.GetEndTimeCode())
+
         root_prim = stage.GetPseudoRoot()
         for i, prim in enumerate(prims, 1):
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
+
+        set_timesamples_for_stage(stage,
+                                  is_use_animation=self.is_import_animation,
+                                  is_restrict_frames=self.is_restrict_frames,
+                                  start=self.start_frame,
+                                  end=self.end_frame)
 
         return stage

@@ -14,10 +14,8 @@
 # ********************************************************************
 import bpy
 
-from pxr import Usd, UsdGeom
-
 from .base_node import USDNode
-from ...utils.usd import set_timesamples
+from ...utils.usd import set_timesamples_for_stage
 
 
 class WriteFileNode(USDNode):
@@ -35,12 +33,6 @@ class WriteFileNode(USDNode):
     def update_start_frame(self, context):
         if self.start_frame > self.end_frame:
             self.end_frame = self.start_frame
-
-    def is_frames_restricted(self):
-        return self.is_restrict_frames
-
-    def is_animation_exported(self):
-        return self.is_export_animation
 
     file_path: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
 
@@ -77,7 +69,7 @@ class WriteFileNode(USDNode):
         if self.is_export_animation:
             layout.prop(self, 'is_restrict_frames')
 
-        if self.is_restrict_frames:
+        if self.is_export_animation and self.is_restrict_frames:
             layout.prop(self, 'start_frame')
             layout.prop(self, 'end_frame')
 
@@ -97,26 +89,11 @@ class WriteFileNode(USDNode):
 
         file_path = bpy.path.abspath(self.file_path)
 
-        start_time_code = stage.GetMetadata('startTimeCode')
-        end_time_code = stage.GetMetadata('endTimeCode')
-
-        if self.is_export_animation:
-            if self.is_restrict_frames:
-                for prim in stage.TraverseAll():
-                    min_sample, max_sample = set_timesamples(prim, self.start_frame, self.end_frame)
-
-                    if self.start_frame == self.end_frame:
-                        stage.ClearMetadata('startTimeCode')
-                        stage.ClearMetadata('endTimeCode')
-                    else:
-                        if min_sample and min_sample > start_time_code:
-                            stage.SetMetadata('startTimeCode', min_sample)
-
-                        if max_sample and max_sample < end_time_code:
-                            stage.SetMetadata('endTimeCode', max_sample)
-        else:
-            for prim in stage.TraverseAll():
-                set_timesamples(prim, 0, 0)
+        set_timesamples_for_stage(stage,
+                                  is_use_animation=self.is_export_animation,
+                                  is_restrict_frames=self.is_restrict_frames,
+                                  start=self.start_frame,
+                                  end=self.end_frame)
 
         stage.Export(file_path)
 

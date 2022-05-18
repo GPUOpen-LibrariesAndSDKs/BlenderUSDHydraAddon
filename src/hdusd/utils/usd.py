@@ -81,7 +81,7 @@ def bind_material(mesh_prim, usd_mat):
         bindings.Bind(usd_mat)
 
 
-def set_timesamples(prim, start, end):
+def set_timesamples_for_prim(prim, start, end):
     for attr in prim.GetAuthoredAttributes():
         time_samples = attr.GetTimeSamplesInInterval(Gf.Interval(start, end))
         if len(time_samples) > 0:
@@ -110,3 +110,32 @@ def set_timesamples(prim, start, end):
 
             return None, None
     return None, None
+
+
+def set_timesamples_for_stage(stage, *, is_use_animation, is_restrict_frames, start, end):
+    if is_use_animation:
+        start_time_code = stage.GetStartTimeCode()
+        end_time_code = stage.GetEndTimeCode()
+
+        if is_restrict_frames:
+            for prim in stage.TraverseAll():
+                min_sample, max_sample = set_timesamples_for_prim(prim, start, end)
+
+                if start == end:
+                    stage.ClearMetadata('startTimeCode')
+                    stage.ClearMetadata('endTimeCode')
+                else:
+                    if min_sample and min_sample > start_time_code:
+                        start_time_code = min_sample
+                        stage.SetMetadata('startTimeCode', min_sample)
+
+                    if max_sample and max_sample < end_time_code:
+                        end_time_code = max_sample
+                        stage.SetMetadata('endTimeCode', max_sample)
+
+    else:
+        stage.ClearMetadata('startTimeCode')
+        stage.ClearMetadata('endTimeCode')
+
+        for prim in stage.TraverseAll():
+            set_timesamples_for_prim(prim, 0, 0)
