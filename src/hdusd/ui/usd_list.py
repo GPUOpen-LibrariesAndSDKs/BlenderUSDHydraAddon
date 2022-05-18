@@ -381,6 +381,16 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     bl_label = "Export USD"
     bl_description = "Export USD node tree to .usd file"
 
+    def update_start_frame(self, context):
+        if self.start_frame > self.end_frame:
+            self.end_frame = self.start_frame
+
+    def set_end_frame(self, value):
+        self['end_frame'] = self.start_frame if value < self.start_frame else value
+
+    def get_end_frame(self):
+        return self.get('end_frame', 0)
+
     filename_ext = ""
     filepath: bpy.props.StringProperty(
         name="File Path",
@@ -407,6 +417,32 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         update=on_export_format_changed,
     )
 
+    is_export_animation: bpy.props.BoolProperty(
+        name="Export animation",
+        description="Export animation",
+        default=True,
+    )
+
+    is_restrict_frames: bpy.props.BoolProperty(
+        name="Set frames",
+        description="Set frames to export",
+        default=False,
+    )
+
+    start_frame: bpy.props.IntProperty(
+        name="Start frame",
+        description="Start frame to export",
+        default=0,
+        update=update_start_frame
+    )
+
+    end_frame: bpy.props.IntProperty(
+        name="End frame",
+        description="End frame to export",
+        default=0,
+        set=set_end_frame, get=get_end_frame,
+    )
+
     def check(self, context):
         # Ensure file extension matches format
         old_filepath = self.filepath
@@ -415,6 +451,15 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
     def draw(self, context):
         self.layout.prop(self, 'is_pack_into_one_file')
+        self.layout.prop(self, 'is_export_animation')
+
+        if self.is_export_animation:
+            self.layout.prop(self, 'is_restrict_frames')
+
+        if self.is_export_animation and self.is_restrict_frames:
+            self.layout.prop(self, 'start_frame')
+            self.layout.prop(self, 'end_frame')
+
         self.layout.prop(self, 'export_format')
 
     def execute(self, context):
@@ -497,6 +542,12 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
                 for input in shader.GetInputs():
                     if input.GetTypeName() == 'asset':
                         _resolve_texture_filepath(input)
+
+        usd_utils.set_timesamples_for_stage(new_stage,
+                                            is_use_animation=self.is_export_animation,
+                                            is_restrict_frames=self.is_restrict_frames,
+                                            start=self.start_frame,
+                                            end=self.end_frame)
 
         if self.is_pack_into_one_file:
             new_stage.Export(self.filepath, False)
