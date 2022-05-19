@@ -110,9 +110,9 @@ class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
 
 
 class HDUSD_USD_NODETREE_OP_blender_data_update_animation(bpy.types.Operator):
-    """Add / Replace to basic USD nodes"""
+    """Click this button if animation was updated"""
     bl_idname = "hdusd.usd_nodetree_blender_data_update_animation"
-    bl_label = "Add Basic Nodes"
+    bl_label = "Update animation"
 
     def execute(self, context):
         context.node.reset(True)
@@ -238,8 +238,7 @@ class BlenderDataNode(USDNode):
             row.prop(self, 'end_frame')
 
         if self.is_use_animation:
-            layout.operator(HDUSD_USD_NODETREE_OP_blender_data_update_animation.bl_idname,
-                            text="Update animation", icon='SCENE_DATA')
+            layout.operator(HDUSD_USD_NODETREE_OP_blender_data_update_animation.bl_idname, icon='FILE_REFRESH')
 
     def compute(self, **kwargs):
         depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -284,6 +283,10 @@ class BlenderDataNode(USDNode):
         return stage
 
     def depsgraph_update(self, depsgraph):
+        # to prevent recursion we need to don't update node if we changed smth in Blender's animation
+        if self.is_use_animation:
+            return
+
         stage = self.cached_stage()
         if not stage:
             self.final_compute()
@@ -292,15 +295,7 @@ class BlenderDataNode(USDNode):
         is_updated = False
 
         root_prim = stage.GetPseudoRoot()
-        kwargs = {'scene': depsgraph.scene,
-                  'is_use_animation': self.is_use_animation,
-                  'is_restrict_frames': self.is_restrict_frames,
-                  'start_frame': self.start_frame,
-                  'end_frame': self.end_frame}
-
-        if self.is_use_animation:
-            stage.ClearMetadata('startTimeCode')
-            stage.ClearMetadata('endTimeCode')
+        kwargs = {'scene': depsgraph.scene}
 
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Scene):
@@ -334,8 +329,8 @@ class BlenderDataNode(USDNode):
                 # we need this "if" to prevent emergence of instancer object when we edit parent object
                 if not obj.parent:
                     object.sync_update(root_prim, obj_data,
-                                      update.is_updated_geometry, update.is_updated_transform,
-                                      **kwargs)
+                                       update.is_updated_geometry, update.is_updated_transform,
+                                       **kwargs)
 
                 for inst_obj_data in ObjectData.depsgraph_objects_inst(depsgraph):
                     if obj_data.sdf_name == sdf_name(inst_obj_data.object):

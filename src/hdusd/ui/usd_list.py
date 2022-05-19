@@ -298,7 +298,7 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
 
         print(f"Node \"{tree.name}\":\"{node.name}\" USD stage is:")
         print(stage.ExportToString())
-        
+
         return {'FINISHED'}
 
 
@@ -314,7 +314,6 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
 
     def execute(self, context):
         tree = context.space_data.edit_tree
-
         node = context.active_node
         if not node:
             log(f"Unable to print USD nodetree \"{tree.name}\" stage: no USD node selected")

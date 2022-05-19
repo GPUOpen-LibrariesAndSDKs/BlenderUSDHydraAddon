@@ -88,8 +88,7 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)) \
-                    and not (isinstance(node, BlenderDataNode) and node.is_use_animation):
+            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)):
                 node.depsgraph_update(depsgraph)
 
     def frame_change(self, depsgraph):
@@ -97,8 +96,7 @@ class USDTree(bpy.types.ShaderNodeTree):
             return
 
         for node in self.nodes:
-            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)) \
-                    and not (isinstance(node, BlenderDataNode) and node.is_use_animation):
+            if not isinstance(node, (bpy.types.NodeReroute, bpy.types.NodeFrame)):
                 node.frame_change(depsgraph)
 
     def material_update(self, depsgraph):

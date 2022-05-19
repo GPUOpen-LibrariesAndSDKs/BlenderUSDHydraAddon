@@ -233,10 +233,7 @@ def sync_update(root_prim, obj_data: ObjectData, is_updated_geometry, is_updated
 
     if is_updated_transform:
         xform = UsdGeom.Xform(obj_prim)
-        transform_matrix = xform.MakeMatrixXform()
-
-        set_matrix_xform(kwargs.get('scene'), kwargs.get('is_use_animation'), kwargs.get('is_restrict_frames'),
-                         kwargs.get('start_frame'), kwargs.get('end_frame'), obj_data, transform_matrix)
+        xform.MakeMatrixXform().Set(Gf.Matrix4d(obj_data.transform))
 
     if is_updated_geometry:
         obj = obj_data.object
