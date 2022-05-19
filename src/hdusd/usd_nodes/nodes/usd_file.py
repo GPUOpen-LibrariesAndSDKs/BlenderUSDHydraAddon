@@ -115,7 +115,6 @@ class UsdFileNode(USDNode):
             return None
 
         input_stage = Usd.Stage.Open(file_path)
-        print(input_stage.ExportToString())
         root_layer = input_stage.GetRootLayer()
         root_layer.TransferContent(input_stage.Flatten(False))
 
