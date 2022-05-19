@@ -101,8 +101,9 @@ class UsdFileNode(USDNode):
             layout.prop(self, 'is_restrict_frames')
 
         if self.is_import_animation and self.is_restrict_frames:
-            layout.prop(self, 'start_frame')
-            layout.prop(self, 'end_frame')
+            row = layout.row(align=True)
+            row.prop(self, 'start_frame')
+            row.prop(self, 'end_frame')
 
     def compute(self, **kwargs):
         if not self.filename:

@@ -451,8 +451,9 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
             self.layout.prop(self, 'is_restrict_frames')
 
         if self.is_export_animation and self.is_restrict_frames:
-            self.layout.prop(self, 'start_frame')
-            self.layout.prop(self, 'end_frame')
+            row = self.layout.row(align=True)
+            row.prop(self, 'start_frame')
+            row.prop(self, 'end_frame')
 
         self.layout.prop(self, 'export_format')
 

@@ -233,8 +233,9 @@ class BlenderDataNode(USDNode):
             layout.prop(self, 'is_restrict_frames')
 
         if self.is_use_animation and self.is_restrict_frames:
-            layout.prop(self, 'start_frame')
-            layout.prop(self, 'end_frame')
+            row = layout.row(align=True)
+            row.prop(self, 'start_frame')
+            row.prop(self, 'end_frame')
 
         if self.is_use_animation:
             layout.operator(HDUSD_USD_NODETREE_OP_blender_data_update_animation.bl_idname,
