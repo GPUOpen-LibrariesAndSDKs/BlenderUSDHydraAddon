@@ -48,10 +48,25 @@ class UsdFileNode(USDNode):
 
         self.update_data(context)
 
+    def update_filename(self, context):
+        if not self.filename:
+            return None
+
+        file_path = bpy.path.abspath(self.filename)
+        if not os.path.isfile(file_path):
+            return None
+
+        input_stage = Usd.Stage.Open(file_path)
+
+        self['start_frame'] = int(input_stage.GetMetadata('startTimeCode'))
+        self['end_frame'] = int(input_stage.GetMetadata('endTimeCode'))
+
+        self.update_data(context)
+
     filename: bpy.props.StringProperty(
         name="USD File",
         subtype='FILE_PATH',
-        update=update_data,
+        update=update_filename,
     )
 
     filter_path: bpy.props.StringProperty(
@@ -115,8 +130,6 @@ class UsdFileNode(USDNode):
             return None
 
         input_stage = Usd.Stage.Open(file_path)
-        root_layer = input_stage.GetRootLayer()
-        root_layer.TransferContent(input_stage.Flatten(False))
 
         if self.filter_path == '/*':
             set_timesamples_for_stage(input_stage,
