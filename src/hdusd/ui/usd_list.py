@@ -284,9 +284,6 @@ class HDUSD_OP_usd_tree_node_print_stage(HdUSD_Operator):
 
     def execute(self, context):
         tree = context.space_data.edit_tree
-        blender_data_node = next((node for node in tree.nodes if isinstance(node, BlenderDataNode) and node.is_use_animation), None)
-        if blender_data_node:
-            blender_data_node.reset(True)
 
         node = context.active_node
         if not node:
@@ -317,9 +314,6 @@ class HDUSD_OP_usd_tree_node_print_root_layer(HdUSD_Operator):
 
     def execute(self, context):
         tree = context.space_data.edit_tree
-        blender_data_node = next((node for node in tree.nodes if isinstance(node, BlenderDataNode) and node.is_use_animation), None)
-        if blender_data_node:
-            blender_data_node.reset(True)
 
         node = context.active_node
         if not node:

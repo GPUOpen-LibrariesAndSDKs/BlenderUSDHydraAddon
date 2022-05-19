@@ -109,6 +109,16 @@ class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
             op.object_name = obj.name
 
 
+class HDUSD_USD_NODETREE_OP_blender_data_update_animation(bpy.types.Operator):
+    """Add / Replace to basic USD nodes"""
+    bl_idname = "hdusd.usd_nodetree_blender_data_update_animation"
+    bl_label = "Add Basic Nodes"
+
+    def execute(self, context):
+        context.node.reset(True)
+        return {'FINISHED'}
+
+
 class BlenderDataNode(USDNode):
     """Blender data to USD can export whole scene, one collection or object"""
     bl_idname = 'usd.BlenderDataNode'
@@ -120,6 +130,18 @@ class BlenderDataNode(USDNode):
 
     def update_data(self, context):
         self.reset(True)
+
+    def set_end_frame(self, value):
+        self['end_frame'] = self.start_frame if value < self.start_frame else value
+
+    def get_end_frame(self):
+        return self.get('end_frame', 0)
+
+    def update_start_frame(self, context):
+        if self.start_frame > self.end_frame:
+            self.end_frame = self.start_frame
+
+        self.update_data(context)
 
     data: bpy.props.EnumProperty(
         name="Data",
@@ -148,6 +170,28 @@ class BlenderDataNode(USDNode):
         name="Use animation",
         description="Use animation",
         default=True,
+        update=update_data
+    )
+
+    is_restrict_frames: bpy.props.BoolProperty(
+        name="Set frames",
+        description="Set frames to export",
+        default=False,
+        update=update_data
+    )
+
+    start_frame: bpy.props.IntProperty(
+        name="Start frame",
+        description="Start frame to export",
+        default=0,
+        update=update_start_frame
+    )
+
+    end_frame: bpy.props.IntProperty(
+        name="End frame",
+        description="End frame to export",
+        default=0,
+        set=set_end_frame, get=get_end_frame,
         update=update_data
     )
 
@@ -183,7 +227,18 @@ class BlenderDataNode(USDNode):
                 row.menu(HDUSD_USD_NODETREE_MT_blender_data_object.bl_idname,
                          text=" ", icon='OBJECT_DATAMODE')
 
-        col.prop(self, 'is_use_animation')
+        layout.prop(self, 'is_use_animation')
+
+        if self.is_use_animation:
+            layout.prop(self, 'is_restrict_frames')
+
+        if self.is_use_animation and self.is_restrict_frames:
+            layout.prop(self, 'start_frame')
+            layout.prop(self, 'end_frame')
+
+        if self.is_use_animation:
+            layout.operator(HDUSD_USD_NODETREE_OP_blender_data_update_animation.bl_idname,
+                            text="Update animation", icon='SCENE_DATA')
 
     def compute(self, **kwargs):
         depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -194,11 +249,11 @@ class BlenderDataNode(USDNode):
 
         root_prim = stage.GetPseudoRoot()
 
-        if self.is_use_animation:
-            stage.SetStartTimeCode(depsgraph.scene.frame_start)
-            stage.SetEndTimeCode(depsgraph.scene.frame_end)
-
-        kwargs = {'scene': depsgraph.scene, 'is_use_animation': self.is_use_animation}
+        kwargs = {'scene': depsgraph.scene,
+                  'is_use_animation': self.is_use_animation,
+                  'is_restrict_frames': self.is_restrict_frames,
+                  'start_frame': self.start_frame,
+                  'end_frame': self.end_frame}
 
         if self.data == 'SCENE':
             for obj_data in ObjectData.depsgraph_objects(depsgraph):
@@ -236,7 +291,15 @@ class BlenderDataNode(USDNode):
         is_updated = False
 
         root_prim = stage.GetPseudoRoot()
-        kwargs = {'scene': depsgraph.scene, 'is_use_animation': self.is_use_animation}
+        kwargs = {'scene': depsgraph.scene,
+                  'is_use_animation': self.is_use_animation,
+                  'is_restrict_frames': self.is_restrict_frames,
+                  'start_frame': self.start_frame,
+                  'end_frame': self.end_frame}
+
+        if self.is_use_animation:
+            stage.ClearMetadata('startTimeCode')
+            stage.ClearMetadata('endTimeCode')
 
         for update in depsgraph.updates:
             if isinstance(update.id, bpy.types.Scene):
