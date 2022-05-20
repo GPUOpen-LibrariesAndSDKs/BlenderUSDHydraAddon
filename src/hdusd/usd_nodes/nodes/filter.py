@@ -15,7 +15,7 @@
 import re
 
 import bpy
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, Tf
 
 from .base_node import USDNode
 
@@ -31,7 +31,8 @@ class FilterNode(USDNode):
 
     filter_path: bpy.props.StringProperty(
         name="Pattern",
-        description="USD Path pattern. Use special characters means:\n"
+        description="USD Path pattern. Use delimiter ',' or whitespace to split input into separated names.\n"
+                    "Use special characters means:\n"
                     "  * - any word or subword\n"
                     "  ** - several words separated by '/' or subword",
         default='/*',
@@ -46,11 +47,16 @@ class FilterNode(USDNode):
         if not input_stage:
             return None
 
+        if not self.filter_path:
+            return input_stage
+
+        filter_path = [name for name in self.filter_path.replace(" ", ",").split(",") if name]
+
         # creating search regex pattern and getting filtered rpims
-        prog = re.compile(self.filter_path.replace('*', '#')        # temporary replacing '*' to '#'
-                                          .replace('/', '\/')       # for correct regex pattern
-                                          .replace('##', '[\w\/]*') # creation
-                                          .replace('#', '\w*'))
+        prog = re.compile('|'.join(filter_path).replace('*', '#')        # temporary replacing '*' to '#'
+                                               .replace('/', '\/')       # for correct regex pattern
+                                               .replace('##', '[\w\/]*') # creation
+                                               .replace('#', '\w*'))
 
         def get_child_prims(prim):
             if not prim.IsPseudoRoot() and prog.fullmatch(str(prim.GetPath())):
@@ -74,5 +80,56 @@ class FilterNode(USDNode):
             override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
             override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath,
                                                        prim.GetPath())
+
+        return stage
+
+
+class IgnoreNode(USDNode):
+    """Takes in USD and ignores matching names from root only"""
+    bl_idname = 'usd.IgnoreNode'
+    bl_label = "Ignore"
+    bl_icon = "FILTER"
+
+    def update_data(self, context):
+        self.reset()
+
+    ignore_names: bpy.props.StringProperty(
+        name="Pattern",
+        description="USD prims names pattern. Use delimiter ',' or whitespace to split input into separated names\n"
+                    "Use * - matches any character",
+        default='',
+        update=update_data
+    )
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, 'ignore_names')
+
+    def compute(self, **kwargs):
+        input_stage = self.get_input_link('Input', **kwargs)
+        if not input_stage:
+            return None
+
+        if not self.ignore_names:
+            return input_stage
+
+        ignore_names = [name for name in self.ignore_names.replace(" ", ",").split(",") if name]
+
+        prog = re.compile('|'.join(ignore_names).replace('*', '\w*'))
+
+        prims = (child for child in input_stage.GetPseudoRoot().GetAllChildren()
+                 if not prog.fullmatch(child.GetName()))
+
+        stage = self.cached_stage.create()
+        UsdGeom.SetStageMetersPerUnit(stage, 1)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+
+        if not prims:
+            return stage
+
+        root_prim = stage.GetPseudoRoot()
+
+        for i, prim in enumerate(prims, 1):
+            override_prim = stage.OverridePrim(root_prim.GetPath().AppendChild(prim.GetName()))
+            override_prim.GetReferences().AddReference(input_stage.GetRootLayer().realPath, prim.GetPath())
 
         return stage
