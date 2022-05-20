@@ -163,7 +163,7 @@ class FinalEngine(Engine):
         else:
             usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
        
-        gf_camera = usd_camera.GetCamera()
+        gf_camera = usd_camera.GetCamera(scene.frame_current)
         renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
                                 gf_camera.frustum.ComputeProjectionMatrix())
 
