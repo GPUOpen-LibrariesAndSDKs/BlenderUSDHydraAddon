@@ -17,7 +17,6 @@ import bpy
 from .nodes.hydra_render import HydraRenderNode
 from .nodes.print_file import PrintFileNode
 from .nodes.write_file import WriteFileNode
-from .nodes.blender_data import BlenderDataNode
 from ..viewport import usd_collection
 from ..engine.viewport_engine import ViewportEngineNodetree
 
