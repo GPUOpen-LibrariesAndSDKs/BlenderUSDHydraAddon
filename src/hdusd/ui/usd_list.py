@@ -24,7 +24,6 @@ from bpy_extras.io_utils import ExportHelper
 
 from . import HdUSD_Panel, HdUSD_ChildPanel, HdUSD_Operator
 from ..usd_nodes.nodes.base_node import USDNode
-from ..usd_nodes.nodes.blender_data import BlenderDataNode
 from ..mx_nodes.node_tree import MxNodeTree
 from ..engine.viewport_engine import ViewportEngineNodetree
 
