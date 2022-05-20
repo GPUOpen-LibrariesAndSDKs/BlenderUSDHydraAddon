@@ -30,8 +30,9 @@ from ..engine.viewport_engine import ViewportEngineNodetree
 from .. import config
 from ..utils import get_temp_file, temp_pid_dir
 from ..utils import mx as mx_utils
-from ..export import material
 from ..utils import usd as usd_utils
+from ..export import material
+
 
 from ..utils import logging
 log = logging.Log('ui.usd_list')
@@ -394,7 +395,6 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     is_pack_into_one_file: bpy.props.BoolProperty(name="Pack into one file",
                                                   description="Pack all references into one file",
                                                   default=True)
-
     export_format: bpy.props.EnumProperty(
         name="Format",
         items=(('.usda', "Text (.usda)",
@@ -408,26 +408,22 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         default='.usdc',
         update=on_export_format_changed,
     )
-
     is_export_animation: bpy.props.BoolProperty(
         name="Export animation",
         description="Export animation",
         default=True,
     )
-
     is_restrict_frames: bpy.props.BoolProperty(
         name="Set frames",
         description="Set frames to export",
         default=False,
     )
-
     start_frame: bpy.props.IntProperty(
         name="Start frame",
         description="Start frame to export",
         default=0,
         update=update_start_frame
     )
-
     end_frame: bpy.props.IntProperty(
         name="End frame",
         description="End frame to export",

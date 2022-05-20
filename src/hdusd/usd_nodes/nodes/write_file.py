@@ -41,20 +41,17 @@ class WriteFileNode(USDNode):
         description="Export animation",
         default=True,
     )
-
     is_restrict_frames: bpy.props.BoolProperty(
         name="Set frames",
         description="Set frames to export",
         default=False,
     )
-
     start_frame: bpy.props.IntProperty(
         name="Start frame",
         description="Start frame to export",
         default=0,
         update=update_start_frame
     )
-
     end_frame: bpy.props.IntProperty(
         name="End frame",
         description="End frame to export",

@@ -16,14 +16,17 @@ import os
 import re
 
 import bpy
-from pxr import Usd, UsdGeom, Sdf, Gf
+from pxr import Usd, UsdGeom, Sdf, Gf, Tf
 
 from .base_node import USDNode
 from . import log
 from ...utils.usd import set_timesamples_for_stage
+from ...viewport.usd_collection import USD_CAMERA
+from ...export.camera import CameraData
+
 
 class UsdFileNode(USDNode):
-    ''' read USD file '''
+    """read USD file"""
     bl_idname = 'usd.UsdFileNode'
     bl_label = "USD File"
     bl_icon = "FILE"
@@ -68,7 +71,6 @@ class UsdFileNode(USDNode):
         subtype='FILE_PATH',
         update=update_filename,
     )
-
     filter_path: bpy.props.StringProperty(
         name="Pattern",
         description="USD Path pattern. Use special characters means:\n"
@@ -77,28 +79,24 @@ class UsdFileNode(USDNode):
         default='/*',
         update=update_data
     )
-
     is_import_animation: bpy.props.BoolProperty(
         name="Import animation",
         description="Import animation",
         default=True,
         update=update_data
     )
-
     is_restrict_frames: bpy.props.BoolProperty(
         name="Set frames",
         description="Set frames to export",
         default=False,
         update=update_data
     )
-
     start_frame: bpy.props.IntProperty(
         name="Start frame",
         description="Start frame to export",
         default=0,
         update=update_start_frame
     )
-
     end_frame: bpy.props.IntProperty(
         name="End frame",
         description="End frame to export",
@@ -181,3 +179,44 @@ class UsdFileNode(USDNode):
                                   end=self.end_frame)
 
         return stage
+
+    def frame_change(self, depsgraph):
+        super().frame_change(depsgraph)
+
+        scene = depsgraph.scene
+        data_source = scene.hdusd.viewport.data_source
+        viewport_camera = scene.objects.get(USD_CAMERA, None)
+
+        if not data_source:
+            if viewport_camera:
+                bpy.data.objects.remove(viewport_camera)
+            return
+
+        output_node = bpy.data.node_groups[data_source].get_output_node()
+        if not output_node:
+            return
+
+        stage = output_node.cached_stage()
+        if not stage:
+            return
+
+        nodetree_camera = scene.hdusd.viewport.nodetree_camera
+        camera_prim = stage.GetPrimAtPath(nodetree_camera)
+        if not camera_prim:
+            if viewport_camera:
+                bpy.data.objects.remove(viewport_camera)
+            return
+
+        for update in depsgraph.updates:
+            if isinstance(update.id, bpy.types.Object) and isinstance(update.id.data, bpy.types.Camera):
+                nodetree_camera_path = f"/{Tf.MakeValidIdentifier(update.id.name_full)}/" \
+                                       f"{Tf.MakeValidIdentifier(update.id.data.name_full)}"
+
+                if nodetree_camera == nodetree_camera_path:
+                    camera_prim = stage.GetPrimAtPath(nodetree_camera)
+                    camera_settings = CameraData.init_from_usd_camera(camera_prim)
+                    viewport_camera = scene.objects.get(USD_CAMERA, None)
+
+                    camera_settings.export_to_camera(viewport_camera)
+
+                    return
