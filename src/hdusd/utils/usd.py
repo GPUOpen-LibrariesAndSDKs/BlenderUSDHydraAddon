@@ -65,7 +65,7 @@ def traverse_stage(stage, *, ignore=None):
     def traverse(prim):
         for child in prim.GetAllChildren():
             if ignore and ignore(child):
-                log.warn(f'Ignoring prim {child.GetTypeName()}, {child}')
+                log(f'Ignoring prim {child.GetTypeName()}, {child}')
                 continue
 
             yield child
