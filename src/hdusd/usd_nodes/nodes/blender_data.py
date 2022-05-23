@@ -14,12 +14,13 @@
 # ********************************************************************
 import bpy
 
-from pxr import UsdGeom
+from pxr import UsdGeom, Tf
 
 from .base_node import USDNode
-from ...export import object, material, world
 from ...utils import usd as usd_utils
+from ...export import object, material, world
 from ...export.object import ObjectData, SUPPORTED_TYPES, sdf_name
+from ...export.camera import CameraData
 from ...viewport.usd_collection import USD_CAMERA
 
 
@@ -109,6 +110,16 @@ class HDUSD_USD_NODETREE_MT_blender_data_object(bpy.types.Menu):
             op.object_name = obj.name
 
 
+class HDUSD_USD_NODETREE_OP_blender_data_update_animation(bpy.types.Operator):
+    """Click this button if animation was updated"""
+    bl_idname = "hdusd.usd_nodetree_blender_data_update_animation"
+    bl_label = "Update animation"
+
+    def execute(self, context):
+        context.node.reset(True)
+        return {'FINISHED'}
+
+
 class BlenderDataNode(USDNode):
     """Blender data to USD can export whole scene, one collection or object"""
     bl_idname = 'usd.BlenderDataNode'
@@ -120,6 +131,18 @@ class BlenderDataNode(USDNode):
 
     def update_data(self, context):
         self.reset(True)
+
+    def set_end_frame(self, value):
+        self['end_frame'] = self.start_frame if value < self.start_frame else value
+
+    def get_end_frame(self):
+        return self.get('end_frame', 0)
+
+    def update_start_frame(self, context):
+        if self.start_frame > self.end_frame:
+            self.end_frame = self.start_frame
+
+        self.update_data(context)
 
     data: bpy.props.EnumProperty(
         name="Data",
@@ -141,6 +164,31 @@ class BlenderDataNode(USDNode):
         type=bpy.types.Object,
         name="Object",
         description="",
+        update=update_data
+    )
+    is_use_animation: bpy.props.BoolProperty(
+        name="Use animation",
+        description="Use animation",
+        default=True,
+        update=update_data
+    )
+    is_restrict_frames: bpy.props.BoolProperty(
+        name="Set frames",
+        description="Set frames to export",
+        default=False,
+        update=update_data
+    )
+    start_frame: bpy.props.IntProperty(
+        name="Start frame",
+        description="Start frame to export",
+        default=0,
+        update=update_start_frame
+    )
+    end_frame: bpy.props.IntProperty(
+        name="End frame",
+        description="End frame to export",
+        default=0,
+        set=set_end_frame, get=get_end_frame,
         update=update_data
     )
 
@@ -176,6 +224,19 @@ class BlenderDataNode(USDNode):
                 row.menu(HDUSD_USD_NODETREE_MT_blender_data_object.bl_idname,
                          text=" ", icon='OBJECT_DATAMODE')
 
+        layout.prop(self, 'is_use_animation')
+
+        if self.is_use_animation:
+            layout.prop(self, 'is_restrict_frames')
+
+        if self.is_use_animation and self.is_restrict_frames:
+            row = layout.row(align=True)
+            row.prop(self, 'start_frame')
+            row.prop(self, 'end_frame')
+
+        if self.is_use_animation:
+            layout.operator(HDUSD_USD_NODETREE_OP_blender_data_update_animation.bl_idname, icon='FILE_REFRESH')
+
     def compute(self, **kwargs):
         depsgraph = bpy.context.evaluated_depsgraph_get()
 
@@ -184,7 +245,12 @@ class BlenderDataNode(USDNode):
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
 
         root_prim = stage.GetPseudoRoot()
-        kwargs = {'scene': depsgraph.scene}
+
+        kwargs = {'scene': depsgraph.scene,
+                  'is_use_animation': self.is_use_animation,
+                  'is_restrict_frames': self.is_restrict_frames,
+                  'start_frame': self.start_frame,
+                  'end_frame': self.end_frame}
 
         if self.data == 'SCENE':
             for obj_data in ObjectData.depsgraph_objects(depsgraph):
@@ -214,6 +280,10 @@ class BlenderDataNode(USDNode):
         return stage
 
     def depsgraph_update(self, depsgraph):
+        # to prevent recursion we need to don't update node if we changed smth in Blender's animation
+        if self.is_use_animation:
+            return
+
         stage = self.cached_stage()
         if not stage:
             self.final_compute()
@@ -330,6 +400,47 @@ class BlenderDataNode(USDNode):
         if is_updated:
             self.hdusd.usd_list.update_items()
             self._reset_next(True)
+
+    def frame_change(self, depsgraph):
+        super().frame_change(depsgraph)
+
+        scene = depsgraph.scene
+        data_source = scene.hdusd.viewport.data_source
+        viewport_camera = scene.objects.get(USD_CAMERA, None)
+
+        if not data_source:
+            if viewport_camera:
+                bpy.data.objects.remove(viewport_camera)
+            return
+
+        output_node = bpy.data.node_groups[data_source].get_output_node()
+        if not output_node:
+            return
+
+        stage = output_node.cached_stage()
+        if not stage:
+            return
+
+        nodetree_camera = scene.hdusd.viewport.nodetree_camera
+        camera_prim = stage.GetPrimAtPath(nodetree_camera)
+        if not camera_prim:
+            if viewport_camera:
+                bpy.data.objects.remove(viewport_camera)
+            return
+
+        for update in depsgraph.updates:
+            if isinstance(update.id, bpy.types.Object) and isinstance(update.id.data, bpy.types.Camera):
+                nodetree_camera_path = f"/{Tf.MakeValidIdentifier(update.id.name_full)}/" \
+                                       f"{Tf.MakeValidIdentifier(update.id.data.name_full)}"
+
+                if nodetree_camera == nodetree_camera_path:
+                    camera_prim = stage.GetPrimAtPath(nodetree_camera)
+                    camera_settings = CameraData.init_from_usd_camera(camera_prim)
+                    viewport_camera = scene.objects.get(USD_CAMERA, None)
+
+                    camera_settings.export_to_camera(viewport_camera)
+
+                    return
 
     def material_update(self, mat):
         stage = self.cached_stage()

@@ -13,7 +13,9 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
+
 from .base_node import USDNode
+from ...utils.usd import set_timesamples_for_stage
 
 
 class WriteFileNode(USDNode):
@@ -22,16 +24,75 @@ class WriteFileNode(USDNode):
     bl_label = "Write USD File"
     bl_icon = "FILE_TICK"
 
+    def set_end_frame(self, value):
+        self['end_frame'] = self.start_frame if value < self.start_frame else value
+
+    def get_end_frame(self):
+        return self.get('end_frame', 0)
+
+    def update_start_frame(self, context):
+        if self.start_frame > self.end_frame:
+            self.end_frame = self.start_frame
+
     file_path: bpy.props.StringProperty(name="USD File", subtype='FILE_PATH')
+
+    is_export_animation: bpy.props.BoolProperty(
+        name="Export animation",
+        description="Export animation",
+        default=True,
+    )
+    is_restrict_frames: bpy.props.BoolProperty(
+        name="Set frames",
+        description="Set frames to export",
+        default=False,
+    )
+    start_frame: bpy.props.IntProperty(
+        name="Start frame",
+        description="Start frame to export",
+        default=0,
+        update=update_start_frame
+    )
+    end_frame: bpy.props.IntProperty(
+        name="End frame",
+        description="End frame to export",
+        default=0,
+        set=set_end_frame, get=get_end_frame
+    )
 
     def draw_buttons(self, context, layout):
         layout.prop(self, 'file_path')
+        layout.prop(self, 'is_export_animation')
+
+        if self.is_export_animation:
+            layout.prop(self, 'is_restrict_frames')
+
+        if self.is_export_animation and self.is_restrict_frames:
+            row = layout.row(align=True)
+            row.prop(self, 'start_frame')
+            row.prop(self, 'end_frame')
 
     def compute(self, **kwargs):
-        stage = self.get_input_link('Input', **kwargs)
+        input_stage = self.get_input_link('Input', **kwargs)
 
-        if stage and self.file_path:
-            file_path = bpy.path.abspath(self.file_path)
-            stage.Export(file_path)
+        if not input_stage:
+            return None
+
+        if not self.file_path:
+            return input_stage
+
+        stage = self.cached_stage.create()
+
+        root_layer = stage.GetRootLayer()
+        root_layer.TransferContent(input_stage.GetRootLayer())
+
+        file_path = bpy.path.abspath(self.file_path)
+
+        set_timesamples_for_stage(stage,
+                                  is_use_animation=self.is_export_animation,
+                                  is_restrict_frames=self.is_restrict_frames,
+                                  start=self.start_frame,
+                                  end=self.end_frame)
+
+        stage.Export(file_path)
 
         return stage

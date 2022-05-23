@@ -17,7 +17,7 @@ import math
 import mathutils
 import bpy
 
-from pxr import UsdShade
+from pxr import UsdShade, Gf
 from ..utils import log
 
 def get_xform_transform(xform):
@@ -65,7 +65,7 @@ def traverse_stage(stage, *, ignore=None):
     def traverse(prim):
         for child in prim.GetAllChildren():
             if ignore and ignore(child):
-                log.warn(f'Ignoring prim {child.GetTypeName()}, {child}')
+                log(f'Ignoring prim {child.GetTypeName()}, {child}')
                 continue
 
             yield child
@@ -79,3 +79,63 @@ def bind_material(mesh_prim, usd_mat):
     bindings.UnbindAllBindings()
     if usd_mat:
         bindings.Bind(usd_mat)
+
+
+def set_timesamples_for_prim(prim, start, end):
+    for attr in prim.GetAuthoredAttributes():
+        time_samples = attr.GetTimeSamplesInInterval(Gf.Interval(start, end))
+        if len(time_samples) > 0:
+            nearest_min_sample = min(time_samples, key=lambda x: abs(x - start))
+            nearest_max_sample = min(time_samples, key=lambda x: abs(x - end))
+
+            if end > start:
+                value = {sample: attr.Get(sample) for sample in time_samples}
+            else:
+                value = attr.Get(nearest_min_sample)
+
+            attr.Clear()
+
+            if isinstance(value, dict):
+                for sample, val in value.items():
+                    attr.Set(val, sample)
+            else:
+                attr.Set(value)
+
+            return nearest_min_sample, nearest_max_sample
+
+        else:
+            if value := attr.Get(0):
+                attr.Clear()
+                attr.Set(value)
+
+            return None, None
+    return None, None
+
+
+def set_timesamples_for_stage(stage, *, is_use_animation, is_restrict_frames, start, end):
+    if is_use_animation:
+        start_time_code = stage.GetStartTimeCode()
+        end_time_code = stage.GetEndTimeCode()
+
+        if is_restrict_frames:
+            for prim in stage.TraverseAll():
+                min_sample, max_sample = set_timesamples_for_prim(prim, start, end)
+
+                if start == end:
+                    stage.ClearMetadata('startTimeCode')
+                    stage.ClearMetadata('endTimeCode')
+                else:
+                    if min_sample and min_sample > start_time_code:
+                        start_time_code = min_sample
+                        stage.SetMetadata('startTimeCode', min_sample)
+
+                    if max_sample and max_sample < end_time_code:
+                        end_time_code = max_sample
+                        stage.SetMetadata('endTimeCode', max_sample)
+
+    else:
+        stage.ClearMetadata('startTimeCode')
+        stage.ClearMetadata('endTimeCode')
+
+        for prim in stage.TraverseAll():
+            set_timesamples_for_prim(prim, 0, 0)
