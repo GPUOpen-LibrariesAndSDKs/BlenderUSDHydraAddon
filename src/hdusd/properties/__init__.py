@@ -51,6 +51,7 @@ from . import (
     usd_list,
     material,
     hdrpr_render,
+    hdprman_render,
     matlib
 )
 register, unregister = bpy.utils.register_classes_factory((
@@ -61,6 +62,8 @@ register, unregister = bpy.utils.register_classes_factory((
     hdrpr_render.ContourSettings,
     hdrpr_render.DenoiseSettings,
     hdrpr_render.RenderSettings,
+
+    hdprman_render.RenderSettings,
 
     usd_list.PrimPropertyItem,
     usd_list.UsdListItem,

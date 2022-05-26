@@ -19,7 +19,7 @@ from pxr import UsdImagingGL, UsdGeom
 from ..viewport import usd_collection
 from ..export.camera import CameraData
 from ..viewport.usd_collection import USD_CAMERA
-from . import HdUSDProperties, hdrpr_render, log
+from . import HdUSDProperties, hdrpr_render, hdprman_render, log
 
 
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
@@ -44,6 +44,7 @@ class RenderSettings(bpy.types.PropertyGroup):
         return _render_delegates[self.delegate]
 
     hdrpr: bpy.props.PointerProperty(type=hdrpr_render.RenderSettings)
+    hdprman: bpy.props.PointerProperty(type=hdprman_render.RenderSettings)
 
     def nodetree_update(self, context):
         if not self.data_source:
