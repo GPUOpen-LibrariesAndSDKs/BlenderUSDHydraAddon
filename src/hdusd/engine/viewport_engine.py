@@ -354,6 +354,7 @@ class ViewportEngine(Engine):
             hdprman = settings.hdprman
             self.renderer.SetRendererSetting('convergedSamplesPerPixel', hdprman.samples)
             self.renderer.SetRendererSetting('convergedVariance', hdprman.variance_threshold)
+            self.renderer.SetRendererSetting('interactiveIntegratorTimeout', hdprman.timeout)
 
     def _check_restart_renderer(self, scene):
         restart = False

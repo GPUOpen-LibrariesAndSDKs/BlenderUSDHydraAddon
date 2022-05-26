@@ -289,6 +289,7 @@ class FinalEngine(Engine):
             hdprman = settings.hdprman
             renderer.SetRendererSetting('convergedSamplesPerPixel', hdprman.samples)
             renderer.SetRendererSetting('convergedVariance', hdprman.variance_threshold)
+            renderer.SetRendererSetting('interactiveIntegratorTimeout', hdprman.timeout)
 
         return True
 

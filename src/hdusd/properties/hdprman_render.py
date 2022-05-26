@@ -30,3 +30,9 @@ class RenderSettings(bpy.types.PropertyGroup):
         min=0.001, soft_max=0.5,
         default=0.15,
     )
+    timeout: IntProperty(
+        name="Timeout",
+        description="If >0, the time in ms that renders quick output before switching to path tracing",
+        min=0, max=2 ** 16,
+        default=200,
+    )

@@ -45,6 +45,7 @@ class HDUSD_RENDER_PT_hdprman_settings_samples_final(HdUSD_Panel):
         col = layout.column(align=True)
         col.prop(hdprman, "samples")
         col.prop(hdprman, "variance_threshold")
+        col.prop(hdprman, "timeout")
 
 
 #
@@ -77,3 +78,4 @@ class HDUSD_RENDER_PT_hdprman_settings_samples_viewport(HdUSD_Panel):
         col = layout.column(align=True)
         col.prop(hdprman, "samples")
         col.prop(hdprman, "variance_threshold")
+        col.prop(hdprman, "timeout")
