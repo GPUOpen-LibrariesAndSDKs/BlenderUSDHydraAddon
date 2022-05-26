@@ -350,6 +350,11 @@ class ViewportEngine(Engine):
             self.renderer.SetRendererSetting('rpr:denoising:minIter', denoise.min_iter)
             self.renderer.SetRendererSetting('rpr:denoising:iterStep', denoise.iter_step)
 
+        if settings.delegate == 'HdPrmanLoaderRendererPlugin':
+            hdprman = settings.hdprman
+            self.renderer.SetRendererSetting('convergedSamplesPerPixel', hdprman.samples)
+            self.renderer.SetRendererSetting('convergedVariance', hdprman.variance_threshold)
+
     def _check_restart_renderer(self, scene):
         restart = False
 
