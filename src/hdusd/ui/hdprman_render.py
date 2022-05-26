@@ -19,7 +19,7 @@ from . import HdUSD_Panel
 # FINAL RENDER SETTINGS
 #
 class HDUSD_RENDER_PT_hdprman_settings_final(HdUSD_Panel):
-    bl_label = "Prman Settings"
+    bl_label = "RenderMan Settings"
     bl_parent_id = 'HDUSD_RENDER_PT_render_settings_final'
 
     @classmethod
@@ -52,7 +52,7 @@ class HDUSD_RENDER_PT_hdprman_settings_samples_final(HdUSD_Panel):
 # VIEWPORT RENDER SETTINGS
 #
 class HDUSD_RENDER_PT_hdprman_settings_viewport(HdUSD_Panel):
-    bl_label = "Prman Settings"
+    bl_label = "RenderMan Settings"
     bl_parent_id = 'HDUSD_RENDER_PT_render_settings_viewport'
 
     @classmethod
