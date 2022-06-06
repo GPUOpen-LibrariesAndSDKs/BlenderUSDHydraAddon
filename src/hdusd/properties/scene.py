@@ -23,6 +23,7 @@ from . import HdUSDProperties, hdrpr_render, hdprman_render, log
 
 
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
+                     if name != 'HdPrmanLoaderRendererPlugin' else "RenderMan"
                      for name in UsdImagingGL.Engine.GetRendererPlugins()}
 
 if not os.path.isdir(os.environ.get('RMANTREE', "")):
