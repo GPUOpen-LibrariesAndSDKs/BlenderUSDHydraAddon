@@ -50,6 +50,12 @@ def cache_image_file(image: bpy.types.Image, cache_check=True):
     scene = bpy.context.scene
     user_format = scene.render.image_settings.file_format
     user_color_mode = scene.render.image_settings.color_mode
+
+    # in some scenes the color_mode is undefined
+    # we can read it but unable to assign back, so switch it to 'RGB' if color_mode isn't selected
+    if not user_color_mode:
+        user_color_mode = 'RGB'
+
     scene.render.image_settings.file_format = BLENDER_DEFAULT_FORMAT
     scene.render.image_settings.color_mode = BLENDER_DEFAULT_COLOR_MODE
 
