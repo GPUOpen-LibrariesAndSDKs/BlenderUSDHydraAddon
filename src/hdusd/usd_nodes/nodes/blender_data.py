@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+
 import bpy
 
 from pxr import UsdGeom, Tf
@@ -116,6 +117,21 @@ class HDUSD_USD_NODETREE_OP_blender_data_update_animation(bpy.types.Operator):
     bl_label = "Update animation"
 
     def execute(self, context):
+        from ..node_tree import USDTree
+
+        # we need to reset all BlenderDataNodes in case of invoking this operator from console
+        # since we can't pass any variables here
+        if not getattr(context, "node", None):
+            usd_node_trees = (ng for ng in bpy.data.node_groups if isinstance(ng, USDTree))
+
+            for ng in usd_node_trees:
+                blender_data_nodes = (node for node in ng.nodes if isinstance(node, BlenderDataNode))
+
+                for node in ng.nodes:
+                    node.reset(True)
+
+            return {'FINISHED'}
+                
         context.node.reset(True)
         return {'FINISHED'}
 
