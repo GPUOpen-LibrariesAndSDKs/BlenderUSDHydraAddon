@@ -235,6 +235,8 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
 
             points_attr.Set(new_data.vertices, frame)
             normals_attr.Set(new_data.normals, frame)
+
+        obj.to_mesh_clear()
     
         scene.frame_set(frame_current)
 
