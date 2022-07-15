@@ -39,15 +39,15 @@ class UsdFileNode(USDNode):
     def update_data(self, context):
         self.reset(True)
 
-    def set_end_frame(self, value):
-        self['end_frame'] = self.start_frame if value < self.start_frame else value
+    def set_frame_end(self, value):
+        self['frame_end'] = self.frame_start if value < self.frame_start else value
 
-    def get_end_frame(self):
-        return self.get('end_frame', 0)
+    def get_frame_end(self):
+        return self.get('frame_end', 0)
 
-    def update_start_frame(self, context):
-        if self.start_frame > self.end_frame:
-            self.end_frame = self.start_frame
+    def update_frame_start(self, context):
+        if self.frame_start > self.frame_end:
+            self.frame_end = self.frame_start
 
         self.update_data(context)
 
@@ -61,8 +61,8 @@ class UsdFileNode(USDNode):
 
         input_stage = Usd.Stage.Open(file_path)
 
-        self['start_frame'] = int(input_stage.GetMetadata('startTimeCode'))
-        self['end_frame'] = int(input_stage.GetMetadata('endTimeCode'))
+        self['frame_start'] = int(input_stage.GetMetadata('startTimeCode'))
+        self['frame_end'] = int(input_stage.GetMetadata('endTimeCode'))
 
         self.update_data(context)
 
@@ -87,21 +87,21 @@ class UsdFileNode(USDNode):
     )
     is_restrict_frames: bpy.props.BoolProperty(
         name="Set frames",
-        description="Set frames to export",
+        description="Set frames to import",
         default=False,
         update=update_data
     )
-    start_frame: bpy.props.IntProperty(
+    frame_start: bpy.props.IntProperty(
         name="Start frame",
-        description="Start frame to export",
+        description="Start frame to import",
         default=0,
-        update=update_start_frame
+        update=update_frame_start
     )
-    end_frame: bpy.props.IntProperty(
+    frame_end: bpy.props.IntProperty(
         name="End frame",
-        description="End frame to export",
+        description="End frame to import",
         default=0,
-        set=set_end_frame, get=get_end_frame,
+        set=set_frame_end, get=get_frame_end,
         update=update_data
     )
 
@@ -115,8 +115,8 @@ class UsdFileNode(USDNode):
 
         if self.is_import_animation and self.is_restrict_frames:
             row = layout.row(align=True)
-            row.prop(self, 'start_frame')
-            row.prop(self, 'end_frame')
+            row.prop(self, 'frame_start')
+            row.prop(self, 'frame_end')
 
     def compute(self, **kwargs):
         if not self.filename:
@@ -135,8 +135,8 @@ class UsdFileNode(USDNode):
             set_timesamples_for_stage(input_stage,
                                       is_use_animation=self.is_import_animation,
                                       is_restrict_frames=self.is_restrict_frames,
-                                      start=self.start_frame,
-                                      end=self.end_frame)
+                                      start=self.frame_start,
+                                      end=self.frame_end)
 
             self.cached_stage.insert(input_stage)
             return input_stage
@@ -175,8 +175,8 @@ class UsdFileNode(USDNode):
         set_timesamples_for_stage(stage,
                                   is_use_animation=self.is_import_animation,
                                   is_restrict_frames=self.is_restrict_frames,
-                                  start=self.start_frame,
-                                  end=self.end_frame)
+                                  start=self.frame_start,
+                                  end=self.frame_end)
 
         return stage
 

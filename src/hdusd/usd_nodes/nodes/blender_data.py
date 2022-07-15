@@ -148,15 +148,15 @@ class BlenderDataNode(USDNode):
     def update_data(self, context):
         self.reset(True)
 
-    def set_end_frame(self, value):
-        self['end_frame'] = self.start_frame if value < self.start_frame else value
+    def set_frame_end(self, value):
+        self['frame_end'] = self.frame_start if value < self.frame_start else value
 
-    def get_end_frame(self):
-        return self.get('end_frame', 0)
+    def get_frame_end(self):
+        return self.get('frame_end', 0)
 
-    def update_start_frame(self, context):
-        if self.start_frame > self.end_frame:
-            self.end_frame = self.start_frame
+    def update_frame_start(self, context):
+        if self.frame_start > self.frame_end:
+            self.frame_end = self.frame_start
 
         self.update_data(context)
 
@@ -194,17 +194,17 @@ class BlenderDataNode(USDNode):
         default=False,
         update=update_data
     )
-    start_frame: bpy.props.IntProperty(
+    frame_start: bpy.props.IntProperty(
         name="Start frame",
         description="Start frame to export",
         default=0,
-        update=update_start_frame
+        update=update_frame_start
     )
-    end_frame: bpy.props.IntProperty(
+    frame_end: bpy.props.IntProperty(
         name="End frame",
         description="End frame to export",
         default=0,
-        set=set_end_frame, get=get_end_frame,
+        set=set_frame_end, get=get_frame_end,
         update=update_data
     )
 
@@ -247,8 +247,8 @@ class BlenderDataNode(USDNode):
 
         if self.is_use_animation and self.is_restrict_frames:
             row = layout.row(align=True)
-            row.prop(self, 'start_frame')
-            row.prop(self, 'end_frame')
+            row.prop(self, 'frame_start')
+            row.prop(self, 'frame_end')
 
         if self.is_use_animation:
             layout.operator(HDUSD_USD_NODETREE_OP_blender_data_update_animation.bl_idname, icon='FILE_REFRESH')
@@ -265,8 +265,8 @@ class BlenderDataNode(USDNode):
         kwargs = {'scene': depsgraph.scene,
                   'is_use_animation': self.is_use_animation,
                   'is_restrict_frames': self.is_restrict_frames,
-                  'start_frame': self.start_frame,
-                  'end_frame': self.end_frame}
+                  'frame_start': self.frame_start,
+                  'frame_end': self.frame_end}
 
         if self.data == 'SCENE':
             for obj_data in ObjectData.depsgraph_objects(depsgraph):
