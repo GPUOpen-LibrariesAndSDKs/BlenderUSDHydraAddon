@@ -16,7 +16,7 @@ import os
 import re
 
 import bpy
-from pxr import Usd, UsdGeom, Sdf, Gf, Tf
+from pxr import Usd, UsdGeom, Tf
 
 from .base_node import USDNode
 from . import log

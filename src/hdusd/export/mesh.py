@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 import math
 
-from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf, Gf, UsdSkel
+from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf
 import bpy
 import bmesh
 import mathutils
@@ -221,19 +221,14 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
     
     # here we can't just call mesh.calc_loop_triangles to update loops because Blender crashes
     armature = obj.find_armature()
-    if armature:
+    if armature and kwargs.get('is_use_animation', False):
         scene = kwargs.get('scene')
-        is_restrict_frames = kwargs.get('is_restrict_frames')
-
+        
         frame_current = scene.frame_current
         frame_start = kwargs.get('frame_start')
         frame_end = kwargs.get('frame_end')
 
-        start = frame_start if is_restrict_frames else scene.frame_start
-        end = frame_end if is_restrict_frames else scene.frame_end
-
-
-        for frame in range(start, end + 1):
+        for frame in range(frame_start, frame_end + 1):
             scene.frame_set(frame)
             new_mesh = obj.to_mesh()
 
