@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 import math
 
-from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf, Gf
+from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf, Gf, UsdSkel
 import bpy
 import bmesh
 import mathutils
@@ -191,6 +191,73 @@ def sync_visibility(rpr_context, obj: bpy.types.Object, rpr_shape, indirect_only
         rpr_shape.set_portal_light(False)
 
 
+def get_joint_hierarchy(root_bone, bone_hierarchy=None, joints=None, matrices=None):
+    if not bone_hierarchy:
+        bone_hierarchy = ""
+
+    if not joints:
+        joints = []
+
+    if not matrices:
+        matrices = []
+        
+    if root_bone.children:
+        bone_hierarchy = f"{bone_hierarchy}/{Tf.MakeValidIdentifier(root_bone.name)}"
+        joints.append(bone_hierarchy)
+        matrices.append(root_bone.matrix)
+
+    for bone in root_bone.children:
+        if bone.children:
+            get_joint_hierarchy(bone, bone_hierarchy, joints, matrices)
+        else:
+            bone_hierarchy = f"{bone_hierarchy}/{Tf.MakeValidIdentifier(bone.name)}"
+            joints.append(bone_hierarchy)
+            matrices.append(bone.matrix)
+
+    return joints, matrices
+
+
+def set_skeleton(scene, obj_prim, mesh_prim, armature):
+    scene.frame_set(scene.frame_current)
+
+    stage = obj_prim.GetStage()
+
+    skel = UsdSkel.Skeleton.Define(stage, obj_prim.GetPath().AppendChild("Skel"))
+
+    binding = UsdSkel.BindingAPI.Apply(obj_prim.GetPrim())
+
+    binding = UsdSkel.BindingAPI.Apply(mesh_prim)
+    binding.CreateSkeletonRel().SetTargets([skel.GetPrim().GetPath()])
+
+    # root_bones = list(bone for bone in armature.pose.bones if not bone.parent)
+    # for now we are taking into account only one root bone
+    root_bone = next(bone for bone in armature.pose.bones if not bone.parent)
+    
+    joints, matrices = get_joint_hierarchy(root_bone)
+
+    skel_order = Vt.TokenArray(joints)
+    matrices_xf = list(Gf.Matrix4d(matrix) for matrix in matrices)
+
+    skel.GetJointsAttr().Set(skel_order)
+    topology = UsdSkel.Topology(skel_order)
+
+    bind_world_xforms = UsdSkel.ConcatJointTransforms(topology, Vt.Matrix4dArray(matrices_xf))
+
+    skel.GetBindTransformsAttr().Set(bind_world_xforms)
+    skel.GetRestTransformsAttr().Set(matrices_xf)
+
+    # this code is for additional animation
+    # anim = UsdSkel.Animation.Define(stage, skel.GetPath().AppendChild("Anim"))
+    # skel_anim_rel = skel.GetPrim().CreateRelationship("skel:animationSource", False)
+    # skel_anim_rel.SetTargets([anim.GetPrim().GetPath()])    
+
+    # animOrder = skel_order[:-1]
+    # anim.GetJointsAttr().Set(animOrder)
+    
+
+    pass
+
+
 def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs):
     """ Creates pyrpr.Shape from obj.data:bpy.types.Mesh """
     from .object import sdf_name
@@ -200,6 +267,7 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
 
     log("sync", mesh, obj)
 
+    
     data = MeshData.init_from_mesh(mesh, obj=obj)
     if not data:
         return
@@ -208,14 +276,47 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
 
     usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(mesh.name)))
 
+    scene = kwargs.get('scene')
+
+    # armature = obj.find_armature()
+    # if armature:
+    #     obj_prim.SetTypeName("SkelRoot")
+    #     set_skeleton(scene, obj_prim, usd_mesh.GetPrim(), armature)
+        
     usd_mesh.CreateDoubleSidedAttr(True)
-    usd_mesh.CreatePointsAttr(data.vertices)
+    # usd_mesh.CreatePointsAttr(data.vertices)
     usd_mesh.CreateFaceVertexIndicesAttr(data.vertex_indices)
     usd_mesh.CreateFaceVertexCountsAttr(data.num_face_vertices)
 
     usd_mesh.CreateSubdivisionSchemeAttr(UsdGeom.Tokens.none)
-    usd_mesh.CreateNormalsAttr(data.normals)
+    # usd_mesh.CreateNormalsAttr(data.normals)
     usd_mesh.SetNormalsInterpolation(UsdGeom.Tokens.faceVarying)
+
+    points_attr = usd_mesh.CreatePointsAttr(data.vertices)
+    normals_attr = usd_mesh.CreateNormalsAttr(data.normals)
+    
+    armature = obj.find_armature()
+    if armature:
+        start = scene.frame_start
+        end = scene.frame_end
+
+        for frame in range(start, end + 1):
+            scene.frame_set(frame)
+            test_mesh = obj.to_mesh()
+
+            # bm = bmesh.new()
+            # bm.from_mesh(mesh)
+            # bm.calc_loop_triangles()
+            # # bmesh.update_edit_mesh(mesh, loop_triangles=True)
+            # # bm.calc_loop_triangles
+            # bm.to_mesh(mesh)
+            # bm.free()
+
+            data = MeshData.init_from_mesh(test_mesh, obj=obj)
+            
+            points_attr.Set(data.vertices, frame)
+            normals_attr.Set(data.normals, frame)
+    
 
     for name, uv_layer in data.uv_layers.items():
         uv_primvar = usd_mesh.CreatePrimvar("st",   # default name, later we'll use sdf_path(name)
