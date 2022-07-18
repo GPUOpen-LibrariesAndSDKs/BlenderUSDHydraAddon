@@ -224,8 +224,9 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         scene = kwargs.get('scene')
         
         frame_current = scene.frame_current
-        frame_start = kwargs.get('frame_start', scene.frame_start)
-        frame_end = kwargs.get('frame_end', scene.frame_end)
+
+        frame_start = kwargs.get('frame_start') if kwargs.get('is_restrict_frames') else scene.frame_start
+        frame_end = kwargs.get('frame_end') if kwargs.get('is_restrict_frames') else scene.frame_end
 
         for frame in range(frame_start, frame_end + 1):
             scene.frame_set(frame)
