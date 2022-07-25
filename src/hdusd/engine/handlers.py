@@ -14,6 +14,7 @@
 # ********************************************************************
 import bpy
 
+from ..properties.scene import DEFAULT_DELEGATE
 from .. import utils
 from .engine import log
 
@@ -32,6 +33,12 @@ def on_load_post(*args):
     from ..usd_nodes import node_tree
     node_tree.reset()
 
+    for scene in bpy.data.scenes:
+        if not scene.hdusd.final.delegate:
+            scene.hdusd.final.delegate = DEFAULT_DELEGATE
+
+        if not scene.hdusd.viewport.delegate:
+            scene.hdusd.viewport.delegate = DEFAULT_DELEGATE
 
 _do_depsgraph_update = True
 
