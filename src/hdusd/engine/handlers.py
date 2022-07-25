@@ -13,7 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-from hdusd.properties.scene import FinalRenderSettings, ViewportRenderSettings
+from hdusd.properties.scene import DEFAULT_DELEGATE
 
 from .. import utils
 from .engine import log
@@ -35,10 +35,10 @@ def on_load_post(*args):
 
     for scene in bpy.data.scenes:
         if not scene.hdusd.final.delegate:
-            scene.hdusd.final.delegate = FinalRenderSettings.delegate_items[0][0]
-            
+            scene.hdusd.final.delegate = DEFAULT_DELEGATE
+
         if not scene.hdusd.viewport.delegate:
-            scene.hdusd.viewport.delegate = ViewportRenderSettings.delegate_items[0][0]
+            scene.hdusd.viewport.delegate = DEFAULT_DELEGATE
 
 _do_depsgraph_update = True
 
