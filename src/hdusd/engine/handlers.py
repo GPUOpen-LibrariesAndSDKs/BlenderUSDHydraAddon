@@ -13,8 +13,8 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-from hdusd.properties.scene import DEFAULT_DELEGATE
 
+from ..properties.scene import DEFAULT_DELEGATE
 from .. import utils
 from .engine import log
 
