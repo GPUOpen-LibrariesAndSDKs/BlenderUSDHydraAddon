@@ -82,6 +82,9 @@ def bind_material(mesh_prim, usd_mat):
 
 
 def set_timesamples_for_prim(prim, start, end):
+    min_sample = None
+    max_sample = None
+
     for attr in prim.GetAuthoredAttributes():
         time_samples = attr.GetTimeSamplesInInterval(Gf.Interval(start, end))
         if len(time_samples) > 0:
@@ -101,15 +104,23 @@ def set_timesamples_for_prim(prim, start, end):
             else:
                 attr.Set(value)
 
-            return nearest_min_sample, nearest_max_sample
+            if not min_sample:
+                min_sample = nearest_min_sample
+            else:
+                if nearest_min_sample < min_sample:
+                    min_sample = nearest_min_sample
 
+            if not max_sample:
+                max_sample = nearest_max_sample
+            else:
+                if nearest_max_sample > max_sample:
+                    max_sample = nearest_max_sample
         else:
             if value := attr.Get(0):
                 attr.Clear()
                 attr.Set(value)
 
-            return None, None
-    return None, None
+    return min_sample, max_sample
 
 
 def set_timesamples_for_stage(stage, *, is_use_animation, is_restrict_frames, start, end):

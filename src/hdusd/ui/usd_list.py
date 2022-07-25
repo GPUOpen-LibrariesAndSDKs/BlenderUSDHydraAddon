@@ -374,15 +374,15 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
     bl_label = "Export USD"
     bl_description = "Export USD node tree to .usd file"
 
-    def update_start_frame(self, context):
-        if self.start_frame > self.end_frame:
-            self.end_frame = self.start_frame
+    def update_frame_start(self, context):
+        if self.frame_start > self.frame_end:
+            self.frame_end = self.frame_start
 
-    def set_end_frame(self, value):
-        self['end_frame'] = self.start_frame if value < self.start_frame else value
+    def set_frame_end(self, value):
+        self['frame_end'] = self.frame_start if value < self.frame_start else value
 
-    def get_end_frame(self):
-        return self.get('end_frame', 0)
+    def get_frame_end(self):
+        return self.get('frame_end', 0)
 
     filename_ext = ""
     filepath: bpy.props.StringProperty(
@@ -418,17 +418,17 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         description="Set frames to export",
         default=False,
     )
-    start_frame: bpy.props.IntProperty(
+    frame_start: bpy.props.IntProperty(
         name="Start frame",
         description="Start frame to export",
         default=0,
-        update=update_start_frame
+        update=update_frame_start
     )
-    end_frame: bpy.props.IntProperty(
+    frame_end: bpy.props.IntProperty(
         name="End frame",
         description="End frame to export",
         default=0,
-        set=set_end_frame, get=get_end_frame,
+        set=set_frame_end, get=get_frame_end,
     )
 
     def check(self, context):
@@ -446,8 +446,8 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
 
         if self.is_export_animation and self.is_restrict_frames:
             row = self.layout.row(align=True)
-            row.prop(self, 'start_frame')
-            row.prop(self, 'end_frame')
+            row.prop(self, 'frame_start')
+            row.prop(self, 'frame_end')
 
         self.layout.prop(self, 'export_format')
 
@@ -535,8 +535,8 @@ class HDUSD_NODE_OP_export_usd_file(HdUSD_Operator, ExportHelper):
         usd_utils.set_timesamples_for_stage(new_stage,
                                             is_use_animation=self.is_export_animation,
                                             is_restrict_frames=self.is_restrict_frames,
-                                            start=self.start_frame,
-                                            end=self.end_frame)
+                                            start=self.frame_start,
+                                            end=self.frame_end)
 
         if self.is_pack_into_one_file:
             new_stage.Export(self.filepath, False)

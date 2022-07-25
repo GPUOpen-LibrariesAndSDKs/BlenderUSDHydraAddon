@@ -121,13 +121,13 @@ def get_transform_local(obj: bpy.types.Object):
     return obj.matrix_local.transposed()
 
 
-def set_matrix_xform(scene, is_use_animation, is_restrict_frames, start_frame, end_frame, obj_data, transform_matrix):
+def set_matrix_xform(scene, is_use_animation, is_restrict_frames, frame_start, frame_end, obj_data, transform_matrix):
     if is_use_animation and obj_data.object.animation_data:
 
         frame_current = scene.frame_current
 
-        start = start_frame if is_restrict_frames else scene.frame_start
-        end = end_frame if is_restrict_frames else scene.frame_end
+        start = frame_start if is_restrict_frames else scene.frame_start
+        end = frame_end if is_restrict_frames else scene.frame_end
 
         if start == end:
             scene.frame_set(start)
@@ -162,7 +162,7 @@ def sync(objects_prim, obj_data: ObjectData, parent_stage=None, **kwargs):
     # setting transform
     transform_matrix = xform.MakeMatrixXform()
     set_matrix_xform(kwargs.get('scene'), kwargs.get('is_use_animation'), kwargs.get('is_restrict_frames'),
-                     kwargs.get('start_frame'), kwargs.get('end_frame'), obj_data, transform_matrix)
+                     kwargs.get('frame_start'), kwargs.get('frame_end'), obj_data, transform_matrix)
 
     obj = obj_data.object
 
