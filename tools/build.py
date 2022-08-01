@@ -122,6 +122,7 @@ def hdrpr(bin_dir, compiler, jobs, clean, build_var):
         f'-DCMAKE_INSTALL_PREFIX={bin_dir / "USD/install"}',
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
         f'-DPYTHON_EXECUTABLE={sys.executable}',
+        f'-DOPENEXR_LOCATION={bin_dir / "USD/install"}'
     ])
 
 

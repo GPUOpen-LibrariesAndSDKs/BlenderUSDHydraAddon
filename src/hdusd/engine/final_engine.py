@@ -285,6 +285,9 @@ class FinalEngine(Engine):
             renderer.SetRendererSetting('rpr:denoising:minIter', denoise.min_iter)
             renderer.SetRendererSetting('rpr:denoising:iterStep', denoise.iter_step)
 
+            if hdrpr.render_quality == 'Northstar':
+                renderer.SetRendererSetting('rpr:quality:imageFilterRadius', hdrpr.quality.pixel_filter_width)
+
         if settings.delegate == 'HdPrmanLoaderRendererPlugin':
             hdprman = settings.hdprman
             renderer.SetRendererSetting('convergedSamplesPerPixel', hdprman.samples)
