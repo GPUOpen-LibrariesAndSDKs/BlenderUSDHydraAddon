@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 import math
 
-from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf, Gf
+from pxr import UsdGeom, Sdf, UsdShade, Vt, Tf
 import bpy
 import bmesh
 import mathutils
@@ -199,7 +199,7 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         mesh = obj.data
 
     log("sync", mesh, obj)
-
+    
     data = MeshData.init_from_mesh(mesh, obj=obj)
     if not data:
         return
@@ -207,15 +207,39 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
     stage = obj_prim.GetStage()
 
     usd_mesh = UsdGeom.Mesh.Define(stage, obj_prim.GetPath().AppendChild(Tf.MakeValidIdentifier(mesh.name)))
-
+        
     usd_mesh.CreateDoubleSidedAttr(True)
-    usd_mesh.CreatePointsAttr(data.vertices)
     usd_mesh.CreateFaceVertexIndicesAttr(data.vertex_indices)
     usd_mesh.CreateFaceVertexCountsAttr(data.num_face_vertices)
 
     usd_mesh.CreateSubdivisionSchemeAttr(UsdGeom.Tokens.none)
-    usd_mesh.CreateNormalsAttr(data.normals)
     usd_mesh.SetNormalsInterpolation(UsdGeom.Tokens.faceVarying)
+
+    points_attr = usd_mesh.CreatePointsAttr(data.vertices)
+    normals_attr = usd_mesh.CreateNormalsAttr(data.normals)
+    
+    # here we can't just call mesh.calc_loop_triangles to update loops because Blender crashes
+    armature = obj.find_armature()
+    if armature and kwargs.get('is_use_animation', False):
+        scene = kwargs.get('scene')
+        
+        frame_current = scene.frame_current
+
+        frame_start = kwargs.get('frame_start') if kwargs.get('is_restrict_frames') else scene.frame_start
+        frame_end = kwargs.get('frame_end') if kwargs.get('is_restrict_frames') else scene.frame_end
+
+        for frame in range(frame_start, frame_end + 1):
+            scene.frame_set(frame)
+            new_mesh = obj.to_mesh()
+
+            new_data = MeshData.init_from_mesh(new_mesh, obj=obj)
+
+            points_attr.Set(new_data.vertices, frame)
+            normals_attr.Set(new_data.normals, frame)
+
+        obj.to_mesh_clear()
+    
+        scene.frame_set(frame_current)
 
     for name, uv_layer in data.uv_layers.items():
         uv_primvar = usd_mesh.CreatePrimvar("st",   # default name, later we'll use sdf_path(name)

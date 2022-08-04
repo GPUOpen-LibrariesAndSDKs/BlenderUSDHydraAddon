@@ -22,6 +22,9 @@ from ..viewport.usd_collection import USD_CAMERA
 from . import HdUSDProperties, hdrpr_render, hdprman_render, log
 
 
+DEFAULT_DELEGATE = 'HdRprPlugin'
+
+
 _render_delegates = {name: UsdImagingGL.Engine.GetRendererDisplayName(name)
                      if name != 'HdPrmanLoaderRendererPlugin' else "RenderMan"
                      for name in UsdImagingGL.Engine.GetRendererPlugins()}
@@ -79,7 +82,7 @@ class FinalRenderSettings(RenderSettings):
         name="Renderer",
         items=RenderSettings.delegate_items,
         description="Render delegate for final render",
-        default='HdRprPlugin',
+        default=DEFAULT_DELEGATE,
     )
     data_source: bpy.props.StringProperty(
         name="Data Source",
@@ -97,7 +100,7 @@ class ViewportRenderSettings(RenderSettings):
     delegate: bpy.props.EnumProperty(
         name="Renderer",
         items=RenderSettings.delegate_items,
-        default='HdRprPlugin',
+        default=DEFAULT_DELEGATE,
     )
 
     def data_source_update(self, context):
