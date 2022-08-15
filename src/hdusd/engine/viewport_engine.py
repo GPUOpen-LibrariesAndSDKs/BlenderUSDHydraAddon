@@ -350,6 +350,9 @@ class ViewportEngine(Engine):
             self.renderer.SetRendererSetting('rpr:denoising:minIter', denoise.min_iter)
             self.renderer.SetRendererSetting('rpr:denoising:iterStep', denoise.iter_step)
 
+            if hdrpr.render_quality == 'Northstar':
+                self.renderer.SetRendererSetting('rpr:quality:imageFilterRadius', hdrpr.quality.pixel_filter_width)
+
         if settings.delegate == 'HdPrmanLoaderRendererPlugin':
             hdprman = settings.hdprman
             self.renderer.SetRendererSetting('convergedSamplesPerPixel', hdprman.samples)

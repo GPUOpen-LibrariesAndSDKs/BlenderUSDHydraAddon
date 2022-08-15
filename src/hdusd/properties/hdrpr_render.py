@@ -93,6 +93,12 @@ class QualitySettings(bpy.types.PropertyGroup):
         min=0.0, max=1e6,
         default=0.0,
     )
+    pixel_filter_width: FloatProperty(
+        name="Width",
+        description="Pixel filter width",
+        min=0.0, max=5.0,
+        default=1.5,
+    )
 
 
 class InteractiveQualitySettings(bpy.types.PropertyGroup):

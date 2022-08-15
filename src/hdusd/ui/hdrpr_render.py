@@ -121,6 +121,26 @@ class HDUSD_RENDER_PT_hdrpr_settings_film_final(HdUSD_Panel):
         layout.prop(hdrpr, "enable_alpha", text="Transparent Background")
 
 
+class HDUSD_RENDER_PT_hdrpr_settings_pixel_filter_final(HdUSD_Panel):
+    bl_label = "Pixel Filter"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_final'
+    bl_space_type = 'PROPERTIES'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.scene.hdusd.final.hdrpr.render_quality == 'Northstar'
+
+    def draw(self, context):
+        hdrpr = context.scene.hdusd.final.hdrpr
+        quality = hdrpr.quality
+
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        col = self.layout.column()
+        col.prop(quality, "pixel_filter_width")
+
 #
 # VIEWPORT RENDER SETTINGS
 #
@@ -204,3 +224,24 @@ class HDUSD_RENDER_PT_hdrpr_settings_denoise_viewport(HdUSD_Panel):
         layout.enabled = denoise.enable
         layout.prop(denoise, "min_iter")
         layout.prop(denoise, "iter_step")
+
+
+class HDUSD_RENDER_PT_hdrpr_settings_pixel_filter_viewport(HdUSD_Panel):
+    bl_label = "Pixel Filter"
+    bl_parent_id = 'HDUSD_RENDER_PT_hdrpr_settings_viewport'
+    bl_space_type = 'PROPERTIES'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.scene.hdusd.viewport.hdrpr.render_quality == 'Northstar'
+
+    def draw(self, context):
+        hdrpr = context.scene.hdusd.viewport.hdrpr
+        quality = hdrpr.quality
+
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        col = self.layout.column()
+        col.prop(quality, "pixel_filter_width")
