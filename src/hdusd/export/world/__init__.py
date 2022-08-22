@@ -172,9 +172,16 @@ class WorldData:
         light_prim = next((prim for prim in stage.TraverseAll() if
                            prim.GetTypeName() == 'DomeLight'), None)
         if light_prim:
-            data.color = light_prim.GetAttribute('inputs:color').Get()
-            data.intensity = light_prim.GetAttribute('inputs:intensity').Get()
-            data.transparency = light_prim.GetAttribute('inputs:transparency').Get()
+            color = light_prim.GetAttribute('inputs:color').Get()
+            intensity = light_prim.GetAttribute('inputs:intensity').Get()
+            transparency = light_prim.GetAttribute('inputs:transparency').Get()
+
+            if color is not None:
+                data.color = color
+            if intensity is not None:
+                data.intensity = intensity
+            if transparency is not None:
+                data.transparency = transparency
 
         return data
 
