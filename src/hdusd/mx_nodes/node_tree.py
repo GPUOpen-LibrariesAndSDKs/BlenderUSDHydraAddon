@@ -134,7 +134,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     new_mx_nodegraph = next(ng for ng in doc.getNodeGraphs()
                                             if ng.getNodeDefString() == nodedef.getName())
 
-                    mx_output = new_mx_nodegraph.getOutput(mx_output_name)
+                    mx_output = new_mx_nodegraph.getActiveOutput(mx_output_name)
                     node_name = mx_output.getNodeName()
                     new_mx_node = new_mx_nodegraph.getNode(node_name)
 
@@ -145,9 +145,9 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                 node.data_type = data_type
                 nodedef = node.nodedef
 
-                for mx_input in mx_node.getInputs():
+                for mx_input in mx_node.getActiveInputs():
                     input_name = mx_input.getName()
-                    nd_input = nodedef.getInput(input_name)
+                    nd_input = nodedef.getActiveInput(input_name)
                     if nd_input.getAttribute('uniform') == 'true':
                         node.set_param_value(input_name,mx_utils.parse_value(
                             node, mx_input.getValue(), mx_input.getType(), file_prefix))
@@ -175,7 +175,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                         new_node = import_node(new_mx_node)
 
                         out_name = mx_input.getAttribute('output')
-                        if len(new_node.nodedef.getOutputs()) > 1 and out_name:
+                        if len(new_node.nodedef.getActiveOutputs()) > 1 and out_name:
                             new_node_output = new_node.outputs[out_name]
                         else:
                             new_node_output = new_node.outputs[0]
@@ -187,7 +187,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                     if new_nodegraph_name:
                         mx_output_name = mx_input.getAttribute('output')
                         new_mx_nodegraph = mx_nodegraph.getNodeGraph(new_nodegraph_name)
-                        mx_output = new_mx_nodegraph.getOutput(mx_output_name)
+                        mx_output = new_mx_nodegraph.getActiveOutput(mx_output_name)
                         node_name = mx_output.getNodeName()
                         new_mx_node = new_mx_nodegraph.getNode(node_name)
                         new_node = import_node(new_mx_node, mx_output_name)
@@ -195,7 +195,7 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
                             continue
 
                         out_name = mx_output.getAttribute('output')
-                        if len(new_node.nodedef.getOutputs()) > 1 and out_name:
+                        if len(new_node.nodedef.getActiveOutputs()) > 1 and out_name:
                             new_node_output = new_node.outputs[out_name]
                         else:
                             new_node_output = new_node.outputs[0]
@@ -282,8 +282,8 @@ class MxNodeTree(bpy.types.ShaderNodeTree):
 
     def update_links(self):
         for link in self.links:
-            socket_from_type = link.from_socket.node.nodedef.getOutput(link.from_socket.name).getType()
-            socket_to_type = link.to_socket.node.nodedef.getInput(link.to_socket.name).getType()
+            socket_from_type = link.from_socket.node.nodedef.getActiveOutput(link.from_socket.name).getType()
+            socket_to_type = link.to_socket.node.nodedef.getActiveInput(link.to_socket.name).getType()
 
             if socket_to_type != socket_from_type:
                 link.is_valid = False

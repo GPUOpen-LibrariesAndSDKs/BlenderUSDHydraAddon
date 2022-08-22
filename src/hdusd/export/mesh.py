@@ -242,7 +242,7 @@ def sync(obj_prim, obj: bpy.types.Object, mesh: bpy.types.Mesh = None, **kwargs)
         scene.frame_set(frame_current)
 
     for name, uv_layer in data.uv_layers.items():
-        uv_primvar = usd_mesh.CreatePrimvar("st",   # default name, later we'll use sdf_path(name)
+        uv_primvar = UsdGeom.PrimvarsAPI(usd_mesh.GetPrim()).CreatePrimvar("st",   # default name, later we'll use sdf_path(name)
                                             Sdf.ValueTypeNames.TexCoord2fArray,
                                             UsdGeom.Tokens.faceVarying)
         uv_primvar.Set(uv_layer[0])

@@ -187,7 +187,7 @@ void UsdImagingLiteEngine::SetRenderViewport(GfVec4d const & viewport)
     _renderTaskParams.viewport = viewport;
 }
 
-void UsdImagingLiteEngine::SetCameraState(const GfMatrix4d & viewMatrix, const GfMatrix4d & projectionMatrix)
+void UsdImagingLiteEngine::SetCameraState(const GfCamera& cam)
 {
     TF_VERIFY(_renderIndex);
 
@@ -196,10 +196,24 @@ void UsdImagingLiteEngine::SetCameraState(const GfMatrix4d & viewMatrix, const G
         _renderIndex->RemoveSprim(HdPrimTypeTokens->camera, freeCameraId);
     }
     _renderIndex->InsertSprim(HdPrimTypeTokens->camera, _renderDataDelegate.get(), freeCameraId);
+    _renderDataDelegate->SetParameter(freeCameraId, HdTokens->transform, VtValue(cam.GetTransform()));
     _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->windowPolicy, VtValue(CameraUtilFit));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->worldToViewMatrix, VtValue(viewMatrix));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->projectionMatrix, VtValue(projectionMatrix));
-    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->clipPlanes, VtValue(std::vector<GfVec4d>()));
+
+    GfCamera::Projection in_projection = cam.GetProjection();
+    HdCamera::Projection projection = (in_projection == GfCamera::Orthographic) ? HdCamera::Orthographic : HdCamera::Perspective;
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->projection, VtValue(projection));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->clippingRange, VtValue(cam.GetClippingRange()));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->horizontalAperture, VtValue(cam.GetHorizontalAperture()));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->verticalAperture, VtValue(cam.GetVerticalAperture()));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->horizontalApertureOffset, VtValue(cam.GetHorizontalApertureOffset()));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->verticalApertureOffset, VtValue(cam.GetVerticalApertureOffset()));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->focalLength, VtValue(cam.GetFocalLength()));
+
+    const std::vector<GfVec4f> &clipPlanes = cam.GetClippingPlanes();
+    const std::vector<GfVec4d> planes(clipPlanes.begin(), clipPlanes.end());
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->clipPlanes, VtValue(planes));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->fStop, VtValue(cam.GetFStop()));
+    _renderDataDelegate->SetParameter(freeCameraId, HdCameraTokens->focusDistance, VtValue(cam.GetFocusDistance()));
 
     _renderTaskParams.camera = freeCameraId;
  }
@@ -261,7 +275,7 @@ bool UsdImagingLiteEngine::SetRendererPlugin(TfToken const & id)
         SdfPath::AbsoluteRootPath().AppendElementString("usdImagingDelegate"));
 
     _renderDataDelegate = std::make_unique<HdRenderDataDelegate>(_renderIndex.get(),
-        SdfPath::AbsoluteRootPath().AppendElementString("taskDataDelegate"));
+        SdfPath::AbsoluteRootPath().AppendElementString("renderDataDelegate"));
 
     // The task context holds on to resources in the render
     // deletegate, so we want to destroy it first and thus

@@ -62,14 +62,14 @@ def get_mx_node_cls(mx_node):
         raise KeyError(f"Unable to find MxNode class for {mx_node}")
 
     def params_set(node, out_type):
-        return {f"in_{p.getName()}:{p.getType()}" for p in node.getInputs()} | \
+        return {f"in_{p.getName()}:{p.getType()}" for p in node.getActiveInputs()} | \
                {out_type}
 
     node_params_set = params_set(mx_node, mx_node.getType())
 
     for cls in classes:
         for nodedef, data_type in cls.get_nodedefs():
-            nd_outputs = nodedef.getOutputs()
+            nd_outputs = nodedef.getActiveOutputs()
             nd_params_set = params_set(nodedef, 'multioutput' if len(nd_outputs) > 1 else
                                        nd_outputs[0].getType())
             if node_params_set.issubset(nd_params_set):

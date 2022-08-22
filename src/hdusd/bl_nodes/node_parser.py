@@ -69,7 +69,7 @@ class NodeItem:
             return
 
         val_data = value.data if isinstance(value, NodeItem) else value
-        nd_input = self.nodedef.getInput(name)
+        nd_input = self.nodedef.getActiveInput(name)
         input = self.data.addInput(name, nd_input.getType())
         mx_utils.set_param_value(input, val_data, input.getType())
 

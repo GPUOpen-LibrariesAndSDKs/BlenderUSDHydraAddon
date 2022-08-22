@@ -173,21 +173,21 @@ def nodedef_data_type(nodedef):
     node_name = nodedef.getNodeString()
 
     if nd_name.startswith('rpr_'):
-        return nodedef.getOutputs()[0].getType()
+        return nodedef.getActiveOutputs()[0].getType()
 
     m = re.fullmatch(rf'ND_{node_name}_(.+)', nd_name)
     if m:
         return m[1]
 
-    return nodedef.getOutputs()[0].getType()
+    return nodedef.getActiveOutputs()[0].getType()
 
 
 def generate_data_type(nodedef):
-    outputs = nodedef.getOutputs()
+    outputs = nodedef.getActiveOutputs()
     if len(outputs) != 1:
         return f"{{'multitypes': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
-    return f"{{'{nodedef.getOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
+    return f"{{'{nodedef.getActiveOutputs()[0].getType()}': {{'{nodedef.getName()}': None, 'nodedef_name': '{nodedef.getName()}'}}}}"
 
 
 def input_prop_name(nd_type, name):
@@ -232,7 +232,7 @@ class {class_name}(MxNode):
 """)
 
     ui_folders = []
-    for mx_param in [*nodedef.getParameters(), *nodedef.getInputs()]:
+    for mx_param in [*nodedef.getActiveParameters(), *nodedef.getActiveInputs()]:
         f = mx_param.getAttribute("uifolder")
         if f and f not in ui_folders:
             ui_folders.append(f)
@@ -270,11 +270,11 @@ class {class_name}(MxNode):
         nd_type = nodedef_data_type(nd)
         code_strings.append("")
 
-        for input in nd.getInputs():
+        for input in nd.getActiveInputs():
             prop_code = generate_property_code(input, category)
             code_strings.append(f"    {input_prop_name(nd_type, input.getName())}: {prop_code}")
 
-        for output in nd.getOutputs():
+        for output in nd.getActiveOutputs():
             prop_code = generate_property_code(output, category)
             code_strings.append(f"    {output_prop_name(nd_type, output.getName())}: {prop_code}")
 
@@ -284,6 +284,7 @@ class {class_name}(MxNode):
 
 def generate_classes_code(file_path, prefix, category):
     IGNORE_NODEDEF_DATA_TYPE = ('matrix33', 'matrix44', 'matrix33FA', 'matrix44FA')
+    IGNORE_NODEDEF = []
 
     code_strings = []
     code_strings.append(
@@ -322,10 +323,20 @@ FILE_PATH = r"{file_path.relative_to(libs_dir)}"
     mx.readFromXmlFile(doc, str(file_path), searchPath=search_path)
     nodedefs = doc.getNodeDefs()
 
+    #  gathering nodedefs to be ignored due to inheritance
+    for nodedef in nodedefs:
+        if nodedef.getSourceUri():
+            continue
+
+        if nodedef.hasAttribute('isdefaultversion') \
+                and nodedef.getAttribute('isdefaultversion') == 'true' \
+                and nodedef.hasInheritString():
+            IGNORE_NODEDEF.append(nodedef.getInheritString())
+
     # grouping node_def_classes by node and nodegroup
     node_def_classes_by_node = defaultdict(list)
     for nodedef in nodedefs:
-        if nodedef.getSourceUri():
+        if nodedef.getSourceUri() or nodedef.getName() in IGNORE_NODEDEF:
             continue
 
         if nodedef_data_type(nodedef) in IGNORE_NODEDEF_DATA_TYPE:
@@ -356,6 +367,7 @@ def main():
 
     files = [
         ('PBR', "PBR", mx_libs_dir / "bxdf/standard_surface.mtlx"),
+        ('PBR', "PBR", mx_libs_dir / "bxdf/gltf_pbr.mtlx"),
         ('USD', "USD", mx_libs_dir / "bxdf/usd_preview_surface.mtlx"),
         ('STD', None, mx_libs_dir / "stdlib/stdlib_defs.mtlx"),
         ('PBR', "PBR", mx_libs_dir / "pbrlib/pbrlib_defs.mtlx"),

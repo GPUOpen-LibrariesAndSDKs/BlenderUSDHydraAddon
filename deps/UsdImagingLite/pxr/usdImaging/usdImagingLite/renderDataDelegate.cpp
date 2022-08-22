@@ -46,40 +46,19 @@ VtValue HdRenderDataDelegate::Get(SdfPath const& id, TfToken const& key)
     if (vcache && TfMapLookup(*vcache, key, &ret)) {
         return ret;
     }
-    TF_CODING_ERROR("%s:%s doesn't exist in the value cache\n",
-        id.GetText(), key.GetText());
     return VtValue();
 }
 
 GfMatrix4d HdRenderDataDelegate::GetTransform(SdfPath const& id)
 {
     // We expect this to be called only for the free cam.
-    VtValue val = GetCameraParamValue(id, HdCameraTokens->worldToViewMatrix);
-    GfMatrix4d xform(1.0);
-    if (val.IsHolding<GfMatrix4d>()) {
-        xform = val.Get<GfMatrix4d>().GetInverse(); // camera to world
-    }
-    else {
-        TF_CODING_ERROR(
-            "Unexpected call to GetTransform for %s in HdxTaskController's "
-            "internal scene delegate.\n", id.GetText());
-    }
-    return xform;
+    VtValue val = GetCameraParamValue(id, HdTokens->transform);
+    return val.Get<GfMatrix4d>();
 }
 
 VtValue HdRenderDataDelegate::GetCameraParamValue(SdfPath const& id, TfToken const& key)
 {
-    if (key == HdCameraTokens->worldToViewMatrix ||
-        key == HdCameraTokens->projectionMatrix ||
-        key == HdCameraTokens->clipPlanes ||
-        key == HdCameraTokens->windowPolicy) {
-
-        return Get(id, key);
-    }
-    else {
-        // XXX: For now, skip handling physical params on the free cam.
-        return VtValue();
-    }
+    return Get(id, key);
 }
 
 VtValue HdRenderDataDelegate::GetLightParamValue(SdfPath const& id, TfToken const& paramName)

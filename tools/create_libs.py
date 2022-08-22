@@ -60,12 +60,12 @@ def main(bin_dir, build_var):
     copy(repo_dir / "deps/mx_libs/alglib", libs_dir / "libraries/alglib")
 
     if OS == 'Windows':
-        copy(bin_dir / f"USD/build/openexr-2.3.0/OpenEXR/IlmImf/{build_name}/IlmImf-2_3.dll",
-             libs_dir / "lib/IlmImf-2_3.dll")
+        copy(bin_dir / f"USD/build/openexr-2.5.2/bin/{build_name}/IlmImf-2_5.dll",
+             libs_dir / "lib/IlmImf-2_5.dll")
 
         if build_var != 'release':
-            copy(bin_dir / f"USD/build/openexr-2.3.0/OpenEXR/IlmImf/{build_name}/IlmImf-2_3.pdb",
-                 libs_dir / "lib/IlmImf-2_3.pdb")
+            copy(bin_dir / f"USD/build/openexr-2.5.2/bin/{build_name}/IlmImf-2_5.pdb",
+                 libs_dir / "lib/IlmImf-2_5.pdb")
             copy(repo_dir / f"deps/HdRPR/build/pxr/imaging/rprUsd/{build_name}/rprUsd.pdb",
                  libs_dir / "lib/rprUsd.pdb")
             copy(repo_dir / f"deps/HdRPR/build/pxr/imaging/plugin/hdRpr/{build_name}/hdRpr.pdb",

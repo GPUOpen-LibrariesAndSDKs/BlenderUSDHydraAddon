@@ -1,31 +1,11 @@
-diff --git a/build_scripts/build_usd.py b/build_scripts/build_usd.py
-index 3d1a5e25a..608b189e3 100644
---- a/build_scripts/build_usd.py
-+++ b/build_scripts/build_usd.py
-@@ -689,7 +689,7 @@ if MacOS():
-     BOOST_VERSION_FILE = "include/boost/version.hpp"
- elif Linux():
-     if Python3():
--        BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.70.0/source/boost_1_70_0.tar.gz"
-+        BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz"
-     else:
-         BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.66.0/source/boost_1_66_0.tar.gz"
-     BOOST_VERSION_FILE = "include/boost/version.hpp"
-@@ -701,8 +701,8 @@ elif Windows():
-     #
-     # boost 1.70 is required for Visual Studio 2019. For simplicity, we use
-     # this version for all older Visual Studio versions as well.
--    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.70.0/source/boost_1_70_0.tar.gz"
--    BOOST_VERSION_FILE = "include/boost-1_70/boost/version.hpp"
-+    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz"
-+    BOOST_VERSION_FILE = "include/boost-1_78/boost/version.hpp"
- 
- def InstallBoost_Helper(context, force, buildArgs):
-     # Documentation files in the boost archive can have exceptionally
+Index: pxr/imaging/hioOpenVDB/vdbTextureData.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
 diff --git a/pxr/imaging/hioOpenVDB/vdbTextureData.h b/pxr/imaging/hioOpenVDB/vdbTextureData.h
-index e96a56d3f..c657f7232 100644
---- a/pxr/imaging/hioOpenVDB/vdbTextureData.h
-+++ b/pxr/imaging/hioOpenVDB/vdbTextureData.h
+--- a/pxr/imaging/hioOpenVDB/vdbTextureData.h	(revision 3abc46452b1271df7650e9948fef9f0ce602e3b2)
++++ b/pxr/imaging/hioOpenVDB/vdbTextureData.h	(date 1660326580913)
 @@ -34,6 +34,10 @@
  
  #include <memory>
@@ -37,3 +17,31 @@ index e96a56d3f..c657f7232 100644
  PXR_NAMESPACE_OPEN_SCOPE
  
  class HioOpenVDB_TextureData_DenseGridHolderBase;
+Index: build_scripts/build_usd.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build_scripts/build_usd.py b/build_scripts/build_usd.py
+--- a/build_scripts/build_usd.py	(revision 3abc46452b1271df7650e9948fef9f0ce602e3b2)
++++ b/build_scripts/build_usd.py	(date 1660326580896)
+@@ -684,7 +684,7 @@
+     BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.gz"
+     BOOST_VERSION_FILE = "include/boost/version.hpp"
+ elif Linux():
+-    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.70.0/source/boost_1_70_0.tar.gz"
++    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz"
+     BOOST_VERSION_FILE = "include/boost/version.hpp"
+ elif Windows():
+     # The default installation of boost on Windows puts headers in a versioned 
+@@ -694,8 +694,8 @@
+     #
+     # boost 1.70 is required for Visual Studio 2019. For simplicity, we use
+     # this version for all older Visual Studio versions as well.
+-    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.70.0/source/boost_1_70_0.tar.gz"
+-    BOOST_VERSION_FILE = "include/boost-1_70/boost/version.hpp"
++    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz"
++    BOOST_VERSION_FILE = "include/boost-1_78/boost/version.hpp"
+ 
+ def InstallBoost_Helper(context, force, buildArgs):
+     # Documentation files in the boost archive can have exceptionally

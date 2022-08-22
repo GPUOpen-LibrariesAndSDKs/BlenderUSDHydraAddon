@@ -54,7 +54,7 @@ def set_param_value(mx_param, val, nd_type, nd_output=None):
             if nd_output:
                 mx_output_name += f'_{nd_output.getName()}'
 
-            mx_output = val_nodegraph.getOutput(mx_output_name)
+            mx_output = val_nodegraph.getActiveOutput(mx_output_name)
             if not mx_output:
                 mx_output = val_nodegraph.addOutput(mx_output_name, val.getType())
                 mx_output.setNodeName(node_name)
@@ -154,7 +154,7 @@ def parse_value_str(val_str, mx_type, *, first_only=False, is_enum=False):
 
 
 def get_nodedef_inputs(nodedef, uniform=None):
-    for nd_input in nodedef.getInputs():
+    for nd_input in nodedef.getActiveInputs():
         if (uniform is True and nd_input.getAttribute('uniform') != 'true') or \
                 (uniform is False and nd_input.getAttribute('uniform') == 'true'):
             continue

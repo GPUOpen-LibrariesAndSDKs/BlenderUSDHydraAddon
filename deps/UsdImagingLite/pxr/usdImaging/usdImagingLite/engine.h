@@ -33,6 +33,8 @@
 #include "pxr/imaging/hdx/taskController.h"
 #include "pxr/usdImaging/usdImaging/delegate.h"
 #include "pxr/usdImaging/usdImagingGL/rendererSettings.h"
+#include "pxr/base/gf/camera.h"
+#include "pxr/imaging/hd/camera.h"
 
 #include "api.h"
 #include "renderParams.h"
@@ -115,10 +117,9 @@ public:
 
     /// Free camera API
     /// Set camera framing state directly (without pointing to a camera on the 
-    /// USD stage). The projection matrix is expected to be pre-adjusted for the
-    /// window policy.
+    /// USD stage).
     USDIMAGINGLITE_API
-    void SetCameraState(const GfMatrix4d& viewMatrix, const GfMatrix4d& projectionMatrix);
+    void SetCameraState(const GfCamera& cam);
 
     /// @}
 
@@ -208,7 +209,6 @@ private:
     // This function disposes of: the render index, the render plugin,
     // the task controller, and the usd imaging delegate.
     void _DeleteHydraResources();
-
     SdfPath _GetRendererAovPath(TfToken const &aov) const;
 };
 

@@ -31,6 +31,7 @@ if utils.IS_WIN:
 
 os.environ['PXR_PLUGINPATH_NAME'] = str(utils.LIBS_DIR / 'plugin')
 os.environ['RPR'] = str(utils.LIBS_DIR)
+os.environ['PXR_MTLX_STDLIB_SEARCH_PATHS'] = str(utils.LIBS_DIR / "libraries")
 
 # internal scene index representation in hydra,
 # see https://github.com/PixarAnimationStudios/USD/blob/release/CHANGELOG.md#imaging

@@ -226,13 +226,13 @@ class CameraData:
             usd_camera.CreateProjectionAttr(UsdGeom.Tokens.orthographic)
 
             # Use tenths of a world unit accorging to USD docs https://graphics.pixar.com/usd/docs/api/class_gf_camera.html
-            ortho_size = tuple(self.ortho_size[i] * tile_size[i] * 10 for i in (0, 1))
+            ortho_size = tuple(self.ortho_size[i] * tile_size[i] for i in (0, 1))
 
             usd_camera.CreateHorizontalApertureAttr(ortho_size[0])
             usd_camera.CreateVerticalApertureAttr(ortho_size[1])
 
-            usd_camera.CreateHorizontalApertureOffsetAttr(lens_shift[0] * self.ortho_size[0] * tile_size[0] * 10)
-            usd_camera.CreateVerticalApertureOffsetAttr(lens_shift[1] * self.ortho_size[1] * tile_size[1] * 10)
+            usd_camera.CreateHorizontalApertureOffsetAttr(lens_shift[0] * self.ortho_size[0] * tile_size[0])
+            usd_camera.CreateVerticalApertureOffsetAttr(lens_shift[1] * self.ortho_size[1] * tile_size[1])
 
         elif self.mode == 'PANO':
             # TODO: Make panoramic camera

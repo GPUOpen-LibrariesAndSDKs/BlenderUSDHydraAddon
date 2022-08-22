@@ -72,7 +72,9 @@ class FinalEngine(Engine):
             return
 
         # setting camera
-        self._set_scene_camera(renderer, scene)
+        gf_camera = self.get_gf_camera(scene)
+        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
+                                gf_camera.frustum.ComputeProjectionMatrix())
 
         renderer.SetRenderViewport((0, 0, self.width, self.height))
         renderer.SetRendererAov('color')
@@ -116,7 +118,8 @@ class FinalEngine(Engine):
         renderer.SetRendererAov('color')
 
         # setting camera
-        self._set_scene_camera(renderer, scene)
+        gf_camera = self.get_gf_camera(scene)
+        renderer.SetCameraState(gf_camera)
 
         params = UsdImagingLite.RenderParams()
         params.frame = Usd.TimeCode(scene.frame_current)
@@ -157,15 +160,13 @@ class FinalEngine(Engine):
         # explicit renderer deletion
         renderer = None
 
-    def _set_scene_camera(self, renderer, scene):
+    def get_gf_camera(self, scene):
         if scene.hdusd.final.nodetree_camera != '' and scene.hdusd.final.data_source:
             usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, scene.hdusd.final.nodetree_camera)
         else:
             usd_camera = UsdAppUtils.GetCameraAtPath(self.stage, Tf.MakeValidIdentifier(scene.camera.data.name))
-       
-        gf_camera = usd_camera.GetCamera(scene.frame_current)
-        renderer.SetCameraState(gf_camera.frustum.ComputeViewMatrix(),
-                                gf_camera.frustum.ComputeProjectionMatrix())
+
+        return usd_camera.GetCamera(scene.frame_current)
 
     def render(self, depsgraph):
         if not self.stage:
