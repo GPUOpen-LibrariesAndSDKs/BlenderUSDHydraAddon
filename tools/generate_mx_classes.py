@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 from collections import defaultdict
 import os
+import platform
 
 
 PYTHON_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
@@ -28,7 +29,9 @@ mx_libs_dir = libs_dir / "libraries"
 
 
 sys.path.insert(0, str(libs_dir / "python"))
-os.add_dll_directory(str(libs_dir / "bin"))
+if platform.system() == 'Windows':
+    os.add_dll_directory(str(libs_dir / "bin"))
+
 import MaterialX as mx
 
 
