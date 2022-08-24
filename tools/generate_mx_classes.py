@@ -16,6 +16,7 @@ import re
 import sys
 from pathlib import Path
 from collections import defaultdict
+import os
 
 
 PYTHON_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
@@ -26,7 +27,8 @@ libs_dir = repo_dir / f"libs-{PYTHON_VERSION}"
 mx_libs_dir = libs_dir / "libraries"
 
 
-sys.path.append(str(libs_dir / "python"))
+sys.path.insert(0, str(libs_dir / "python"))
+os.add_dll_directory(str(libs_dir / "bin"))
 import MaterialX as mx
 
 
