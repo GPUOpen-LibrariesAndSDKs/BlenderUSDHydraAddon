@@ -195,10 +195,7 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
     if data.image:
         tex_attr = usd_light.CreateTextureFileAttr()
         tex_attr.ClearDefault()
-        usd_utils.add_delegate_variants(obj_prim, {
-            'GL': lambda: tex_attr.Set(""),
-            'RPR': lambda: tex_attr.Set(str(data.image))
-        })
+        tex_attr.Set(str(data.image))
 
     usd_light.CreateColorAttr(data.color)
 
@@ -206,8 +203,7 @@ def sync(root_prim, world: bpy.types.World, shading: ShadingData = None):
     light_prim.CreateAttribute("inputs:transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
 
     # set correct Dome light rotation
-    usd_light.AddRotateXOp().Set(180.0)
-    usd_light.AddRotateYOp().Set(-90.0 + math.degrees(data.rotation[2]))
+    usd_light.AddRotateYOp().Set(90.0 + math.degrees(data.rotation[2]))
 
 
 def sync_update(root_prim, world: bpy.types.World, shading: ShadingData = None):

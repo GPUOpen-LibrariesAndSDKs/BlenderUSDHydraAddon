@@ -265,18 +265,6 @@ class ViewportEngine(Engine):
         self.render_params.renderResolution = (view_settings.width, view_settings.height)
         self.render_params.clipPlanes = [Gf.Vec4d(i) for i in gf_camera.clippingPlanes]
 
-        if self.is_gl_delegate:
-            l = Glf.SimpleLight()
-            l.ambient = (0, 0, 0, 0)
-            l.position = (*gf_camera.frustum.position, 1)
-
-            if not self.shading_data.type == 'MATERIAL':
-                l.isDomeLight = True
-                
-            mat = Glf.SimpleMaterial()
-
-            self.renderer.SetLightingState((l,), mat, (0, 0, 0, 0))
-
         bgl.glClear(bgl.GL_COLOR_BUFFER_BIT | bgl.GL_DEPTH_BUFFER_BIT)
 
         self.render_engine.bind_display_space_shader(context.scene)
@@ -288,9 +276,10 @@ class ViewportEngine(Engine):
             self.renderer.Render(stage.GetPseudoRoot(), self.render_params)
 
         except Exception as e:
-            if isinstance(e, Tf.ErrorException) and ("GL error: invalid operation" in str(e)
+            if isinstance(e, Tf.ErrorException) and (#"GL error: invalid operation" in str(e)
                                                      # known RenderMan issue https://github.com/PixarAnimationStudios/USD/issues/1415
-                                                     or "Failed to load plugin 'rmanOslParser'" in str(e)):
+                                                     #or "GL error: invalid enum" in str(e)
+                                                     "Failed to load plugin 'rmanOslParser'" in str(e)):
                 pass    # we won't log error "GL error: invalid operation"
             else:
                 log.error(e)
