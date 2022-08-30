@@ -59,6 +59,11 @@ def main(bin_dir, build_var):
     copy(usd_dir / "libraries", libs_dir / "libraries")
     copy(repo_dir / "deps/mx_libs/alglib", libs_dir / "libraries/alglib")
 
+    #  replace standard_surface.mtlx 1.38.4 with 1.38.0 to prevent HybridPro crash
+    #  need to be removed after HybridPro will support MaterialX 1.38.4
+    #  or this fix https://amdrender.atlassian.net/browse/RPRHYB-657 being implemented
+    copy(repo_dir / "deps/mx_libs/bxdf/standard_surface.mtlx", libs_dir / "libraries/bxdf/standard_surface.mtlx")
+
     if OS == 'Windows':
         copy(bin_dir / f"USD/build/openexr-2.5.2/bin/{build_name}/IlmImf-2_5.dll",
              libs_dir / "lib/IlmImf-2_5.dll")
