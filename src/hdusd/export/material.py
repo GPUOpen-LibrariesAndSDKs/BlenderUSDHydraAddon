@@ -92,7 +92,20 @@ def sync_update_all(root_prim, mat: bpy.types.Material):
     mx_file = utils.get_temp_file(".mtlx", f'{mat.name}{mat.hdusd.mx_node_tree.name if mat.hdusd.mx_node_tree else ""}',
                                   is_rand=True)
     mx.writeToXmlFile(doc, str(mx_file))
+    surfacematerial = next(node for node in doc.getNodes() if node.getCategory() == 'surfacematerial')
 
     for mat_prim in mat_prims:
         mat_prim.GetReferences().ClearReferences()
         mat_prim.GetReferences().AddReference(f"./{mx_file.name}", "/MaterialX")
+
+        # apply new bind if shader switched to MaterialX or vice versa
+        mesh_prim = next((prim for prim in mat_prim.GetParent().GetChildren() if prim.GetTypeName() == 'Mesh'), None)
+        if not mesh_prim:
+            return None
+
+        usd_mat = UsdShade.Material.Define(root_prim.GetStage(), mat_prim.GetPath().AppendChild('Materials').
+                                           AppendChild(surfacematerial.getName()))
+
+        bindings = UsdShade.MaterialBindingAPI(mesh_prim)
+        bindings.UnbindAllBindings()
+        bindings.Bind(usd_mat)
