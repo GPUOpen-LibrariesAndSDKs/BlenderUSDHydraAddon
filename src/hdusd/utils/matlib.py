@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #********************************************************************
+import time
 import requests
 import weakref
 from dataclasses import dataclass, field
@@ -76,10 +77,15 @@ def request_json(url, params, path, cache_check=True):
         with open(path) as json_file:
             return json.load(json_file)
 
-    log("request_json", f"{url=}, {params=}, {path=}")
+    res_json = None
 
-    response = requests.get(url, params=params)
-    res_json = response.json()
+    while res_json is None or ("detail" in res_json and "Request was throttled" in res_json["detail"]):
+        log("request_json", f"{url=}, {params=}, {path=}")
+
+        response = requests.get(url, params=params)
+        res_json = response.json()
+
+        time.sleep(1)
 
     if path:
         save_json(res_json, path)
