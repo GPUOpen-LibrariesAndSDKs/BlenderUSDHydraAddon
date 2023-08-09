@@ -22,7 +22,7 @@ import bpy
 
 sys.path.append(str((Path(__file__).parent.parent.parent / 'src').resolve()))
 
-import hdusd
+import hydrarpr
 
-hdusd.register()
-bpy.context.scene.render.engine = 'HdUSD'
+hydrarpr.register()
+bpy.context.scene.render.engine = 'RPRHydraRenderEngine'

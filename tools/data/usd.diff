@@ -1,0 +1,261 @@
+diff --git a/cmake/defaults/Packages.cmake b/cmake/defaults/Packages.cmake
+index 2bb1f30d0..adcc7422e 100644
+--- a/cmake/defaults/Packages.cmake
++++ b/cmake/defaults/Packages.cmake
+@@ -152,7 +152,7 @@ endif()
+ 
+ 
+ # --TBB
+-find_package(TBB REQUIRED COMPONENTS tbb)
++find_package(TBB)
+ add_definitions(${TBB_DEFINITIONS})
+ 
+ # --math
+diff --git a/cmake/defaults/msvcdefaults.cmake b/cmake/defaults/msvcdefaults.cmake
+index 1c4cb369d..f5d2064dd 100644
+--- a/cmake/defaults/msvcdefaults.cmake
++++ b/cmake/defaults/msvcdefaults.cmake
+@@ -124,9 +124,6 @@ _add_define("WIN32_LEAN_AND_MEAN")
+ # for all translation units.
+ set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /bigobj")
+ 
+-# Enable PDB generation.
+-set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /Zi")
+-
+ # Enable multiprocessor builds.
+ set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /MP")
+ set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /Gm-")
+diff --git a/cmake/macros/Private.cmake b/cmake/macros/Private.cmake
+index 23172745e..8c595b1a1 100644
+--- a/cmake/macros/Private.cmake
++++ b/cmake/macros/Private.cmake
+@@ -919,12 +919,14 @@ function(_pxr_python_module NAME)
+         return()
+     endif()
+ 
+-    if (WIN32 AND PXR_USE_DEBUG_PYTHON)
++    if (WIN32 AND PXR_USE_DEBUG_PYTHON AND NOT CMAKE_DEBUG_POSTFIX)
+         # On Windows when compiling with debug python the library must be named with _d.
+-        set(LIBRARY_NAME "_${NAME}_d")
+-    else()
+-        set(LIBRARY_NAME "_${NAME}")
+-    endif()
++        # Blender: but this can be skipped if CMAKE_DEBUG_POSTFIX is set, it knows
++        # what it is doing and we don't want libraries ending in _d_d.pyd
++         set(LIBRARY_NAME "_${NAME}_d")
++     else()
++         set(LIBRARY_NAME "_${NAME}")
++     endif()
+ 
+     # Install .py files.
+     if(args_PYTHON_FILES)
+diff --git a/pxr/base/arch/timing.h b/pxr/base/arch/timing.h
+index d78598a84..289ec08d2 100644
+--- a/pxr/base/arch/timing.h
++++ b/pxr/base/arch/timing.h
+@@ -84,6 +84,10 @@ ArchGetTickTime()
+ inline uint64_t
+ ArchGetStartTickTime()
+ {
++    // BLENDER: avoid using rdtsc instruction that is not supported on older CPUs.
++    return ArchGetTickTime();
++
++#if 0
+     uint64_t t;
+ #if defined (ARCH_OS_DARWIN)
+     return ArchGetTickTime();
+@@ -116,6 +120,7 @@ ArchGetStartTickTime()
+ #error "Unsupported architecture."
+ #endif
+   return t;
++#endif
+ }
+ 
+ /// Get a "stop" tick time for measuring an interval of time.  See
+@@ -125,6 +130,10 @@ ArchGetStartTickTime()
+ inline uint64_t
+ ArchGetStopTickTime()
+ {
++    // BLENDER: avoid using rdtsc instruction that is not supported on older CPUs.
++    return ArchGetTickTime();
++
++#if 0
+     uint64_t t;
+ #if defined (ARCH_OS_DARWIN)
+     return ArchGetTickTime();
+@@ -155,11 +164,11 @@ ArchGetStopTickTime()
+ #error "Unsupported architecture."
+ #endif
+   return t;
++#endif
+ }
+ 
+-#if defined (doxygen) ||                                                       \
+-    (!defined(ARCH_OS_DARWIN) && defined(ARCH_CPU_INTEL) &&                    \
+-     (defined(ARCH_COMPILER_CLANG) || defined(ARCH_COMPILER_GCC)))
++// BLENDER: avoid using rdtsc instruction that is not supported on older CPUs.
++#if 0
+ 
+ /// A simple timer class for measuring an interval of time using the
+ /// ArchTickTimer facilities.
+diff --git a/pxr/imaging/hdSt/materialXShaderGen.cpp b/pxr/imaging/hdSt/materialXShaderGen.cpp
+index be80426a5..a9d60476b 100644
+--- a/pxr/imaging/hdSt/materialXShaderGen.cpp
++++ b/pxr/imaging/hdSt/materialXShaderGen.cpp
+@@ -137,8 +137,7 @@ HdStMaterialXShaderGen::HdStMaterialXShaderGen(
+                             "st" : mxHdInfo.defaultTexcoordName;
+ 
+     // Register the customized version of the Surface node generator
+-    registerImplementation("IM_surface_" + GlslShaderGenerator::TARGET, 
+-        HdStMaterialXSurfaceNodeGen::create);
++    registerImplementation("IM_surface_genglsl", HdStMaterialXSurfaceNodeGen::create);
+ }
+ 
+ // Based on GlslShaderGenerator::generate()
+@@ -275,8 +274,7 @@ HdStMaterialXShaderGen::_EmitMxFunctions(
+     mx::ShaderStage& mxStage) const
+ {
+     // Add global constants and type definitions
+-    emitLibraryInclude("stdlib/" + mx::GlslShaderGenerator::TARGET
+-                       + "/lib/mx_math.glsl", mxContext, mxStage);
++    emitLibraryInclude("stdlib/genglsl/lib/mx_math.glsl", mxContext, mxStage);
+     emitLine("#if NUM_LIGHTS > 0", mxStage, false);
+     emitLine("#define MAX_LIGHT_SOURCES NUM_LIGHTS", mxStage, false);
+     emitLine("#else", mxStage, false);
+@@ -396,16 +394,24 @@ HdStMaterialXShaderGen::_EmitMxFunctions(
+         emitSpecularEnvironment(mxContext, mxStage);
+     }
+     if (shadowing) {
+-        emitLibraryInclude("pbrlib/" + mx::GlslShaderGenerator::TARGET
+-                           + "/lib/mx_shadow.glsl", mxContext, mxStage);
++        emitLibraryInclude("pbrlib/genglsl/lib/mx_shadow.glsl", mxContext, mxStage);
+     }
+ 
++#if MATERIALX_MAJOR_VERSION > 1 || \
++    (MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 38) || \
++    (MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION == 38 && MATERIALX_BUILD_VERSION > 4)
++    // MaterialX 1.38.5 changes the default transmission method to "refraction".
++    mxContext.getOptions().hwTransmissionRenderMethod = mx::TRANSMISSION_OPACITY;
++
++    // Emit transmission code
++    emitTransmissionRender(mxContext, mxStage);
++#endif
++
+     // Emit directional albedo table code.
+     if (mxContext.getOptions().hwDirectionalAlbedoMethod == 
+             mx::HwDirectionalAlbedoMethod::DIRECTIONAL_ALBEDO_TABLE ||
+         mxContext.getOptions().hwWriteAlbedoTable) {
+-        emitLibraryInclude("pbrlib/" + mx::GlslShaderGenerator::TARGET
+-                           + "/lib/mx_table.glsl", mxContext, mxStage);
++        emitLibraryInclude("pbrlib/genglsl/lib/mx_table.glsl", mxContext, mxStage);
+         emitLineBreak(mxStage);
+     }
+ 
+@@ -423,7 +429,7 @@ HdStMaterialXShaderGen::_EmitMxFunctions(
+     // Emit uv transform code globally if needed.
+     if (mxContext.getOptions().hwAmbientOcclusion) {
+         emitLibraryInclude(
+-            "stdlib/" + mx::GlslShaderGenerator::TARGET + "/lib/" +
++            "stdlib/genglsl/lib/" +
+             _tokenSubstitutions[ShaderGenerator::T_FILE_TRANSFORM_UV],
+             mxContext, mxStage);
+     }
+@@ -492,10 +498,31 @@ HdStMaterialXShaderGen::_EmitMxSurfaceShader(
+             // closure/shader nodes and need to be emitted first.
+             emitFunctionCalls(mxGraph, mxContext, mxStage, mx::ShaderNode::Classification::TEXTURE);
+ 
++#if MATERIALX_MAJOR_VERSION == 1 &&  \
++    MATERIALX_MINOR_VERSION == 38 && \
++    MATERIALX_BUILD_VERSION <= 4
++
+             // Emit function calls for all surface shader nodes.
+             // These will internally emit their closure function calls.
+             emitFunctionCalls(mxGraph, mxContext, mxStage, mx::ShaderNode::Classification::SHADER | 
+                                                            mx::ShaderNode::Classification::SURFACE);
++#else
++            // Emit function calls for "root" closure/shader nodes.
++            // These will internally emit function calls for any dependent closure nodes upstream.
++            for (mx::ShaderGraphOutputSocket* socket : mxGraph.getOutputSockets())
++            {
++                if (socket->getConnection())
++                {
++                    const mx::ShaderNode* upstream = socket->getConnection()->getNode();
++                    if (upstream->getParent() == &mxGraph &&
++                        (upstream->hasClassification(mx::ShaderNode::Classification::CLOSURE) ||
++                            upstream->hasClassification(mx::ShaderNode::Classification::SHADER)))
++                    {
++                        emitFunctionCall(*upstream, mxContext, mxStage);
++                    }
++                }
++            }
++#endif
+         }
+         else
+         {
+diff --git a/pxr/imaging/hioOpenVDB/CMakeLists.txt b/pxr/imaging/hioOpenVDB/CMakeLists.txt
+index e32762cea..d2c08d3da 100644
+--- a/pxr/imaging/hioOpenVDB/CMakeLists.txt
++++ b/pxr/imaging/hioOpenVDB/CMakeLists.txt
+@@ -20,6 +20,12 @@ else()
+     LIST(APPEND __VDB_IMATH_LIBS ${OPENEXR_Half_LIBRARY})
+ endif()
+ 
++if (WIN32)
++    # OpenVDB uses constants from <cmath> that aren't available on
++    # Windows unless this is defined.
++    add_definitions(-D_USE_MATH_DEFINES)
++endif()
++
+ pxr_library(hioOpenVDB
+     LIBRARIES
+         ar
+diff --git a/pxr/usd/usdMtlx/reader.cpp b/pxr/usd/usdMtlx/reader.cpp
+index 29e901816..e6fc68b20 100644
+--- a/pxr/usd/usdMtlx/reader.cpp
++++ b/pxr/usd/usdMtlx/reader.cpp
+@@ -797,6 +797,15 @@ _NodeGraphBuilder::_CreateInterfaceInputs(
+     // We deliberately ignore tokens here.
+ }
+ 
++mx::StringSet _GetStdlibIncludes() {
++    mx::StringSet stdlibIncludes = UsdMtlxGetDocument("")->getReferencedSourceUris();
++    mx::StringSet normStdlibIncludes;
++    for (std::string const& entry : stdlibIncludes) {
++        normStdlibIncludes.insert(TfNormPath(entry));
++    }
++    return normStdlibIncludes;
++}
++
+ // Returns True if the mtlxNodeDef corresponds to a locally defined custom node
+ // with an associated nodegraph.
+ // XXX Locally defined custom nodes without nodegraphs are not supported
+@@ -818,13 +827,14 @@ _NodeGraphBuilder::_IsLocalCustomNode(const mx::ConstNodeDefPtr &mtlxNodeDef)
+         }
+         // Combine with the nodeDef relative path
+         nodeDefUri = TfNormPath(fullMtlxPath + nodeDefUri);
++    } else {
++        nodeDefUri = TfNormPath(nodeDefUri);
+     }
+     
+     // This is a locally defined custom node if the absolute path to the
+     // nodedef is not included in the stdlibDoc.
+     static mx::StringSet customNodeDefNames;
+-    static const mx::StringSet stdlibIncludes =
+-        UsdMtlxGetDocument("")->getReferencedSourceUris();
++    static const mx::StringSet stdlibIncludes = _GetStdlibIncludes();
+     if (stdlibIncludes.find(nodeDefUri) == stdlibIncludes.end()) {
+         // Check if we already used this custom node
+         if (std::find(customNodeDefNames.begin(), customNodeDefNames.end(),
+diff --git a/pxr/usdImaging/CMakeLists.txt b/pxr/usdImaging/CMakeLists.txt
+index d35c59df0..dbf40cc68 100644
+--- a/pxr/usdImaging/CMakeLists.txt
++++ b/pxr/usdImaging/CMakeLists.txt
+@@ -7,7 +7,7 @@ set(DIRS
+     usdVolImaging
+     usdAppUtils
+     usdviewq
+-    bin
++    #bin
+     plugin
+ )
+ 
