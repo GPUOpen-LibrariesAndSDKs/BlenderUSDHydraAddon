@@ -1,6 +1,9 @@
+[submodule "deps/MaterialX"]
+	path = deps/MaterialX
+	url = https://github.com/AcademySoftwareFoundation/MaterialX
+[submodule "deps/RadeonProRenderUSD"]
+	path = deps/RadeonProRenderUSD
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
 [submodule "deps/USD"]
 	path = deps/USD
-	url = git@github.com:PixarAnimationStudios/USD
-[submodule "deps/HdRPR"]
-	path = deps/HdRPR
-	url = git@github.com:GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
+	url = https://github.com/PixarAnimationStudios/USD
