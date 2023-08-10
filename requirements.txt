@@ -1,5 +1,3 @@
-numpy
-requests
 PyOpenGL
 PySide2
 jinja2
