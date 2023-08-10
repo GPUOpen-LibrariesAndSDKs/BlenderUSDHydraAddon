@@ -16,8 +16,8 @@
 bl_info = {
     "name": "Hydra render engine: RPR",
     "author": "AMD",
-    "version": (1, 0, 0),
-    "blender": (3, 5, 0),
+    "version": (2, 0, 0),
+    "blender": (4, 0, 0),
     "location": "Info header > Render engine menu",
     "description": "Radeon™ ProRender delegate for Hydra render engine",
     "tracker_url": "",
