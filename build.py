@@ -214,6 +214,9 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         if git_apply:
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "usd.diff"))
 
+            # Remove patch after merging https://github.com/PixarAnimationStudios/OpenUSD/pull/2550
+            check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "usd_opengl_errors_fix.diff"))
+
         try:
             _cmake(usd_dir, bin_dir / "USD", compiler, jobs, build_var, clean, args)
         finally:
