@@ -27,7 +27,7 @@ import re
 OS = platform.system()
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
-diff_dir = repo_dir / "tools/data"
+diff_dir = repo_dir / "patches"
 
 
 def rm_dir(d: Path):
