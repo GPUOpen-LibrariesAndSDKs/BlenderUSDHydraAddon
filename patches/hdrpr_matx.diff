@@ -1,0 +1,85 @@
+diff --git a/pxr/imaging/rprUsd/hdMtlxFixed.cpp b/pxr/imaging/rprUsd/hdMtlxFixed.cpp
+index b0c7d78..51ff9f6 100644
+--- a/pxr/imaging/rprUsd/hdMtlxFixed.cpp
++++ b/pxr/imaging/rprUsd/hdMtlxFixed.cpp
+@@ -323,7 +323,7 @@ HdMtlxCreateMtlxDocumentFromHdNetwork_Fixed(
+     HdMaterialNetwork2 const& hdNetwork,
+     HdMaterialNode2 const& hdMaterialXNode,
+     SdfPath const& materialPath,
+-    mx::DocumentPtr const& libraries,
++    mx::ConstDocumentPtr const& libraries,
+     std::set<SdfPath> * hdTextureNodes, // Paths to the Hd Texture Nodes
+     mx::StringMap * mxHdTextureMap)     // Mx-Hd texture name counterparts
+ {
+diff --git a/pxr/imaging/rprUsd/materialRegistry.cpp b/pxr/imaging/rprUsd/materialRegistry.cpp
+index f11d527..2ac76fd 100644
+--- a/pxr/imaging/rprUsd/materialRegistry.cpp
++++ b/pxr/imaging/rprUsd/materialRegistry.cpp
+@@ -33,6 +33,10 @@ limitations under the License.
+ #include "pxr/usd/usdShade/tokens.h"
+ #include "pxr/imaging/hd/sceneDelegate.h"
+ 
++#ifdef USE_USDSHADE_MTLX
++#include "pxr/usd/usdMtlx/utils.h"
++#endif
++
+ #include "materialNodes/usdNode.h"
+ #include "materialNodes/mtlxNode.h"
+ #include "materialNodes/rprApiMtlxNode.h"
+@@ -55,7 +59,7 @@ HdMtlxCreateMtlxDocumentFromHdNetwork_Fixed(
+     HdMaterialNetwork2 const& hdNetwork,
+     HdMaterialNode2 const& hdMaterialXNode,
+     SdfPath const& materialPath,
+-    mx::DocumentPtr const& libraries,
++    mx::ConstDocumentPtr const& libraries,
+     std::set<SdfPath>* hdTextureNodes,
+     mx::StringMap* mxHdTextureMap);
+ #else
+@@ -400,7 +404,7 @@ void DumpMaterialNetwork(HdMaterialNetworkMap const& networkMap) {
+ RprUsdMaterial* CreateMaterialXFromUsdShade(
+     SdfPath const& materialPath,
+     RprUsd_MaterialBuilderContext const& context,
+-    mx::DocumentPtr& stdLibraries) {
++    mx::ConstDocumentPtr& stdLibraries) {
+ 
+ #ifdef USE_USDSHADE_MTLX
+     auto terminalIt = context.materialNetwork->terminals.find(UsdShadeTokens->surface);
+@@ -426,24 +430,7 @@ RprUsdMaterial* CreateMaterialXFromUsdShade(
+ 
+     // TODO: move lib initialization to class constructor
+     if (!stdLibraries) {
+-        std::string materialXStdlibPath;
+-
+-        const TfType schemaBaseType = TfType::Find<UsdSchemaBase>();
+-        PlugPluginPtr usdPlugin = PlugRegistry::GetInstance().GetPluginForType(schemaBaseType);
+-        if (usdPlugin) {
+-            std::string usdLibPath = usdPlugin->GetPath();
+-            std::string usdDir = TfNormPath(TfGetPathName(usdLibPath) + "..");
+-            materialXStdlibPath = usdDir;
+-        }
+-
+-        stdLibraries = mx::createDocument();
+-
+-        if (!materialXStdlibPath.empty()) {
+-            mx::FilePathVec libraryFolders = {"libraries"};
+-            mx::FileSearchPath searchPath;
+-            searchPath.append(mx::FilePath(materialXStdlibPath));
+-            mx::loadLibraries(libraryFolders, searchPath, stdLibraries);
+-        }
++        stdLibraries = UsdMtlxGetDocument("");
+     }
+ 
+     MaterialX::StringMap textureMap;
+diff --git a/pxr/imaging/rprUsd/materialRegistry.h b/pxr/imaging/rprUsd/materialRegistry.h
+index fc489e4..b915f81 100644
+--- a/pxr/imaging/rprUsd/materialRegistry.h
++++ b/pxr/imaging/rprUsd/materialRegistry.h
+@@ -147,7 +147,7 @@ private:
+     std::unique_ptr<RPRMtlxLoader> m_mtlxLoader;
+ #endif
+ 
+-    MaterialX::DocumentPtr m_stdLibraries;
++    MaterialX::ConstDocumentPtr m_stdLibraries;
+ 
+     std::vector<std::unique_ptr<RprUsd_MtlxNodeInfo>> m_mtlxInfos;
+     bool m_mtlxDefsDirty = true;

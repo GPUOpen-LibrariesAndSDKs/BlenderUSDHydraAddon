@@ -1,0 +1,191 @@
+ cmake/defaults/Packages.cmake         | 11 ++++++++-
+ cmake/modules/FindOpenEXR.cmake       | 45 ++++++++++++++---------------------
+ cmake/modules/FindUSDMonolithic.cmake | 26 ++++++++++++++++----
+ pxr/imaging/rprUsd/CMakeLists.txt     |  7 ++++++
+ 4 files changed, 57 insertions(+), 32 deletions(-)
+
+diff --git a/cmake/defaults/Packages.cmake b/cmake/defaults/Packages.cmake
+index 0297547..4cf728a 100644
+--- a/cmake/defaults/Packages.cmake
++++ b/cmake/defaults/Packages.cmake
+@@ -170,7 +170,7 @@ set(RPR_EXR_EXPORT_ENABLED TRUE)
+ if(HoudiniUSD_FOUND)
+     find_exr(OpenEXR OpenEXRCore Iex)
+ endif()
+-
++#[[
+ if(NOT OpenEXR_FOUND)
+     find_exr(Half IlmImf Iex)
+     if(NOT OpenEXR_FOUND)
+@@ -183,6 +183,15 @@ if(NOT OpenEXR_FOUND)
+         message(FATAL_ERROR "Failed to find Half library")
+     endif()
+ endif()
++]]
++# Try and find Imath or fallback to OpenEXR
++# Use ImathConfig.cmake,
++# Refer: https://github.com/AcademySoftwareFoundation/Imath/blob/main/docs/PortingGuide2-3.md#openexrimath-3x-only
++find_package(Imath CONFIG)
++if (NOT Imath_FOUND)
++    MESSAGE(STATUS "Imath not found. Looking for OpenEXR instead.")
++    find_package(OpenEXR REQUIRED)
++endif()
+ 
+ # ----------------------------------------------
+ 
+diff --git a/cmake/modules/FindOpenEXR.cmake b/cmake/modules/FindOpenEXR.cmake
+index d163d58..7ecdea1 100644
+--- a/cmake/modules/FindOpenEXR.cmake
++++ b/cmake/modules/FindOpenEXR.cmake
+@@ -22,14 +22,8 @@
+ # language governing permissions and limitations under the Apache License.
+ #
+ 
+-if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows" AND HoudiniUSD_FOUND)
+-    set(PATH_PARAMS NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+-endif()
+-
+ find_path(OPENEXR_INCLUDE_DIR
+-NAMES
+     OpenEXR/half.h
+-    Imath/half.h
+ HINTS
+     "${OPENEXR_LOCATION}"
+     "$ENV{OPENEXR_LOCATION}"
+@@ -37,7 +31,7 @@ PATH_SUFFIXES
+     include/
+ DOC
+     "OpenEXR headers path"
+-${PATH_PARAMS})
++)
+ 
+ if(OPENEXR_INCLUDE_DIR)
+   set(openexr_config_file "${OPENEXR_INCLUDE_DIR}/OpenEXR/OpenEXRConfig.h")
+@@ -62,40 +56,37 @@ if(OPENEXR_INCLUDE_DIR)
+   endif()
+ endif()
+ 
+-if(NOT OpenEXR_FIND_COMPONENTS)
+-    set(OpenEXR_FIND_COMPONENTS
+-        Half
+-        Iex
+-        Imath
+-        IlmImf
+-        IlmThread
+-        IlmImfUtil
+-        IexMath)
+-endif()
+-
+-set(OPENEXR_LIBRARY_VARS)
+-set(OPENEXR_LIBRARIES)
+-foreach(OPENEXR_LIB ${OpenEXR_FIND_COMPONENTS})
++foreach(OPENEXR_LIB
++    Half
++    Iex
++    Imath
++    IlmImf
++    IlmThread
++    IlmImfUtil
++    IexMath
++    OpenEXR
++    OpenEXRCore
++    OpenEXRUtil
++    )
+ 
+     # OpenEXR libraries may be suffixed with the version number, so we search
+     # using both versioned and unversioned names.
+     find_library(OPENEXR_${OPENEXR_LIB}_LIBRARY
+         NAMES
+             ${OPENEXR_LIB}-${OPENEXR_MAJOR_VERSION}_${OPENEXR_MINOR_VERSION}
+-            ${OPENEXR_LIB}-${OPENEXR_MAJOR_VERSION}_${OPENEXR_MINOR_VERSION}_s
+             ${OPENEXR_LIB}
+         HINTS
+             "${OPENEXR_LOCATION}"
+             "$ENV{OPENEXR_LOCATION}"
+-            "${OPENEXR_LIB_LOCATION}"
+         PATH_SUFFIXES
+             lib/
+         DOC
+             "OPENEXR's ${OPENEXR_LIB} library path"
+-        ${PATH_PARAMS})
++    )
+ 
+-    list(APPEND OPENEXR_LIBRARY_VARS OPENEXR_${OPENEXR_LIB}_LIBRARY)
+-    list(APPEND OPENEXR_LIBRARIES ${OPENEXR_${OPENEXR_LIB}_LIBRARY})
++    if(OPENEXR_${OPENEXR_LIB}_LIBRARY)
++        list(APPEND OPENEXR_LIBRARIES ${OPENEXR_${OPENEXR_LIB}_LIBRARY})
++    endif()
+ endforeach(OPENEXR_LIB)
+ 
+ # So #include <half.h> works
+@@ -107,7 +98,7 @@ include(FindPackageHandleStandardArgs)
+ find_package_handle_standard_args(OpenEXR
+     REQUIRED_VARS
+         OPENEXR_INCLUDE_DIRS
+-        ${OPENEXR_LIBRARY_VARS}
++        OPENEXR_LIBRARIES
+     VERSION_VAR
+         OPENEXR_VERSION
+ )
+diff --git a/cmake/modules/FindUSDMonolithic.cmake b/cmake/modules/FindUSDMonolithic.cmake
+index f0ba4b4..c06678f 100644
+--- a/cmake/modules/FindUSDMonolithic.cmake
++++ b/cmake/modules/FindUSDMonolithic.cmake
+@@ -1,6 +1,27 @@
+ # USD 20.05 does not generate cmake config for the monolithic library as it does for the default mode
+ # So we have to handle monolithic USD in a special way
+ 
++# Find Boost package before getting any boost specific components as we need to
++# disable boost-provided cmake config, based on the boost version found.
++find_package(Boost REQUIRED)
++
++# Boost provided cmake files (introduced in boost version 1.70) result in
++# inconsistent build failures on different platforms, when trying to find boost
++# component dependencies like python, program options, etc. Refer some related
++# discussions:
++# https://github.com/boostorg/python/issues/262#issuecomment-483069294
++# https://github.com/boostorg/boost_install/issues/12#issuecomment-508683006
++#
++# Hence to avoid issues with Boost provided cmake config, Boost_NO_BOOST_CMAKE
++# is enabled by default for boost version 1.70 and above. If a user explicitly
++# set Boost_NO_BOOST_CMAKE to Off, following will be a no-op.
++if (${Boost_VERSION_STRING} VERSION_GREATER_EQUAL "1.70")
++    option(Boost_NO_BOOST_CMAKE "Disable boost-provided cmake config" ON)
++    if (Boost_NO_BOOST_CMAKE)
++        message(STATUS "Disabling boost-provided cmake config")
++    endif()
++endif()
++
+ find_path(USD_INCLUDE_DIR pxr/pxr.h
+     PATHS ${pxr_DIR}/include
+           $ENV{pxr_DIR}/include
+@@ -51,10 +72,7 @@ if(USDMonolithic_FOUND)
+     # as Boost_VERSION_STRING in CMake 3.14+
+     set(boost_version_string "${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
+ 
+-    if (((${boost_version_string} VERSION_GREATER_EQUAL "1.67") AND
+-         (${boost_version_string} VERSION_LESS "1.70")) OR
+-        ((${boost_version_string} VERSION_GREATER_EQUAL "1.70") AND
+-          Boost_NO_BOOST_CMAKE))
++    if (${Boost_VERSION_STRING} VERSION_GREATER_EQUAL "1.67")
+         # As of boost 1.67 the boost_python component name includes the
+         # associated Python version (e.g. python27, python36). After boost 1.70
+         # the built-in cmake files will deal with this. If we are using boost
+diff --git a/pxr/imaging/rprUsd/CMakeLists.txt b/pxr/imaging/rprUsd/CMakeLists.txt
+index db2b8ab..9d4f852 100644
+--- a/pxr/imaging/rprUsd/CMakeLists.txt
++++ b/pxr/imaging/rprUsd/CMakeLists.txt
+@@ -158,6 +158,13 @@ if(PXR_VERSION GREATER_EQUAL 2108)
+     target_compile_definitions(rprUsd PRIVATE USE_USDSHADE_MTLX)
+ endif()
+ 
++target_link_libraries(rprUsd ${OPENEXR_LIBRARIES})
++target_link_libraries(rprUsd ${TBB_LIBRARY})
++
++target_include_directories(rprUsd PUBLIC ${OPENEXR_INCLUDE_DIR})
++target_include_directories(rprUsd PUBLIC ${IMATH_INCLUDE_DIR})
++target_include_directories(rprUsd PUBLIC ${TBB_INCLUDE_DIR})
++
+ add_dependencies(rprUsd_headerfiles rprUsdSchema)
+ 
+ if(HoudiniUSD_FOUND)
