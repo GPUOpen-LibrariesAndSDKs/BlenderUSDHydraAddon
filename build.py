@@ -53,11 +53,14 @@ def copy(src: Path, dest, ignore=()):
     else:
         shutil.copy(str(src), str(dest), follow_symlinks=False)
 
+
 def install_requirements(py_executable):
     check_call(py_executable, "-m", "pip", "install", "-r", "requirements.txt", "--user")
 
+
 def uninstall_requirements(py_executable):
     check_call(py_executable, "-m", "pip", "uninstall", "-r", "requirements.txt", "-y")
+
 
 def print_start(msg):
     print(f"""
