@@ -15,14 +15,12 @@
 import sys
 from pathlib import Path
 import subprocess
-import os
 import argparse
 import platform
 import shutil
 import zipfile
 import zlib
 import os
-import re
 
 OS = platform.system()
 repo_dir = Path(__file__).parent.resolve()
@@ -56,6 +54,11 @@ def copy(src: Path, dest, ignore=()):
     else:
         shutil.copy(str(src), str(dest), follow_symlinks=False)
 
+def install_requirements(py_executable):
+    check_call(py_executable, "-m", "pip", "install", "-r", "requirements.txt", "--user")
+
+def uninstall_requirements(py_executable):
+    check_call(py_executable, "-m", "pip", "uninstall", "-r", "requirements.txt", "-y")
 
 def print_start(msg):
     print(f"""
@@ -127,6 +130,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     LIBPREFIX = "" if OS == 'Windows' else "lib"
 
     py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
+    install_requirements(py_exe)
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -227,6 +231,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     finally:
         os.chdir(cur_dir)
+        uninstall_requirements(py_exe)
 
 
 def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
@@ -243,6 +248,9 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     EXT = ".exe" if OS == 'Windows' else ""
     LIBEXT = ".lib" if OS == 'Windows' else ".a"
     LIBPREFIX = "" if OS == 'Windows' else "lib"
+
+    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
+    install_requirements(py_exe)
 
     # Boost flags
     args = [
@@ -264,7 +272,7 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f'-Dpxr_DIR={usd_dir}',
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
-        f'-DPYTHON_EXECUTABLE={libdir}/python/310/bin/python{POSTFIX}{EXT}',
+        f'-DPYTHON_EXECUTABLE={py_exe}',
         f"-DOPENEXR_INCLUDE_DIR={libdir}/openexr/include/OpenEXR",
         f"-DOPENEXR_LIBRARIES={libdir}/openexr/lib/{LIBPREFIX}OpenEXR{POSTFIX}{LIBEXT}",
         f"-DImath_DIR={libdir}/imath/lib/cmake/Imath",
@@ -319,6 +327,7 @@ ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
         ch_dir(cur_dir)
         print(f"Reverting {pxr_init_py}")
         pxr_init_py.write_text(pxr_init_py_text)
+        uninstall_requirements(py_exe)
 
 
 def zip_addon(bin_dir):
