@@ -25,6 +25,7 @@ OS = platform.system()
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
 diff_dir = repo_dir / "patches"
+installed_modules = set()
 
 
 def rm_dir(d: Path):
@@ -55,11 +56,27 @@ def copy(src: Path, dest, ignore=()):
 
 
 def install_requirements(py_executable):
-    check_call(py_executable, "-m", "pip", "install", "-r", "requirements.txt", "--user")
+    with open("requirements.txt", "r") as file:
+        required_modules = file.readlines()
+
+    for m in required_modules:
+        try:
+            check_call(py_executable, '-c', f'import {m}')
+
+        except subprocess.CalledProcessError as e:
+            check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
+            installed_modules.add(m)
+
+        except Exception as e:
+            raise e
 
 
 def uninstall_requirements(py_executable):
-    check_call(py_executable, "-m", "pip", "uninstall", "-r", "requirements.txt", "-y")
+    for m in installed_modules:
+        try:
+            check_call(py_executable, "-m", "pip", "uninstall", f"{m}", "-y")
+        except Exception as e:
+            print("Error:", e)
 
 
 def print_start(msg):
