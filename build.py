@@ -25,7 +25,6 @@ OS = platform.system()
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
 diff_dir = repo_dir / "patches"
-installed_modules = set()
 
 
 def rm_dir(d: Path):
@@ -59,6 +58,7 @@ def install_requirements(py_executable):
     with open("requirements.txt", "r") as file:
         required_modules = file.readlines()
 
+    installed_modules = set()
     for m in required_modules:
         try:
             check_call(py_executable, '-c', f'import {m}')
@@ -70,8 +70,10 @@ def install_requirements(py_executable):
         except Exception as e:
             raise e
 
+    return installed_modules
 
-def uninstall_requirements(py_executable):
+
+def uninstall_requirements(py_executable, installed_modules):
     for m in installed_modules:
         try:
             check_call(py_executable, "-m", "pip", "uninstall", f"{m}", "-y")
@@ -149,7 +151,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     LIBPREFIX = "" if OS == 'Windows' else "lib"
 
     py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
-    install_requirements(py_exe)
+    installed_modules = install_requirements(py_exe)
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -250,7 +252,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     finally:
         os.chdir(cur_dir)
-        uninstall_requirements(py_exe)
+        uninstall_requirements(py_exe, installed_modules)
 
 
 def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
