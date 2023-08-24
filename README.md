@@ -70,6 +70,8 @@ Once SSH keys are installed update/checkout submodules for active branch:
 ### Build
 Require `python 3.10+` to be set by default.
 
+Download Blender precompiled libraries.
+
 #### Windows:
 Use Open x64 Native Tools Command Prompt for Visual Studio 2019 Community and run.
 ```commandline
