@@ -14,9 +14,7 @@ On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAdd
 
 ## Installing Add-on
 
-Download the add-on from the releases page [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases). Open Blender preferences and got to the Add-ons section click Install button and pick the add-on in File Browser. Enable the add-on from the Add-ons section. 
-
->_WINDOWS USERS: Please note that old versions need to be disabled and uninstalled, and then Blender restarted. This is the case with many Blender addons that use C++ extensions: https://developer.blender.org/T77837_
+Download the add-on from the releases page [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases). Open Blender preferences and got to the Add-ons section click Install button and pick the add-on in File Browser. Enable the add-on from the Add-ons section.
 
 ## Usage
 ### Rendering
