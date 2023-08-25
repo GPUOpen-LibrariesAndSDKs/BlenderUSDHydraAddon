@@ -26,7 +26,7 @@ At a simple level, this functions similar to any render addon to Blender, like C
 - [Python 3.10 x64](https://www.python.org/ftp/python/3.10.11/python-3.10.11.exe) _(Blender 4.0+ uses 3.10)_
   - requirements.txt
 
-- [Visual Studio 2019 Community](https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads) _(Windows only)_
+- [Visual Studio 2022 Community](https://visualstudio.microsoft.com/downloads/) _(Windows only)_
 - [CMake 3.22.2+](https://cmake.org/download/). Make sure it's added to the PATH environment variable
 - Subversion client, such as [TortoiseSVN](https://tortoisesvn.net/downloads.html)
 - [Git for Windows](https://gitforwindows.org/)
@@ -34,7 +34,7 @@ At a simple level, this functions similar to any render addon to Blender, like C
 ### Recommended software
 - [epydoc](http://epydoc.sourceforge.net/) - enable PyCharm to parse Core's documentation. Use `py -m pip install epydoc` with your selected python interpreter or install it from PyCharm.
 - [PyCharm Community Edition](https://www.jetbrains.com/pycharm/download/download-thanks.html?platform=windows&code=PCC) - recommended for coding, possible to enable intellisense(limited) for Blender code.
-- [Visual Studio 2019 Community](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) - has a powerful python extension, possible to enable intellisense for Blender, provides remote debugging in Blender.
+- [Visual Studio 2022 Community](https://visualstudio.microsoft.com/downloads) - has a powerful python extension, possible to enable intellisense for Blender, provides remote debugging in Blender.
 
 ### Coding Conventions
 Aim is to conform to [pep8](https://www.python.org/dev/peps/pep-0008/). 
@@ -70,23 +70,29 @@ Once SSH keys are installed update/checkout submodules for active branch:
 ### Build
 Require `python 3.10+` to be set by default.
 
-Download Blender precompiled libraries.
-
 #### Windows:
-Use Open x64 Native Tools Command Prompt for Visual Studio 2019 Community and run.
+Download Blender precompiled libraries.
+```commandline
+svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/win64_vc15
+```
+Use cmd.exe or any other command prompt.
 ```commandline
 > git clone https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon
 > cd BlenderUSDHydraAddon
 > git submodule update --init --recursive
-> python build.py -all -bl-libs-dir <libs_dir> -bin-dir bin -addon
+> python build.py -all -bl-libs-dir <libs_dir> -bin-dir bin
 ```
 
 #### Linux:
+Download Blender precompiled libraries.
+```commandline
+svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
+```
 ```commandline
 > git clone https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon
 > cd BlenderUSDHydraAddon
 > git submodule update --init --recursive
-> python tools/build.py -all -bl-libs-dir <libs_dir> -bin-dir bin -addon
+> python tools/build.py -all -bl-libs-dir <libs_dir> -bin-dir bin
 ```
 
 For building on non-default system python version you should change it with `update-alternatives --config python` command or via setting venv.
@@ -100,7 +106,7 @@ You can build project using `build.py` with different flag combinations. It allo
 - `-bin-dir <bin dir>` - define path to build binaries
 - `-bl-libs-dir <libs_dir>` - define path to Blender precompiled libraries
 - `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders in `<bin dir>`, `-usd -hdrpr -clean` removes only `<bin dir>/Usd` and `<bin dir>/HdRPR`
-- `-G "Visual Studio 16 2019"` - set builder, passing with `-all` and `-hdrpr` _(Windows only)_ 
+- `-G "Visual Studio 16 2022"` - set builder, passing with `-all` and `-hdrpr` _(Windows only)_ 
 - `-addon` - generates zip archive with plugin to `/install` folder
 
 Arguments are mostly used to skip build unneeded binaries. For example, you want switch to prebuild binary folder `bin/dir_01`:
@@ -108,7 +114,7 @@ Arguments are mostly used to skip build unneeded binaries. For example, you want
 > python build.py -addon -hdrpr -bin-dir bin/dir_01
 ```
 ### Debugging
-#### Visual Studio 2019
+#### Visual Studio 2022
 Recommended software for debugging, has really nice mixed python and C stack debugging. Provides to you ability of interactive code evaluation. You can make breakpoints move step by step, watch variables and etc.
 
 ##### 1. Run Blender with the Add-on
