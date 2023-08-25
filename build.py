@@ -271,7 +271,7 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     LIBPREFIX = "" if OS == 'Windows' else "lib"
 
     py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
-    install_requirements(py_exe)
+    installed_modules = install_requirements(py_exe)
 
     # Boost flags
     args = [
@@ -348,7 +348,8 @@ ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
         ch_dir(cur_dir)
         print(f"Reverting {pxr_init_py}")
         pxr_init_py.write_text(pxr_init_py_text)
-        uninstall_requirements(py_exe)
+
+        uninstall_requirements(py_exe, installed_modules)
 
 
 def zip_addon(bin_dir):
