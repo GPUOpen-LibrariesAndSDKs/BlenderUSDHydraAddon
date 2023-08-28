@@ -1,6 +1,6 @@
 # Blender USD Hydra Addon
 
-With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines and interchange, this addon is meant to add first class support for USD Hydra rendering system to Blender. This allows rendering in Blender via the USD Hydra Framework.
+With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines and interchange. This addon uses AMD Radeon™ ProRender renderer in USD Hydra rendering system in Blender.
 
 ## Additional Documentation
 - [Pixar USD](https://graphics.pixar.com/usd/docs/index.html)
