@@ -22,6 +22,11 @@ import zlib
 import os
 
 OS = platform.system()
+POSTFIX = ""
+EXT = ".exe" if OS == 'Windows' else ""
+LIBEXT = ".lib" if OS == 'Windows' else ".a"
+LIBPREFIX = "" if OS == 'Windows' else "lib"
+
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
 diff_dir = repo_dir / "patches"
@@ -58,14 +63,14 @@ def install_requirements(py_executable):
     with open("requirements.txt", "r") as file:
         required_modules = file.readlines()
 
-    installed_modules = set()
+    installed_modules = []
     for m in required_modules:
         try:
             check_call(py_executable, '-c', f'import {m}')
 
         except subprocess.CalledProcessError as e:
             check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
-            installed_modules.add(m)
+            installed_modules.append(m)
 
         except Exception as e:
             raise e
@@ -144,14 +149,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     usd_dir = deps_dir / "USD"
 
     libdir = bl_libs_dir.as_posix()
-
-    POSTFIX = "_d" if build_var == 'debug' else ""
-    EXT = ".exe" if OS == 'Windows' else ""
-    LIBEXT = ".lib" if OS == 'Windows' else ".a"
-    LIBPREFIX = "" if OS == 'Windows' else "lib"
-
     py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
-    installed_modules = install_requirements(py_exe)
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -252,7 +250,6 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     finally:
         os.chdir(cur_dir)
-        uninstall_requirements(py_exe, installed_modules)
 
 
 def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
@@ -265,13 +262,7 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    POSTFIX = "_d" if build_var == 'debug' else ""
-    EXT = ".exe" if OS == 'Windows' else ""
-    LIBEXT = ".lib" if OS == 'Windows' else ".a"
-    LIBPREFIX = "" if OS == 'Windows' else "lib"
-
     py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
-    installed_modules = install_requirements(py_exe)
 
     # Boost flags
     args = [
@@ -348,8 +339,6 @@ ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
         ch_dir(cur_dir)
         print(f"Reverting {pxr_init_py}")
         pxr_init_py.write_text(pxr_init_py_text)
-
-        uninstall_requirements(py_exe, installed_modules)
 
 
 def zip_addon(bin_dir):
@@ -514,15 +503,28 @@ def main():
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
     bin_dir = bin_dir.absolute()
     bin_dir.mkdir(parents=True, exist_ok=True)
+    global POSTFIX
+    if args.build_var == "debug":
+        POSTFIX = "_d"
 
     if args.all or args.materialx:
         materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
-    if args.all or args.usd:
-        usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+    installed_modules = None
+    py_exe = str(bl_libs_dir / "python/310/bin" / f"python{POSTFIX}{EXT}")
+    try:
+        if args.all or args.usd or args.hdrpr:
+            installed_modules = install_requirements(py_exe)
 
-    if args.all or args.hdrpr:
-        hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+        if args.all or args.usd:
+            usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+
+        if args.all or args.hdrpr:
+            hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+
+    finally:
+        if installed_modules:
+            uninstall_requirements(py_exe, installed_modules)
 
     if args.all or args.addon:
         zip_addon(bin_dir)
