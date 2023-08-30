@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import sys
 from pathlib import Path
 import subprocess
-import os
 import argparse
 import platform
 import shutil
 import zipfile
 import zlib
 import os
-import re
 
 OS = platform.system()
+POSTFIX = ""
+EXT = ".exe" if OS == 'Windows' else ""
+LIBEXT = ".lib" if OS == 'Windows' else ".a"
+LIBPREFIX = "" if OS == 'Windows' else "lib"
+
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
 diff_dir = repo_dir / "patches"
@@ -55,6 +57,33 @@ def copy(src: Path, dest, ignore=()):
         shutil.copytree(str(src), str(dest), ignore=shutil.ignore_patterns(*ignore), symlinks=True)
     else:
         shutil.copy(str(src), str(dest), follow_symlinks=False)
+
+
+def install_requirements(py_executable):
+    with open("requirements.txt", "r") as file:
+        required_modules = file.readlines()
+
+    installed_modules = []
+    for m in required_modules:
+        try:
+            check_call(py_executable, '-c', f'import {m}')
+
+        except subprocess.CalledProcessError as e:
+            check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
+            installed_modules.append(m)
+
+        except Exception as e:
+            raise e
+
+    return installed_modules
+
+
+def uninstall_requirements(py_executable, installed_modules):
+    for m in installed_modules:
+        try:
+            check_call(py_executable, "-m", "pip", "uninstall", f"{m}", "-y")
+        except Exception as e:
+            print("Error:", e)
 
 
 def print_start(msg):
@@ -120,12 +149,6 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     usd_dir = deps_dir / "USD"
 
     libdir = bl_libs_dir.as_posix()
-
-    POSTFIX = "_d" if build_var == 'debug' else ""
-    EXT = ".exe" if OS == 'Windows' else ""
-    LIBEXT = ".lib" if OS == 'Windows' else ".a"
-    LIBPREFIX = "" if OS == 'Windows' else "lib"
-
     py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
 
     # USD_PLATFORM_FLAGS
@@ -239,10 +262,7 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    POSTFIX = "_d" if build_var == 'debug' else ""
-    EXT = ".exe" if OS == 'Windows' else ""
-    LIBEXT = ".lib" if OS == 'Windows' else ".a"
-    LIBPREFIX = "" if OS == 'Windows' else "lib"
+    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
 
     # Boost flags
     args = [
@@ -264,7 +284,7 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f'-Dpxr_DIR={usd_dir}',
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
         '-DRPR_BUILD_AS_HOUDINI_PLUGIN=FALSE',
-        f'-DPYTHON_EXECUTABLE={libdir}/python/310/bin/python{POSTFIX}{EXT}',
+        f'-DPYTHON_EXECUTABLE={py_exe}',
         f"-DOPENEXR_INCLUDE_DIR={libdir}/openexr/include/OpenEXR",
         f"-DOPENEXR_LIBRARIES={libdir}/openexr/lib/{LIBPREFIX}OpenEXR{POSTFIX}{LIBEXT}",
         f"-DImath_DIR={libdir}/imath/lib/cmake/Imath",
@@ -483,15 +503,28 @@ def main():
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
     bin_dir = bin_dir.absolute()
     bin_dir.mkdir(parents=True, exist_ok=True)
+    global POSTFIX
+    if args.build_var == "debug":
+        POSTFIX = "_d"
 
     if args.all or args.materialx:
         materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
-    if args.all or args.usd:
-        usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+    installed_modules = None
+    py_exe = str(bl_libs_dir / "python/310/bin" / f"python{POSTFIX}{EXT}")
+    try:
+        if args.all or args.usd or args.hdrpr:
+            installed_modules = install_requirements(py_exe)
 
-    if args.all or args.hdrpr:
-        hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+        if args.all or args.usd:
+            usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+
+        if args.all or args.hdrpr:
+            hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+
+    finally:
+        if installed_modules:
+            uninstall_requirements(py_exe, installed_modules)
 
     if args.all or args.addon:
         zip_addon(bin_dir)
