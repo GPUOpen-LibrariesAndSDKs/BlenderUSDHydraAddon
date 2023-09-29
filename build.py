@@ -24,7 +24,7 @@ import os
 OS = platform.system()
 POSTFIX = ""
 EXT = ".exe" if OS == 'Windows' else ""
-LIBEXT = ".lib" if OS == 'Windows' else ".a"
+LIBEXT = ".lib" if OS == 'Windows' else ".so"
 LIBPREFIX = "" if OS == 'Windows' else "lib"
 
 repo_dir = Path(__file__).parent.resolve()
@@ -127,19 +127,21 @@ def _cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
 
 
 def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
-    py_exe = bl_libs_dir / "python/310/bin/python.exe"
+    libdir = bl_libs_dir.as_posix()
+    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
+        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
 
     _cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
         '-DMATERIALX_INSTALL_PYTHON=OFF',
-        f'-DMATERIALX_PYTHON_EXECUTABLE={py_exe.as_posix()}',
+        f'-DMATERIALX_PYTHON_EXECUTABLE={py_exe}',
         f'-DMATERIALX_PYTHON_VERSION=3.10',
         '-DMATERIALX_BUILD_SHARED_LIBS=ON',
         '-DMATERIALX_BUILD_TESTS=OFF',
         '-DCMAKE_DEBUG_POSTFIX=_d',
         f'-Dpybind11_ROOT=',
-        f'-DPython_EXECUTABLE={py_exe.as_posix()}',
+        f'-DPython_EXECUTABLE={py_exe}',
     ])
 
 
@@ -149,13 +151,14 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     usd_dir = deps_dir / "USD"
 
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
+        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
 
     # USD_PLATFORM_FLAGS
     args = [
-        "-DCMAKE_CXX_FLAGS=/DOIIO_STATIC_DEFINE /DOSL_STATIC_DEFINE",
+        # "-DCMAKE_CXX_FLAGS=/DOIIO_STATIC_DEFINE /DOSL_STATIC_DEFINE",
         "-D_PXR_CXX_DEFINITIONS=/DBOOST_ALL_NO_LIB",
-        f"-DCMAKE_SHARED_LINKER_FLAGS_INIT=/LIBPATH:{libdir}/tbb/lib",
+        # f"-DCMAKE_SHARED_LINKER_FLAGS_INIT=/LIBPATH:{libdir}/tbb/lib",
         "-DPython_FIND_REGISTRY=NEVER",
         f"-DPython3_EXECUTABLE={py_exe}",
     ]
@@ -262,7 +265,8 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
+        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
 
     # Boost flags
     args = [
@@ -280,6 +284,8 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     ]
 
     # HdRPR flags
+    usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
+
     args += [
         f'-Dpxr_DIR={usd_dir}',
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
@@ -291,19 +297,19 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f"-DIMATH_INCLUDE_DIR={libdir}/imath/include/Imath",
         '-DPXR_BUILD_MONOLITHIC=ON',
         f'-DUSD_LIBRARY_DIR={usd_dir / "lib"}',
-        f'-DUSD_MONOLITHIC_LIBRARY={usd_dir / "lib" / ("usd_ms_d.lib" if build_var == "debug" else "usd_ms.lib")}',
-
+        f'-DUSD_MONOLITHIC_LIBRARY={usd_monolitic_path}',
         f"-DTBB_INCLUDE_DIR={libdir}/tbb/include",
         f"-DTBB_LIBRARY={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
         f"-DOPENVDB_LOCATION={libdir}/openvdb",
     ]
 
-    # Adding required paths and preloading usd_ms.dll
-    pxr_init_py = usd_dir / "lib/python/pxr/__init__.py"
-    print(f"Modifying {pxr_init_py}")
-    pxr_init_py_text = pxr_init_py.read_text()
-    pxr_init_py.write_text(
-        pxr_init_py_text +
+    if OS == 'Windows':
+        # Adding required paths and preloading usd_ms.dll
+        pxr_init_py = usd_dir / "lib/python/pxr/__init__.py"
+        print(f"Modifying {pxr_init_py}")
+        pxr_init_py_text = pxr_init_py.read_text()
+        pxr_init_py.write_text(
+            pxr_init_py_text +
 f"""
 
 import os
@@ -320,6 +326,16 @@ os.add_dll_directory(r"{bl_libs_dir / 'openexr/bin'}")
 
 ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
 """)
+    else:
+        os.environ['LD_LIBRARY_PATH'] = ':'.join([os.environ.get('LD_LIBRARY_PATH', ''),
+                                                  f":{usd_dir / 'lib'}",
+                                                  f":{bl_libs_dir / 'boost/lib'}",
+                                                  f":{bl_libs_dir / 'tbb/lib'}",
+                                                  f":{bl_libs_dir / 'OpenImageIO/lib'}",
+                                                  f":{bl_libs_dir / 'openvdb/lib'}",
+                                                  f":{bin_dir / 'materialx/install/bin'}",
+                                                  f":{bl_libs_dir / 'imath/lib'}",
+                                                  f":{bl_libs_dir / 'openexr/lib'}"])
 
     cur_dir = os.getcwd()
     ch_dir(hdrpr_dir)
@@ -337,8 +353,9 @@ ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
 
     finally:
         ch_dir(cur_dir)
-        print(f"Reverting {pxr_init_py}")
-        pxr_init_py.write_text(pxr_init_py_text)
+        if OS == 'Windows':
+            print(f"Reverting {pxr_init_py}")
+            pxr_init_py.write_text(pxr_init_py_text)
 
 
 def zip_addon(bin_dir):
@@ -368,27 +385,29 @@ def zip_addon(bin_dir):
 
         hydrarpr_repo_dir = deps_dir / 'RadeonProRenderUSD'
         # copy RIF libraries
-        rif_libs_dir = hydrarpr_repo_dir / 'deps/RIF/Windows/Dynamic'
+        rif_libs_dir = hydrarpr_repo_dir / (
+            'deps/RIF/Windows/Dynamic' if OS == 'Windows' else 'deps/RIF/Ubuntu20/Dynamic')
         for f in rif_libs_dir.glob("**/*"):
-            if f.suffix in (".lib"):
+            if LIBEXT in f.suffix:
                 continue
 
             yield f, libs_rel_path / f.name
 
         # copy core libraries
-        core_libs_dir = hydrarpr_repo_dir / 'deps/RPR/RadeonProRender/binWin64'
+        core_libs_dir = hydrarpr_repo_dir / (
+            'deps/RPR/RadeonProRender/binWin64' if OS == 'Windows' else 'deps/RPR/RadeonProRender/binUbuntu18')
         for f in core_libs_dir.glob("**/*"):
-            if f.suffix in (".exe"):
+            if f.suffix in EXT:
                 continue
 
             yield f, libs_rel_path / f.name
 
         # copy rprUsd library
-        rprusd_lib = inst_dir / 'lib/rprUsd.dll'
+        rprusd_lib = inst_dir / ('lib/rprUsd.dll' if OS == 'Windows' else 'lib/librprUsd.so')
         yield rprusd_lib, libs_rel_path / rprusd_lib.name
 
         # copy hdRpr library
-        hdrpr_lib = plugin_dir / 'usd/hdRpr.dll'
+        hdrpr_lib = plugin_dir / ('usd/hdRpr.dll' if OS == 'Windows' else 'usd/hdRpr.so')
         yield hdrpr_lib, plugin_rel_path.parent / hdrpr_lib.name
 
         # copy plugInfo.json library
@@ -511,7 +530,9 @@ def main():
         materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     installed_modules = None
-    py_exe = str(bl_libs_dir / "python/310/bin" / f"python{POSTFIX}{EXT}")
+    py_exe = str(f"{bl_libs_dir}/python/310/bin/python{POSTFIX}{EXT}") if OS == 'Windows' \
+        else str(f"{bl_libs_dir}/python/bin/python3.10{POSTFIX}{EXT}")
+
     try:
         if args.all or args.usd or args.hdrpr:
             installed_modules = install_requirements(py_exe)
