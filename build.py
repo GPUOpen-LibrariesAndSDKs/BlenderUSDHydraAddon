@@ -156,9 +156,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     # USD_PLATFORM_FLAGS
     args = [
-        # "-DCMAKE_CXX_FLAGS=/DOIIO_STATIC_DEFINE /DOSL_STATIC_DEFINE",
         "-D_PXR_CXX_DEFINITIONS=/DBOOST_ALL_NO_LIB",
-        # f"-DCMAKE_SHARED_LINKER_FLAGS_INIT=/LIBPATH:{libdir}/tbb/lib",
         "-DPython_FIND_REGISTRY=NEVER",
         f"-DPython3_EXECUTABLE={py_exe}",
     ]
