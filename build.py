@@ -24,7 +24,7 @@ import os
 OS = platform.system()
 POSTFIX = ""
 EXT = ".exe" if OS == 'Windows' else ""
-LIBEXT = ".lib" if OS == 'Windows' else ".so"
+LIBEXT = ".lib" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
 LIBPREFIX = "" if OS == 'Windows' else "lib"
 
 repo_dir = Path(__file__).parent.resolve()
@@ -128,12 +128,13 @@ def _cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
 
 def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
-        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{libdir}/python/bin/python3.10"
 
     _cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
+        '-DMATERIALX_BUILD_VIEWER=ON',
         '-DMATERIALX_INSTALL_PYTHON=OFF',
         f'-DMATERIALX_PYTHON_EXECUTABLE={py_exe}',
         f'-DMATERIALX_PYTHON_VERSION=3.10',
@@ -149,10 +150,9 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     print_start("Building USD")
 
     usd_dir = deps_dir / "USD"
-
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
-        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{libdir}/python/bin/python3.10"
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -166,6 +166,16 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
             "-DPXR_USE_DEBUG_PYTHON=ON",
             f"-DOPENVDB_LIBRARY={libdir}/openvdb/lib/openvdb_d.lib",
         ]
+    if OS != 'Windows':
+        args += [
+            f"-DPython3_ROOT_DIR={libdir}/python/",
+            f"-DPYTHON_INCLUDE_DIR={libdir}/python/include/python3.10/",
+            f"-DPYTHON_LIBRARY={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
+        ]
+        if OS == 'Darwin':
+            args += [
+                f'-DCMAKE_SHARED_LINKER_FLAGS="-Xlinker -undefined -Xlinker dynamic_lookup"',
+            ]
 
     # DEFAULT_BOOST_FLAGS
     args += [
@@ -185,7 +195,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     args += [
         f"-DOPENSUBDIV_ROOT_DIR={libdir}/opensubdiv",
         f"-DOpenImageIO_ROOT={libdir}/openimageio",
-        #f"-DMaterialX_ROOT={libdir}/materialx",
+        # f"-DMaterialX_ROOT={libdir}/materialx",
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
         f"-DOPENEXR_LIBRARIES={libdir}/imath/lib/{LIBPREFIX}Imath{POSTFIX}{LIBEXT}",
         f"-DOPENEXR_INCLUDE_DIR={libdir}/imath/include",
@@ -502,7 +512,7 @@ def main():
     ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
                          'For example: -G "Visual Studio 16 2019"',
-                    default="Visual Studio 16 2019" if OS == 'Windows' else "")
+                    default="Visual Studio 16 2019" if OS == 'Windows' else "Xcode" if OS == 'Darwin' else "")
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
     ap.add_argument("-build-var", required=False, type=str, default="release",
