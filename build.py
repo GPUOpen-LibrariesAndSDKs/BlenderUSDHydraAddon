@@ -174,7 +174,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         ]
         if OS == 'Darwin':
             args += [
-                f'-DCMAKE_SHARED_LINKER_FLAGS="-Xlinker -undefined -Xlinker dynamic_lookup"',
+                f'-DCMAKE_SHARED_LINKER_FLAGS=-Xlinker -undefined -Xlinker dynamic_lookup',
             ]
 
     # DEFAULT_BOOST_FLAGS
