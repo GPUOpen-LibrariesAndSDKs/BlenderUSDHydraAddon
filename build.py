@@ -377,6 +377,50 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
             print(f"Reverting {pxr_init_py}")
             pxr_init_py.write_text(pxr_init_py_text)
 
+    if OS == 'Darwin':
+        lib_dir = bin_dir / "hdrpr/install/lib"
+        # removing and renaming
+        (lib_dir / "libRadeonImageFilters.dylib").unlink()
+        (lib_dir / "libRadeonImageFilters.1.dylib").unlink()
+        (lib_dir / "libRadeonImageFilters.1.7.3.dylib").rename(lib_dir / "libRadeonImageFilters.dylib")
+        check_call('install_name_tool', '-change',
+                   "@rpath/libRadeonImageFilters.1.dylib", "@rpath/libRadeonImageFilters.dylib",
+                   str(lib_dir / "libRadeonImageFilters.dylib"))
+        check_call('install_name_tool', '-change',
+                   "@rpath/libRadeonML.0.dylib", "@rpath/libRadeonML.dylib",
+                   str(lib_dir / "libRadeonImageFilters.dylib"))
+
+        (lib_dir / "libRadeonML.dylib").unlink()
+        (lib_dir / "libRadeonML.0.dylib").unlink()
+        (lib_dir / "libRadeonML.0.9.12.dylib").rename(lib_dir / "libRadeonML.dylib")
+        check_call('install_name_tool', '-change',
+                   "@rpath/libRadeonML.0.dylib", "@rpath/libRadeonML.dylib",
+                   str(lib_dir / "libRadeonML.dylib"))
+
+        (lib_dir / "libRadeonML_MPS.dylib").unlink()
+        (lib_dir / "libRadeonML_MPS.0.dylib").unlink()
+        (lib_dir / "libRadeonML_MPS.0.9.12.dylib").rename(lib_dir / "libRadeonML_MPS.dylib")
+        check_call('install_name_tool', '-change',
+                   "@rpath/libRadeonML_MPS.0.dylib", "@rpath/libRadeonML_MPS.dylib",
+                   str(lib_dir / "libRadeonML_MPS.dylib"))
+
+        # fixing @rpath
+        rprusd_lib = bin_dir / "hdrpr/install/lib/librprUsd.dylib"
+        assert rprusd_lib.exists()
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXFormat.1.dylib", "@rpath/libMaterialXFormat.dylib", str(rprusd_lib))
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXCore.1.dylib", "@rpath/libMaterialXCore.dylib", str(rprusd_lib))
+
+        hdrpr_lib = bin_dir / "hdrpr/install/plugin/usd/hdRpr.dylib"
+        assert hdrpr_lib.exists()
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXFormat.1.dylib", "@rpath/libMaterialXFormat.dylib", str(hdrpr_lib))
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXCore.1.dylib", "@rpath/libMaterialXCore.dylib", str(hdrpr_lib))
+        check_call('install_name_tool', '-change',
+                   "@rpath/libRadeonImageFilters.1.dylib", "@rpath/libRadeonImageFilters.dylib", str(hdrpr_lib))
+
 
 def zip_addon(bin_dir):
     print_start("Creating zip Addon")
@@ -407,36 +451,14 @@ def zip_addon(bin_dir):
         hydrarpr_repo_dir = deps_dir / "RadeonProRenderUSD"
         assert hydrarpr_repo_dir.exists()
 
-        # copy RIF libraries
-        rif_libs_dir = hydrarpr_repo_dir / 'deps/RIF' / {
-            'Windows': "Windows/Dynamic",
-            'Darwin': "OSX/Dynamic",
-            'Linux': "Ubuntu20/Dynamic",
-        }[OS]
-        assert rif_libs_dir.exists()
-        for f in rif_libs_dir.glob("**/*"):
-            if OS == 'Windows' and LIBEXT in f.suffix:
+        # copy libraries
+        lib_dir = inst_dir / 'lib'
+        assert lib_dir.exists()
+        for f in lib_dir.glob("**/*"):
+            if f.suffix != LIBEXT:
                 continue
 
             yield f, libs_rel_path / f.name
-
-        # copy RPR libraries
-        rpr_libs_dir = hydrarpr_repo_dir / "deps/RPR/RadeonProRender" / {
-            'Windows': "binWin64",
-            'Darwin': "binMacOS",
-            'Linux': "binUbuntu18",
-        }[OS]
-        assert rpr_libs_dir.exists()
-        for f in rpr_libs_dir.glob("**/*"):
-            if f.suffix in EXT:
-                continue
-
-            yield f, libs_rel_path / f.name
-
-        # copy rprUsd library
-        rprusd_lib = inst_dir / f"lib/{LIBPREFIX}rprUsd{LIBEXT}"
-        assert rprusd_lib.exists()
-        yield rprusd_lib, libs_rel_path / rprusd_lib.name
 
         # copy hdRpr library
         hdrpr_lib = plugin_dir / f"usd/hdRpr{LIBEXT}"
