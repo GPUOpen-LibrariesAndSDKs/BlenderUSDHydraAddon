@@ -391,6 +391,7 @@ def zip_addon(bin_dir):
 
         # copy addon scripts
         hydrarpr_plugin_dir = repo_dir / 'src/hydrarpr'
+        assert hydrarpr_plugin_dir.exists()
         for f in hydrarpr_plugin_dir.glob("**/*"):
             if f.is_dir():
                 continue
@@ -403,38 +404,52 @@ def zip_addon(bin_dir):
 
             yield f, rel_path
 
-        hydrarpr_repo_dir = deps_dir / 'RadeonProRenderUSD'
+        hydrarpr_repo_dir = deps_dir / "RadeonProRenderUSD"
+        assert hydrarpr_repo_dir.exists()
+
         # copy RIF libraries
-        rif_libs_dir = hydrarpr_repo_dir / (
-            'deps/RIF/Windows/Dynamic' if OS == 'Windows' else 'deps/RIF/Ubuntu20/Dynamic')
+        rif_libs_dir = hydrarpr_repo_dir / 'deps/RIF' / {
+            'Windows': "Windows/Dynamic",
+            'Darwin': "OSX/Dynamic",
+            'Linux': "Ubuntu20/Dynamic",
+        }[OS]
+        assert rif_libs_dir.exists()
         for f in rif_libs_dir.glob("**/*"):
-            if LIBEXT in f.suffix:
+            if OS == 'Windows' and LIBEXT in f.suffix:
                 continue
 
             yield f, libs_rel_path / f.name
 
-        # copy core libraries
-        core_libs_dir = hydrarpr_repo_dir / (
-            'deps/RPR/RadeonProRender/binWin64' if OS == 'Windows' else 'deps/RPR/RadeonProRender/binUbuntu18')
-        for f in core_libs_dir.glob("**/*"):
+        # copy RPR libraries
+        rpr_libs_dir = hydrarpr_repo_dir / "deps/RPR/RadeonProRender" / {
+            'Windows': "binWin64",
+            'Darwin': "binMacOS",
+            'Linux': "binUbuntu18",
+        }[OS]
+        assert rpr_libs_dir.exists()
+        for f in rpr_libs_dir.glob("**/*"):
             if f.suffix in EXT:
                 continue
 
             yield f, libs_rel_path / f.name
 
         # copy rprUsd library
-        rprusd_lib = inst_dir / ('lib/rprUsd.dll' if OS == 'Windows' else 'lib/librprUsd.so')
+        rprusd_lib = inst_dir / f"lib/{LIBPREFIX}rprUsd{LIBEXT}"
+        assert rprusd_lib.exists()
         yield rprusd_lib, libs_rel_path / rprusd_lib.name
 
         # copy hdRpr library
-        hdrpr_lib = plugin_dir / ('usd/hdRpr.dll' if OS == 'Windows' else 'usd/hdRpr.so')
+        hdrpr_lib = plugin_dir / f"usd/hdRpr{LIBEXT}"
+        assert hdrpr_lib.exists()
         yield hdrpr_lib, plugin_rel_path.parent / hdrpr_lib.name
 
         # copy plugInfo.json library
         pluginfo = plugin_dir / 'plugInfo.json'
+        assert pluginfo.exists()
         yield pluginfo, plugin_rel_path.parent.parent / pluginfo.name
 
         # copy plugin/usd folders
+        assert plugin_dir.exists()
         for f in plugin_dir.glob("**/*"):
             rel_path = f.relative_to(plugin_dir.parent)
             if any(p in rel_path.parts for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
@@ -442,6 +457,7 @@ def zip_addon(bin_dir):
 
         # copy python rpr
         pyrpr_dir = bin_dir / 'install/lib/python/rpr'
+        assert pyrpr_dir.exists()
         (pyrpr_dir / "RprUsd/__init__.py").write_text("")
         for f in (pyrpr_dir / "__init__.py", pyrpr_dir / "RprUsd/__init__.py"):
             yield f, Path("libs") / f.relative_to(pyrpr_dir.parent.parent)
