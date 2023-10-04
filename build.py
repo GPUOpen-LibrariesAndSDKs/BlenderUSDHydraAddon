@@ -485,7 +485,7 @@ def zip_addon(bin_dir):
             yield f, Path("libs") / f.relative_to(pyrpr_dir.parent.parent)
 
     def get_version():
-        # getting buid version
+        # getting build version
         build_ver = subprocess.getoutput("git rev-parse --short HEAD")
 
         # # getting plugin version
