@@ -273,8 +273,8 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
-        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' \
+        else f"{libdir}/python/bin/python3.10"
 
     # Boost flags
     args = [
@@ -311,39 +311,51 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f"-DOPENVDB_LOCATION={libdir}/openvdb",
     ]
 
+    # Adding required paths and preloading usd_ms.dll
+    paths = [
+        usd_dir / 'lib',
+        bl_libs_dir / 'boost/lib',
+        bl_libs_dir / 'tbb/lib',
+        bl_libs_dir / 'openimageio/lib',
+        bl_libs_dir / 'openvdb/lib',
+        bin_dir / 'materialx/install/bin',
+        bl_libs_dir / 'imath/lib',
+        bl_libs_dir / 'openexr/lib',
+    ]
+    pxr_init_py = usd_dir / "lib/python/pxr/__init__.py"
+    pxr_init_py_text = None
+
     if OS == 'Windows':
-        # Adding required paths and preloading usd_ms.dll
-        pxr_init_py = usd_dir / "lib/python/pxr/__init__.py"
         print(f"Modifying {pxr_init_py}")
         pxr_init_py_text = pxr_init_py.read_text()
-        pxr_init_py.write_text(
-            pxr_init_py_text +
-f"""
+        text_new = pxr_init_py_text
+        text_new += f"""
 
 import os
 import ctypes
 
-os.add_dll_directory(r"{usd_dir / 'lib'}")
-os.add_dll_directory(r"{bl_libs_dir / 'boost/lib'}")
-os.add_dll_directory(r"{bl_libs_dir / 'tbb/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'OpenImageIO/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'openvdb/bin'}")
-os.add_dll_directory(r"{bin_dir / 'materialx/install/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'imath/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'openexr/bin'}")
+"""
+        for p in paths:
+            text_new += f'os.add_dll_directory(r"{p}")\n'
+        text_new += f'\nctypes.CDLL(r"{usd_dir / "lib/usd_ms.dll"}")\n'
+        pxr_init_py.write_text(text_new)
 
-ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
-""")
-    else:
-        os.environ['LD_LIBRARY_PATH'] = ':'.join([os.environ.get('LD_LIBRARY_PATH', ''),
-                                                  f":{usd_dir / 'lib'}",
-                                                  f":{bl_libs_dir / 'boost/lib'}",
-                                                  f":{bl_libs_dir / 'tbb/lib'}",
-                                                  f":{bl_libs_dir / 'OpenImageIO/lib'}",
-                                                  f":{bl_libs_dir / 'openvdb/lib'}",
-                                                  f":{bin_dir / 'materialx/install/bin'}",
-                                                  f":{bl_libs_dir / 'imath/lib'}",
-                                                  f":{bl_libs_dir / 'openexr/lib'}"])
+    elif OS == 'Darwin':
+        print(f"Modifying {pxr_init_py}")
+        pxr_init_py_text = pxr_init_py.read_text()
+        text_new = pxr_init_py_text
+        text_new += f"""
+
+import ctypes
+
+ctypes.CDLL(r"{bl_libs_dir / 'imath/lib/libImath.dylib'}")
+ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXR.dylib'}")
+ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
+"""
+        pxr_init_py.write_text(text_new)
+
+    else:   # OS == 'Linux':
+        os.environ['LD_LIBRARY_PATH'] = ':'.join(str(p) for p in paths)
 
     cur_dir = os.getcwd()
     ch_dir(hdrpr_dir)
@@ -361,7 +373,7 @@ ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
 
     finally:
         ch_dir(cur_dir)
-        if OS == 'Windows':
+        if pxr_init_py_text:
             print(f"Reverting {pxr_init_py}")
             pxr_init_py.write_text(pxr_init_py_text)
 
@@ -511,8 +523,8 @@ def main():
                     help="Create zip addon")
     ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
-                         'For example: -G "Visual Studio 16 2019"',
-                    default="Visual Studio 16 2019" if OS == 'Windows' else "Xcode" if OS == 'Darwin' else "")
+                         'For example: -G "Visual Studio 16 2019" or -G "Xcode"',
+                    default="Visual Studio 16 2019" if OS == 'Windows' else "")
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
     ap.add_argument("-build-var", required=False, type=str, default="release",
