@@ -553,9 +553,12 @@ def main():
                     help="Build USD")
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
-    ap.add_argument("-bl-libs-dir", required=False, type=str, default="",
+    ap.add_argument("-bl-libs-dir", required=False, type=str,
+                    default={'Windows': r"..\lib\win64_vc15",
+                             'Darwin': "../lib/darwin",
+                             'Linux': "../lib/linux_x86_64_glibc_228"}[OS],
                     help="Path to root of Blender libs directory"),
-    ap.add_argument("-bin-dir", required=False, type=str, default="",
+    ap.add_argument("-bin-dir", required=False, type=str, default="bin",
                     help="Path to binary directory")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
