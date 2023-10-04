@@ -30,6 +30,7 @@ class RPRHydraRenderEngine(bpy.types.HydraRenderEngine):
     bl_info = "Hydra Radeon ProRender delegate"
 
     bl_use_preview = True
+    bl_use_materialx = True
 
     bl_delegate_id = "HdRprPlugin"
 
