@@ -135,7 +135,7 @@ def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     _cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
-        '-DMATERIALX_BUILD_VIEWER=ON',
+        # '-DMATERIALX_BUILD_VIEWER=ON',
         '-DMATERIALX_INSTALL_PYTHON=OFF',
         f'-DMATERIALX_PYTHON_EXECUTABLE={py_exe}',
         f'-DMATERIALX_PYTHON_VERSION=3.10',
