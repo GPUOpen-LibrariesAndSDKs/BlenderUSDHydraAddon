@@ -25,6 +25,7 @@ OS = platform.system()
 POSTFIX = ""
 EXT = ".exe" if OS == 'Windows' else ""
 LIBEXT = ".lib" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
+DLLEXT = ".dll" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
 LIBPREFIX = "" if OS == 'Windows' else "lib"
 
 repo_dir = Path(__file__).parent.resolve()
@@ -273,8 +274,8 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' \
-        else f"{libdir}/python/bin/python3.10"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{libdir}/python/bin/python3.10"
 
     # Boost flags
     args = [
@@ -311,16 +312,16 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f"-DOPENVDB_LOCATION={libdir}/openvdb",
     ]
 
-    # Adding required paths and preloading usd_ms.dll
+    lib_name = "bin" if OS == 'Windows' else "lib"
     paths = [
         usd_dir / 'lib',
         bl_libs_dir / 'boost/lib',
-        bl_libs_dir / 'tbb/lib',
-        bl_libs_dir / 'openimageio/lib',
-        bl_libs_dir / 'openvdb/lib',
-        bin_dir / 'materialx/install/bin',
-        bl_libs_dir / 'imath/lib',
-        bl_libs_dir / 'openexr/lib',
+        bl_libs_dir / f'tbb/{lib_name}',
+        bl_libs_dir / f'openimageio/{lib_name}',
+        bl_libs_dir / f'openvdb/{lib_name}',
+        bin_dir / f'materialx/install/{lib_name}',
+        bl_libs_dir / f'imath/{lib_name}',
+        bl_libs_dir / f'openexr/{lib_name}',
     ]
     pxr_init_py = usd_dir / "lib/python/pxr/__init__.py"
     pxr_init_py_text = None
@@ -335,10 +336,12 @@ import os
 import ctypes
 
 """
+        # Adding required paths and preloading usd_ms.dll
         for p in paths:
             text_new += f'os.add_dll_directory(r"{p}")\n'
         text_new += f'\nctypes.CDLL(r"{usd_dir / "lib/usd_ms.dll"}")\n'
         pxr_init_py.write_text(text_new)
+        print(text_new)
 
     elif OS == 'Darwin':
         print(f"Modifying {pxr_init_py}")
@@ -353,6 +356,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXR.dylib'}")
 ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
 """
         pxr_init_py.write_text(text_new)
+        print(text_new)
 
     else:   # OS == 'Linux':
         os.environ['LD_LIBRARY_PATH'] = ':'.join(str(p) for p in paths)
@@ -455,13 +459,13 @@ def zip_addon(bin_dir):
         lib_dir = inst_dir / 'lib'
         assert lib_dir.exists()
         for f in lib_dir.glob("**/*"):
-            if f.suffix != LIBEXT:
+            if f.suffix != DLLEXT:
                 continue
 
             yield f, libs_rel_path / f.name
 
         # copy hdRpr library
-        hdrpr_lib = plugin_dir / f"usd/hdRpr{LIBEXT}"
+        hdrpr_lib = plugin_dir / f"usd/hdRpr{DLLEXT}"
         assert hdrpr_lib.exists()
         yield hdrpr_lib, plugin_rel_path.parent / hdrpr_lib.name
 
@@ -553,13 +557,14 @@ def main():
                     help="Build USD")
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
+    libs_dir_default = {'Windows': r"..\lib\win64_vc15",
+                        'Darwin': "../lib/darwin",
+                        'Linux': "../lib/linux_x86_64_glibc_228"}[OS]
     ap.add_argument("-bl-libs-dir", required=False, type=str,
-                    default={'Windows': r"..\lib\win64_vc15",
-                             'Darwin': "../lib/darwin",
-                             'Linux': "../lib/linux_x86_64_glibc_228"}[OS],
-                    help="Path to root of Blender libs directory"),
+                    default=libs_dir_default,
+                    help=f"Path to root of Blender libs directory. (default: {libs_dir_default})"),
     ap.add_argument("-bin-dir", required=False, type=str, default="bin",
-                    help="Path to binary directory")
+                    help="Path to binary directory. (default: bin)")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
     ap.add_argument("-G", required=False, type=str,
@@ -591,8 +596,8 @@ def main():
         materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     installed_modules = None
-    py_exe = str(f"{bl_libs_dir}/python/310/bin/python{POSTFIX}{EXT}") if OS == 'Windows' \
-        else str(f"{bl_libs_dir}/python/bin/python3.10{POSTFIX}{EXT}")
+    py_exe = f"{bl_libs_dir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{bl_libs_dir}/python/bin/python3.10"
 
     try:
         if args.all or args.usd or args.hdrpr:
