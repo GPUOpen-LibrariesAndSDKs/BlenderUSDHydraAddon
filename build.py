@@ -380,31 +380,34 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
             print(f"Reverting {pxr_init_py}")
             pxr_init_py.write_text(pxr_init_py_text)
 
+    rif_ver = "1.7.3"
+    ml_ver = "0.9.12"
+    mi_ver = "2.0.5"
     if OS == 'Darwin':
         lib_dir = bin_dir / "hdrpr/install/lib"
         # removing and renaming
         (lib_dir / "libRadeonImageFilters.dylib").unlink()
-        (lib_dir / "libRadeonImageFilters.1.dylib").unlink()
-        (lib_dir / "libRadeonImageFilters.1.7.3.dylib").rename(lib_dir / "libRadeonImageFilters.dylib")
+        (lib_dir / f"libRadeonImageFilters.{rif_ver[0]}.dylib").unlink()
+        (lib_dir / f"libRadeonImageFilters.{rif_ver}.dylib").rename(lib_dir / "libRadeonImageFilters.dylib")
         check_call('install_name_tool', '-change',
-                   "@rpath/libRadeonImageFilters.1.dylib", "@rpath/libRadeonImageFilters.dylib",
+                   f"@rpath/libRadeonImageFilters.{rif_ver[0]}.dylib", "@rpath/libRadeonImageFilters.dylib",
                    str(lib_dir / "libRadeonImageFilters.dylib"))
         check_call('install_name_tool', '-change',
-                   "@rpath/libRadeonML.0.dylib", "@rpath/libRadeonML.dylib",
+                   f"@rpath/libRadeonML.{ml_ver[0]}.dylib", "@rpath/libRadeonML.dylib",
                    str(lib_dir / "libRadeonImageFilters.dylib"))
 
         (lib_dir / "libRadeonML.dylib").unlink()
-        (lib_dir / "libRadeonML.0.dylib").unlink()
-        (lib_dir / "libRadeonML.0.9.12.dylib").rename(lib_dir / "libRadeonML.dylib")
+        (lib_dir / f"libRadeonML.{ml_ver[0]}.dylib").unlink()
+        (lib_dir / f"libRadeonML.{ml_ver}.dylib").rename(lib_dir / "libRadeonML.dylib")
         check_call('install_name_tool', '-change',
-                   "@rpath/libRadeonML.0.dylib", "@rpath/libRadeonML.dylib",
+                   f"@rpath/libRadeonML.{ml_ver[0]}.dylib", "@rpath/libRadeonML.dylib",
                    str(lib_dir / "libRadeonML.dylib"))
 
         (lib_dir / "libRadeonML_MPS.dylib").unlink()
-        (lib_dir / "libRadeonML_MPS.0.dylib").unlink()
-        (lib_dir / "libRadeonML_MPS.0.9.12.dylib").rename(lib_dir / "libRadeonML_MPS.dylib")
+        (lib_dir / f"libRadeonML_MPS.{ml_ver[0]}.dylib").unlink()
+        (lib_dir / f"libRadeonML_MPS.{ml_ver}.dylib").rename(lib_dir / "libRadeonML_MPS.dylib")
         check_call('install_name_tool', '-change',
-                   "@rpath/libRadeonML_MPS.0.dylib", "@rpath/libRadeonML_MPS.dylib",
+                   f"@rpath/libRadeonML_MPS.{ml_ver[0]}.dylib", "@rpath/libRadeonML_MPS.dylib",
                    str(lib_dir / "libRadeonML_MPS.dylib"))
 
         # fixing @rpath
@@ -423,6 +426,34 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
                    "@rpath/libMaterialXCore.1.dylib", "@rpath/libMaterialXCore.dylib", str(hdrpr_lib))
         check_call('install_name_tool', '-change',
                    "@rpath/libRadeonImageFilters.1.dylib", "@rpath/libRadeonImageFilters.dylib", str(hdrpr_lib))
+                   
+    elif OS == 'Linux':
+        lib_dir = bin_dir / "hdrpr/install/lib"
+        
+        # removing and renaming
+        (lib_dir / "libRadeonImageFilters.so").unlink()
+        (lib_dir / f"libRadeonImageFilters.so.{rif_ver[0]}").unlink()
+        (lib_dir / f"libRadeonImageFilters.so.{rif_ver}").rename(lib_dir / "libRadeonImageFilters.so")
+        check_call('patchelf', '--replace-needed',
+                   f"libRadeonML.so.{ml_ver[0]}", "libRadeonML.so",
+                   str(lib_dir / "libRadeonImageFilters.so"))
+
+        (lib_dir / f"libRadeonML.so.{ml_ver[0]}").unlink()
+        (lib_dir / f"libRadeonML.so.{ml_ver}").rename(lib_dir / "libRadeonML.so")
+
+        (lib_dir / "libRadeonML_MIOpen.so").unlink()
+        (lib_dir / f"libRadeonML_MIOpen.so.{ml_ver[0]}").unlink()
+        (lib_dir / f"libRadeonML_MIOpen.so.{ml_ver}").rename(lib_dir / "libRadeonML_MIOpen.so")
+
+        (lib_dir / "libMIOpen.so").unlink()
+        (lib_dir / f"libMIOpen.so.{mi_ver[0]}").unlink()
+        (lib_dir / f"libMIOpen.so.{mi_ver}").rename(lib_dir / "libMIOpen.so")
+
+        hdrpr_lib = bin_dir / "hdrpr/install/plugin/usd/hdRpr.so"
+        assert hdrpr_lib.exists()
+        check_call('patchelf', '--replace-needed',
+                   "libRadeonImageFilters.so.1", "libRadeonImageFilters.so", str(hdrpr_lib))
+
 
 
 def zip_addon(bin_dir):
