@@ -196,7 +196,6 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     args += [
         f"-DOPENSUBDIV_ROOT_DIR={libdir}/opensubdiv",
         f"-DOpenImageIO_ROOT={libdir}/openimageio",
-        # f"-DMaterialX_ROOT={libdir}/materialx",
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
         f"-DOPENEXR_LIBRARIES={libdir}/imath/lib/{LIBPREFIX}Imath{POSTFIX}{LIBEXT}",
         f"-DOPENEXR_INCLUDE_DIR={libdir}/imath/include",
@@ -451,9 +450,6 @@ def zip_addon(bin_dir):
                 continue
 
             yield f, rel_path
-
-        hydrarpr_repo_dir = deps_dir / "RadeonProRenderUSD"
-        assert hydrarpr_repo_dir.exists()
 
         # copy libraries
         lib_dir = inst_dir / 'lib'
