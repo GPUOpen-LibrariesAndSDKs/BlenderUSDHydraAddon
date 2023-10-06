@@ -8,7 +8,7 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
 - [MaterialX](http://www.materialx.org/)
 
 ## Requirements
-Currently, this addon works only with [Blender 4.0+](https://www.blender.org/download/) in Windows and Linux.
+Currently, this addon works only with [Blender 4.0+](https://www.blender.org/download/) in Windows, Mac OS and Linux.
 
 On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the ready to install addon. 
 
