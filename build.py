@@ -128,6 +128,8 @@ def _cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
 
 
 def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
+    print_start("Building MaterialX")
+
     libdir = bl_libs_dir.as_posix()
     py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
              f"{libdir}/python/bin/python3.10"
