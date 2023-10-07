@@ -20,12 +20,18 @@ import shutil
 import zipfile
 import zlib
 import os
+import sys
+import sysconfig
+from urllib.request import urlopen
+
 
 OS = platform.system()
 POSTFIX = ""
 EXT = ".exe" if OS == 'Windows' else ""
-LIBEXT = ".lib" if OS == 'Windows' else ".so"
+LIBEXT = ".lib" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
+DLLEXT = ".dll" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
 LIBPREFIX = "" if OS == 'Windows' else "lib"
+BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
 
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
@@ -86,6 +92,45 @@ def uninstall_requirements(py_executable, installed_modules):
             print("Error:", e)
 
 
+def get_version():
+    # getting build version
+    build_ver = subprocess.getoutput("git rev-parse --short HEAD")
+
+    # # getting plugin version
+    # text = (repo_dir / "src/hdusd/__init__.py").read_text()
+    # m = re.search(r'"version": \((\d+), (\d+), (\d+)\)', text)
+    # plugin_ver = m.group(1), m.group(2), m.group(3)
+    #
+    # return (*plugin_ver, build_ver)
+    return build_ver
+
+
+def create_zip_addon(install_dir, bin_dir, name, package_name, enumerate_addon_data, ver):
+    """ Pack addon files to zip archive """
+    zip_addon = install_dir / name
+    if zip_addon.is_file():
+        os.remove(zip_addon)
+
+    print(f"Compressing addon files to: {zip_addon}")
+    with zipfile.ZipFile(zip_addon, 'w', compression=zipfile.ZIP_DEFLATED,
+                         compresslevel=zlib.Z_BEST_COMPRESSION) as myzip:
+        for src, package_path in enumerate_addon_data(bin_dir):
+            print(f"adding {src} --> {package_path}")
+
+            arcname = str(Path(package_name) / package_path)
+
+            if str(package_path) == "__init__.py":
+                print(f"    set version_build={ver[3]}")
+                text = src.read_text(encoding='utf-8')
+                text = text.replace('version_build = ""', f'version_build = "{ver[3]}"')
+                myzip.writestr(arcname, text)
+                continue
+
+            myzip.write(str(src), arcname=arcname)
+
+    return zip_addon
+
+
 def print_start(msg):
     print(f"""
 -------------------------------------------------------------
@@ -127,13 +172,16 @@ def _cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
 
 
 def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
+    print_start("Building MaterialX")
+
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
-        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{libdir}/python/bin/python3.10"
 
     _cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
+        # '-DMATERIALX_BUILD_VIEWER=ON',
         '-DMATERIALX_INSTALL_PYTHON=OFF',
         f'-DMATERIALX_PYTHON_EXECUTABLE={py_exe}',
         f'-DMATERIALX_PYTHON_VERSION=3.10',
@@ -149,10 +197,9 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     print_start("Building USD")
 
     usd_dir = deps_dir / "USD"
-
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
-        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{libdir}/python/bin/python3.10"
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -166,6 +213,16 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
             "-DPXR_USE_DEBUG_PYTHON=ON",
             f"-DOPENVDB_LIBRARY={libdir}/openvdb/lib/openvdb_d.lib",
         ]
+    if OS != 'Windows':
+        args += [
+            f"-DPython3_ROOT_DIR={libdir}/python/",
+            f"-DPYTHON_INCLUDE_DIR={libdir}/python/include/python3.10/",
+            f"-DPYTHON_LIBRARY={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
+        ]
+        if OS == 'Darwin':
+            args += [
+                f'-DCMAKE_SHARED_LINKER_FLAGS=-Xlinker -undefined -Xlinker dynamic_lookup',
+            ]
 
     # DEFAULT_BOOST_FLAGS
     args += [
@@ -185,7 +242,6 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     args += [
         f"-DOPENSUBDIV_ROOT_DIR={libdir}/opensubdiv",
         f"-DOpenImageIO_ROOT={libdir}/openimageio",
-        #f"-DMaterialX_ROOT={libdir}/materialx",
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
         f"-DOPENEXR_LIBRARIES={libdir}/imath/lib/{LIBPREFIX}Imath{POSTFIX}{LIBEXT}",
         f"-DOPENEXR_INCLUDE_DIR={libdir}/imath/include",
@@ -253,6 +309,78 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         os.chdir(cur_dir)
 
 
+def boost(bin_dir, clean):
+    print_start("Building Boost")
+
+    boost_dir = bin_dir / "boost"
+    deps_dir = boost_dir / "deps"
+    install_dir = boost_dir / "install"
+    build_dir = boost_dir / "build"
+    arch_filepath = deps_dir / Path(BOOST_URL).name
+    src_dir = deps_dir / Path(BOOST_URL).stem
+
+    cur_dir = os.getcwd()
+    if clean:
+        rm_dir(boost_dir)
+
+    os.makedirs(boost_dir, exist_ok=True)
+
+    # Download and extract Boost
+    if not deps_dir.exists():
+        deps_dir.mkdir()
+
+        print("Downloading Boost: ", arch_filepath)
+        data = urlopen(BOOST_URL)
+        with open(arch_filepath, "wb") as file:
+            file.write(data.read())
+
+        assert zipfile.is_zipfile(arch_filepath)
+
+        print("Extracting Boost to: ", src_dir)
+        archive = zipfile.ZipFile(arch_filepath)
+        with archive:
+            archive.extractall(deps_dir)
+
+    # Installing Boost
+    print("Installing Boost to: ", install_dir)
+    os.chdir(str(src_dir))
+
+    # python-config.jam is required for boost::python
+    project_path = 'python-config.jam'
+    with open(project_path, 'w') as project_file:
+        project_file.write("\n".join([
+            f'using python : {sysconfig.get_config_var("py_version_short")}',
+            f'  : "{Path(sys.executable).as_posix()}"',
+            f'  : "{Path(sysconfig.get_path("include")).as_posix()}"',
+            f'  : "{(Path(sysconfig.get_config_var("base")) / "libs").as_posix()}"',
+            '  ;\n'
+        ]))
+
+    args = [
+        "b2",
+        f"--prefix={install_dir}",
+        f"--build-dir={build_dir}",
+        f"-j8",
+        "address-model=64",
+        "link=shared",
+        "runtime-link=shared",
+        "threading=multi",
+        "variant=release",
+        "--with-log",
+        "--with-python",
+        f"--user-config={project_path}",
+        "-sNO_BZIP2=1",
+        "toolset=msvc-14.2",
+        "install"
+    ]
+
+    try:
+        check_call("bootstrap.bat", f'--prefix="{install_dir}"')
+        check_call(*args)
+    finally:
+        os.chdir(cur_dir)
+
+
 def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     print_start("Building HdRPR")
 
@@ -263,8 +391,8 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    py_exe = f"{libdir}/python/310/bin/python{POSTFIX}{EXT}" if OS == 'Windows' \
-        else f"{libdir}/python/bin/python3.10{POSTFIX}{EXT}"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{libdir}/python/bin/python3.10"
 
     # Boost flags
     args = [
@@ -301,39 +429,54 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f"-DOPENVDB_LOCATION={libdir}/openvdb",
     ]
 
+    lib_name = "bin" if OS == 'Windows' else "lib"
+    paths = [
+        usd_dir / 'lib',
+        bl_libs_dir / 'boost/lib',
+        bl_libs_dir / f'tbb/{lib_name}',
+        bl_libs_dir / f'openimageio/{lib_name}',
+        bl_libs_dir / f'openvdb/{lib_name}',
+        bin_dir / f'materialx/install/{lib_name}',
+        bl_libs_dir / f'imath/{lib_name}',
+        bl_libs_dir / f'openexr/{lib_name}',
+    ]
+    pxr_init_py = usd_dir / "lib/python/pxr/__init__.py"
+    pxr_init_py_text = None
+
     if OS == 'Windows':
-        # Adding required paths and preloading usd_ms.dll
-        pxr_init_py = usd_dir / "lib/python/pxr/__init__.py"
         print(f"Modifying {pxr_init_py}")
         pxr_init_py_text = pxr_init_py.read_text()
-        pxr_init_py.write_text(
-            pxr_init_py_text +
-f"""
+        text_new = pxr_init_py_text
+        text_new += f"""
 
 import os
 import ctypes
 
-os.add_dll_directory(r"{usd_dir / 'lib'}")
-os.add_dll_directory(r"{bl_libs_dir / 'boost/lib'}")
-os.add_dll_directory(r"{bl_libs_dir / 'tbb/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'OpenImageIO/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'openvdb/bin'}")
-os.add_dll_directory(r"{bin_dir / 'materialx/install/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'imath/bin'}")
-os.add_dll_directory(r"{bl_libs_dir / 'openexr/bin'}")
+"""
+        # Adding required paths and preloading usd_ms.dll
+        for p in paths:
+            text_new += f'os.add_dll_directory(r"{p}")\n'
+        text_new += f'\nctypes.CDLL(r"{usd_dir / "lib/usd_ms.dll"}")\n'
+        pxr_init_py.write_text(text_new)
+        print(text_new)
 
-ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
-""")
-    else:
-        os.environ['LD_LIBRARY_PATH'] = ':'.join([os.environ.get('LD_LIBRARY_PATH', ''),
-                                                  f":{usd_dir / 'lib'}",
-                                                  f":{bl_libs_dir / 'boost/lib'}",
-                                                  f":{bl_libs_dir / 'tbb/lib'}",
-                                                  f":{bl_libs_dir / 'OpenImageIO/lib'}",
-                                                  f":{bl_libs_dir / 'openvdb/lib'}",
-                                                  f":{bin_dir / 'materialx/install/bin'}",
-                                                  f":{bl_libs_dir / 'imath/lib'}",
-                                                  f":{bl_libs_dir / 'openexr/lib'}"])
+    elif OS == 'Darwin':
+        print(f"Modifying {pxr_init_py}")
+        pxr_init_py_text = pxr_init_py.read_text()
+        text_new = pxr_init_py_text
+        text_new += f"""
+
+import ctypes
+
+ctypes.CDLL(r"{bl_libs_dir / 'imath/lib/libImath.dylib'}")
+ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXR.dylib'}")
+ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
+"""
+        pxr_init_py.write_text(text_new)
+        print(text_new)
+
+    else:   # OS == 'Linux':
+        os.environ['LD_LIBRARY_PATH'] = ':'.join(str(p) for p in paths)
 
     cur_dir = os.getcwd()
     ch_dir(hdrpr_dir)
@@ -351,9 +494,138 @@ ctypes.CDLL(r"{usd_dir / 'lib/usd_ms.dll'}")
 
     finally:
         ch_dir(cur_dir)
-        if OS == 'Windows':
+        if pxr_init_py_text:
             print(f"Reverting {pxr_init_py}")
             pxr_init_py.write_text(pxr_init_py_text)
+
+    rif_ver = "1.7.3"
+    ml_ver = "0.9.12"
+    mi_ver = "2.0.5"
+    if OS == 'Darwin':
+        lib_dir = bin_dir / "hdrpr/install/lib"
+        # removing and renaming
+        (lib_dir / "libRadeonImageFilters.dylib").unlink()
+        (lib_dir / f"libRadeonImageFilters.{rif_ver[0]}.dylib").unlink()
+        (lib_dir / f"libRadeonImageFilters.{rif_ver}.dylib").rename(lib_dir / "libRadeonImageFilters.dylib")
+        check_call('install_name_tool', '-change',
+                   f"@rpath/libRadeonImageFilters.{rif_ver[0]}.dylib", "@rpath/libRadeonImageFilters.dylib",
+                   str(lib_dir / "libRadeonImageFilters.dylib"))
+        check_call('install_name_tool', '-change',
+                   f"@rpath/libRadeonML.{ml_ver[0]}.dylib", "@rpath/libRadeonML.dylib",
+                   str(lib_dir / "libRadeonImageFilters.dylib"))
+
+        (lib_dir / "libRadeonML.dylib").unlink()
+        (lib_dir / f"libRadeonML.{ml_ver[0]}.dylib").unlink()
+        (lib_dir / f"libRadeonML.{ml_ver}.dylib").rename(lib_dir / "libRadeonML.dylib")
+        check_call('install_name_tool', '-change',
+                   f"@rpath/libRadeonML.{ml_ver[0]}.dylib", "@rpath/libRadeonML.dylib",
+                   str(lib_dir / "libRadeonML.dylib"))
+
+        (lib_dir / "libRadeonML_MPS.dylib").unlink()
+        (lib_dir / f"libRadeonML_MPS.{ml_ver[0]}.dylib").unlink()
+        (lib_dir / f"libRadeonML_MPS.{ml_ver}.dylib").rename(lib_dir / "libRadeonML_MPS.dylib")
+        check_call('install_name_tool', '-change',
+                   f"@rpath/libRadeonML_MPS.{ml_ver[0]}.dylib", "@rpath/libRadeonML_MPS.dylib",
+                   str(lib_dir / "libRadeonML_MPS.dylib"))
+
+        # fixing @rpath
+        rprusd_lib = bin_dir / "hdrpr/install/lib/librprUsd.dylib"
+        assert rprusd_lib.exists()
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXFormat.1.dylib", "@rpath/libMaterialXFormat.dylib", str(rprusd_lib))
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXCore.1.dylib", "@rpath/libMaterialXCore.dylib", str(rprusd_lib))
+
+        hdrpr_lib = bin_dir / "hdrpr/install/plugin/usd/hdRpr.dylib"
+        assert hdrpr_lib.exists()
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXFormat.1.dylib", "@rpath/libMaterialXFormat.dylib", str(hdrpr_lib))
+        check_call('install_name_tool', '-change',
+                   "@rpath/libMaterialXCore.1.dylib", "@rpath/libMaterialXCore.dylib", str(hdrpr_lib))
+        check_call('install_name_tool', '-change',
+                   "@rpath/libRadeonImageFilters.1.dylib", "@rpath/libRadeonImageFilters.dylib", str(hdrpr_lib))
+
+    elif OS == 'Linux':
+        lib_dir = bin_dir / "hdrpr/install/lib"
+
+        # removing and renaming
+        (lib_dir / "libRadeonImageFilters.so").unlink()
+        (lib_dir / f"libRadeonImageFilters.so.{rif_ver[0]}").unlink()
+        (lib_dir / f"libRadeonImageFilters.so.{rif_ver}").rename(lib_dir / "libRadeonImageFilters.so")
+        check_call('patchelf', '--replace-needed',
+                   f"libRadeonML.so.{ml_ver[0]}", "libRadeonML.so",
+                   str(lib_dir / "libRadeonImageFilters.so"))
+
+        (lib_dir / f"libRadeonML.so.{ml_ver[0]}").unlink()
+        (lib_dir / f"libRadeonML.so.{ml_ver}").rename(lib_dir / "libRadeonML.so")
+
+        (lib_dir / "libRadeonML_MIOpen.so").unlink()
+        (lib_dir / f"libRadeonML_MIOpen.so.{ml_ver[0]}").unlink()
+        (lib_dir / f"libRadeonML_MIOpen.so.{ml_ver}").rename(lib_dir / "libRadeonML_MIOpen.so")
+
+        (lib_dir / "libMIOpen.so").unlink()
+        (lib_dir / f"libMIOpen.so.{mi_ver[0]}").unlink()
+        (lib_dir / f"libMIOpen.so.{mi_ver}").rename(lib_dir / "libMIOpen.so")
+
+        hdrpr_lib = bin_dir / "hdrpr/install/plugin/usd/hdRpr.so"
+        assert hdrpr_lib.exists()
+        check_call('patchelf', '--replace-needed',
+                   "libRadeonImageFilters.so.1", "libRadeonImageFilters.so", str(hdrpr_lib))
+
+
+def resolver(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
+    print_start("Building RenderStudioResolver")
+
+    deps_dir = repo_dir / "deps"
+    resolver_dir = deps_dir / "RenderStudioKit"
+    openssl_dir = Path(os.environ["ProgramFiles"]) / "OpenSSL-Win64"
+    boost_dir = bin_dir / "boost"
+    usd_dir = bin_dir / "USD/install"
+
+    libdir = bl_libs_dir.as_posix()
+
+    os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
+
+    # Boost flags
+    args = [
+        "-DCMAKE_CXX_FLAGS=/Zc:inline- /EHsc /bigobj /DBOOST_ALL_NO_LIB",
+        f"-DBoost_COMPILER:STRING=-vc142",
+        "-DBLENDER_SUPPORT=ON",
+        "-DBoost_USE_MULTITHREADED=ON",
+        "-DBoost_USE_STATIC_LIBS=OFF",
+        "-DBoost_USE_STATIC_RUNTIME=OFF",
+        f"-DBOOST_ROOT={boost_dir}/install",
+        "-DBoost_NO_SYSTEM_PATHS=OFF",
+        "-DBoost_NO_BOOST_CMAKE=OFF",
+        f"-DBoost_INCLUDE_DIR={boost_dir}/install/include",
+        f"-DOPENSSL_ROOT_DIR={openssl_dir}",
+        f"-DTBB_INCLUDE_DIRS={libdir}/tbb/include",
+        f"-DUSD_INCLUDE_DIRS={libdir}/usd/include",
+        "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
+        f'-Dpxr_DIR={usd_dir}',
+        f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
+    ]
+
+    def generate_files():
+        info_json = Path(bin_dir / "resolver/install/plugin/plugInfo.json")
+        info_json.touch()
+        info_json.write_text(
+        """
+{
+    "Includes": [ "usd/*/resources/" ]
+}
+        """
+    )
+        init = Path(bin_dir / "resolver/install/lib/python/__init__.py")
+        init.touch()
+
+    cur_dir = os.getcwd()
+    ch_dir(resolver_dir)
+
+    _cmake(resolver_dir, bin_dir / "resolver", compiler, jobs, build_var, clean, args)
+    generate_files()
+
+    os.chdir(cur_dir)
 
 
 def zip_addon(bin_dir):
@@ -369,6 +641,7 @@ def zip_addon(bin_dir):
 
         # copy addon scripts
         hydrarpr_plugin_dir = repo_dir / 'src/hydrarpr'
+        assert hydrarpr_plugin_dir.exists()
         for f in hydrarpr_plugin_dir.glob("**/*"):
             if f.is_dir():
                 continue
@@ -381,38 +654,27 @@ def zip_addon(bin_dir):
 
             yield f, rel_path
 
-        hydrarpr_repo_dir = deps_dir / 'RadeonProRenderUSD'
-        # copy RIF libraries
-        rif_libs_dir = hydrarpr_repo_dir / (
-            'deps/RIF/Windows/Dynamic' if OS == 'Windows' else 'deps/RIF/Ubuntu20/Dynamic')
-        for f in rif_libs_dir.glob("**/*"):
-            if LIBEXT in f.suffix:
+        # copy libraries
+        lib_dir = inst_dir / 'lib'
+        assert lib_dir.exists()
+        for f in lib_dir.glob("**/*"):
+            if f.suffix != DLLEXT:
                 continue
 
             yield f, libs_rel_path / f.name
-
-        # copy core libraries
-        core_libs_dir = hydrarpr_repo_dir / (
-            'deps/RPR/RadeonProRender/binWin64' if OS == 'Windows' else 'deps/RPR/RadeonProRender/binUbuntu18')
-        for f in core_libs_dir.glob("**/*"):
-            if f.suffix in EXT:
-                continue
-
-            yield f, libs_rel_path / f.name
-
-        # copy rprUsd library
-        rprusd_lib = inst_dir / ('lib/rprUsd.dll' if OS == 'Windows' else 'lib/librprUsd.so')
-        yield rprusd_lib, libs_rel_path / rprusd_lib.name
 
         # copy hdRpr library
-        hdrpr_lib = plugin_dir / ('usd/hdRpr.dll' if OS == 'Windows' else 'usd/hdRpr.so')
+        hdrpr_lib = plugin_dir / f"usd/hdRpr{DLLEXT}"
+        assert hdrpr_lib.exists()
         yield hdrpr_lib, plugin_rel_path.parent / hdrpr_lib.name
 
         # copy plugInfo.json library
         pluginfo = plugin_dir / 'plugInfo.json'
+        assert pluginfo.exists()
         yield pluginfo, plugin_rel_path.parent.parent / pluginfo.name
 
         # copy plugin/usd folders
+        assert plugin_dir.exists()
         for f in plugin_dir.glob("**/*"):
             rel_path = f.relative_to(plugin_dir.parent)
             if any(p in rel_path.parts for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
@@ -420,54 +682,18 @@ def zip_addon(bin_dir):
 
         # copy python rpr
         pyrpr_dir = bin_dir / 'install/lib/python/rpr'
+        assert pyrpr_dir.exists()
         (pyrpr_dir / "RprUsd/__init__.py").write_text("")
         for f in (pyrpr_dir / "__init__.py", pyrpr_dir / "RprUsd/__init__.py"):
             yield f, Path("libs") / f.relative_to(pyrpr_dir.parent.parent)
-
-    def get_version():
-        # getting buid version
-        build_ver = subprocess.getoutput("git rev-parse --short HEAD")
-
-        # # getting plugin version
-        # text = (repo_dir / "src/hdusd/__init__.py").read_text()
-        # m = re.search(r'"version": \((\d+), (\d+), (\d+)\)', text)
-        # plugin_ver = m.group(1), m.group(2), m.group(3)
-        #
-        # return (*plugin_ver, build_ver)
-
-        return build_ver
-
-    def create_zip_addon(install_dir, bin_dir, name, ver):
-        """ Pack addon files to zip archive """
-        zip_addon = install_dir / name
-        if zip_addon.is_file():
-            os.remove(zip_addon)
-
-        print(f"Compressing addon files to: {zip_addon}")
-        with zipfile.ZipFile(zip_addon, 'w', compression=zipfile.ZIP_DEFLATED,
-                             compresslevel=zlib.Z_BEST_COMPRESSION) as myzip:
-            for src, package_path in enumerate_addon_data(bin_dir):
-                print(f"adding {src} --> {package_path}")
-
-                arcname = str(Path('hydrarpr') / package_path)
-
-                if str(package_path) == "__init__.py":
-                    print(f"    set version_build={ver[3]}")
-                    text = src.read_text(encoding='utf-8')
-                    text = text.replace('version_build = ""', f'version_build = "{ver[3]}"')
-                    myzip.writestr(arcname, text)
-                    continue
-
-                myzip.write(str(src), arcname=arcname)
-
-        return zip_addon
 
     # endregion
 
     repo_dir = Path(__file__).parent
     install_dir = repo_dir / "install"
     ver = get_version()
-    name = f"hydrarpr-{ver}-{OS.lower()}.zip"
+    addon_name = "hydrarpr"
+    name = f"{addon_name}-{ver}-{OS.lower()}.zip"
 
     if install_dir.is_dir():
         for file in os.listdir(install_dir):
@@ -477,7 +703,84 @@ def zip_addon(bin_dir):
     else:
         install_dir.mkdir()
 
-    zip_addon = create_zip_addon(install_dir, bin_dir / "hdrpr", name, ver)
+    zip_addon = create_zip_addon(install_dir, bin_dir / "hdrpr", name, addon_name, enumerate_addon_data,  ver)
+    print(f"Addon was compressed to: {zip_addon}")
+
+
+def zip_rs_addon(bin_dir):
+    print_start("Creating RenderStudioResolver zip Addon")
+
+    # region internal functions
+
+    def enumerate_addon_data(bin_dir):
+        libs_rel_path = Path('libs/lib')
+        plugin_rel_path = Path('libs/plugin/usd/plugin')
+        inst_dir = bin_dir / 'install'
+        plugin_dir = inst_dir / 'plugin'
+
+        # copy addon scripts
+        resolver_plugin_dir = repo_dir / 'src/resolver'
+        for f in resolver_plugin_dir.glob("**/*"):
+            if f.is_dir():
+                continue
+
+            rel_path = f.relative_to(resolver_plugin_dir)
+            rel_path_parts = rel_path.parts
+            if rel_path_parts[0] in ("libs", "configdev.py") or \
+                    "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
+                continue
+
+            yield f, rel_path
+
+        # copy core libraries
+        resolver_lib_dir = bin_dir / 'install/lib'
+        for f in resolver_lib_dir.glob("**/*"):
+            if f.suffix in (".dll") and f.is_file():
+                yield f, libs_rel_path / f.name
+
+
+        # copy python resolver
+        pyresolver_dir = bin_dir / 'install/lib/python'
+        for f in pyresolver_dir.glob("**/*"):
+            if f.is_file() and f.suffix not in (".py", ".pyd"):
+                continue
+            yield f, Path("libs") / f.relative_to(pyresolver_dir.parent)
+
+        # copy RenderStudioResolver library
+        resolver_lib = plugin_dir / 'usd/RenderStudioResolver.dll'
+        yield resolver_lib, plugin_rel_path.parent / resolver_lib.name
+
+        # copy Boost library
+        boost_log_lib = bin_dir.parent / 'boost/install/lib/boost_log-vc142-mt-x64-1_80.dll'
+        yield boost_log_lib, libs_rel_path / boost_log_lib.name
+
+        # copy plugInfo.json library
+        pluginfo = plugin_dir / 'plugInfo.json'
+        yield pluginfo, plugin_rel_path.parent.parent / pluginfo.name
+
+        # copy plugin/usd folders
+        for f in plugin_dir.glob("**/*"):
+            rel_path = f.relative_to(plugin_dir.parent)
+            if any(p in rel_path.parts for p in ("RenderStudioResolver",)):
+                yield f, libs_rel_path.parent / rel_path
+
+    # endregion
+
+    repo_dir = Path(__file__).parent
+    install_dir = repo_dir / "install"
+    ver = get_version()
+    addon_name = "resolver"
+    name = f"{addon_name}-{ver}-{OS.lower()}.zip"
+
+    if install_dir.is_dir():
+        for file in os.listdir(install_dir):
+            if file == name:
+                os.remove(install_dir / file)
+                break
+    else:
+        install_dir.mkdir()
+
+    zip_addon = create_zip_addon(install_dir, bin_dir / "resolver", name, addon_name, enumerate_addon_data, ver)
     print(f"Addon was compressed to: {zip_addon}")
 
 
@@ -491,17 +794,27 @@ def main():
                     help="Build MaterialX")
     ap.add_argument("-usd", required=False, action="store_true",
                     help="Build USD")
+    ap.add_argument("-boost", required=False, action="store_true",
+                    help="Build Boost")
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
-    ap.add_argument("-bl-libs-dir", required=False, type=str, default="",
-                    help="Path to root of Blender libs directory"),
-    ap.add_argument("-bin-dir", required=False, type=str, default="",
-                    help="Path to binary directory")
+    ap.add_argument("-rs", required=False, action="store_true",
+                    help="Build RenderStudioResolver")
+    libs_dir_default = {'Windows': r"..\lib\win64_vc15",
+                        'Darwin': "../lib/darwin",
+                        'Linux': "../lib/linux_x86_64_glibc_228"}[OS]
+    ap.add_argument("-bl-libs-dir", required=False, type=str,
+                    default=libs_dir_default,
+                    help=f"Path to root of Blender libs directory. (default: {libs_dir_default})"),
+    ap.add_argument("-bin-dir", required=False, type=str, default="bin",
+                    help="Path to binary directory. (default: bin)")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
+    ap.add_argument("-rs_addon", required=False, action="store_true",
+                    help="Create RenderStudioResolver zip addon")
     ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
-                         'For example: -G "Visual Studio 16 2019"',
+                         'For example: -G "Visual Studio 16 2019" or -G "Xcode"',
                     default="Visual Studio 16 2019" if OS == 'Windows' else "")
     ap.add_argument("-j", required=False, type=int, default=0,
                     help="Number of jobs run in parallel")
@@ -528,8 +841,8 @@ def main():
         materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     installed_modules = None
-    py_exe = str(f"{bl_libs_dir}/python/310/bin/python{POSTFIX}{EXT}") if OS == 'Windows' \
-        else str(f"{bl_libs_dir}/python/bin/python3.10{POSTFIX}{EXT}")
+    py_exe = f"{bl_libs_dir}/python/310/bin/python.exe" if OS == 'Windows' else\
+             f"{bl_libs_dir}/python/bin/python3.10"
 
     try:
         if args.all or args.usd or args.hdrpr:
@@ -538,8 +851,14 @@ def main():
         if args.all or args.usd:
             usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
 
+        if args.all or args.boost:
+            boost(bin_dir, args.clean)
+
         if args.all or args.hdrpr:
             hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+
+        if args.all or args.rs:
+            resolver(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     finally:
         if installed_modules:
@@ -547,6 +866,9 @@ def main():
 
     if args.all or args.addon:
         zip_addon(bin_dir)
+
+    if args.all or args.rs_addon:
+        zip_rs_addon(bin_dir)
 
     print_start("Finished")
 
