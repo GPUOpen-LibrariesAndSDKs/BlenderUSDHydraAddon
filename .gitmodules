@@ -10,6 +10,3 @@
 [submodule "deps/RenderStudioKit"]
 	path = deps/RenderStudioKit
 	url = git@github.com:Radeon-Pro/RenderStudioKit.git
-[submodule "deps/Boost"]
-	path = deps/Boost
-	url = https://github.com/boostorg/boost.git

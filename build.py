@@ -31,6 +31,7 @@ EXT = ".exe" if OS == 'Windows' else ""
 LIBEXT = ".lib" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
 DLLEXT = ".dll" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
 LIBPREFIX = "" if OS == 'Windows' else "lib"
+BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
 
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
@@ -312,14 +313,37 @@ def boost(bin_dir, clean):
     print_start("Building Boost")
 
     boost_dir = bin_dir / "boost"
+    deps_dir = boost_dir / "deps"
     install_dir = boost_dir / "install"
     build_dir = boost_dir / "build"
+    arch_filepath = deps_dir / Path(BOOST_URL).name
+    src_dir = deps_dir / Path(BOOST_URL).stem
 
+    cur_dir = os.getcwd()
     if clean:
         rm_dir(boost_dir)
 
-    cur_dir = os.getcwd()
-    os.chdir(str(deps_dir / "Boost"))
+    os.makedirs(boost_dir, exist_ok=True)
+
+    # Download and extract Boost
+    if not deps_dir.exists():
+        deps_dir.mkdir()
+
+        print("Downloading Boost: ", arch_filepath)
+        data = urlopen(BOOST_URL)
+        with open(arch_filepath, "wb") as file:
+            file.write(data.read())
+
+        assert zipfile.is_zipfile(arch_filepath)
+
+        print("Extracting Boost to: ", src_dir)
+        archive = zipfile.ZipFile(arch_filepath)
+        with archive:
+            archive.extractall(deps_dir)
+
+    # Installing Boost
+    print("Installing Boost to: ", install_dir)
+    os.chdir(str(src_dir))
 
     # python-config.jam is required for boost::python
     project_path = 'python-config.jam'
@@ -336,6 +360,7 @@ def boost(bin_dir, clean):
         "b2",
         f"--prefix={install_dir}",
         f"--build-dir={build_dir}",
+        f"-j8",
         "address-model=64",
         "link=shared",
         "runtime-link=shared",
@@ -353,8 +378,6 @@ def boost(bin_dir, clean):
         check_call("bootstrap.bat", f'--prefix="{install_dir}"')
         check_call(*args)
     finally:
-        check_call('git', 'checkout', '--', '*')
-        check_call('git', 'clean', '-f')
         os.chdir(cur_dir)
 
 
