@@ -498,7 +498,13 @@ def zip_addon(bin_dir):
         assert hdrpr_lib.exists()
         yield hdrpr_lib, plugin_rel_path.parent / hdrpr_lib.name
 
-        # copy plugInfo.json library
+        if OS == 'Windows':
+            # copy OpenImageDenoise.dll
+            oid_dll = deps_dir / "RadeonProRenderUSD/deps/RIF/Windows/Dynamic/OpenImageDenoise.dll"
+            assert oid_dll.exists()
+            yield oid_dll, libs_rel_path / oid_dll.name
+
+        # copy plugInfo.json
         pluginfo = plugin_dir / 'plugInfo.json'
         assert pluginfo.exists()
         yield pluginfo, plugin_rel_path.parent.parent / pluginfo.name
