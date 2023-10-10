@@ -12,24 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import uuid
+from pathlib import Path
 import bpy
-import mathutils
-from threading import Thread
-from pxr import Usd, UsdGeom
+from pxr import Usd
 from . import logging
+from . import config
 from RenderStudioResolver import RenderStudioResolver, LiveModeInfo
+
 
 log = logging.Log("operators")
 stage_cache = Usd.StageCache()
-
-
-class RESOLVER_object_properties(bpy.types.PropertyGroup):
-    sdf_path: bpy.props.StringProperty(
-        name="Sdf Path",
-        description="",
-        default='',
-        )
 
 
 class RESOLVER_collection_properties(bpy.types.PropertyGroup):
@@ -52,11 +44,6 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
             ),
         default=0,
         )
-    userId: bpy.props.StringProperty(
-        name="User Id",
-        default='BlenderUser',
-        )
-
     stageId: bpy.props.IntProperty(
         name="Stage Id",
         default=-1,
@@ -66,12 +53,8 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         name="USD Stage",
         default=""
         )
-    is_live_mode: bpy.props.BoolProperty(
+    is_connected: bpy.props.BoolProperty(
         name="Is Live Mode",
-        default=False
-        )
-    is_live_update: bpy.props.BoolProperty(
-        name="Is Live Update",
         default=False
         )
     is_depsgraph_update: bpy.props.BoolProperty(
@@ -79,9 +62,6 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         description="",
         default=True
         )
-
-    def get_info(self):
-        return LiveModeInfo(self.liveUrl, self.storageUrl, self.channelId, self.get_user_id())
 
     def get_resolver_path(self):
         path = self.usd_path
@@ -93,119 +73,69 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         log.debug("Resolved Path: ", path)
         return path
 
-    def start_live_mode(self):
-        if self.is_live_mode:
-            return
-
-        stage = self.get_stage()
-        if not stage:
-            stage = self.open_stage()
-
-        if stage:
-            info = self.get_info()
+    def connect_server(self):
+        info = LiveModeInfo(self.liveUrl, self.storageUrl, self.channelId, config.user_id)
+        try:
             RenderStudioResolver.StartLiveMode(info)
-            self.is_live_mode = True
-            log.debug("Start Live Mode: ", info.liveUrl, info.storageUrl, info.channelId, info.userId)
+            self.is_connected = True
 
-        else:
-            log.debug("Failed Start Live Mode: ")
+            log.debug("Connected: ", self.liveUrl, self.storageUrl, self.channelId, config.user_id)
 
-    def stop_live_mode(self):
-        if self.is_live_mode:
-            RenderStudioResolver.StopLiveMode()
-            self.is_live_mode = False
-            self.is_live_update = False
+        except Exception as err:
+            log.error("Failed to connect: ", err)
 
-        log.debug("Stop Live Mode")
+    def connect(self):
+        self.export_scene()
+        self.open_usd()
+        self.connect_server()
 
-    def process_live_updates(self):
-        log.debug(self.is_live_mode, self.is_live_update)
-        if self.is_live_mode and not self.is_live_update:
-            log.debug("Process Start Live Updates")
-            self.is_live_update = True
-            thread = Thread(target=self._sync, daemon=True)
-            thread.start()
+        if self.is_connected:
+            self.sync()
 
-        else:
-            log.debug("Process Stop Live Updates")
-            self.is_live_update = False
 
-    def _sync(self):
-        while (self.is_live_update and self.is_live_mode):
-            if RenderStudioResolver.ProcessLiveUpdates():
-                self.is_depsgraph_update = False
-                stage = self.get_stage()
-                for prim in stage.GetPseudoRoot().GetAllChildren():
-                    xform = UsdGeom.Xform(prim)
-                    transform = get_xform_transform(xform)
-                    obj = bpy.context.collection.objects.get(prim.GetName())
-                    if obj:
-                        obj.matrix_local = transform
-                        log.debug("Updated: ", obj)
+    def disconnect(self):
+        RenderStudioResolver.StopLiveMode()
+        self.is_connected = False
 
-            self.is_depsgraph_update = True
-
-    def get_user_id(self):
-        return f"{self.userId}_{uuid.uuid4()}"
+        log.debug("Disconnected")
 
     def get_stage(self):
         stage = stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.stageId))
+
         log.debug("Stage: ", stage)
         return stage
 
-    def add_prim(self):
-        stage = self.get_stage()
-        prim, sphere = self.prim_name.split('/')
-        UsdGeom.Xform.Define(stage, f'/{prim}')
-        UsdGeom.Sphere.Define(stage, f'/{prim}/{sphere}')
-
-    def import_stage(self, filepath=None):
-        self.is_depsgraph_update = False
-        filepath = self.usd_path if filepath is None else filepath
-        bpy.ops.wm.usd_import(filepath=filepath)
-        self.is_depsgraph_update = True
-        log.debug("Import stage: ", filepath)
-
-    def open_stage(self):
+    def open_usd(self):
         path = self.get_resolver_path()
-        if not path:
-            log.warn("Failed USD Path")
-            return False
-
         stage = Usd.Stage.Open(path)
         self.stageId = stage_cache.Insert(stage).ToLongInt()
-        self.link_objects_to_usd()
 
         log.debug("Open stage: ", self.usd_path, path, stage)
         return stage
 
-    def link_objects_to_usd(self):
-        stage = self.get_stage()
-        objects = bpy.context.collection.objects
-        self.is_depsgraph_update = False
-        for prim in stage.GetPseudoRoot().GetAllChildren():
-            name = prim.GetName()
-            obj = objects.get(name)
-            if obj:
-                obj.resolver.sdf_path = str(prim.GetPrimPath())
-                log.debug("Link: ", obj, "<->", prim)
+    def export_scene(self):
+        if not Path(self.usd_path).exists() or not self.usd_path:
+            filename = bpy.path.ensure_ext(
+                str(Path(f"{config.user_id}_{Path(bpy.data.filepath).stem}")), ".usda"
+            )
+            self.usd_path = str(config.render_studio_dir / filename)
 
+        self.is_depsgraph_update = False
+        log.debug("Export usd", self.usd_path)
+        bpy.ops.wm.usd_export(filepath=self.usd_path)
         self.is_depsgraph_update = True
 
+    def sync(self):
+        res = False
+        if self.is_connected:
+            res = RenderStudioResolver.ProcessLiveUpdates()
 
-def get_xform_transform(xform):
-    transform = mathutils.Matrix(xform.GetLocalTransformation())
-    return transform.transposed()
-
-register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    RESOLVER_object_properties,
-    RESOLVER_collection_properties,
-    ])
+        return res
 
 
 def register():
-    register_classes()
+    bpy.utils.register_class(RESOLVER_collection_properties)
 
 
 def unregister():
-    unregister_classes()
+    bpy.utils.unregister_class(RESOLVER_collection_properties)

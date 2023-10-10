@@ -15,22 +15,6 @@
 import bpy
 
 
-class RESOLVER_PT_object(bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'object'
-    bl_label = "RenderStudio Connector"
-
-    @classmethod
-    def poll(cls, context):
-        return context.object
-
-    def draw(self, context):
-        resolver = context.object.resolver
-        layout = self.layout
-        layout.prop(resolver, 'sdf_path')
-
-
 class RESOLVER_PT_collection(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -44,19 +28,18 @@ class RESOLVER_PT_collection(bpy.types.Panel):
         layout.prop(resolver, 'liveUrl')
         layout.prop(resolver, 'storageUrl')
         layout.prop(resolver, 'channelId')
-        layout.prop(resolver, 'userId')
-        layout.operator("resolver.import_stage")
-        layout.operator("resolver.open_stage_uri")
-        layout.operator("resolver.start_live_mode")
-        layout.operator("resolver.stop_live_mode")
-        layout.operator("resolver.process_live_mode")
+        if resolver.is_connected:
+            layout.operator("resolver.disconnect")
+
+        else:
+            layout.operator("resolver.connect")
+
         layout.separator()
         layout.operator("resolver.export_stage")
 
 
 register_classes, unregister_classes = bpy.utils.register_classes_factory([
     RESOLVER_PT_collection,
-    RESOLVER_PT_object,
     ])
 
 def register():

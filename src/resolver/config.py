@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+from pathlib import Path
+import uuid
 
 logging_level = 'DEBUG'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
 logging_backups = 5
+render_studio_dir = Path.home() / "Documents/AMD RenderStudio Home"
+user_id = f"BlenderUser_{uuid.uuid4()}"
