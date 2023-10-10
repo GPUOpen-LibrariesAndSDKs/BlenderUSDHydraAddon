@@ -61,7 +61,6 @@ from . import resolver, ui, properties, operators
 
 def register():
     properties.register()
-    bpy.types.Object.resolver = bpy.props.PointerProperty(type=properties.RESOLVER_object_properties)
     bpy.types.Collection.resolver = bpy.props.PointerProperty(type=properties.RESOLVER_collection_properties)
     bpy.app.handlers.depsgraph_update_post.append(resolver.on_depsgraph_update_post)
     operators.register()
@@ -72,6 +71,5 @@ def unregister():
     ui.unregister()
     operators.unregister()
     del bpy.types.Collection.resolver
-    del bpy.types.Object.resolver
     bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
     properties.unregister()
