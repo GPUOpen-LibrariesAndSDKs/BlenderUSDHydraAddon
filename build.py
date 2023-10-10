@@ -31,7 +31,6 @@ EXT = ".exe" if OS == 'Windows' else ""
 LIBEXT = ".lib" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
 DLLEXT = ".dll" if OS == 'Windows' else ".dylib" if OS == 'Darwin' else ".so"
 LIBPREFIX = "" if OS == 'Windows' else "lib"
-BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
 
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
@@ -312,6 +311,8 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 def boost(bin_dir, clean):
     print_start("Building Boost")
 
+    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
+
     boost_dir = bin_dir / "boost"
     deps_dir = boost_dir / "deps"
     install_dir = boost_dir / "install"
@@ -573,15 +574,15 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
                    "libRadeonImageFilters.so.1", "libRadeonImageFilters.so", str(hdrpr_lib))
 
 
-def resolver(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
-    print_start("Building RenderStudioResolver")
+def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
+    print_start("Building RenderStudioKit")
 
     deps_dir = repo_dir / "deps"
-    resolver_dir = deps_dir / "RenderStudioKit"
-    openssl_dir = Path(os.environ["ProgramFiles"]) / "OpenSSL-Win64"
+    rs_dir = deps_dir / "RenderStudioKit"
     boost_dir = bin_dir / "boost"
     usd_dir = bin_dir / "USD/install"
-
+    rs_bin_dir = bin_dir / "render_studio"
+    openssl_dir = Path(os.environ["OPENSSL_ROOT_DIR"])
     libdir = bl_libs_dir.as_posix()
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
@@ -598,7 +599,7 @@ def resolver(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
         "-DBoost_NO_SYSTEM_PATHS=OFF",
         "-DBoost_NO_BOOST_CMAKE=OFF",
         f"-DBoost_INCLUDE_DIR={boost_dir}/install/include",
-        f"-DOPENSSL_ROOT_DIR={openssl_dir}",
+        f"-DOPENSSL_ROOT_DIR={openssl_dir.as_posix()}",
         f"-DTBB_INCLUDE_DIRS={libdir}/tbb/include",
         f"-DUSD_INCLUDE_DIRS={libdir}/usd/include",
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
@@ -606,26 +607,21 @@ def resolver(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
     ]
 
-    def generate_files():
-        info_json = Path(bin_dir / "resolver/install/plugin/plugInfo.json")
-        info_json.touch()
-        info_json.write_text(
-        """
-{
+    cur_dir = os.getcwd()
+    ch_dir(rs_dir)
+    try:
+        _cmake(rs_dir, rs_bin_dir, compiler, jobs, build_var, clean, args)
+
+        # Generate files
+        Path(rs_bin_dir / "install/plugin/plugInfo.json").write_text(
+"""{
     "Includes": [ "usd/*/resources/" ]
 }
-        """
-    )
-        init = Path(bin_dir / "resolver/install/lib/python/__init__.py")
-        init.touch()
+""")
+        Path(rs_bin_dir / "install/lib/python/__init__.py").touch()
 
-    cur_dir = os.getcwd()
-    ch_dir(resolver_dir)
-
-    _cmake(resolver_dir, bin_dir / "resolver", compiler, jobs, build_var, clean, args)
-    generate_files()
-
-    os.chdir(cur_dir)
+    finally:
+        os.chdir(cur_dir)
 
 
 def zip_addon(bin_dir):
@@ -708,7 +704,7 @@ def zip_addon(bin_dir):
 
 
 def zip_rs_addon(bin_dir):
-    print_start("Creating RenderStudioResolver zip Addon")
+    print_start("Creating RenderStudio zip Addon")
 
     # region internal functions
 
@@ -799,7 +795,12 @@ def main():
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
     ap.add_argument("-rs", required=False, action="store_true",
-                    help="Build RenderStudioResolver")
+                    help="Build RenderStudioKit")
+    ap.add_argument("-addon", required=False, action="store_true",
+                    help="Create zip addon")
+    ap.add_argument("-rs-addon", required=False, action="store_true",
+                    help="Create RenderStudio zip addon")
+   
     libs_dir_default = {'Windows': r"..\lib\win64_vc15",
                         'Darwin': "../lib/darwin",
                         'Linux': "../lib/linux_x86_64_glibc_228"}[OS]
@@ -808,10 +809,7 @@ def main():
                     help=f"Path to root of Blender libs directory. (default: {libs_dir_default})"),
     ap.add_argument("-bin-dir", required=False, type=str, default="bin",
                     help="Path to binary directory. (default: bin)")
-    ap.add_argument("-addon", required=False, action="store_true",
-                    help="Create zip addon")
-    ap.add_argument("-rs_addon", required=False, action="store_true",
-                    help="Create RenderStudioResolver zip addon")
+    
     ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
                          'For example: -G "Visual Studio 16 2019" or -G "Xcode"',
@@ -858,7 +856,7 @@ def main():
             hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
 
         if args.all or args.rs:
-            resolver(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
+            render_studio(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     finally:
         if installed_modules:
