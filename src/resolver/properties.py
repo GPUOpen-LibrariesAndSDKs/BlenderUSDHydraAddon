@@ -16,6 +16,7 @@ from pathlib import Path
 import bpy
 from pxr import Usd
 from . import logging
+from . import config
 from RenderStudioResolver import RenderStudioResolver, LiveModeInfo
 
 
@@ -24,25 +25,6 @@ stage_cache = Usd.StageCache()
 
 
 class RESOLVER_collection_properties(bpy.types.PropertyGroup):
-    liveUrl: bpy.props.StringProperty(
-        name="Live Url",
-        description="",
-        default='',
-    )
-    storageUrl: bpy.props.StringProperty(
-        name="Storage Url",
-        description="",
-        default='',
-        )
-    channelId: bpy.props.EnumProperty(
-        name="Channel Id",
-        items=(
-            ('BLENDER', "Blender", "Blender", 0),
-            ('MAYA', "Maya", "Maya", 1),
-            ('RENDERSTUDIO', "RenderStudio", "RenderStudio", 2),
-            ),
-        default=0,
-        )
     stageId: bpy.props.IntProperty(
         name="Stage Id",
         default=-1,
@@ -73,13 +55,13 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return path
 
     def connect_server(self):
-        from .config import user_id
-        info = LiveModeInfo(self.liveUrl, self.storageUrl, self.channelId, user_id)
+        from .config import server_url, storage_url, channel_id, user_id
+        info = LiveModeInfo(server_url, storage_url, channel_id, user_id)
         try:
             RenderStudioResolver.StartLiveMode(info)
             self.is_connected = True
 
-            log.debug("Connected: ", self.liveUrl, self.storageUrl, self.channelId, user_id)
+            log.debug("Connected: ", server_url, storage_url, channel_id, user_id)
 
         except Exception as err:
             log.error("Failed to connect: ", err)
