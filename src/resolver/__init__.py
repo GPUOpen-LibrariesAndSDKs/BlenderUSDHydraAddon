@@ -69,9 +69,11 @@ def register():
 
 
 def unregister():
-    bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
+    if resolver.on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
 
-    bpy.context.collection.resolver.disconnect()
+    if bpy.context.collection.resolver.is_connected:
+        bpy.context.collection.resolver.disconnect()
 
     ui.unregister()
     operators.unregister()

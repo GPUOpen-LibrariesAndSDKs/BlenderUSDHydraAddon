@@ -16,7 +16,6 @@ from pathlib import Path
 import bpy
 from pxr import Usd
 from . import logging
-from . import config
 from RenderStudioResolver import RenderStudioResolver, LiveModeInfo
 
 
@@ -55,13 +54,13 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return path
 
     def connect_server(self):
-        from .config import server_url, storage_url, channel_id, user_id
-        info = LiveModeInfo(server_url, storage_url, channel_id, user_id)
+        from .import config
+        info = LiveModeInfo(config.server_url, config.storage_url, config.channel_id, config.user_id)
         try:
             RenderStudioResolver.StartLiveMode(info)
             self.is_connected = True
 
-            log.debug("Connected: ", server_url, storage_url, channel_id, user_id)
+            log.debug("Connected: ", config.server_url, config.storage_url, config.channel_id, config.user_id)
 
         except Exception as err:
             log.error("Failed to connect: ", err)
@@ -95,12 +94,12 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return stage
 
     def export_scene(self):
-        from .config import user_id, render_studio_dir
+        from . import config
         if not Path(self.usd_path).exists() or not self.usd_path:
             filename = bpy.path.ensure_ext(
-                str(Path(f"{user_id}_{Path(bpy.data.filepath).stem}")), ".usda"
+                str(Path(f"{config.user_id}_{Path(bpy.data.filepath).stem}")), ".usda"
             )
-            self.usd_path = str(render_studio_dir / filename)
+            self.usd_path = str(config.render_studio_dir / filename)
 
         self.is_depsgraph_update = False
         log.debug("Export usd", self.usd_path)
