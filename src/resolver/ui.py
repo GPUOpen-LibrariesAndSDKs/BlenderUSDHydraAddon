@@ -25,10 +25,10 @@ class RS_RESOLVER_PT_resolver(bpy.types.Panel):
         resolver = context.collection.resolver
         layout = self.layout
         if resolver.is_connected:
-            layout.operator("resolver.disconnect")
+            layout.operator("resolver.disconnect", icon='UNLINKED')
 
         else:
-            layout.operator("resolver.connect")
+            layout.operator("resolver.connect", icon='LINKED')
 
         layout.separator()
         layout.operator("resolver.export_stage")
@@ -36,21 +36,17 @@ class RS_RESOLVER_PT_resolver(bpy.types.Panel):
 def draw_button(self, context):
     resolver = context.collection.resolver
     if resolver.is_connected:
-        self.layout.operator("resolver.disconnect")
+        self.layout.operator("resolver.disconnect", icon='UNLINKED')
 
     else:
-        self.layout.operator("resolver.connect")
+        self.layout.operator("resolver.connect", icon='LINKED')
 
-
-register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    RS_RESOLVER_PT_resolver,
-    ])
 
 def register():
-    register_classes()
+    bpy.utils.register_class(RS_RESOLVER_PT_resolver)
     bpy.types.OUTLINER_HT_header.prepend(draw_button)
 
 
 def unregister():
-    unregister_classes()
     bpy.types.OUTLINER_HT_header.remove(draw_button)
+    bpy.utils.unregister_class(RS_RESOLVER_PT_resolver)
