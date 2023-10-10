@@ -70,6 +70,5 @@ def register():
 def unregister():
     ui.unregister()
     operators.unregister()
-    del bpy.types.Collection.resolver
     bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
     properties.unregister()

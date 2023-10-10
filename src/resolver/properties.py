@@ -133,11 +133,6 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return res
 
 
-register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    RESOLVER_collection_properties,
-    ])
-
-
 def register():
     bpy.utils.register_class(RESOLVER_collection_properties)
 
