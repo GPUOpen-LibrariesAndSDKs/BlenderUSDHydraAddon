@@ -16,7 +16,6 @@ from pathlib import Path
 import bpy
 from pxr import Usd
 from . import logging
-from . import config
 from RenderStudioResolver import RenderStudioResolver, LiveModeInfo
 
 
@@ -25,25 +24,6 @@ stage_cache = Usd.StageCache()
 
 
 class RESOLVER_collection_properties(bpy.types.PropertyGroup):
-    liveUrl: bpy.props.StringProperty(
-        name="Live Url",
-        description="",
-        default='',
-    )
-    storageUrl: bpy.props.StringProperty(
-        name="Storage Url",
-        description="",
-        default='',
-        )
-    channelId: bpy.props.EnumProperty(
-        name="Channel Id",
-        items=(
-            ('BLENDER', "Blender", "Blender", 0),
-            ('MAYA', "Maya", "Maya", 1),
-            ('RENDERSTUDIO', "RenderStudio", "RenderStudio", 2),
-            ),
-        default=0,
-        )
     stageId: bpy.props.IntProperty(
         name="Stage Id",
         default=-1,
@@ -74,12 +54,13 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return path
 
     def connect_server(self):
-        info = LiveModeInfo(self.liveUrl, self.storageUrl, self.channelId, config.user_id)
+        from .import config
+        info = LiveModeInfo(config.server_url, config.storage_url, config.channel_id, config.user_id)
         try:
             RenderStudioResolver.StartLiveMode(info)
             self.is_connected = True
 
-            log.debug("Connected: ", self.liveUrl, self.storageUrl, self.channelId, config.user_id)
+            log.debug("Connected: ", config.server_url, config.storage_url, config.channel_id, config.user_id)
 
         except Exception as err:
             log.error("Failed to connect: ", err)
@@ -91,7 +72,6 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
 
         if self.is_connected:
             self.sync()
-
 
     def disconnect(self):
         RenderStudioResolver.StopLiveMode()
@@ -114,6 +94,7 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return stage
 
     def export_scene(self):
+        from . import config
         if not Path(self.usd_path).exists() or not self.usd_path:
             filename = bpy.path.ensure_ext(
                 str(Path(f"{config.user_id}_{Path(bpy.data.filepath).stem}")), ".usda"

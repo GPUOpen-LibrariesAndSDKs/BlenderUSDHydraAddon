@@ -62,13 +62,19 @@ from . import resolver, ui, properties, operators
 def register():
     properties.register()
     bpy.types.Collection.resolver = bpy.props.PointerProperty(type=properties.RESOLVER_collection_properties)
-    bpy.app.handlers.depsgraph_update_post.append(resolver.on_depsgraph_update_post)
     operators.register()
     ui.register()
 
+    bpy.app.handlers.depsgraph_update_post.append(resolver.on_depsgraph_update_post)
+
 
 def unregister():
+    if resolver.on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
+
+    if bpy.context.collection.resolver.is_connected:
+        bpy.context.collection.resolver.disconnect()
+
     ui.unregister()
     operators.unregister()
-    bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
     properties.unregister()

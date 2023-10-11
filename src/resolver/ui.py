@@ -15,36 +15,38 @@
 import bpy
 
 
-class RESOLVER_PT_collection(bpy.types.Panel):
+class RS_RESOLVER_PT_resolver(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    bl_context = 'collection'
-    bl_label = "RenderStudio Connector"
+    bl_context = 'render'
+    bl_label = "RenderStudio Resolver"
 
     def draw(self, context):
         resolver = context.collection.resolver
         layout = self.layout
-        layout.prop(resolver, 'usd_path')
-        layout.prop(resolver, 'liveUrl')
-        layout.prop(resolver, 'storageUrl')
-        layout.prop(resolver, 'channelId')
         if resolver.is_connected:
-            layout.operator("resolver.disconnect")
+            layout.operator("resolver.disconnect", icon='UNLINKED')
 
         else:
-            layout.operator("resolver.connect")
+            layout.operator("resolver.connect", icon='LINKED')
 
         layout.separator()
         layout.operator("resolver.export_stage")
 
+def draw_button(self, context):
+    resolver = context.collection.resolver
+    if resolver.is_connected:
+        self.layout.operator("resolver.disconnect", icon='UNLINKED')
 
-register_classes, unregister_classes = bpy.utils.register_classes_factory([
-    RESOLVER_PT_collection,
-    ])
+    else:
+        self.layout.operator("resolver.connect", icon='LINKED')
+
 
 def register():
-    register_classes()
+    bpy.utils.register_class(RS_RESOLVER_PT_resolver)
+    bpy.types.OUTLINER_HT_header.prepend(draw_button)
 
 
 def unregister():
-    unregister_classes()
+    bpy.types.OUTLINER_HT_header.remove(draw_button)
+    bpy.utils.unregister_class(RS_RESOLVER_PT_resolver)
