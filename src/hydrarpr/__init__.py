@@ -12,6 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+from pathlib import Path
+import sys
+import os
+import platform
+
+from pxr import Plug
+
+from . import engine, properties, ui
+
+# Enabling RenderStudio for Windows only
+if platform.system() == 'Windows':
+    from . import render_studio
+else:
+    render_studio = None
+
 
 bl_info = {
     "name": "Hydra render engine: RPR",
@@ -25,21 +40,32 @@ bl_info = {
     "community": "",
     "downloads": "",
     "main_web": "",
-    "support": 'TESTING',
     "category": "Render"
 }
 
-
-from . import engine, properties, ui
+LIBS_DIR = Path(__file__).parent / "libs"
 
 
 def register():
+    if platform.system() == 'Windows':
+        os.environ['PATH'] = os.environ['PATH'] + \
+            os.pathsep + str(LIBS_DIR / "lib")
+
+    sys.path.append(str(LIBS_DIR / "python"))
+    Plug.Registry().RegisterPlugins(str(LIBS_DIR / "plugin"))
+
     engine.register()
     properties.register()
     ui.register()
 
+    if render_studio:
+        render_studio.register()
+
 
 def unregister():
+    if render_studio:
+        render_studio.unregister()
+
     ui.unregister()
     properties.unregister()
     engine.unregister()
