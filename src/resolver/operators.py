@@ -21,9 +21,9 @@ class RESOLVER_OP_connect(bpy.types.Operator):
     bl_description = "Connect to Render Studio Resolver server"
 
     def execute(self, context):
-        resolver = context.collection.resolver
-        resolver.connect()
-        resolver.open_usd()
+        from .resolver import rs_resolver
+        rs_resolver.connect()
+        rs_resolver.open_usd()
 
         return {'FINISHED'}
 
@@ -34,8 +34,8 @@ class RESOLVER_OP_disconnect(bpy.types.Operator):
     bl_description = "Disconnect Render Studio Resolver server"
 
     def execute(self, context):
-        resolver = context.collection.resolver
-        resolver.disconnect()
+        from .resolver import rs_resolver
+        rs_resolver.disconnect()
         return {'FINISHED'}
 
 
@@ -45,8 +45,8 @@ class RESOLVER_OP_export_stage_to_string(bpy.types.Operator):
     bl_description = "Export current USD stage to console"
 
     def execute(self, context):
-        resolver = context.collection.resolver
-        print(resolver.get_stage().ExportToString())
+        from .resolver import rs_resolver
+        print(rs_resolver.stage.ExportToString())
         return {'FINISHED'}
 
 

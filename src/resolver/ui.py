@@ -22,9 +22,9 @@ class RS_RESOLVER_PT_resolver(bpy.types.Panel):
     bl_label = "RenderStudio Resolver"
 
     def draw(self, context):
-        resolver = context.collection.resolver
+        from .resolver import rs_resolver
         layout = self.layout
-        if resolver.is_connected:
+        if rs_resolver.is_connected:
             layout.operator("resolver.disconnect", icon='UNLINKED')
 
         else:
@@ -34,8 +34,8 @@ class RS_RESOLVER_PT_resolver(bpy.types.Panel):
         layout.operator("resolver.export_stage")
 
 def draw_button(self, context):
-    resolver = context.collection.resolver
-    if resolver.is_connected:
+    from .resolver import rs_resolver
+    if rs_resolver.is_connected:
         self.layout.operator("resolver.disconnect", icon='UNLINKED')
 
     else:
