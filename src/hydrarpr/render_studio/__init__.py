@@ -12,31 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import bpy
 from pxr import Plug
 
 
 def register():
     usd_plugin = Plug.Registry().GetPluginWithName('RenderStudioResolver')
     usd_plugin.Load()
-    
-    from . import resolver, ui, properties, operators
-    properties.register()
+
+    from . import resolver, ui, operators
+
+    resolver.register()
     operators.register()
     ui.register()
 
-    bpy.app.handlers.depsgraph_update_post.append(resolver.on_depsgraph_update_post)
-
 
 def unregister():
-    from . import resolver, ui, properties, operators
-
-    if resolver.on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
-
-    if bpy.context.collection.resolver.is_connected:
-        bpy.context.collection.resolver.disconnect()
+    from . import resolver, ui, operators
 
     ui.unregister()
     operators.unregister()
-    properties.unregister()
+    resolver.unregister()
