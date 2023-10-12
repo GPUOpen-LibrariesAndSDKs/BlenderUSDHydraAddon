@@ -17,7 +17,7 @@ import uuid
 
 logging_level = 'DEBUG'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
 logging_backups = 5
-render_studio_dir = Path.home() / "Documents/AMD RenderStudio Home"
+render_studio_dir = Path.home() / "AppData/Roaming/AMDRenderStudio/Storage/.storage/workspace"
 user_id = f"BlenderUser_{uuid.uuid4()}"
 server_url = ""
 storage_url = ""

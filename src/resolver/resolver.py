@@ -25,10 +25,10 @@ log = logging.Log("updates")
 class RS_Resolver:
     _is_connected = False
     is_depsgraph_update = True
-    usd_path = ''
+    usd_path = ""
     stage = None
 
-    def get_resolver_path(self):
+    def get_resolved_path(self):
         path = ""
         if RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
             path = RenderStudioKit.UnresolveToRenderStudioPath(self.usd_path)
@@ -49,6 +49,7 @@ class RS_Resolver:
         info = RenderStudioKit.LiveSessionInfo(config.server_url, config.storage_url, config.channel_id, config.user_id)
         try:
             RenderStudioKit.LiveSessionConnect(info)
+            RenderStudioKit.SetWorkspacePath(config.render_studio_dir)
             self.is_connected = True
 
             log.debug("Connected: ", config.server_url, config.storage_url, config.channel_id, config.user_id)
@@ -61,20 +62,17 @@ class RS_Resolver:
         self.open_usd()
         self.connect_server()
 
-        if self.is_connected:
-            self.sync()
-
     def disconnect(self):
         if self.is_connected:
             RenderStudioKit.LiveSessionDisconnect()
             self.is_connected = False
             self.stage = None
-            self.usd_path = ''
+            self.usd_path = ""
 
         log.debug("Disconnected")
 
     def open_usd(self):
-        path = self.get_resolver_path()
+        path = self.get_resolved_path()
         if not path:
             log.debug("Failed to open stage: ", self.usd_path, path, self.stage)
 
@@ -94,13 +92,6 @@ class RS_Resolver:
         bpy.ops.wm.usd_export(filepath=self.usd_path)
         self.is_depsgraph_update = True
 
-    def sync(self):
-        res = False
-        if self.is_connected:
-            res = RenderStudioKit.LiveSessionUpdate()
-
-        return res
-
     def on_depsgraph_update_post(self, scene, depsgraph):
         if not self.is_connected:
             return
@@ -109,7 +100,6 @@ class RS_Resolver:
             return
 
         self.export_scene()
-        self.sync()
 
     @staticmethod
     def update_button():
