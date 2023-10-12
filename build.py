@@ -308,10 +308,10 @@ def boost(bin_dir, clean):
         with open(arch_filepath, "wb") as file:
             file.write(data.read())
 
-        assert zipfile.is_zipfile(arch_filepath)
+        assert zip.is_zipfile(arch_filepath)
 
         print("Extracting Boost to: ", src_dir)
-        archive = zipfile.ZipFile(arch_filepath)
+        archive = zip.ZipFile(arch_filepath)
         with archive:
             archive.extractall(deps_dir)
 
