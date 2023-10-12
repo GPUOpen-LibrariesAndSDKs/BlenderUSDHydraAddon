@@ -22,6 +22,7 @@ import zlib
 import os
 import sys
 import sysconfig
+import re
 from urllib.request import urlopen
 
 
@@ -95,13 +96,12 @@ def get_version():
     # getting build version
     build_ver = subprocess.getoutput("git rev-parse --short HEAD")
 
-    # # getting plugin version
-    # text = (repo_dir / "src/hdusd/__init__.py").read_text()
-    # m = re.search(r'"version": \((\d+), (\d+), (\d+)\)', text)
-    # plugin_ver = m.group(1), m.group(2), m.group(3)
-    #
-    # return (*plugin_ver, build_ver)
-    return build_ver
+    # getting plugin version
+    text = (repo_dir / "src/hydrarpr/__init__.py").read_text()
+    m = re.search(r'"version": \((\d+), (\d+), (\d+)\)', text)
+    plugin_ver = m.group(1), m.group(2), m.group(3)
+
+    return (*plugin_ver, build_ver)
 
 
 def print_start(msg):
@@ -586,14 +586,6 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     try:
         cmake(rs_dir, rs_bin_dir, compiler, jobs, build_var, clean, args)
 
-        # Generate files
-        Path(rs_bin_dir / "install/plugin/plugInfo.json").write_text(
-"""{
-    "Includes": [ "usd/*/resources/" ]
-}
-""")
-        Path(rs_bin_dir / "install/lib/python/__init__.py").touch()
-
     finally:
         os.chdir(cur_dir)
 
@@ -667,10 +659,6 @@ def zip_addon(bin_dir):
         boost_log_lib = bin_dir.parent / 'boost/install/lib/boost_log-vc142-mt-x64-1_80.dll'
         yield boost_log_lib, libs_rel_path / boost_log_lib.name
 
-        # copy plugInfo.json library
-        pluginfo = plugin_dir / 'plugInfo.json'
-        yield pluginfo, plugin_rel_path.parent.parent / pluginfo.name
-
         # copy plugin/usd folders
         for f in plugin_dir.glob("**/*"):
             rel_path = f.relative_to(plugin_dir.parent)
@@ -692,7 +680,9 @@ def zip_addon(bin_dir):
 
             yield f, rel_path
 
-        # yield from enumerate_hdrpr_data(bin_dir / "hdrpr")
+        print("-------------------------------------------------------------")
+        yield from enumerate_hdrpr_data(bin_dir / "hdrpr")
+        print("-------------------------------------------------------------")
         yield from enumerate_rs_data(bin_dir / "render_studio")
 
     install_dir = repo_dir / "install"
@@ -701,7 +691,7 @@ def zip_addon(bin_dir):
 
     ver = get_version()
     addon_name = "hydrarpr"
-    zip_file = install_dir / f"{addon_name}-{ver}-{OS.lower()}.zip"
+    zip_file = install_dir / f"{addon_name}-{ver[0]}.{ver[1]}.{ver[2]}-{ver[3]}-{OS.lower()}.zip"
     if zip_file.is_file():
         os.remove(zip_file)
 
