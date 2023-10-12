@@ -33,6 +33,7 @@ class RS_RESOLVER_PT_resolver(bpy.types.Panel):
         layout.separator()
         layout.operator("resolver.export_stage")
 
+
 def draw_button(self, context):
     resolver = context.collection.resolver
     if resolver.is_connected:

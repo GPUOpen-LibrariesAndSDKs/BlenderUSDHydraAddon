@@ -16,29 +16,21 @@ import bpy
 from pxr import Plug
 
 
-
 def register():
-    # root_folder = "blender.shared" if platform.system() == 'Windows' else "lib"
-    # path = os.pathsep.join([str(Path(bpy.app.binary_path).parent / f"{root_folder}")])
-    # os.add_dll_directory(path)
-    # os.add_dll_directory(str(LIBS_DIR / "lib"))
-    # os.environ['PATH'] += ";" + str(LIBS_DIR / "lib")
-    # sys.path.append(str(LIBS_DIR / "python"))
-
     usd_plugin = Plug.Registry().GetPluginWithName('RenderStudioResolver')
     usd_plugin.Load()
     
     from . import resolver, ui, properties, operators
+    properties.register()
+    operators.register()
+    ui.register()
 
-    # properties.register()
-    # bpy.types.Collection.resolver = bpy.props.PointerProperty(type=properties.RESOLVER_collection_properties)
-    # operators.register()
-    # ui.register()
-
-    # bpy.app.handlers.depsgraph_update_post.append(resolver.on_depsgraph_update_post)
+    bpy.app.handlers.depsgraph_update_post.append(resolver.on_depsgraph_update_post)
 
 
 def unregister():
+    from . import resolver, ui, properties, operators
+
     if resolver.on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(resolver.on_depsgraph_update_post)
 

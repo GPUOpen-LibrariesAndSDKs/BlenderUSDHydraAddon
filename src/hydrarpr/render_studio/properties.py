@@ -13,13 +13,16 @@
 # limitations under the License.
 # ********************************************************************
 from pathlib import Path
+
 import bpy
+
 from pxr import Usd
-from . import logging
 from RenderStudioResolver import RenderStudioResolver, LiveModeInfo
 
+from .. import logging
+log = logging.Log("rs.operators")
 
-log = logging.Log("operators")
+
 stage_cache = Usd.StageCache()
 
 
@@ -116,7 +119,9 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
 
 def register():
     bpy.utils.register_class(RESOLVER_collection_properties)
+    bpy.types.Collection.resolver = bpy.props.PointerProperty(type=RESOLVER_collection_properties)
 
 
 def unregister():
     bpy.utils.unregister_class(RESOLVER_collection_properties)
+    del bpy.types.Collection.resolver
