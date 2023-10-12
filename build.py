@@ -17,7 +17,7 @@ import subprocess
 import argparse
 import platform
 import shutil
-import zipfile
+import zipfile as zip
 import zlib
 import os
 import sys
@@ -104,32 +104,6 @@ def get_version():
     return build_ver
 
 
-def create_zip_addon(install_dir, bin_dir, name, package_name, enumerate_addon_data, ver):
-    """ Pack addon files to zip archive """
-    zip_addon = install_dir / name
-    if zip_addon.is_file():
-        os.remove(zip_addon)
-
-    print(f"Compressing addon files to: {zip_addon}")
-    with zipfile.ZipFile(zip_addon, 'w', compression=zipfile.ZIP_DEFLATED,
-                         compresslevel=zlib.Z_BEST_COMPRESSION) as myzip:
-        for src, package_path in enumerate_addon_data(bin_dir):
-            print(f"adding {src} --> {package_path}")
-
-            arcname = str(Path(package_name) / package_path)
-
-            if str(package_path) == "__init__.py":
-                print(f"    set version_build={ver[3]}")
-                text = src.read_text(encoding='utf-8')
-                text = text.replace('version_build = ""', f'version_build = "{ver[3]}"')
-                myzip.writestr(arcname, text)
-                continue
-
-            myzip.write(str(src), arcname=arcname)
-
-    return zip_addon
-
-
 def print_start(msg):
     print(f"""
 -------------------------------------------------------------
@@ -137,7 +111,7 @@ def print_start(msg):
 -------------------------------------------------------------""")
 
 
-def _cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
+def cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
     if clean:
         rm_dir(bin_dir)
 
@@ -177,7 +151,7 @@ def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
              f"{libdir}/python/bin/python3.10"
 
-    _cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
+    cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
         # '-DMATERIALX_BUILD_VIEWER=ON',
@@ -297,7 +271,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "usd_opengl_errors_fix.diff"))
 
         try:
-            _cmake(usd_dir, bin_dir / "USD", compiler, jobs, build_var, clean, args)
+            cmake(usd_dir, bin_dir / "USD", compiler, jobs, build_var, clean, args)
         finally:
             if git_apply:
                 print("Reverting USD repo")
@@ -487,7 +461,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "hdrpr_libs.diff"))
 
         try:
-            _cmake(hdrpr_dir, bin_dir / "hdrpr", compiler, jobs, build_var, clean, args)
+            cmake(hdrpr_dir, bin_dir / "hdrpr", compiler, jobs, build_var, clean, args)
         finally:
             if git_apply:
                 print("Reverting HdRPR repo")
@@ -610,7 +584,7 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     cur_dir = os.getcwd()
     ch_dir(rs_dir)
     try:
-        _cmake(rs_dir, rs_bin_dir, compiler, jobs, build_var, clean, args)
+        cmake(rs_dir, rs_bin_dir, compiler, jobs, build_var, clean, args)
 
         # Generate files
         Path(rs_bin_dir / "install/plugin/plugInfo.json").write_text(
@@ -627,28 +601,11 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
 def zip_addon(bin_dir):
     print_start("Creating zip Addon")
 
-    # region internal functions
-
-    def enumerate_addon_data(bin_dir):
+    def enumerate_hdrpr_data(bin_dir):
         libs_rel_path = Path('libs/lib')
         plugin_rel_path = Path('libs/plugin/usd/plugin')
         inst_dir = bin_dir / 'install'
         plugin_dir = inst_dir / 'plugin'
-
-        # copy addon scripts
-        hydrarpr_plugin_dir = repo_dir / 'src/hydrarpr'
-        assert hydrarpr_plugin_dir.exists()
-        for f in hydrarpr_plugin_dir.glob("**/*"):
-            if f.is_dir():
-                continue
-
-            rel_path = f.relative_to(hydrarpr_plugin_dir)
-            rel_path_parts = rel_path.parts
-            if rel_path_parts[0] in ("libs", "configdev.py", "hdusd.log") or \
-                    "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
-                continue
-
-            yield f, rel_path
 
         # copy libraries
         lib_dir = inst_dir / 'lib'
@@ -683,57 +640,17 @@ def zip_addon(bin_dir):
         for f in (pyrpr_dir / "__init__.py", pyrpr_dir / "RprUsd/__init__.py"):
             yield f, Path("libs") / f.relative_to(pyrpr_dir.parent.parent)
 
-    # endregion
-
-    repo_dir = Path(__file__).parent
-    install_dir = repo_dir / "install"
-    ver = get_version()
-    addon_name = "hydrarpr"
-    name = f"{addon_name}-{ver}-{OS.lower()}.zip"
-
-    if install_dir.is_dir():
-        for file in os.listdir(install_dir):
-            if file == name:
-                os.remove(install_dir / file)
-                break
-    else:
-        install_dir.mkdir()
-
-    zip_addon = create_zip_addon(install_dir, bin_dir / "hdrpr", name, addon_name, enumerate_addon_data,  ver)
-    print(f"Addon was compressed to: {zip_addon}")
-
-
-def zip_rs_addon(bin_dir):
-    print_start("Creating RenderStudio zip Addon")
-
-    # region internal functions
-
-    def enumerate_addon_data(bin_dir):
+    def enumerate_rs_data(bin_dir):
         libs_rel_path = Path('libs/lib')
         plugin_rel_path = Path('libs/plugin/usd/plugin')
         inst_dir = bin_dir / 'install'
         plugin_dir = inst_dir / 'plugin'
-
-        # copy addon scripts
-        resolver_plugin_dir = repo_dir / 'src/resolver'
-        for f in resolver_plugin_dir.glob("**/*"):
-            if f.is_dir():
-                continue
-
-            rel_path = f.relative_to(resolver_plugin_dir)
-            rel_path_parts = rel_path.parts
-            if rel_path_parts[0] in ("libs", "configdev.py") or \
-                    "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
-                continue
-
-            yield f, rel_path
 
         # copy core libraries
         resolver_lib_dir = bin_dir / 'install/lib'
         for f in resolver_lib_dir.glob("**/*"):
             if f.suffix in (".dll") and f.is_file():
                 yield f, libs_rel_path / f.name
-
 
         # copy python resolver
         pyresolver_dir = bin_dir / 'install/lib/python'
@@ -760,24 +677,52 @@ def zip_rs_addon(bin_dir):
             if any(p in rel_path.parts for p in ("RenderStudioResolver",)):
                 yield f, libs_rel_path.parent / rel_path
 
-    # endregion
+    def enumerate_data():
+        # copy addon scripts
+        src_dir = repo_dir / 'src/hydrarpr'
+        for f in src_dir.glob("**/*"):
+            if f.is_dir():
+                continue
 
-    repo_dir = Path(__file__).parent
+            rel_path = f.relative_to(src_dir)
+            rel_path_parts = rel_path.parts
+            if rel_path_parts[0] in ("libs", "configdev.py", "hdusd.log") or \
+                    "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
+                continue
+
+            yield f, rel_path
+
+        # yield from enumerate_hdrpr_data(bin_dir / "hdrpr")
+        yield from enumerate_rs_data(bin_dir / "render_studio")
+
     install_dir = repo_dir / "install"
-    ver = get_version()
-    addon_name = "resolver"
-    name = f"{addon_name}-{ver}-{OS.lower()}.zip"
-
-    if install_dir.is_dir():
-        for file in os.listdir(install_dir):
-            if file == name:
-                os.remove(install_dir / file)
-                break
-    else:
+    if not install_dir.is_dir():
         install_dir.mkdir()
 
-    zip_addon = create_zip_addon(install_dir, bin_dir / "resolver", name, addon_name, enumerate_addon_data, ver)
-    print(f"Addon was compressed to: {zip_addon}")
+    ver = get_version()
+    addon_name = "hydrarpr"
+    zip_file = install_dir / f"{addon_name}-{ver}-{OS.lower()}.zip"
+    if zip_file.is_file():
+        os.remove(zip_file)
+
+    print(f"Compressing addon files to: {zip_file}")
+    with zip.ZipFile(zip_file, 'w', compression=zip.ZIP_DEFLATED,
+                     compresslevel=zlib.Z_BEST_COMPRESSION) as myzip:
+        for src, package_path in enumerate_data():
+            print(f"adding {src} --> {package_path}")
+
+            arcname = str(Path(addon_name) / package_path)
+
+            if str(package_path) == "__init__.py":
+                print(f"    set version_build={ver[3]}")
+                text = src.read_text(encoding='utf-8')
+                text = text.replace('version_build = ""', f'version_build = "{ver[3]}"')
+                myzip.writestr(arcname, text)
+                continue
+
+            myzip.write(str(src), arcname=arcname)
+
+    print(f"Addon was compressed to: {zip_file}")
 
 
 def main():
@@ -798,9 +743,7 @@ def main():
                     help="Build RenderStudioKit")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
-    ap.add_argument("-rs-addon", required=False, action="store_true",
-                    help="Create RenderStudio zip addon")
-   
+
     libs_dir_default = {'Windows': r"..\lib\win64_vc15",
                         'Darwin': "../lib/darwin",
                         'Linux': "../lib/linux_x86_64_glibc_228"}[OS]
@@ -864,9 +807,6 @@ def main():
 
     if args.all or args.addon:
         zip_addon(bin_dir)
-
-    if args.all or args.rs_addon:
-        zip_rs_addon(bin_dir)
 
     print_start("Finished")
 

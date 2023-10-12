@@ -21,12 +21,6 @@ from pxr import Plug
 
 from . import engine, properties, ui
 
-# Enabling RenderStudio for Windows only
-if platform.system() == 'Windows':
-    from . import render_studio
-else:
-    render_studio = None
-
 
 bl_info = {
     "name": "Hydra render engine: RPR",
@@ -58,12 +52,14 @@ def register():
     properties.register()
     ui.register()
 
-    if render_studio:
+    if platform.system() == 'Windows':
+        from . import render_studio
         render_studio.register()
 
 
 def unregister():
-    if render_studio:
+    if platform.system() == 'Windows':
+        from . import render_studio
         render_studio.unregister()
 
     ui.unregister()
