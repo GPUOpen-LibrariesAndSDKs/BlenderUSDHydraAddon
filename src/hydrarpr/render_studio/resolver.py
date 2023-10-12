@@ -13,10 +13,9 @@
 # limitations under the License.
 # ********************************************************************
 import bpy
-from . import logging
 
-
-log = logging.Log("updates")
+from .. import logging
+log = logging.Log("rs.updates")
 
 
 def on_depsgraph_update_post(scene, depsgraph):

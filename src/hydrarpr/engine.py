@@ -12,16 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import os
-from pathlib import Path
-import sys
-
-from pxr import Plug
-
 import bpy
-
-
-LIBS_DIR = Path(__file__).parent / "libs"
 
 
 class RPRHydraRenderEngine(bpy.types.HydraRenderEngine):
@@ -33,25 +24,6 @@ class RPRHydraRenderEngine(bpy.types.HydraRenderEngine):
     bl_use_materialx = True
 
     bl_delegate_id = "HdRprPlugin"
-
-    @classmethod
-    def register(cls):
-        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + str(LIBS_DIR / "lib")
-        sys.path.append(str(LIBS_DIR / "python"))
-        Plug.Registry().RegisterPlugins(str(LIBS_DIR / "plugin"))
-
-    def get_sync_settings(self, engine_type):
-        return {
-            'MaterialXFilenameKey': "MaterialXFilename",
-            'rpr:object:visibility:camera': False,
-            'rpr:object:visibility:shadow': False,
-            'rpr:object:visibility:reflection': True,
-            'rpr:object:visibility:glossyReflection': True,
-            'rpr:object:visibility:refraction': True,
-            'rpr:object:visibility:glossyRefraction': True,
-            'rpr:object:visibility:diffuse': True,
-            'rpr:object:visibility:transparent': True,
-        }
 
     def get_render_settings(self, engine_type):
         if engine_type == 'VIEWPORT':

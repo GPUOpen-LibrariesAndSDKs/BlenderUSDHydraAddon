@@ -13,13 +13,18 @@
 # limitations under the License.
 # ********************************************************************
 from pathlib import Path
+
 import bpy
+
 from pxr import Usd
-from . import logging
 from RenderStudioResolver import RenderStudioResolver, LiveModeInfo
 
+from . import config
 
-log = logging.Log("operators")
+from .. import logging
+log = logging.Log("rs.properties")
+
+
 stage_cache = Usd.StageCache()
 
 
@@ -50,17 +55,16 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
                 path = RenderStudioResolver.Unresolve(path)
             else:
                 return False
-        log.debug("Resolved Path: ", path)
+        log("Resolved Path: ", path)
         return path
 
     def connect_server(self):
-        from .import config
         info = LiveModeInfo(config.server_url, config.storage_url, config.channel_id, config.user_id)
         try:
             RenderStudioResolver.StartLiveMode(info)
             self.is_connected = True
 
-            log.debug("Connected: ", config.server_url, config.storage_url, config.channel_id, config.user_id)
+            log("Connected: ", config.server_url, config.storage_url, config.channel_id, config.user_id)
 
         except Exception as err:
             log.error("Failed to connect: ", err)
@@ -77,12 +81,12 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         RenderStudioResolver.StopLiveMode()
         self.is_connected = False
 
-        log.debug("Disconnected")
+        log("Disconnected")
 
     def get_stage(self):
         stage = stage_cache.Find(Usd.StageCache.Id.FromLongInt(self.stageId))
 
-        log.debug("Stage: ", stage)
+        log("Stage: ", stage)
         return stage
 
     def open_usd(self):
@@ -90,11 +94,10 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         stage = Usd.Stage.Open(path)
         self.stageId = stage_cache.Insert(stage).ToLongInt()
 
-        log.debug("Open stage: ", self.usd_path, path, stage)
+        log("Open stage: ", self.usd_path, path, stage)
         return stage
 
     def export_scene(self):
-        from . import config
         if not Path(self.usd_path).exists() or not self.usd_path:
             filename = bpy.path.ensure_ext(
                 str(Path(f"{config.user_id}_{Path(bpy.data.filepath).stem}")), ".usda"
@@ -102,7 +105,7 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
             self.usd_path = str(config.render_studio_dir / filename)
 
         self.is_depsgraph_update = False
-        log.debug("Export usd", self.usd_path)
+        log("Export usd", self.usd_path)
         bpy.ops.wm.usd_export(filepath=self.usd_path)
         self.is_depsgraph_update = True
 
@@ -116,7 +119,9 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
 
 def register():
     bpy.utils.register_class(RESOLVER_collection_properties)
+    bpy.types.Collection.resolver = bpy.props.PointerProperty(type=RESOLVER_collection_properties)
 
 
 def unregister():
     bpy.utils.unregister_class(RESOLVER_collection_properties)
+    del bpy.types.Collection.resolver

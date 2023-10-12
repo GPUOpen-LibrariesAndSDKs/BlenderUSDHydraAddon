@@ -16,20 +16,18 @@ import sys
 import logging.handlers
 from pathlib import Path
 
-from . import config
-
-
-ROOT_DIR = Path(__file__).parent
 
 FORMAT_STR = "%(asctime)s %(levelname)s %(name)s [%(thread)d]:  %(message)s"
+DEFAULT_LEVEL = 'DEBUG'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
+BACKUPS = 5
 
 # root logger for the addon
-logger = logging.getLogger('Resolver')
-logger.setLevel(config.logging_level)
+logger = logging.getLogger('hydrarpr')
+logger.setLevel(DEFAULT_LEVEL)
 
-file_handler = logging.handlers.RotatingFileHandler(ROOT_DIR / 'resolver.log',
+file_handler = logging.handlers.RotatingFileHandler(Path(__file__).parent / 'hydrarpr.log',
                                                     mode='w', encoding='utf-8', delay=True,
-                                                    backupCount=config.logging_backups)
+                                                    backupCount=BACKUPS)
 file_handler.doRollover()
 file_handler.setFormatter(logging.Formatter(FORMAT_STR))
 logger.addHandler(file_handler)

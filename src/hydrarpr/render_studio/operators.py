@@ -56,6 +56,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     RESOLVER_OP_export_stage_to_string,
     ])
 
+
 def register():
     register_classes()
 
