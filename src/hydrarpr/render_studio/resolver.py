@@ -27,4 +27,3 @@ def on_depsgraph_update_post(scene, depsgraph):
         return
 
     resolver.export_scene()
-    resolver.sync()
