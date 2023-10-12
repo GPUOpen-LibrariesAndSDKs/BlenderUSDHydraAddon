@@ -52,15 +52,12 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         path = self.usd_path
         if RenderStudioKit.IsUnresovableToRenderStudioPath(path):
             path = RenderStudioKit.UnresolveToRenderStudioPath(path)
-        else:
-            return False
         log("Resolved Path: ", path)
         return path
 
     def connect_server(self):
         info = RenderStudioKit.LiveSessionInfo(config.server_url, config.storage_url, config.channel_id, config.user_id)
         try:
-            RenderStudioKit.SetWorkspacePath(str(config.render_studio_dir))
             RenderStudioKit.LiveSessionConnect(info)
             self.is_connected = True
 
@@ -87,6 +84,7 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return stage
 
     def open_usd(self):
+        RenderStudioKit.SetWorkspacePath(str(config.render_studio_dir))
         path = self.get_resolver_path()
         stage = Usd.Stage.Open(path)
         self.stageId = stage_cache.Insert(stage).ToLongInt()
