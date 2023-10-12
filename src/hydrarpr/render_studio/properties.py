@@ -17,7 +17,7 @@ from pathlib import Path
 import bpy
 
 from pxr import Usd
-from RenderStudioResolver import RenderStudioResolver, LiveModeInfo
+import RenderStudioKit
 
 from . import config
 
@@ -50,18 +50,15 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
 
     def get_resolver_path(self):
         path = self.usd_path
-        if not RenderStudioResolver.IsRenderStudioPath(path):
-            if RenderStudioResolver.IsUnresovableToRenderStudioPath(path):
-                path = RenderStudioResolver.Unresolve(path)
-            else:
-                return False
+        if RenderStudioKit.IsUnresovableToRenderStudioPath(path):
+            path = RenderStudioKit.UnresolveToRenderStudioPath(path)
         log("Resolved Path: ", path)
         return path
 
     def connect_server(self):
-        info = LiveModeInfo(config.server_url, config.storage_url, config.channel_id, config.user_id)
+        info = RenderStudioKit.LiveSessionInfo(config.server_url, config.storage_url, config.channel_id, config.user_id)
         try:
-            RenderStudioResolver.StartLiveMode(info)
+            RenderStudioKit.LiveSessionConnect(info)
             self.is_connected = True
 
             log("Connected: ", config.server_url, config.storage_url, config.channel_id, config.user_id)
@@ -74,11 +71,8 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         self.open_usd()
         self.connect_server()
 
-        if self.is_connected:
-            self.sync()
-
     def disconnect(self):
-        RenderStudioResolver.StopLiveMode()
+        RenderStudioKit.LiveSessionDisconnect()
         self.is_connected = False
 
         log("Disconnected")
@@ -90,6 +84,7 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         return stage
 
     def open_usd(self):
+        RenderStudioKit.SetWorkspacePath(str(config.render_studio_dir))
         path = self.get_resolver_path()
         stage = Usd.Stage.Open(path)
         self.stageId = stage_cache.Insert(stage).ToLongInt()
@@ -108,13 +103,6 @@ class RESOLVER_collection_properties(bpy.types.PropertyGroup):
         log("Export usd", self.usd_path)
         bpy.ops.wm.usd_export(filepath=self.usd_path)
         self.is_depsgraph_update = True
-
-    def sync(self):
-        res = False
-        if self.is_connected:
-            res = RenderStudioResolver.ProcessLiveUpdates()
-
-        return res
 
 
 def register():
