@@ -25,7 +25,6 @@ import sysconfig
 import re
 from urllib.request import urlopen
 
-
 OS = platform.system()
 POSTFIX = ""
 EXT = ".exe" if OS == 'Windows' else ""
@@ -148,8 +147,8 @@ def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     print_start("Building MaterialX")
 
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{libdir}/python/bin/python3.10"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else \
+        f"{libdir}/python/bin/python3.10"
 
     cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
         '-DMATERIALX_BUILD_PYTHON=ON',
@@ -171,8 +170,8 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     usd_dir = deps_dir / "USD"
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{libdir}/python/bin/python3.10"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else \
+        f"{libdir}/python/bin/python3.10"
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -366,8 +365,8 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{libdir}/python/bin/python3.10"
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else \
+        f"{libdir}/python/bin/python3.10"
 
     # Boost flags
     args = [
@@ -450,7 +449,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
         pxr_init_py.write_text(text_new)
         print(text_new)
 
-    else:   # OS == 'Linux':
+    else:  # OS == 'Linux':
         os.environ['LD_LIBRARY_PATH'] = ':'.join(str(p) for p in paths)
 
     cur_dir = os.getcwd()
@@ -742,7 +741,7 @@ def main():
                     help=f"Path to root of Blender libs directory. (default: {libs_dir_default})"),
     ap.add_argument("-bin-dir", required=False, type=str, default="bin",
                     help="Path to binary directory. (default: bin)")
-    
+
     ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
                          'For example: -G "Visual Studio 16 2019" or -G "Xcode"',
@@ -772,8 +771,8 @@ def main():
         materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     installed_modules = None
-    py_exe = f"{bl_libs_dir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{bl_libs_dir}/python/bin/python3.10"
+    py_exe = f"{bl_libs_dir}/python/310/bin/python.exe" if OS == 'Windows' else \
+        f"{bl_libs_dir}/python/bin/python3.10"
 
     try:
         if args.all or args.usd or args.hdrpr:
