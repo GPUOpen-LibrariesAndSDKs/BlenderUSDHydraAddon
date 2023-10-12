@@ -8,7 +8,7 @@ With Pixar's USD system emerging as a powerful tool for 3D graphics pipelines an
 - [MaterialX](http://www.materialx.org/)
 
 ## Requirements
-Currently, this addon works only with [Blender 4.0+](https://www.blender.org/download/) in Windows and Linux.
+Currently, this addon works only with [Blender 4.0+](https://www.blender.org/download/) in Windows, Mac OS and Linux.
 
 On the [releases](https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon/releases) page are prebuilt versions of the ready to install addon. 
 
@@ -80,7 +80,19 @@ Use cmd.exe or any other command prompt.
 > git clone https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon
 > cd BlenderUSDHydraAddon
 > git submodule update --init --recursive
-> python build.py -all -bl-libs-dir <libs_dir> -bin-dir bin
+> python build.py -all
+```
+
+#### Mac OS:
+Download Blender precompiled libraries.
+```commandline
+svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_darwin
+```
+```commandline
+> git clone https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon
+> cd BlenderUSDHydraAddon
+> git submodule update --init --recursive
+> python tools/build.py -all
 ```
 
 #### Linux:
@@ -92,26 +104,26 @@ svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_g
 > git clone https://github.com/GPUOpen-LibrariesAndSDKs/BlenderUSDHydraAddon
 > cd BlenderUSDHydraAddon
 > git submodule update --init --recursive
-> python tools/build.py -all -bl-libs-dir <libs_dir> -bin-dir bin
+> python tools/build.py -all
 ```
 
 For building on non-default system python version you should change it with `update-alternatives --config python` command or via setting venv.
 
 #### Build tool
 You can build project using `build.py` with different flag combinations. It allows you to create a folder with binaries and pack all the necessary files for development to `/install` folder. Also `build.py` provides a variety of ways to make a project builds:
-- `-all` - builds all binaries, equals to `-usd -hdrpr -materialx -addon` 
+- `-all` - builds all binaries, equals to `-materialx -usd -hdrpr -addon` 
 - `-usd` - builds usd binaries
 - `-hdrpr` - builds HdRPR plugin binaries
 - `-materialx` - builds MaterialX binaries
-- `-bin-dir <bin dir>` - define path to build binaries
-- `-bl-libs-dir <libs_dir>` - define path to Blender precompiled libraries
-- `-clean` - removes binaries folder before build, for example: `-all -clean ...` remove all folders in `<bin dir>`, `-usd -hdrpr -clean` removes only `<bin dir>/Usd` and `<bin dir>/HdRPR`
-- `-G "Visual Studio 16 2022"` - set builder, passing with `-all` and `-hdrpr` _(Windows only)_ 
-- `-addon` - generates zip archive with plugin to `/install` folder
+- `-bin-dir <bin dir>` - define path to build binaries. _Default_: `bin`
+- `-bl-libs-dir <libs_dir>` - define path to Blender precompiled libraries. _Default_: `../lib/<OS related name>`
+- `-clean` - removes binaries folder before build, for example: `-all -clean` remove all folders in `<bin dir>`, `-usd -hdrpr -clean` removes only `<bin dir>/Usd` and `<bin dir>/HdRPR`
+- `-G <builder name>` - set builder, passing with `-all`, `-materialx`, `-usd` and `-hdrpr`. _Example_: `-G "Visual Studio 16 2019"`, `-G "Xcode"`
+- `-addon` - generates zip archive with plugin to `./install` folder
 
-Arguments are mostly used to skip build unneeded binaries. For example, you want switch to prebuild binary folder `bin/dir_01`:
+Arguments are mostly used to skip build unneeded binaries. For example:
 ```commandline
-> python build.py -addon -hdrpr -bin-dir bin/dir_01
+> python build.py -hdrpr -addon
 ```
 ### Debugging
 #### Visual Studio 2022
