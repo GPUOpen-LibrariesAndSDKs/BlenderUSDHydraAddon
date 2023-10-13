@@ -89,10 +89,7 @@ rs_resolver = Resolver()
 
 
 def on_depsgraph_update_post(scene, depsgraph):
-    if not rs_resolver.is_connected:
-        return
-
-    if not rs_resolver.is_depsgraph_update:
+    if not rs_resolver.is_connected or not rs_resolver.is_depsgraph_update:
         return
 
     rs_resolver.export_scene()
