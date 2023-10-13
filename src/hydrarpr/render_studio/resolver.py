@@ -38,8 +38,6 @@ class Resolver:
         self.usd_path = ""
         self.stage = None
 
-        RenderStudioKit.SetWorkspacePath(str(STORAGE_DIR))
-
     def get_resolved_path(self):
         if not RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
             return ""
@@ -65,7 +63,9 @@ class Resolver:
         info = RenderStudioKit.LiveSessionInfo(SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID)
         RenderStudioKit.LiveSessionConnect(info)
         self.is_connected = True
-        self.update_button()
+
+        from .ui import update_button
+        update_button()
 
     def disconnect(self):
         log("Disconnect server")
@@ -74,7 +74,9 @@ class Resolver:
         self.is_connected = False
         self.stage = None
         self.usd_path = ""
-        self.update_button()
+
+        from .ui import update_button
+        update_button()
 
     def export_scene(self):
         if not Path(self.usd_path).exists() or not self.usd_path:
@@ -88,16 +90,6 @@ class Resolver:
         self.is_depsgraph_update = False
         bpy.ops.wm.usd_export(filepath=self.usd_path)
         self.is_depsgraph_update = True
-
-    @staticmethod
-    def update_button():
-        for window in bpy.context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type in ['PROPERTIES', 'OUTLINER']:
-                    for region in area.regions:
-                        if ((area.type == 'PROPERTIES' and region.type == 'WINDOW') or
-                                (area.type == 'OUTLINER' and region.type == 'HEADER')):
-                            region.tag_redraw()
 
 
 rs_resolver = Resolver()
@@ -114,6 +106,8 @@ def on_depsgraph_update_post(scene, depsgraph):
 
 
 def register():
+    RenderStudioKit.SetWorkspacePath(str(STORAGE_DIR))
+
     bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
 
 

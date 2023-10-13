@@ -43,6 +43,16 @@ def draw_button(self, context):
         self.layout.operator("rs_resolver.connect", icon='LINKED')
 
 
+def update_button():
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type in ['PROPERTIES', 'OUTLINER']:
+                for region in area.regions:
+                    if ((area.type == 'PROPERTIES' and region.type == 'WINDOW') or
+                            (area.type == 'OUTLINER' and region.type == 'HEADER')):
+                        region.tag_redraw()
+
+
 def register():
     bpy.utils.register_class(RS_RESOLVER_PT_resolver)
     bpy.types.OUTLINER_HT_header.prepend(draw_button)
