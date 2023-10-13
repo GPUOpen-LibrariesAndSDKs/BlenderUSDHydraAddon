@@ -19,7 +19,7 @@ import platform
 
 from pxr import Plug
 
-from . import engine, properties, ui
+from . import engine, properties, ui, preferences
 
 
 bl_info = {
@@ -48,6 +48,7 @@ def register():
     sys.path.append(str(LIBS_DIR / "python"))
     Plug.Registry().RegisterPlugins(str(LIBS_DIR / "plugin"))
 
+    preferences.register()
     engine.register()
     properties.register()
     ui.register()
@@ -65,3 +66,4 @@ def unregister():
     ui.unregister()
     properties.unregister()
     engine.unregister()
+    preferences.unregister()
