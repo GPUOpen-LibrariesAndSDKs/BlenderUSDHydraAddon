@@ -14,39 +14,37 @@
 # ********************************************************************
 import bpy
 
+from .resolver import rs_resolver
+
 
 class RESOLVER_OP_connect(bpy.types.Operator):
-    bl_idname = 'resolver.connect'
+    bl_idname = 'rs_resolver.connect'
     bl_label = "Connect"
     bl_description = "Connect to Render Studio Resolver server"
 
     def execute(self, context):
-        resolver = context.collection.resolver
-        resolver.connect()
-        resolver.open_usd()
+        rs_resolver.connect()
 
         return {'FINISHED'}
 
 
 class RESOLVER_OP_disconnect(bpy.types.Operator):
-    bl_idname = 'resolver.disconnect'
+    bl_idname = 'rs_resolver.disconnect'
     bl_label = "Disconnect"
     bl_description = "Disconnect Render Studio Resolver server"
 
     def execute(self, context):
-        resolver = context.collection.resolver
-        resolver.disconnect()
+        rs_resolver.disconnect()
         return {'FINISHED'}
 
 
 class RESOLVER_OP_export_stage_to_string(bpy.types.Operator):
-    bl_idname = 'resolver.export_stage'
+    bl_idname = 'rs_resolver.export_stage'
     bl_label = "Export Stage to Console"
     bl_description = "Export current USD stage to console"
 
     def execute(self, context):
-        resolver = context.collection.resolver
-        print(resolver.get_stage().ExportToString())
+        print(rs_resolver.stage.ExportToString())
         return {'FINISHED'}
 
 
@@ -54,7 +52,7 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     RESOLVER_OP_connect,
     RESOLVER_OP_disconnect,
     RESOLVER_OP_export_stage_to_string,
-    ])
+])
 
 
 def register():
