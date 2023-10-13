@@ -17,7 +17,7 @@ from pathlib import Path
 
 import bpy
 
-from pxr import Usd, Plug
+from pxr import Usd
 import RenderStudioKit
 
 from .. import logging
@@ -32,12 +32,12 @@ CHANNEL_ID = "Blender"
 
 
 class Resolver:
-    is_connected = False
-    is_depsgraph_update = True
-    usd_path = ""
-    stage = None
-
     def __init__(self):
+        self.is_connected = False
+        self.is_depsgraph_update = True
+        self.usd_path = ""
+        self.stage = None
+
         RenderStudioKit.SetWorkspacePath(str(STORAGE_DIR))
 
     def get_resolved_path(self):
@@ -45,15 +45,6 @@ class Resolver:
             return ""
 
         return RenderStudioKit.UnresolveToRenderStudioPath(self.usd_path)
-
-    def update_usd_path(self):
-        if not Path(self.usd_path).exists() or not self.usd_path:
-            filename = bpy.path.ensure_ext(
-                str(Path(f"{USER_ID}_{Path(bpy.data.filepath).stem}")), ".usda"
-            )
-            self.usd_path = str(STORAGE_DIR / filename)
-
-        return self.usd_path
 
     def connect(self):
         self.export_scene()
@@ -86,7 +77,12 @@ class Resolver:
         self.update_button()
 
     def export_scene(self):
-        self.update_usd_path()
+        if not Path(self.usd_path).exists() or not self.usd_path:
+            filename = bpy.path.ensure_ext(
+                str(Path(f"{USER_ID}_{Path(bpy.data.filepath).stem}")), ".usda"
+            )
+            self.usd_path = str(STORAGE_DIR / filename)
+
         log("Exported scene", self.usd_path)
 
         self.is_depsgraph_update = False
