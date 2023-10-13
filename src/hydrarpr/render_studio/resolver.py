@@ -38,28 +38,21 @@ class Resolver:
         self.usd_path = ""
         self.stage = None
 
-    def get_resolved_path(self):
-        if not RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
-            return ""
-
-        return RenderStudioKit.UnresolveToRenderStudioPath(self.usd_path)
-
     def connect(self):
         self.export_scene()
 
-        path = self.get_resolved_path()
-        if not path:
-            log.warn("Failed to : ", self.usd_path, path)
+        if not RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
+            log.warn("No resolved path", self.usd_path)
             return
 
-        self.stage = Usd.Stage.Open(path)
-        log("Opened stage: ", self.usd_path, path)
+        uri_path = RenderStudioKit.UnresolveToRenderStudioPath(self.usd_path)
 
+        log("Open stage", self.usd_path, uri_path)
+        self.stage = Usd.Stage.Open(uri_path)
         if not self.stage:
             return
 
-        log("Connect to server :", SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID, STORAGE_DIR)
-
+        log("Connect to server", SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID, STORAGE_DIR)
         info = RenderStudioKit.LiveSessionInfo(SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID)
         RenderStudioKit.LiveSessionConnect(info)
         self.is_connected = True
