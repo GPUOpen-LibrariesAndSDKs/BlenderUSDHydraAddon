@@ -17,7 +17,7 @@ from pathlib import Path
 
 import bpy
 
-from pxr import Usd
+from pxr import Usd, Plug
 import RenderStudioKit
 
 from .. import logging
@@ -31,18 +31,20 @@ STORAGE_URL = ""
 CHANNEL_ID = "Blender"
 
 
-class RS_Resolver:
+class Resolver:
     is_connected = False
     is_depsgraph_update = True
     usd_path = ""
     stage = None
 
-    def get_resolved_path(self):
-        path = ""
-        if RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
-            path = RenderStudioKit.UnresolveToRenderStudioPath(self.usd_path)
+    def __init__(self):
+        RenderStudioKit.SetWorkspacePath(str(STORAGE_DIR))
 
-        return path
+    def get_resolved_path(self):
+        if not RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
+            return ""
+
+        return RenderStudioKit.UnresolveToRenderStudioPath(self.usd_path)
 
     def update_usd_path(self):
         if not Path(self.usd_path).exists() or not self.usd_path:
@@ -54,14 +56,19 @@ class RS_Resolver:
         return self.usd_path
 
     def connect(self):
-        self.set_storage_dir(str(STORAGE_DIR))
         self.export_scene()
-        self.open_usd()
 
-        if self.stage:
-            self.connect_server()
+        path = self.get_resolved_path()
+        if not path:
+            log.warn("Failed to : ", self.usd_path, path)
+            return
 
-    def connect_server(self):
+        self.stage = Usd.Stage.Open(path)
+        log("Opened stage: ", self.usd_path, path)
+
+        if not self.stage:
+            return
+
         log("Connect to server :", SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID, STORAGE_DIR)
 
         info = RenderStudioKit.LiveSessionInfo(SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID)
@@ -78,16 +85,6 @@ class RS_Resolver:
         self.usd_path = ""
         self.update_button()
 
-    def open_usd(self):
-        path = self.get_resolved_path()
-        log("Opened stage: ", self.usd_path, path)
-
-        if path:
-            self.stage = Usd.Stage.Open(path)
-
-        else:
-            log("Failed to open stage: ", self.usd_path, path)
-
     def export_scene(self):
         self.update_usd_path()
         log("Exported scene", self.usd_path)
@@ -95,19 +92,6 @@ class RS_Resolver:
         self.is_depsgraph_update = False
         bpy.ops.wm.usd_export(filepath=self.usd_path)
         self.is_depsgraph_update = True
-
-    def on_depsgraph_update_post(self, scene, depsgraph):
-        if not self.is_connected:
-            return
-
-        if not self.is_depsgraph_update:
-            return
-
-        self.export_scene()
-
-    @staticmethod
-    def set_storage_dir(dir_path):
-        RenderStudioKit.SetWorkspacePath(dir_path)
 
     @staticmethod
     def update_button():
@@ -120,16 +104,26 @@ class RS_Resolver:
                             region.tag_redraw()
 
 
-rs_resolver = RS_Resolver()
+rs_resolver = Resolver()
+
+
+def on_depsgraph_update_post(scene, depsgraph):
+    if not rs_resolver.is_connected:
+        return
+
+    if not rs_resolver.is_depsgraph_update:
+        return
+
+    rs_resolver.export_scene()
 
 
 def register():
-    bpy.app.handlers.depsgraph_update_post.append(rs_resolver.on_depsgraph_update_post)
+    bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
 
 
 def unregister():
-    if rs_resolver.on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(rs_resolver.on_depsgraph_update_post)
+    if on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
 
     if rs_resolver.is_connected:
         rs_resolver.disconnect()
