@@ -1,5 +1,6 @@
 /install
 /bin*
+/src/hydrarpr/configdev.py
 
 .idea
 .vscode

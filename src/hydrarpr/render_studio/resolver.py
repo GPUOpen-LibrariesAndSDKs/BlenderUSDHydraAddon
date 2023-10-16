@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import uuid
 from pathlib import Path
 
 import bpy
@@ -24,13 +23,6 @@ from .. import logging
 log = logging.Log("rs.resolver")
 
 
-STORAGE_DIR = Path.home() / "AppData/Roaming/AMDRenderStudio/Storage/.storage/workspace"
-USER_ID = f"BlenderUser_{uuid.uuid4()}"
-SERVER_URL = ""
-STORAGE_URL = ""
-CHANNEL_ID = "Blender"
-
-
 class Resolver:
     def __init__(self):
         self.is_connected = False
@@ -39,6 +31,9 @@ class Resolver:
         self.stage = None
 
     def connect(self):
+        from ..preferences import preferences
+        pref = preferences()
+        RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
         self.export_scene()
 
         if not RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
@@ -52,8 +47,8 @@ class Resolver:
         if not self.stage:
             return
 
-        log("Connect to server", SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID, STORAGE_DIR)
-        info = RenderStudioKit.LiveSessionInfo(SERVER_URL, STORAGE_URL, CHANNEL_ID, USER_ID)
+        log("Connect to server", pref.rs_server_url, pref.rs_storage_url, pref.rs_channel_id, pref.rs_user_id, pref.rs_storage_dir)
+        info = RenderStudioKit.LiveSessionInfo(pref.rs_server_url, pref.rs_storage_url, pref.rs_channel_id, pref.rs_user_id)
         RenderStudioKit.LiveSessionConnect(info)
         self.is_connected = True
 
@@ -72,11 +67,13 @@ class Resolver:
         update_button()
 
     def export_scene(self):
+        from ..preferences import preferences
+        pref = preferences()
         if not Path(self.usd_path).exists() or not self.usd_path:
             filename = bpy.path.ensure_ext(
-                str(Path(f"{USER_ID}_{Path(bpy.data.filepath).stem}")), ".usda"
+                str(Path(f"{pref.rs_user_id}_{Path(bpy.data.filepath).stem}")), ".usda"
             )
-            self.usd_path = str(STORAGE_DIR / filename)
+            self.usd_path = str(Path(pref.rs_storage_dir) / filename)
 
         log("Exported scene", self.usd_path)
 
@@ -96,8 +93,6 @@ def on_depsgraph_update_post(scene, depsgraph):
 
 
 def register():
-    RenderStudioKit.SetWorkspacePath(str(STORAGE_DIR))
-
     bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
 
 
