@@ -19,6 +19,8 @@ import bpy
 from pxr import Usd
 import RenderStudioKit
 
+from ..preferences import preferences
+
 from .. import logging
 log = logging.Log("rs.resolver")
 
@@ -29,9 +31,10 @@ class Resolver:
         self.is_depsgraph_update = True
         self.usd_path = ""
         self.stage = None
+        self.status = "Disconnected"
+        self.is_exporting = False
 
     def connect(self):
-        from ..preferences import preferences
         pref = preferences()
         RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
         self.export_scene()
@@ -51,6 +54,7 @@ class Resolver:
         info = RenderStudioKit.LiveSessionInfo(pref.rs_server_url, pref.rs_storage_url, pref.rs_channel_id, pref.rs_user_id)
         RenderStudioKit.LiveSessionConnect(info)
         self.is_connected = True
+        self.status = "Connected"
 
         from .ui import update_button
         update_button()
@@ -62,12 +66,23 @@ class Resolver:
         self.is_connected = False
         self.stage = None
         self.usd_path = ""
+        self.status = "Disconnected"
+        self.is_exporting = False
 
         from .ui import update_button
         update_button()
 
+    def start_live_export(self):
+        # TODO: Implement start live export
+        self.is_exporting = True
+        self.status = "Exporting..."
+
+    def stop_live_export(self):
+        # TODO: Implement stop live export
+        self.is_exporting = False
+        self.status = "Connected"
+
     def export_scene(self):
-        from ..preferences import preferences
         pref = preferences()
         if not Path(self.usd_path).exists() or not self.usd_path:
             filename = bpy.path.ensure_ext(
@@ -79,6 +94,7 @@ class Resolver:
 
         self.is_depsgraph_update = False
         bpy.ops.wm.usd_export(filepath=self.usd_path)
+        self.status = "Exported"
         self.is_depsgraph_update = True
 
 

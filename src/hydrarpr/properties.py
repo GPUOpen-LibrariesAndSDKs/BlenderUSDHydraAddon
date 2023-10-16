@@ -294,11 +294,20 @@ class RenderSettings(bpy.types.PropertyGroup):
     denoise: PointerProperty(type=DenoiseSettings)
 
 
+class RenderStudioSettings(bpy.types.PropertyGroup):
+    live_export: BoolProperty(
+        name="Live Export",
+        description="Toggle between export modes",
+        default=False,
+    )
+
+
 class SceneProperties(Properties):
     bl_type = bpy.types.Scene
 
     final: bpy.props.PointerProperty(type=RenderSettings)
     viewport: bpy.props.PointerProperty(type=RenderSettings)
+    render_studio: bpy.props.PointerProperty(type=RenderStudioSettings)
 
 
 register, unregister = bpy.utils.register_classes_factory((
@@ -307,5 +316,6 @@ register, unregister = bpy.utils.register_classes_factory((
     InteractiveQualitySettings,
     QualitySettings,
     RenderSettings,
+    RenderStudioSettings,
     SceneProperties,
 ))

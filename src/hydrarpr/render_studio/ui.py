@@ -15,32 +15,43 @@
 import bpy
 
 from .resolver import rs_resolver
+from ..ui import Panel
 
 
-class RS_RESOLVER_PT_resolver(bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'render'
-    bl_label = "RenderStudio Resolver"
+class RS_RESOLVER_PT_resolver(Panel):
+    bl_label = "AMD RenderStudio"
 
     def draw(self, context):
         layout = self.layout
+        settings = context.scene.hydra_rpr.render_studio
         if rs_resolver.is_connected:
-            layout.operator("rs_resolver.disconnect", icon='UNLINKED')
+            layout.operator("render_studio.disconnect", icon='UNLINKED')
 
         else:
-            layout.operator("rs_resolver.connect", icon='LINKED')
+            layout.operator("render_studio.connect", icon='LINKED')
 
-        layout.separator()
-        layout.operator("rs_resolver.export_stage")
+        col = layout.column()
+        col.enabled = rs_resolver.is_connected
+        col.prop(settings, "live_export")
+
+        col = col.column()
+        if settings.live_export:
+            if rs_resolver.is_exporting:
+                col.operator("render_studio.stop_live_export", icon='CANCEL')
+            else:
+                col.operator("render_studio.start_live_export", icon='EXPORT')
+        else:
+            col.operator("render_studio.export_scene", icon='EXPORT')
+        col.separator()
+        layout.label(text=f"Status: {rs_resolver.status}")
 
 
 def draw_button(self, context):
     if rs_resolver.is_connected:
-        self.layout.operator("rs_resolver.disconnect", icon='UNLINKED')
+        self.layout.operator("render_studio.disconnect", icon='UNLINKED')
 
     else:
-        self.layout.operator("rs_resolver.connect", icon='LINKED')
+        self.layout.operator("render_studio.connect", icon='LINKED')
 
 
 def update_button():
@@ -48,16 +59,13 @@ def update_button():
         for area in window.screen.areas:
             if area.type in ['PROPERTIES', 'OUTLINER']:
                 for region in area.regions:
-                    if ((area.type == 'PROPERTIES' and region.type == 'WINDOW') or
-                            (area.type == 'OUTLINER' and region.type == 'HEADER')):
+                    if area.type == 'PROPERTIES' and region.type == 'WINDOW':
                         region.tag_redraw()
 
 
 def register():
     bpy.utils.register_class(RS_RESOLVER_PT_resolver)
-    bpy.types.OUTLINER_HT_header.prepend(draw_button)
 
 
 def unregister():
-    bpy.types.OUTLINER_HT_header.remove(draw_button)
     bpy.utils.unregister_class(RS_RESOLVER_PT_resolver)

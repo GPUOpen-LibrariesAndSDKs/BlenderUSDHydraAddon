@@ -61,7 +61,7 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         box = layout.box()
-        box.label(text="RenderStudio Settings")
+        box.label(text="AMD RenderStudio Settings")
         col = box.column(align=True)
         col.prop(self, "rs_storage_dir", icon='NONE')
         col.prop(self, "rs_server_url", icon='NONE')
