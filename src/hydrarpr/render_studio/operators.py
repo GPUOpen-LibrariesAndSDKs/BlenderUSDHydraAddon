@@ -31,7 +31,7 @@ class RESOLVER_OP_connect(bpy.types.Operator):
 class RESOLVER_OP_disconnect(bpy.types.Operator):
     bl_idname = 'render_studio.disconnect'
     bl_label = "Disconnect"
-    bl_description = "Disconnect AMD RenderStudio"
+    bl_description = "Disconnect from AMD RenderStudio"
 
     def execute(self, context):
         rs_resolver.disconnect()
@@ -41,7 +41,7 @@ class RESOLVER_OP_disconnect(bpy.types.Operator):
 class RESOLVER_OP_sync_scene(bpy.types.Operator):
     bl_idname = 'render_studio.sync_scene'
     bl_label = "Sync Scene"
-    bl_description = "Sync scene to Usd file"
+    bl_description = "Sync scene to AMD RenderStudio"
 
     def execute(self, context):
         rs_resolver.sync_scene()
@@ -51,7 +51,7 @@ class RESOLVER_OP_sync_scene(bpy.types.Operator):
 class RESOLVER_OP_start_live_sync(bpy.types.Operator):
     bl_idname = 'render_studio.start_live_sync'
     bl_label = "Start Live Sync"
-    bl_description = "Start syncing scene every update"
+    bl_description = "Start live syncing: scene will be synced on every scene update"
 
     def execute(self, context):
         rs_resolver.start_live_sync()
@@ -61,20 +61,10 @@ class RESOLVER_OP_start_live_sync(bpy.types.Operator):
 class RESOLVER_OP_stop_live_sync(bpy.types.Operator):
     bl_idname = 'render_studio.stop_live_sync'
     bl_label = "Stop Live Sync"
-    bl_description = "Stop syncing scene every update"
+    bl_description = "Stop live syncing scene"
 
     def execute(self, context):
         rs_resolver.stop_live_sync()
-        return {'FINISHED'}
-
-
-class RESOLVER_OP_export_stage_to_string(bpy.types.Operator):
-    bl_idname = 'render_studio.export_stage'
-    bl_label = "Export Stage to Console"
-    bl_description = "Export current USD stage to console"
-
-    def execute(self, context):
-        print(rs_resolver.stage.ExportToString())
         return {'FINISHED'}
 
 
@@ -84,7 +74,6 @@ register_classes, unregister_classes = bpy.utils.register_classes_factory([
     RESOLVER_OP_sync_scene,
     RESOLVER_OP_start_live_sync,
     RESOLVER_OP_stop_live_sync,
-    # RESOLVER_OP_export_stage_to_string,
 ])
 
 

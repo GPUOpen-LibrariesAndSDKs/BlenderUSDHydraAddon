@@ -297,7 +297,7 @@ class RenderSettings(bpy.types.PropertyGroup):
 class RenderStudioSettings(bpy.types.PropertyGroup):
     live_sync: BoolProperty(
         name="Live Sync",
-        description="Toggle between sync modes",
+        description="Enable live syncing mode",
         default=False,
     )
 
