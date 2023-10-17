@@ -552,11 +552,11 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
 
     deps_dir = repo_dir / "deps"
     rs_dir = deps_dir / "RenderStudioKit"
-    boost_dir = bin_dir / "boost"
+    boost_dir = bin_dir / "boost/install"
     usd_dir = bin_dir / "USD/install"
-    rs_bin_dir = bin_dir / "render_studio"
     openssl_dir = Path(os.environ["OPENSSL_ROOT_DIR"])
     libdir = bl_libs_dir.as_posix()
+    usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
@@ -564,26 +564,28 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     args = [
         "-DCMAKE_CXX_FLAGS=/Zc:inline- /EHsc /bigobj /DBOOST_ALL_NO_LIB",
         f"-DBoost_COMPILER:STRING=-vc142",
-        "-DBLENDER_SUPPORT=ON",
         "-DBoost_USE_MULTITHREADED=ON",
         "-DBoost_USE_STATIC_LIBS=OFF",
         "-DBoost_USE_STATIC_RUNTIME=OFF",
-        f"-DBOOST_ROOT={boost_dir}/install",
+        f"-DBOOST_ROOT={boost_dir}",
         "-DBoost_NO_SYSTEM_PATHS=OFF",
         "-DBoost_NO_BOOST_CMAKE=OFF",
-        f"-DBoost_INCLUDE_DIR={boost_dir}/install/include",
+        f'-DBoost_INCLUDE_DIR={boost_dir / "include"}',
+
         f"-DOPENSSL_ROOT_DIR={openssl_dir.as_posix()}",
-        f"-DTBB_INCLUDE_DIRS={libdir}/tbb/include",
-        f"-DUSD_INCLUDE_DIRS={libdir}/usd/include",
-        "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
-        f'-Dpxr_DIR={usd_dir}',
-        f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
+
+        f"-DTBB_INCLUDE_DIR={libdir}/tbb/include",
+        f"-DTBB_LIBRARY={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
+
+        f'-DUSD_LOCATION={usd_dir}',
+        f'-DUSD_LIBRARY_DIR={usd_dir / "lib"}',
+        f'-DUSD_MONOLITHIC_LIBRARY={usd_monolitic_path}',
     ]
 
     cur_dir = os.getcwd()
     ch_dir(rs_dir)
     try:
-        cmake(rs_dir, rs_bin_dir, compiler, jobs, build_var, clean, args)
+        cmake(rs_dir, bin_dir / "render_studio", compiler, jobs, build_var, clean, args)
 
     finally:
         os.chdir(cur_dir)
