@@ -562,6 +562,8 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
 
     # Boost flags
     args = [
+        "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
+
         "-DCMAKE_CXX_FLAGS=/Zc:inline- /EHsc /bigobj /DBOOST_ALL_NO_LIB",
         f"-DBoost_COMPILER:STRING=-vc142",
         "-DBoost_USE_MULTITHREADED=ON",
@@ -647,12 +649,14 @@ def zip_addon(bin_dir):
 
         # copy core libraries
         resolver_lib_dir = bin_dir / 'install/lib'
+        assert resolver_lib_dir.exists()
         for f in resolver_lib_dir.glob("**/*"):
             if f.suffix in (".dll") and f.is_file():
                 yield f, libs_rel_path / f.name
 
         # copy python resolver
         pyresolver_dir = bin_dir / 'install/lib/python'
+        assert pyresolver_dir.exists()
         for f in pyresolver_dir.glob("**/*"):
             if f.is_file() and f.suffix not in (".py", ".pyd"):
                 continue
@@ -660,14 +664,17 @@ def zip_addon(bin_dir):
 
         # copy RenderStudioResolver library
         resolver_lib = plugin_dir / 'usd/RenderStudioResolver.dll'
+        assert resolver_lib.exists()
         yield resolver_lib, plugin_rel_path.parent / resolver_lib.name
 
         # copy syncthing
         syncthing = plugin_dir / f'usd/syncthing{EXT}'
+        assert syncthing.exists()
         yield syncthing, plugin_rel_path.parent / syncthing.name
 
         # copy Boost library
-        boost_log_lib = bin_dir.parent / 'boost/install/lib/boost_log-vc142-mt-x64-1_80.dll'
+        boost_log_lib = bin_dir.parent / f'boost/install/lib/boost_log-vc142-mt-x64-1_80{DLLEXT}'
+        assert boost_log_lib.exists()
         yield boost_log_lib, libs_rel_path / boost_log_lib.name
 
         # copy plugin/usd folders
