@@ -662,6 +662,10 @@ def zip_addon(bin_dir):
         resolver_lib = plugin_dir / 'usd/RenderStudioResolver.dll'
         yield resolver_lib, plugin_rel_path.parent / resolver_lib.name
 
+        # copy syncthing
+        syncthing = plugin_dir / f'usd/syncthing{EXT}'
+        yield syncthing, plugin_rel_path.parent / syncthing.name
+
         # copy Boost library
         boost_log_lib = bin_dir.parent / 'boost/install/lib/boost_log-vc142-mt-x64-1_80.dll'
         yield boost_log_lib, libs_rel_path / boost_log_lib.name
