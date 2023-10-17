@@ -18,9 +18,9 @@ from .resolver import rs_resolver
 
 
 class RESOLVER_OP_connect(bpy.types.Operator):
-    bl_idname = 'rs_resolver.connect'
+    bl_idname = 'render_studio.connect'
     bl_label = "Connect"
-    bl_description = "Connect to Render Studio Resolver server"
+    bl_description = "Connect to AMD RenderStudio"
 
     def execute(self, context):
         rs_resolver.connect()
@@ -29,29 +29,51 @@ class RESOLVER_OP_connect(bpy.types.Operator):
 
 
 class RESOLVER_OP_disconnect(bpy.types.Operator):
-    bl_idname = 'rs_resolver.disconnect'
+    bl_idname = 'render_studio.disconnect'
     bl_label = "Disconnect"
-    bl_description = "Disconnect Render Studio Resolver server"
+    bl_description = "Disconnect from AMD RenderStudio"
 
     def execute(self, context):
         rs_resolver.disconnect()
         return {'FINISHED'}
 
 
-class RESOLVER_OP_export_stage_to_string(bpy.types.Operator):
-    bl_idname = 'rs_resolver.export_stage'
-    bl_label = "Export Stage to Console"
-    bl_description = "Export current USD stage to console"
+class RESOLVER_OP_sync_scene(bpy.types.Operator):
+    bl_idname = 'render_studio.sync_scene'
+    bl_label = "Sync Scene"
+    bl_description = "Sync scene to AMD RenderStudio"
 
     def execute(self, context):
-        print(rs_resolver.stage.ExportToString())
+        rs_resolver.sync_scene()
+        return {'FINISHED'}
+
+
+class RESOLVER_OP_start_live_sync(bpy.types.Operator):
+    bl_idname = 'render_studio.start_live_sync'
+    bl_label = "Start Live Sync"
+    bl_description = "Start live syncing: scene will be synced on every scene update"
+
+    def execute(self, context):
+        rs_resolver.start_live_sync()
+        return {'FINISHED'}
+
+
+class RESOLVER_OP_stop_live_sync(bpy.types.Operator):
+    bl_idname = 'render_studio.stop_live_sync'
+    bl_label = "Stop Live Sync"
+    bl_description = "Stop live syncing scene"
+
+    def execute(self, context):
+        rs_resolver.stop_live_sync()
         return {'FINISHED'}
 
 
 register_classes, unregister_classes = bpy.utils.register_classes_factory([
     RESOLVER_OP_connect,
     RESOLVER_OP_disconnect,
-    RESOLVER_OP_export_stage_to_string,
+    RESOLVER_OP_sync_scene,
+    RESOLVER_OP_start_live_sync,
+    RESOLVER_OP_stop_live_sync,
 ])
 
 
