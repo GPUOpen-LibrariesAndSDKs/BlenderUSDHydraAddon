@@ -32,12 +32,12 @@ class Resolver:
         self.usd_path = ""
         self.stage = None
         self.status = "Disconnected"
-        self.is_exporting = False
+        self.is_syncing = False
 
     def connect(self):
         pref = preferences()
         RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
-        self.export_scene()
+        self.sync_scene()
 
         if not RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
             log.warn("No resolved path", self.usd_path)
@@ -67,22 +67,22 @@ class Resolver:
         self.stage = None
         self.usd_path = ""
         self.status = "Disconnected"
-        self.is_exporting = False
+        self.is_syncing = False
 
         from .ui import update_button
         update_button()
 
-    def start_live_export(self):
-        # TODO: Implement start live export
-        self.is_exporting = True
-        self.status = "Exporting..."
+    def start_live_sync(self):
+        # TODO: Implement start live sync
+        self.is_syncing = True
+        self.status = "Syncing..."
 
-    def stop_live_export(self):
-        # TODO: Implement stop live export
-        self.is_exporting = False
+    def stop_live_sync(self):
+        # TODO: Implement stop live sync
+        self.is_syncing = False
         self.status = "Connected"
 
-    def export_scene(self):
+    def sync_scene(self):
         pref = preferences()
         if not Path(self.usd_path).exists() or not self.usd_path:
             filename = bpy.path.ensure_ext(
@@ -90,11 +90,11 @@ class Resolver:
             )
             self.usd_path = str(Path(pref.rs_storage_dir) / filename)
 
-        log("Exported scene", self.usd_path)
+        log("Synced scene", self.usd_path)
 
         self.is_depsgraph_update = False
         bpy.ops.wm.usd_export(filepath=self.usd_path)
-        self.status = "Exported"
+        self.status = "Synced"
         self.is_depsgraph_update = True
 
 
@@ -105,7 +105,7 @@ def on_depsgraph_update_post(scene, depsgraph):
     if not rs_resolver.is_connected or not rs_resolver.is_depsgraph_update:
         return
 
-    rs_resolver.export_scene()
+    rs_resolver.sync_scene()
 
 
 def register():

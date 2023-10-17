@@ -32,16 +32,16 @@ class RS_RESOLVER_PT_resolver(Panel):
 
         col = layout.column()
         col.enabled = rs_resolver.is_connected
-        col.prop(settings, "live_export")
+        col.prop(settings, "live_sync")
 
         col = col.column()
-        if settings.live_export:
-            if rs_resolver.is_exporting:
-                col.operator("render_studio.stop_live_export", icon='CANCEL')
+        if settings.live_sync:
+            if rs_resolver.is_syncing:
+                col.operator("render_studio.stop_live_sync", icon='CANCEL')
             else:
-                col.operator("render_studio.start_live_export", icon='EXPORT')
+                col.operator("render_studio.start_live_sync", icon='FILE_REFRESH')
         else:
-            col.operator("render_studio.export_scene", icon='EXPORT')
+            col.operator("render_studio.sync_scene", icon='FILE_REFRESH')
         col.separator()
         layout.label(text=f"Status: {rs_resolver.status}")
 

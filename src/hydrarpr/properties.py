@@ -295,9 +295,9 @@ class RenderSettings(bpy.types.PropertyGroup):
 
 
 class RenderStudioSettings(bpy.types.PropertyGroup):
-    live_export: BoolProperty(
-        name="Live Export",
-        description="Toggle between export modes",
+    live_sync: BoolProperty(
+        name="Live Sync",
+        description="Toggle between sync modes",
         default=False,
     )
 
