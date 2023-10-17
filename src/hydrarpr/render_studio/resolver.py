@@ -16,8 +16,7 @@ from pathlib import Path
 
 import bpy
 
-from pxr import Usd
-import RenderStudioKit
+from rs import RenderStudioKit
 
 from ..preferences import preferences
 
@@ -29,30 +28,13 @@ class Resolver:
     def __init__(self):
         self.is_connected = False
         self.is_depsgraph_update = True
-        self.usd_path = ""
-        self.stage = None
         self.status = "Disconnected"
         self.is_syncing = False
 
     def connect(self):
         pref = preferences()
         RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
-        self.sync_scene()
-
-        if not RenderStudioKit.IsUnresovableToRenderStudioPath(self.usd_path):
-            log.warn("No resolved path", self.usd_path)
-            return
-
-        uri_path = RenderStudioKit.UnresolveToRenderStudioPath(self.usd_path)
-
-        log("Open stage", self.usd_path, uri_path)
-        self.stage = Usd.Stage.Open(uri_path)
-        if not self.stage:
-            return
-
-        log("Connect to server", pref.rs_server_url, pref.rs_storage_url, pref.rs_channel_id, pref.rs_user_id, pref.rs_storage_dir)
-        info = RenderStudioKit.LiveSessionInfo(pref.rs_server_url, pref.rs_storage_url, pref.rs_channel_id, pref.rs_user_id)
-        RenderStudioKit.LiveSessionConnect(info)
+        RenderStudioKit.SharedWorkspaceConnect()
         self.is_connected = True
         self.status = "Connected"
 
@@ -62,10 +44,8 @@ class Resolver:
     def disconnect(self):
         log("Disconnect server")
 
-        RenderStudioKit.LiveSessionDisconnect()
+        RenderStudioKit.SharedWorkspaceDisconnect()
         self.is_connected = False
-        self.stage = None
-        self.usd_path = ""
         self.status = "Disconnected"
         self.is_syncing = False
 
@@ -84,18 +64,16 @@ class Resolver:
 
     def sync_scene(self):
         pref = preferences()
-        if not Path(self.usd_path).exists() or not self.usd_path:
-            filename = bpy.path.ensure_ext(
-                str(Path(f"{pref.rs_user_id}_{Path(bpy.data.filepath).stem}")), ".usda"
-            )
-            self.usd_path = str(Path(pref.rs_storage_dir) / filename)
+        usd_path = Path(pref.rs_storage_dir) / f"{pref.rs_user_id}_{Path(bpy.data.filepath).stem}.usdc"
 
-        log("Synced scene", self.usd_path)
-
+        log("Syncing scene", usd_path)
         self.is_depsgraph_update = False
-        bpy.ops.wm.usd_export(filepath=self.usd_path)
-        self.status = "Synced"
-        self.is_depsgraph_update = True
+        try:
+            bpy.ops.wm.usd_export(filepath=str(usd_path))
+            self.status = "Synced"
+
+        finally:
+            self.is_depsgraph_update = True
 
 
 rs_resolver = Resolver()
