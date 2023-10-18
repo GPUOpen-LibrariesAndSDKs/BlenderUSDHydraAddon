@@ -21,7 +21,6 @@ def register():
 
     from . import resolver, ui, operators
 
-    resolver.register()
     operators.register()
     ui.register()
 
