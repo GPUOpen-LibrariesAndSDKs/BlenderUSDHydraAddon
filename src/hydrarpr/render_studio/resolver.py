@@ -28,7 +28,6 @@ class Resolver:
     def __init__(self):
         self.is_connected = False
         self.is_depsgraph_update = True
-        self.status = "Disconnected"
         self.is_syncing = False
 
     def connect(self):
@@ -36,7 +35,6 @@ class Resolver:
         RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
         RenderStudioKit.SharedWorkspaceConnect()
         self.is_connected = True
-        self.status = "Connected"
 
         from .ui import update_button
         update_button()
@@ -46,7 +44,6 @@ class Resolver:
 
         RenderStudioKit.SharedWorkspaceDisconnect()
         self.is_connected = False
-        self.status = "Disconnected"
         self.is_syncing = False
 
         from .ui import update_button
@@ -55,23 +52,37 @@ class Resolver:
     def start_live_sync(self):
         # TODO: Implement start live sync
         self.is_syncing = True
-        self.status = "Syncing..."
 
     def stop_live_sync(self):
         # TODO: Implement stop live sync
         self.is_syncing = False
-        self.status = "Connected"
 
     def sync_scene(self):
         pref = preferences()
-        usd_path = Path(pref.rs_storage_dir) / f"{pref.rs_user_id}_{Path(bpy.data.filepath).stem}.usdc"
+        settings = bpy.context.scene.hydra_rpr.render_studio
+        filename = f"{settings.filename if settings.filename else bpy.context.scene.name}.{pref.rs_file_format.lower()}"
+        usd_path = (Path(pref.rs_storage_dir) / settings.project_dir / filename)
 
         log("Syncing scene", usd_path)
         self.is_depsgraph_update = False
         try:
-            bpy.ops.wm.usd_export(filepath=str(usd_path))
-            self.status = "Synced"
-
+            bpy.ops.wm.usd_export(
+                filepath=str(usd_path),
+                selected_objects_only=settings.selected_objects_only,
+                visible_objects_only=settings.visible_objects_only,
+                export_animation=settings.export_animation,
+                export_hair=settings.export_hair,
+                # export_mesh_colors=settings.export_mesh_colors,
+                export_normals=settings.export_normals,
+                export_materials=settings.export_materials,
+                use_instancing=settings.use_instancing,
+                evaluation_mode=settings.evaluation_mode,
+                generate_preview_surface=settings.generate_preview_surface,
+                export_textures=settings.export_textures,
+                overwrite_textures=settings.overwrite_textures,
+                relative_paths=settings.relative_paths,
+                root_prim_path=settings.root_prim_path,
+            )
         finally:
             self.is_depsgraph_update = True
 

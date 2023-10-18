@@ -13,6 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import uuid
+import os
 from pathlib import Path
 
 import bpy
@@ -28,6 +29,15 @@ except ImportError:
     pass
 
 
+def rs_enable(self, context):
+    from . import render_studio
+    if self.rs_enable:
+        render_studio.register()
+
+    else:
+        render_studio.unregister()
+
+
 class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
     bl_idname = "hydrarpr"
 
@@ -35,7 +45,7 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         name="Storage Dir",
         description="Set directory which would be synchronized for all connected users",
         subtype='DIR_PATH',
-        default=str(Path.home() / "Documents/AMD RenderStudio Home"),
+        default=str(Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio Home"),
     )
     rs_server_url: bpy.props.StringProperty(
         name="Server Address",
@@ -57,16 +67,35 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         description="Set channel identifier",
         default="Blender",
     )
+    rs_file_format: bpy.props.EnumProperty(
+        name="Usd File Format",
+        items=(
+            ('USD', "usd", "Either of the usda or usdc", 1),
+            ('USDA', "usda", "Human-readable UTF-8 text", 2),
+            ('USDC', "usdc", "Random-access “Crate” binary", 3),
+        ),
+        default=1,
+    )
+    rs_enable: bpy.props.BoolProperty(
+        name="AMD RenderStudio",
+        description="Enable AMD RenderStudio",
+        default=False,
+        update=rs_enable,
+    )
 
     def draw(self, context):
         layout = self.layout
         box = layout.box()
-        box.label(text="AMD RenderStudio Settings")
-        col = box.column(align=True)
-        col.prop(self, "rs_storage_dir", icon='NONE')
-        # col.prop(self, "rs_server_url", icon='NONE')
-        # col.prop(self, "rs_user_id", icon='NONE')
-        # col.prop(self, "rs_channel_id", icon='NONE')
+        row = box.row(align=True)
+        row.prop(self, "rs_enable")
+        if self.rs_enable:
+            col = box.column(align=True)
+            col.prop(self, "rs_storage_dir")
+            col.prop(self, "rs_file_format")
+
+            # col.prop(self, "rs_server_url", icon='NONE')
+            # col.prop(self, "rs_user_id", icon='NONE')
+            # col.prop(self, "rs_channel_id", icon='NONE')
 
 
 def preferences():

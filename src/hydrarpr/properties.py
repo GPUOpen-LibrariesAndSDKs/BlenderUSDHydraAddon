@@ -13,6 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import math
+import platform
 
 import bpy
 from bpy.props import (
@@ -21,6 +22,7 @@ from bpy.props import (
     FloatProperty,
     BoolProperty,
     IntProperty,
+    StringProperty,
 )
 
 
@@ -299,6 +301,76 @@ class RenderStudioSettings(bpy.types.PropertyGroup):
         name="Live Sync",
         description="Enable live syncing mode",
         default=False,
+    )
+    project_dir: StringProperty(
+        name="Project Directory",
+        description="The directory to which the files will be synchronized",
+        default=platform.node(),
+    )
+    filename: StringProperty(
+        name="Custom File Name",
+        description="The name of the synced Usd file: live empty to use current scene name",
+        default="",
+    )
+
+    # Blender Usd export settings
+    selected_objects_only: BoolProperty(
+        name="Selection Only",
+        default=False,
+    )
+    visible_objects_only: BoolProperty(
+        name="Visible Only",
+        default=True,
+    )
+    export_animation: BoolProperty(
+        name="Animation",
+        default=False,
+    )
+    export_hair: BoolProperty(
+        name="Hair",
+        default=False,
+    )
+    export_uvmaps: BoolProperty(
+        name="UV Maps",
+        default=True,
+    )
+    export_normals: BoolProperty(
+        name="Normals",
+        default=True,
+    )
+    export_materials: BoolProperty(
+        name="Materials",
+        default=True,
+    )
+    root_prim_path: StringProperty(
+        name="Root Prim",
+        default="",
+    )
+    generate_preview_surface: BoolProperty(
+        name="To Usd Preview",
+        default=True,
+    )
+    export_textures: BoolProperty(
+        name="Export Textures",
+        default=True,
+    )
+    overwrite_textures: BoolProperty(
+        name="Overwrite Textures",
+        default=False,
+    )
+    relative_paths: BoolProperty(
+        name="Relative Paths",
+        default=True,
+    )
+    use_instancing: BoolProperty(
+        name="Instancing",
+        default=False,
+    )
+    evaluation_mode: EnumProperty(
+        name="Use Settings for",
+        items=(('RENDER', "Render", "", 1),
+               ('VIEWPORT', "Viewport", "", 2)),
+        default=1,
     )
 
 
