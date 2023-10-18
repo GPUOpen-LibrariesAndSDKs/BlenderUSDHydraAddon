@@ -35,7 +35,7 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         name="Storage Dir",
         description="Set directory which would be synchronized for all connected users",
         subtype='DIR_PATH',
-        default=str(Path.home() / "AppData/Roaming/AMDRenderStudio/Storage/.storage/workspace"),
+        default=str(Path.home() / "Documents/AMD RenderStudio Home"),
     )
     rs_server_url: bpy.props.StringProperty(
         name="Server Address",
@@ -64,10 +64,9 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         box.label(text="AMD RenderStudio Settings")
         col = box.column(align=True)
         col.prop(self, "rs_storage_dir", icon='NONE')
-        col.prop(self, "rs_server_url", icon='NONE')
-        col.prop(self, "rs_storage_url", icon='NONE')
-        col.prop(self, "rs_user_id", icon='NONE')
-        col.prop(self, "rs_channel_id", icon='NONE')
+        # col.prop(self, "rs_server_url", icon='NONE')
+        # col.prop(self, "rs_user_id", icon='NONE')
+        # col.prop(self, "rs_channel_id", icon='NONE')
 
 
 def preferences():
