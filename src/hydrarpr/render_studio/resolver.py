@@ -50,11 +50,11 @@ class Resolver:
         update_button()
 
     def start_live_sync(self):
-        # TODO: Implement start live sync
+        bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
         self.is_syncing = True
 
     def stop_live_sync(self):
-        # TODO: Implement stop live sync
+        bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
         self.is_syncing = False
 
     def sync_scene(self):
@@ -97,13 +97,9 @@ def on_depsgraph_update_post(scene, depsgraph):
     rs_resolver.sync_scene()
 
 
-def register():
-    bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
-
-
 def unregister():
-    if on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
+    if rs_resolver.is_syncing:
+        rs_resolver.stop_live_sync()
 
     if rs_resolver.is_connected:
         rs_resolver.disconnect()
