@@ -29,23 +29,21 @@ except ImportError:
     pass
 
 
-def rs_enable(self, context):
-    from . import render_studio
-    if self.rs_enable:
-        render_studio.register()
-
-    else:
-        render_studio.unregister()
-
-
 class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
     bl_idname = "hydrarpr"
+
+    def rs_enable_update(self, context):
+        from . import render_studio
+        if self.rs_enable:
+            render_studio.register()
+        else:
+            render_studio.unregister()
 
     rs_enable: bpy.props.BoolProperty(
         name="AMD RenderStudio",
         description="Enable AMD RenderStudio",
         default=False,
-        update=rs_enable,
+        update=rs_enable_update,
     )
     rs_server_url: bpy.props.StringProperty(
         name="Server Address",
@@ -65,10 +63,10 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
     )
     rs_file_format: bpy.props.EnumProperty(
         name="Usd File Format",
-        items=(('USD', "usd", "Either of the usda or usdc"),
-               ('USDA', "usda", "Human-readable UTF-8 text"),
-               ('USDC', "usdc", "Random-access “Crate” binary")),
-        default='USD',
+        items=(('.usd', "usd", "Either of the usda or usdc"),
+               ('.usda', "usda", "Human-readable UTF-8 text"),
+               ('.usdc', "usdc", "Random-access “Crate” binary")),
+        default='.usd',
     )
 
     def draw(self, context):

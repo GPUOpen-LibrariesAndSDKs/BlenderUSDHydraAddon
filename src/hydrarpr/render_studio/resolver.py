@@ -29,6 +29,7 @@ class Resolver:
         self.is_connected = False
         self.is_depsgraph_update = True
         self.is_syncing = False
+        self.filename = ""
 
     def connect(self):
         pref = preferences()
@@ -45,6 +46,7 @@ class Resolver:
         RenderStudioKit.SharedWorkspaceDisconnect()
         self.is_connected = False
         self.is_syncing = False
+        self.filename = ""
 
         from .ui import update_button
         update_button()
@@ -60,8 +62,9 @@ class Resolver:
     def sync_scene(self):
         pref = preferences()
         settings = bpy.context.scene.hydra_rpr.render_studio
-        filename = f"{settings.filename if settings.filename else bpy.context.scene.name}.{pref.rs_file_format.lower()}"
-        usd_path = Path(pref.rs_storage_dir) / settings.project_dir / filename
+        self.filename = Path(bpy.data.filepath).stem if bpy.data.filepath else "untitled"
+        self.filename += pref.rs_file_format
+        usd_path = Path(pref.rs_storage_dir) / settings.channel / self.filename
 
         log("Syncing scene", usd_path)
         self.is_depsgraph_update = False

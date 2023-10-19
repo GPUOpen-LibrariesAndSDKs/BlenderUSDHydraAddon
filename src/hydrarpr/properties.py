@@ -307,9 +307,9 @@ class RenderStudioSettings(bpy.types.PropertyGroup):
         default=False,
         update=live_sync_update,
     )
-    project_dir: StringProperty(
-        name="Project Directory",
-        description="The directory to which the files will be synchronized",
+    channel: StringProperty(
+        name="Channel",
+        description="Syncing Channel: directory to which the files will be synchronized",
         default=platform.node(),
     )
     filename: StringProperty(

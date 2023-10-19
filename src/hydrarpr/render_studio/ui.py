@@ -35,34 +35,24 @@ class RS_RESOLVER_PT_resolver(Panel):
         col.enabled = rs_resolver.is_connected
         col.separator()
 
-        col = col.column()
+        col1 = col.column(align=True)
         if settings.live_sync:
             if rs_resolver.is_syncing:
-                col.operator("render_studio.stop_live_sync", icon='CANCEL')
+                col1.operator("render_studio.stop_live_sync", icon='CANCEL')
             else:
-                col.operator("render_studio.start_live_sync", icon='FILE_REFRESH')
+                col1.operator("render_studio.start_live_sync", icon='FILE_REFRESH')
         else:
-            col.operator("render_studio.sync_scene", icon='FILE_REFRESH')
+            col1.operator("render_studio.sync_scene", icon='FILE_REFRESH')
 
-        col.prop(settings, "live_sync")
+        col1.prop(settings, "live_sync")
 
+        col.separator()
+        col.prop(settings, "channel")
 
-class RS_RESOLVER_PT_sync_settings(Panel):
-    bl_parent_id = RS_RESOLVER_PT_resolver.bl_idname
-    bl_label = "Sync Settings"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-
-        settings = context.scene.hydra_rpr.render_studio
-
-        col = layout.column()
-        col.enabled = rs_resolver.is_connected
-        col.prop(settings, "project_dir")
-        col.prop(settings, "filename")
+        if rs_resolver.filename:
+            col1 = col.column(align=True)
+            col1.label(text="Syncing to:")
+            col1.label(text=f"{settings.channel}/{rs_resolver.filename}")
 
 
 class RS_RESOLVER_PT_usd_settings(Panel):
@@ -80,6 +70,7 @@ class RS_RESOLVER_PT_usd_settings(Panel):
         col = layout.column()
         col.enabled = rs_resolver.is_connected
         col.separator()
+
         col.prop(settings, "selected_objects_only")
         col.prop(settings, "visible_objects_only")
         col.prop(settings, "export_animation")
@@ -90,15 +81,17 @@ class RS_RESOLVER_PT_usd_settings(Panel):
         col.prop(settings, "root_prim_path")
         col.prop(settings, "evaluation_mode")
         col.separator()
+
         col1 = col.column()
         col1.enabled = settings.export_materials
         col1.prop(settings, "generate_preview_surface")
         col1.prop(settings, "export_textures")
         col1.prop(settings, "overwrite_textures")
         col.separator()
-        col = col.column()
+
         col.prop(settings, "relative_paths")
         col.separator()
+
         col.prop(settings, "use_instancing")
 
 
@@ -121,6 +114,5 @@ def update_button():
 
 register, unregister = bpy.utils.register_classes_factory((
     RS_RESOLVER_PT_resolver,
-    RS_RESOLVER_PT_sync_settings,
     RS_RESOLVER_PT_usd_settings,
 ))
