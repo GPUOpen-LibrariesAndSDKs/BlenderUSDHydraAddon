@@ -67,7 +67,7 @@ class RS_RESOLVER_PT_sync_settings(Panel):
 
 class RS_RESOLVER_PT_usd_settings(Panel):
     bl_parent_id = RS_RESOLVER_PT_resolver.bl_idname
-    bl_label = "Usd Settings"
+    bl_label = "USD Settings"
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):

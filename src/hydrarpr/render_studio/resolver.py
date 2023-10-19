@@ -61,7 +61,7 @@ class Resolver:
         pref = preferences()
         settings = bpy.context.scene.hydra_rpr.render_studio
         filename = f"{settings.filename if settings.filename else bpy.context.scene.name}.{pref.rs_file_format.lower()}"
-        usd_path = (Path(pref.rs_storage_dir) / settings.project_dir / filename)
+        usd_path = Path(pref.rs_storage_dir) / settings.project_dir / filename
 
         log("Syncing scene", usd_path)
         self.is_depsgraph_update = False

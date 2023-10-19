@@ -228,10 +228,8 @@ class RenderSettings(bpy.types.PropertyGroup):
     render_quality: EnumProperty(
         name="Render Quality",
         description="Render Quality",
-        items=(
-            ('Northstar', "Full", "Full render quality"),
-            ('HybridPro', "Interactive", "Interactive render quality"),
-        ),
+        items=(('Northstar', "Full", "Full render quality"),
+               ('HybridPro', "Interactive", "Interactive render quality")),
         default='Northstar',
     )
     render_mode: EnumProperty(
@@ -375,9 +373,9 @@ class RenderStudioSettings(bpy.types.PropertyGroup):
     )
     evaluation_mode: EnumProperty(
         name="Use Settings for",
-        items=(('RENDER', "Render", "", 1),
-               ('VIEWPORT', "Viewport", "", 2)),
-        default=1,
+        items=(('RENDER', "Render", "Render evaluation mode"),
+               ('VIEWPORT', "Viewport", "Viewport evaluation mode")),
+        default='RENDER',
     )
 
 
