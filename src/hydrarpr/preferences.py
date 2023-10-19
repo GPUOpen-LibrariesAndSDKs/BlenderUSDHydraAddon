@@ -13,6 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import uuid
+import os
 from pathlib import Path
 
 import bpy
@@ -20,7 +21,7 @@ import bpy
 
 RS_SERVER_URL = ""
 RS_STORAGE_URL = ""
-RS_USER_ID = f"BlenderUser_{uuid.uuid4()}"
+RS_STORAGE_DIR = Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio"
 
 try:
     from . import configdev
@@ -31,11 +32,18 @@ except ImportError:
 class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
     bl_idname = "hydrarpr"
 
-    rs_storage_dir: bpy.props.StringProperty(
-        name="Storage Dir",
-        description="Set directory which would be synchronized for all connected users",
-        subtype='DIR_PATH',
-        default=str(Path.home() / "Documents/AMD RenderStudio Home"),
+    def rs_enable_update(self, context):
+        from . import render_studio
+        if self.rs_enable:
+            render_studio.register()
+        else:
+            render_studio.unregister()
+
+    rs_enable: bpy.props.BoolProperty(
+        name="AMD RenderStudio",
+        description="Enable AMD RenderStudio",
+        default=False,
+        update=rs_enable_update,
     )
     rs_server_url: bpy.props.StringProperty(
         name="Server Address",
@@ -47,26 +55,30 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         description="Set address of remote assets storage",
         default=RS_STORAGE_URL,
     )
-    rs_user_id: bpy.props.StringProperty(
-        name="User ID",
-        description="Set unique user identifier",
-        default=RS_USER_ID,
+    rs_storage_dir: bpy.props.StringProperty(
+        name="Storage Dir",
+        description="Set directory which would be synchronized for all connected users",
+        subtype='DIR_PATH',
+        default=str(RS_STORAGE_DIR),
     )
-    rs_channel_id: bpy.props.StringProperty(
-        name="Channel ID",
-        description="Set channel identifier",
-        default="Blender",
+    rs_file_format: bpy.props.EnumProperty(
+        name="Usd File Format",
+        items=(('.usd', "usd", "Either of the usda or usdc"),
+               ('.usda', "usda", "Human-readable UTF-8 text"),
+               ('.usdc', "usdc", "Random-access “Crate” binary")),
+        default='.usd',
     )
 
     def draw(self, context):
         layout = self.layout
         box = layout.box()
-        box.label(text="AMD RenderStudio Settings")
-        col = box.column(align=True)
-        col.prop(self, "rs_storage_dir", icon='NONE')
-        # col.prop(self, "rs_server_url", icon='NONE')
-        # col.prop(self, "rs_user_id", icon='NONE')
-        # col.prop(self, "rs_channel_id", icon='NONE')
+        row = box.row(align=True)
+        row.prop(self, "rs_enable")
+        if self.rs_enable:
+            col = box.column(align=True)
+            # col.prop(self, "rs_server_url", icon='NONE')
+            col.prop(self, "rs_storage_dir")
+            col.prop(self, "rs_file_format")
 
 
 def preferences():

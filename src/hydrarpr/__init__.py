@@ -53,13 +53,13 @@ def register():
     properties.register()
     ui.register()
 
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows' and preferences.preferences().rs_enable:
         from . import render_studio
         render_studio.register()
 
 
 def unregister():
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows' and preferences.preferences().rs_enable:
         from . import render_studio
         render_studio.unregister()
 
