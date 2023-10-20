@@ -98,15 +98,7 @@ class RS_RESOLVER_PT_usd_settings(Panel):
         col.prop(settings, "use_instancing")
 
 
-def draw_button(self, context):
-    if rs_resolver.is_connected:
-        self.layout.operator("render_studio.disconnect", icon='UNLINKED')
-
-    else:
-        self.layout.operator("render_studio.connect", icon='LINKED')
-
-
-def update_button():
+def tag_redraw():
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
             if area.type in ['PROPERTIES', 'OUTLINER']:
