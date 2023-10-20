@@ -19,17 +19,19 @@ def register():
     usd_plugin = Plug.Registry().GetPluginWithName('RenderStudioResolver')
     usd_plugin.Load()
 
-    from . import resolver, ui, operators
+    from . import resolver, ui, operators, usd_hook
 
+    usd_hook.register()
     operators.register()
     ui.register()
 
 
 def unregister():
-    from . import resolver, ui, operators
+    from . import resolver, ui, operators, usd_hook
 
     ui.unregister()
     operators.unregister()
+    usd_hook.unregister()
 
     if resolver.rs_resolver.is_connected:
         resolver.rs_resolver.disconnect()
