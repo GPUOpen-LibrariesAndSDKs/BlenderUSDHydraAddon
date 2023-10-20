@@ -24,10 +24,12 @@ class RS_RESOLVER_PT_resolver(Panel):
 
     def draw(self, context):
         layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
         settings = context.scene.hydra_rpr.render_studio
         if rs_resolver.is_connected:
             layout.operator("render_studio.disconnect", icon='UNLINKED')
-
         else:
             layout.operator("render_studio.connect", icon='LINKED')
 
@@ -36,8 +38,9 @@ class RS_RESOLVER_PT_resolver(Panel):
         col.separator()
 
         col1 = col.column(align=True)
+        col1.use_property_split = False
         if settings.live_sync:
-            if rs_resolver.is_syncing:
+            if rs_resolver.is_live_sync:
                 col1.operator("render_studio.stop_live_sync", icon='CANCEL')
             else:
                 col1.operator("render_studio.start_live_sync", icon='FILE_REFRESH')

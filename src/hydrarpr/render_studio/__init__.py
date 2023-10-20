@@ -30,4 +30,6 @@ def unregister():
 
     ui.unregister()
     operators.unregister()
-    resolver.unregister()
+
+    if resolver.rs_resolver.is_connected:
+        resolver.rs_resolver.disconnect()

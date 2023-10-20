@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 FORMAT_STR = "%(asctime)s %(levelname)s %(name)s [%(thread)d]:  %(message)s"
-DEFAULT_LEVEL = 'DEBUG'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
+DEFAULT_LEVEL = 'INFO'     # available levels: 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
 BACKUPS = 5
 
 # root logger for the addon
