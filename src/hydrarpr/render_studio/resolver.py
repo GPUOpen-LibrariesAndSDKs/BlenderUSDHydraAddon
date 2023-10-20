@@ -40,9 +40,6 @@ class Resolver:
         self.is_connected = True
         log.info("Connected")
 
-        from . import ui
-        ui.tag_redraw()
-
     def disconnect(self):
         from rs import RenderStudioKit
 
@@ -54,9 +51,6 @@ class Resolver:
         self.is_connected = False
         self.filename = ""
         log.info("Disconnected")
-
-        from . import ui
-        ui.tag_redraw()
 
     def start_live_sync(self):
         log("Start live sync")
