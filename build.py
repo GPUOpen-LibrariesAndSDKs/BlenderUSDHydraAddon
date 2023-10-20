@@ -692,7 +692,7 @@ def zip_addon(bin_dir):
 
             rel_path = f.relative_to(src_dir)
             rel_path_parts = rel_path.parts
-            if rel_path_parts[0] in ("libs", "configdev.py", "hdusd.log") or \
+            if rel_path_parts[0] in ("configdev.py",) or \
                     "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
                 continue
 

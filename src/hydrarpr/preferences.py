@@ -12,20 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import uuid
 import os
 from pathlib import Path
 
 import bpy
 
-
-RS_WORKSPACE_URL = ""
-RS_WORKSPACE_DIR = Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio"
-
-try:
-    from . import configdev
-except ImportError:
-    pass
+from . import logging
 
 
 class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
@@ -38,6 +30,19 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         else:
             render_studio.unregister()
 
+    def log_level_update(self, context):
+        logging.logger.setLevel(self.log_level)
+
+    log_level: bpy.props.EnumProperty(
+        name="Log Level",
+        description="Level of logging",
+        items=(('DEBUG', "Debug", "Log level: Debug"),
+               ('INFO', "Info", "Log level: Info"),
+               ('WARN', "Warning", "Log level: Warning"),
+               ('ERROR', "Error", "Log level: Error")),
+        default=logging.DEFAULT_LEVEL,
+        update=log_level_update,
+    )
     rs_enable: bpy.props.BoolProperty(
         name="AMD RenderStudio",
         description="Enable AMD RenderStudio",
@@ -48,23 +53,27 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         name="Workspace Dir",
         description="Set directory which would be synchronized for all connected users",
         subtype='DIR_PATH',
-        default=str(RS_WORKSPACE_DIR),
+        default=str(Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio"),
     )
     rs_workspace_url: bpy.props.StringProperty(
         name="Workspace Url",
-        description="Set directory which would be synchronized for all connected users",
-        default=RS_WORKSPACE_URL,
+        description="Set URL of the remote server",
+        default="",
     )
     rs_file_format: bpy.props.EnumProperty(
-        name="Usd File Format",
+        name="USD File Format",
+        description="File format of syncing USD file",
         items=(('.usd', "usd", "Either of the usda or usdc"),
                ('.usda', "usda", "Human-readable UTF-8 text"),
-               ('.usdc', "usdc", "Random-access “Crate” binary")),
+               ('.usdc', "usdc", "Random-access \"Crate\" binary")),
         default='.usd',
     )
 
     def draw(self, context):
         layout = self.layout
+
+        layout.prop(self, "log_level")
+
         box = layout.box()
         row = box.row(align=True)
         row.prop(self, "rs_enable")

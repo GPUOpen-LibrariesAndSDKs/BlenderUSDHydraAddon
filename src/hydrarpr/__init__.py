@@ -57,6 +57,18 @@ def register():
         from . import render_studio
         render_studio.register()
 
+    try:
+        from . import configdev
+        # Example of configdev.py file:
+        #
+        # from .preferences import preferences
+        # pref = preferences()
+        # pref.rs_server_url = "<server url>"
+        # pref.log_level = 'DEBUG'
+
+    except ImportError:
+        pass
+
 
 def unregister():
     if platform.system() == 'Windows' and preferences.preferences().rs_enable:
