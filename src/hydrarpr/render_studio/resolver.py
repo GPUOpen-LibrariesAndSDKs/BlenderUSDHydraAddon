@@ -16,8 +16,6 @@ from pathlib import Path
 
 import bpy
 
-from rs import RenderStudioKit
-
 from ..preferences import preferences
 
 from .. import logging
@@ -27,47 +25,56 @@ log = logging.Log("rs.resolver")
 class Resolver:
     def __init__(self):
         self.is_connected = False
-        self.is_depsgraph_update = True
-        self.is_syncing = False
+        self.is_live_sync = False
         self.filename = ""
 
+        self._is_depsgraph_update = False
+
     def connect(self):
+        from rs import RenderStudioKit
+
+        log("Connecting")
         pref = preferences()
         RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
         RenderStudioKit.SharedWorkspaceConnect()
         self.is_connected = True
-
-        from .ui import update_button
-        update_button()
+        log.info("Connected")
 
     def disconnect(self):
-        log("Disconnect server")
+        from rs import RenderStudioKit
 
+        if self.is_live_sync:
+            self.stop_live_sync()
+
+        log("Disconnecting")
         RenderStudioKit.SharedWorkspaceDisconnect()
         self.is_connected = False
-        self.is_syncing = False
         self.filename = ""
-
-        from .ui import update_button
-        update_button()
+        log.info("Disconnected")
 
     def start_live_sync(self):
+        log("Start live sync")
         bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
-        self.is_syncing = True
+        self.is_live_sync = True
 
     def stop_live_sync(self):
+        log("Stop live sync")
         bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
-        self.is_syncing = False
+        self.is_live_sync = False
 
     def sync_scene(self):
+        if self._is_depsgraph_update:
+            return
+
         pref = preferences()
         settings = bpy.context.scene.hydra_rpr.render_studio
+
         self.filename = Path(bpy.data.filepath).stem if bpy.data.filepath else "untitled"
         self.filename += pref.rs_file_format
         usd_path = Path(pref.rs_storage_dir) / settings.channel / self.filename
 
         log("Syncing scene", usd_path)
-        self.is_depsgraph_update = False
+        self._is_depsgraph_update = True
         try:
             bpy.ops.wm.usd_export(
                 filepath=str(usd_path),
@@ -87,22 +94,11 @@ class Resolver:
                 root_prim_path=settings.root_prim_path,
             )
         finally:
-            self.is_depsgraph_update = True
+            self._is_depsgraph_update = False
 
 
 rs_resolver = Resolver()
 
 
 def on_depsgraph_update_post(scene, depsgraph):
-    if not rs_resolver.is_connected or not rs_resolver.is_depsgraph_update or not rs_resolver.is_syncing:
-        return
-
     rs_resolver.sync_scene()
-
-
-def unregister():
-    if rs_resolver.is_syncing:
-        rs_resolver.stop_live_sync()
-
-    if rs_resolver.is_connected:
-        rs_resolver.disconnect()

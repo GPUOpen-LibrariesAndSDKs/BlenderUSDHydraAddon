@@ -15,6 +15,7 @@
 import bpy
 
 from .resolver import rs_resolver
+from .ui import tag_redraw
 
 
 class RESOLVER_OP_connect(bpy.types.Operator):
@@ -24,7 +25,7 @@ class RESOLVER_OP_connect(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.connect()
-
+        tag_redraw()
         return {'FINISHED'}
 
 
@@ -35,6 +36,7 @@ class RESOLVER_OP_disconnect(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.disconnect()
+        tag_redraw()
         return {'FINISHED'}
 
 
@@ -45,6 +47,7 @@ class RESOLVER_OP_sync_scene(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.sync_scene()
+        tag_redraw()
         return {'FINISHED'}
 
 
@@ -55,6 +58,7 @@ class RESOLVER_OP_start_live_sync(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.start_live_sync()
+        tag_redraw()
         return {'FINISHED'}
 
 
@@ -65,6 +69,7 @@ class RESOLVER_OP_stop_live_sync(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.stop_live_sync()
+        tag_redraw()
         return {'FINISHED'}
 
 

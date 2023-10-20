@@ -294,13 +294,12 @@ class RenderSettings(bpy.types.PropertyGroup):
     denoise: PointerProperty(type=DenoiseSettings)
 
 
-def live_sync_update(self, context):
-    from .render_studio.resolver import rs_resolver
-    if not self.live_sync and rs_resolver.is_syncing:
-        rs_resolver.stop_live_sync()
-
-
 class RenderStudioSettings(bpy.types.PropertyGroup):
+    def live_sync_update(self, context):
+        from .render_studio.resolver import rs_resolver
+        if not self.live_sync and rs_resolver.is_live_sync:
+            rs_resolver.stop_live_sync()
+
     live_sync: BoolProperty(
         name="Live Sync",
         description="Enable live syncing mode",
