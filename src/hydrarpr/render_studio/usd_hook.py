@@ -15,7 +15,7 @@
 import bpy
 
 from .. import logging
-log = logging.Log("rs.resolver")
+log = logging.Log("rs.usd_hook")
 
 
 class USDHookWorld(bpy.types.USDHook):
