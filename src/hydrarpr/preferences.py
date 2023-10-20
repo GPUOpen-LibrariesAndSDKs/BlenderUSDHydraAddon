@@ -19,9 +19,8 @@ from pathlib import Path
 import bpy
 
 
-RS_SERVER_URL = ""
-RS_STORAGE_URL = ""
-RS_STORAGE_DIR = Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio"
+RS_WORKSPACE_URL = ""
+RS_WORKSPACE_DIR = Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio"
 
 try:
     from . import configdev
@@ -45,21 +44,16 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         default=False,
         update=rs_enable_update,
     )
-    rs_server_url: bpy.props.StringProperty(
-        name="Server Address",
-        description="Set address of remote live server",
-        default=RS_SERVER_URL,
-    )
-    rs_storage_url: bpy.props.StringProperty(
-        name="Storage Address",
-        description="Set address of remote assets storage",
-        default=RS_STORAGE_URL,
-    )
-    rs_storage_dir: bpy.props.StringProperty(
-        name="Storage Dir",
+    rs_workspace_dir: bpy.props.StringProperty(
+        name="Workspace Dir",
         description="Set directory which would be synchronized for all connected users",
         subtype='DIR_PATH',
-        default=str(RS_STORAGE_DIR),
+        default=str(RS_WORKSPACE_DIR),
+    )
+    rs_workspace_url: bpy.props.StringProperty(
+        name="Workspace Url",
+        description="Set directory which would be synchronized for all connected users",
+        default=RS_WORKSPACE_URL,
     )
     rs_file_format: bpy.props.EnumProperty(
         name="Usd File Format",
@@ -76,8 +70,8 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         row.prop(self, "rs_enable")
         if self.rs_enable:
             col = box.column(align=True)
-            # col.prop(self, "rs_server_url", icon='NONE')
-            col.prop(self, "rs_storage_dir")
+            col.prop(self, "rs_workspace_url")
+            col.prop(self, "rs_workspace_dir")
             col.prop(self, "rs_file_format")
 
 

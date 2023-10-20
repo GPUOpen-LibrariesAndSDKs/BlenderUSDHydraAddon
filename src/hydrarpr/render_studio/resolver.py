@@ -33,7 +33,10 @@ class Resolver:
 
     def connect(self):
         pref = preferences()
-        RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
+        if pref.rs_workspace_url:
+            RenderStudioKit.SetWorkspaceUrl(pref.rs_workspace_url)
+
+        RenderStudioKit.SetWorkspacePath(pref.rs_workspace_dir)
         RenderStudioKit.SharedWorkspaceConnect()
         self.is_connected = True
 
@@ -64,7 +67,7 @@ class Resolver:
         settings = bpy.context.scene.hydra_rpr.render_studio
         self.filename = Path(bpy.data.filepath).stem if bpy.data.filepath else "untitled"
         self.filename += pref.rs_file_format
-        usd_path = Path(pref.rs_storage_dir) / settings.channel / self.filename
+        usd_path = Path(pref.rs_workspace_dir) / settings.channel / self.filename
 
         log("Syncing scene", usd_path)
         self.is_depsgraph_update = False
