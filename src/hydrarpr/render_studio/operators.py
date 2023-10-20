@@ -35,6 +35,7 @@ class RESOLVER_OP_disconnect(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.disconnect()
+
         return {'FINISHED'}
 
 
@@ -45,6 +46,7 @@ class RESOLVER_OP_sync_scene(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.sync_scene()
+
         return {'FINISHED'}
 
 
@@ -55,6 +57,7 @@ class RESOLVER_OP_start_live_sync(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.start_live_sync()
+
         return {'FINISHED'}
 
 
@@ -65,6 +68,7 @@ class RESOLVER_OP_stop_live_sync(bpy.types.Operator):
 
     def execute(self, context):
         rs_resolver.stop_live_sync()
+
         return {'FINISHED'}
 
 

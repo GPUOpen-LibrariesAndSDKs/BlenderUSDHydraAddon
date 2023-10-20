@@ -33,12 +33,19 @@ class Resolver:
 
     def connect(self):
         pref = preferences()
-        if pref.rs_workspace_url:
-            RenderStudioKit.SetWorkspaceUrl(pref.rs_workspace_url)
+        if not pref.rs_workspace_url:
+            log("Remote server URL is empty")
+            return
 
+        RenderStudioKit.SetWorkspaceUrl(pref.rs_workspace_url)
         RenderStudioKit.SetWorkspacePath(pref.rs_workspace_dir)
-        RenderStudioKit.SharedWorkspaceConnect()
-        self.is_connected = True
+
+        try:
+            RenderStudioKit.SharedWorkspaceConnect()
+            self.is_connected = True
+
+        except RuntimeError:
+            log("Failed connect to remote server", pref.rs_workspace_url)
 
         from .ui import update_button
         update_button()
@@ -78,7 +85,6 @@ class Resolver:
                 visible_objects_only=settings.visible_objects_only,
                 export_animation=settings.export_animation,
                 export_hair=settings.export_hair,
-                # export_mesh_colors=settings.export_mesh_colors,
                 export_normals=settings.export_normals,
                 export_materials=settings.export_materials,
                 use_instancing=settings.use_instancing,
@@ -86,7 +92,6 @@ class Resolver:
                 generate_preview_surface=settings.generate_preview_surface,
                 export_textures=settings.export_textures,
                 overwrite_textures=settings.overwrite_textures,
-                relative_paths=settings.relative_paths,
                 root_prim_path=settings.root_prim_path,
             )
         finally:
