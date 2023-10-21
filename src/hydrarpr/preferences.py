@@ -49,21 +49,16 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         default=False,
         update=rs_enable_update,
     )
-    rs_server_url: bpy.props.StringProperty(
-        name="Server Address",
-        description="Set address of remote live server",
-        default="",
-    )
-    rs_storage_url: bpy.props.StringProperty(
-        name="Storage Address",
-        description="Set address of remote assets storage",
-        default="",
-    )
-    rs_storage_dir: bpy.props.StringProperty(
-        name="Storage Dir",
+    rs_workspace_dir: bpy.props.StringProperty(
+        name="Workspace Dir",
         description="Set directory which would be synchronized for all connected users",
         subtype='DIR_PATH',
         default=str(Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio"),
+    )
+    rs_workspace_url: bpy.props.StringProperty(
+        name="Workspace Url",
+        description="Set URL of the remote server",
+        default="",
     )
     rs_file_format: bpy.props.EnumProperty(
         name="USD File Format",
@@ -84,8 +79,8 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         row.prop(self, "rs_enable")
         if self.rs_enable:
             col = box.column(align=True)
-            # col.prop(self, "rs_server_url", icon='NONE')
-            col.prop(self, "rs_storage_dir")
+            col.prop(self, "rs_workspace_url")
+            col.prop(self, "rs_workspace_dir")
             col.prop(self, "rs_file_format")
 
 

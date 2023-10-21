@@ -65,37 +65,36 @@ class RS_RESOLVER_PT_usd_settings(Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-
         settings = context.scene.hydra_rpr.render_studio
 
-        col = layout.column()
-        col.enabled = rs_resolver.is_connected
-        col.separator()
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        layout.enabled = rs_resolver.is_connected
 
+        col = layout.column(align=True)
         col.prop(settings, "selected_objects_only")
         col.prop(settings, "visible_objects_only")
+
+        col = layout.column(align=True)
         col.prop(settings, "export_animation")
         col.prop(settings, "export_hair")
+        col.prop(settings, "use_instancing")
+
+        col = layout.column(align=True)
         col.prop(settings, "export_uvmaps")
         col.prop(settings, "export_normals")
-        col.prop(settings, "export_materials")
-        col.prop(settings, "root_prim_path")
-        col.prop(settings, "evaluation_mode")
-        col.separator()
 
-        col1 = col.column()
+        col = layout.column(align=True)
+        col.prop(settings, "export_materials")
+        col1 = col.column(align=True)
         col1.enabled = settings.export_materials
         col1.prop(settings, "generate_preview_surface")
         col1.prop(settings, "export_textures")
         col1.prop(settings, "overwrite_textures")
-        col.separator()
 
-        col.prop(settings, "relative_paths")
-        col.separator()
-
-        col.prop(settings, "use_instancing")
+        col = layout.column()
+        col.prop(settings, "root_prim_path")
+        col.prop(settings, "evaluation_mode")
 
 
 def tag_redraw():
