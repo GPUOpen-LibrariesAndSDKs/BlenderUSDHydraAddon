@@ -48,7 +48,7 @@ class Resolver:
             log.info("Connected")
 
         except RuntimeError:
-            log.warn("Failed connect to remote server", pref.rs_workspace_url)
+            log.error("Failed connect to remote server", pref.rs_workspace_url)
 
     def disconnect(self):
         from rs import RenderStudioKit
