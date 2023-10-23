@@ -283,6 +283,9 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
 
 def boost(bin_dir, clean):
     print_start("Building Boost")
+    if OS != 'Windows':
+        print(f"{OS} is currently unsupported  for RenderStudio")
+        return
 
     BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
 
@@ -549,6 +552,9 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
 
 def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     print_start("Building RenderStudioKit")
+    if OS != 'Windows':
+        print(f"{OS} is currently unsupported for RenderStudio")
+        return
 
     deps_dir = repo_dir / "deps"
     rs_dir = deps_dir / "RenderStudioKit"
@@ -700,8 +706,10 @@ def zip_addon(bin_dir):
 
         print("-------------------------------------------------------------")
         yield from enumerate_hdrpr_data(bin_dir / "hdrpr")
-        print("-------------------------------------------------------------")
-        yield from enumerate_rs_data(bin_dir / "render_studio")
+
+        if OS == 'Windows':
+            print("-------------------------------------------------------------")
+            yield from enumerate_rs_data(bin_dir / "render_studio")
 
     install_dir = repo_dir / "install"
     if not install_dir.is_dir():
