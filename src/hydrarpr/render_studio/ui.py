@@ -100,9 +100,9 @@ class RS_RESOLVER_PT_usd_settings(Panel):
 def tag_redraw():
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
-            if area.type in ['PROPERTIES', 'OUTLINER']:
+            if area.type == 'PROPERTIES':
                 for region in area.regions:
-                    if area.type == 'PROPERTIES' and region.type == 'WINDOW':
+                    if region.type == 'WINDOW':
                         region.tag_redraw()
 
 
