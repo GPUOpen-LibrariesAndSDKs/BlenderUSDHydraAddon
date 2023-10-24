@@ -26,13 +26,14 @@ class USDHookWorld(bpy.types.USDHook):
     @staticmethod
     def on_export(export_context):
         stage = export_context.get_stage()
-        depsgraph = export_context.get_depsgraph()
-        if not stage or not depsgraph.scene.world:
+        if not stage:
             return False
 
         from . import world
+        settings = bpy.context.scene.hydra_rpr.render_studio
         try:
-            world.sync(stage, depsgraph.scene.world)
+            if settings.export_world:
+                world.sync(stage, export_context.get_depsgraph())
 
         except Exception as err:
             log.warn("Can't sync world", err)
@@ -42,8 +43,14 @@ class USDHookWorld(bpy.types.USDHook):
 
 
 def register():
-    bpy.utils.register_class(USDHookWorld)
+    if not USDHookWorld.is_registered:
+        bpy.utils.register_class(USDHookWorld)
+
+    log(f"{USDHookWorld.__name__} is enabled")
 
 
 def unregister():
-    bpy.utils.unregister_class(USDHookWorld)
+    if USDHookWorld.is_registered:
+        bpy.utils.unregister_class(USDHookWorld)
+
+    log(f"{USDHookWorld.__name__} is disabled")

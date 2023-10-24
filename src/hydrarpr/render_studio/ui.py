@@ -78,6 +78,7 @@ class RS_RESOLVER_PT_usd_settings(Panel):
         col = layout.column(align=True)
         col.prop(settings, "export_animation")
         col.prop(settings, "export_hair")
+        col.prop(settings, "export_world")
         col.prop(settings, "use_instancing")
 
         col = layout.column(align=True)

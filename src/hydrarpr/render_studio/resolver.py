@@ -16,6 +16,7 @@ from pathlib import Path
 
 import bpy
 
+from . import usd_hook
 from ..preferences import preferences
 
 from .. import logging
@@ -85,6 +86,8 @@ class Resolver:
 
         log("Syncing scene", usd_path)
         self._is_depsgraph_update = True
+        usd_hook.register()
+
         try:
             bpy.ops.wm.usd_export(
                 filepath=str(usd_path),
@@ -103,6 +106,7 @@ class Resolver:
             )
         finally:
             self._is_depsgraph_update = False
+            usd_hook.unregister()
 
 
 rs_resolver = Resolver()

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-from dataclasses import dataclass
 from pathlib import Path
 import shutil
 
@@ -22,8 +21,8 @@ from pxr import Sdf, UsdLux
 from ...preferences import preferences
 
 from ... import logging
-log = logging.Log('export.world')
 
+log = logging.Log('export.world')
 
 SUPPORTED_FORMATS = {".png", ".jpeg", ".jpg", ".hdr", ".tga", ".bmp"}
 DEFAULT_FORMAT = ".hdr"
@@ -32,102 +31,94 @@ BLENDER_DEFAULT_COLOR_MODE = "RGB"
 READONLY_IMAGE_FORMATS = {".dds"}  # blender can read these formats, but can't write
 
 
-@dataclass(init=False, eq=True, repr=True)
-class WorldData:
-    """ Comparable dataclass which holds all environment settings """
+def get_world_data(world: bpy.types.World):
+    data = {'color': (0.05, 0.05, 0.05),
+            'image': None,
+            'intensity': 1.0,
+            'transparency': 1.0}
 
-    color: tuple = (0.05, 0.05, 0.05)
-    image: str = None
-    intensity: float = 1.0
-    transparency: float = 1.0
-
-    @staticmethod
-    def init_from_world(world: bpy.types.World):
-        """ Returns WorldData from bpy.types.World """
-        data = WorldData()
-
-        if not world:
-            return data
-
-        if not world.use_nodes:
-            data.color = tuple(world.color)
-            return data
-
-        output_node = next((node for node in world.node_tree.nodes
-                           if node.bl_idname == 'ShaderNodeOutputWorld' and node.is_active_output),
-                           None)
-        if not output_node:
-            return data
-
-        from .nodes import ShaderNodeOutputWorld
-
-        node_parser = ShaderNodeOutputWorld(world, output_node)
-        node_item = node_parser.export()
-        if not node_item:
-            return data
-
-        node_data = node_item.data
-
-        if isinstance(node_data, float):
-            data.color = (node_data, node_data, node_data)
-            data.transparency = 1.0
-            return data
-
-        if isinstance(node_data, tuple):
-            data.color = node_data[:3]
-            data.transparency = node_data[3]
-            return data
-
-        # node_data is dict here
-
-        intensity = node_data.get('intensity', 1.0)
-        if isinstance(intensity, tuple):
-            intensity = intensity[0]
-
-        data.intensity = intensity
-
-        color = node_data.get('color')
-        if color is None:
-            image = node_data.get('image')
-            if image:
-                data.image = cache_image_file(image)
-
-        elif isinstance(color, float):
-            data.color = (color, color, color)
-            data.transparency = color
-
-        elif isinstance(color, tuple):
-            data.color = color[:3]
-            data.transparency = color[3]
-
-        else:   # dict
-            image = color.get('image')
-            if image:
-                data.image = cache_image_file(image)
-
+    if not world:
         return data
 
+    if not world.use_nodes:
+        data['color'] = tuple(world.color)
+        return data
 
-def sync(stage, world: bpy.types.World):
-    data = WorldData.init_from_world(world)
+    output_node = next((node for node in world.node_tree.nodes
+                        if node.bl_idname == 'ShaderNodeOutputWorld' and node.is_active_output), None)
+    if not output_node:
+        return data
+
+    from .nodes import ShaderNodeOutputWorld
+
+    node_parser = ShaderNodeOutputWorld(world, output_node)
+    node_item = node_parser.export()
+    if not node_item:
+        return data
+
+    node_data = node_item.data
+
+    if isinstance(node_data, float):
+        data['color'] = (node_data, node_data, node_data)
+        return data
+
+    if isinstance(node_data, tuple):
+        data['color'] = node_data[:3]
+        data['transparency '] = node_data[3]
+        return data
+
+    intensity = node_data.get('intensity', 1.0)
+    if isinstance(intensity, tuple):
+        intensity = intensity[0]
+
+    data['intensity'] = intensity
+
+    color = node_data.get('color')
+    if color is None:
+        image = node_data.get('image')
+        if image:
+            data['image'] = cache_image_file(image)
+
+    elif isinstance(color, float):
+        data['color'] = (color, color, color)
+        data['transparency'] = color
+
+    elif isinstance(color, tuple):
+        data['color'] = color[:3]
+        data['transparency'] = color[3]
+
+    else:  # dict
+        image = color.get('image')
+        if image:
+            data['image'] = cache_image_file(image)
+
+    return data
+
+
+def sync(stage, depsgraph):
+    world = depsgraph.scene.world
+    if not world:
+        log.warn("Scene doesn't contain World, nothing to export")
+        return
+
+    data = get_world_data(world)
 
     obj_prim = stage.DefinePrim(stage.GetPseudoRoot().GetPath().AppendChild("World"))
     usd_light = UsdLux.DomeLight.Define(stage, obj_prim.GetPath().AppendChild("World"))
-    light_prim = usd_light.GetPrim()
     usd_light.OrientToStageUpAxis()
+    usd_light.CreateColorAttr(data['color'])
+    usd_light.CreateIntensityAttr(data['intensity'])
+    usd_light.GetPrim().CreateAttribute("inputs:transparency", Sdf.ValueTypeNames.Float).Set(data['transparency'])
 
-    if data.image:
-        tex_attr = usd_light.CreateTextureFileAttr()
-        tex_attr.ClearDefault()
-        tex_attr.Set(str(data.image))
+    if not data['image']:
+        return
 
-        # set correct Dome light rotation
-        usd_light.AddRotateXOp().Set(180.0)
-        usd_light.AddRotateYOp().Set(-90.0)
+    tex_attr = usd_light.CreateTextureFileAttr()
+    tex_attr.ClearDefault()
+    tex_attr.Set(str(data['image']))
 
-    usd_light.CreateColorAttr(data.color)
-    usd_light.CreateIntensityAttr(data.intensity)
-    light_prim.CreateAttribute("inputs:transparency", Sdf.ValueTypeNames.Float).Set(data.transparency)
+    # set correct Dome light rotation
+    usd_light.AddRotateYOp().Set(-90.0)
 
 
 def cache_image_file(image: bpy.types.Image):
@@ -143,7 +134,9 @@ def cache_image_file(image: bpy.types.Image):
 
         image_suffix = image_path.suffix.lower()
 
-        if image_suffix in READONLY_IMAGE_FORMATS or (image_suffix in SUPPORTED_FORMATS and f".{image.file_format.lower()}" in SUPPORTED_FORMATS and not image.is_dirty):
+        if image_suffix in READONLY_IMAGE_FORMATS or (
+                image_suffix in SUPPORTED_FORMATS and
+                f".{image.file_format.lower()}" in SUPPORTED_FORMATS and not image.is_dirty):
             filepath = world_dir / image_path.name
             shutil.copy(image_path, filepath)
             return filepath.relative_to(root_dir)
