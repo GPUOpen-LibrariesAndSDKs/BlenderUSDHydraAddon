@@ -563,12 +563,15 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     openssl_dir = Path(os.environ["OPENSSL_ROOT_DIR"])
     libdir = bl_libs_dir.as_posix()
     usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
-
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else f"{libdir}/python/bin/python3.10"
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
     # Boost flags
     args = [
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
+        f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
+        f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
+        f"-DPYTHON_EXECUTABLE={py_exe}",
 
         "-DCMAKE_CXX_FLAGS=/Zc:inline- /EHsc /bigobj /DBOOST_ALL_NO_LIB",
         f"-DBoost_COMPILER:STRING=-vc142",
