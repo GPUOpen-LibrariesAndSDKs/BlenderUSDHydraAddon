@@ -362,10 +362,6 @@ class RenderStudioSettings(bpy.types.PropertyGroup):
         name="Overwrite Textures",
         default=False,
     )
-    relative_paths: BoolProperty(
-        name="Relative Paths",
-        default=True,
-    )
     use_instancing: BoolProperty(
         name="Instancing",
         default=False,

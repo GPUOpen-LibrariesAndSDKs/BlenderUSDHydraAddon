@@ -63,7 +63,8 @@ def register():
         #
         # from .preferences import preferences
         # pref = preferences()
-        # pref.rs_server_url = "<server url>"
+        # pref.rs_workspace_url = "<workspace url>"
+        # pref.rs_file_format = '.usda'
         # pref.log_level = 'DEBUG'
 
     except ImportError:

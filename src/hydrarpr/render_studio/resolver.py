@@ -35,10 +35,20 @@ class Resolver:
 
         log("Connecting")
         pref = preferences()
-        RenderStudioKit.SetWorkspacePath(pref.rs_storage_dir)
-        RenderStudioKit.SharedWorkspaceConnect()
-        self.is_connected = True
-        log.info("Connected")
+        if not pref.rs_workspace_url:
+            log.warn("Remote server URL is empty")
+            return
+
+        RenderStudioKit.SetWorkspaceUrl(pref.rs_workspace_url)
+        RenderStudioKit.SetWorkspacePath(pref.rs_workspace_dir)
+
+        try:
+            RenderStudioKit.SharedWorkspaceConnect()
+            self.is_connected = True
+            log.info("Connected")
+
+        except RuntimeError:
+            log.error("Failed connect to remote server", pref.rs_workspace_url)
 
     def disconnect(self):
         from rs import RenderStudioKit
@@ -71,7 +81,7 @@ class Resolver:
 
         self.filename = Path(bpy.data.filepath).stem if bpy.data.filepath else "untitled"
         self.filename += pref.rs_file_format
-        usd_path = Path(pref.rs_storage_dir) / settings.channel / self.filename
+        usd_path = Path(pref.rs_workspace_dir) / settings.channel / self.filename
 
         log("Syncing scene", usd_path)
         self._is_depsgraph_update = True
@@ -82,7 +92,6 @@ class Resolver:
                 visible_objects_only=settings.visible_objects_only,
                 export_animation=settings.export_animation,
                 export_hair=settings.export_hair,
-                # export_mesh_colors=settings.export_mesh_colors,
                 export_normals=settings.export_normals,
                 export_materials=settings.export_materials,
                 use_instancing=settings.use_instancing,
@@ -90,7 +99,6 @@ class Resolver:
                 generate_preview_surface=settings.generate_preview_surface,
                 export_textures=settings.export_textures,
                 overwrite_textures=settings.overwrite_textures,
-                relative_paths=settings.relative_paths,
                 root_prim_path=settings.root_prim_path,
             )
         finally:
