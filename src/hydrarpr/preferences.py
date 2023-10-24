@@ -13,6 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import os
+import platform
 from pathlib import Path
 
 import bpy
@@ -73,6 +74,9 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         layout = self.layout
 
         layout.prop(self, "log_level")
+
+        if platform.system() == 'Windows':
+            return
 
         box = layout.box()
         row = box.row(align=True)

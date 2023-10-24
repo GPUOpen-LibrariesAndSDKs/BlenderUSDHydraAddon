@@ -557,12 +557,15 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     openssl_dir = Path(os.environ["OPENSSL_ROOT_DIR"])
     libdir = bl_libs_dir.as_posix()
     usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
-
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else f"{libdir}/python/bin/python3.10"
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
     # Boost flags
     args = [
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
+        f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
+        f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
+        f"-DPYTHON_EXECUTABLE={py_exe}",
 
         "-DCMAKE_CXX_FLAGS=/Zc:inline- /EHsc /bigobj /DBOOST_ALL_NO_LIB",
         f"-DBoost_COMPILER:STRING=-vc142",
@@ -700,8 +703,10 @@ def zip_addon(bin_dir):
 
         print("-------------------------------------------------------------")
         yield from enumerate_hdrpr_data(bin_dir / "hdrpr")
-        print("-------------------------------------------------------------")
-        yield from enumerate_rs_data(bin_dir / "render_studio")
+
+        if OS == 'Windows':
+            print("-------------------------------------------------------------")
+            yield from enumerate_rs_data(bin_dir / "render_studio")
 
     install_dir = repo_dir / "install"
     if not install_dir.is_dir():
@@ -743,12 +748,14 @@ def main():
                     help="Build MaterialX")
     ap.add_argument("-usd", required=False, action="store_true",
                     help="Build USD")
-    ap.add_argument("-boost", required=False, action="store_true",
-                    help="Build Boost")
+    if OS == 'Windows':
+        ap.add_argument("-boost", required=False, action="store_true",
+                        help="Build Boost")
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
-    ap.add_argument("-rs", required=False, action="store_true",
-                    help="Build RenderStudioKit")
+    if OS == 'Windows':
+        ap.add_argument("-rs", required=False, action="store_true",
+                        help="Build RenderStudioKit")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
 
