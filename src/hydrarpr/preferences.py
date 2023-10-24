@@ -75,7 +75,7 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
 
         layout.prop(self, "log_level")
 
-        if platform.system() == 'Windows':
+        if platform.system() != 'Windows':
             return
 
         box = layout.box()
