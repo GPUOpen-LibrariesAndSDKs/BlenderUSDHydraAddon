@@ -20,8 +20,6 @@ import shutil
 import zipfile as zip
 import zlib
 import os
-import sys
-import sysconfig
 import re
 from urllib.request import urlopen
 
@@ -281,7 +279,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         os.chdir(cur_dir)
 
 
-def boost(bin_dir, clean):
+def boost(bl_libs_dir, bin_dir, clean):
     print_start("Building Boost")
 
     BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
@@ -292,6 +290,13 @@ def boost(bin_dir, clean):
     build_dir = boost_dir / "build"
     arch_filepath = deps_dir / Path(BOOST_URL).name
     src_dir = deps_dir / Path(BOOST_URL).stem
+    libdir = bl_libs_dir.as_posix()
+
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else f"{libdir}/python/bin/python3.10"
+    py_includes = f"{libdir}/python/310/include" if OS == 'Windows' else f"{libdir}/python/include/python3.10"
+    py_libs = f"{libdir}/python/310/libs" if OS == 'Windows' else f"{libdir}/python/libs/python3.10"
+    py_ver = subprocess.check_output([str(py_exe), "-c", "import sys; print('{}.{}'.format(*sys.version_info[0:2]))"]).decode().strip()
+
 
     cur_dir = os.getcwd()
     if clean:
@@ -323,10 +328,10 @@ def boost(bin_dir, clean):
     project_path = 'python-config.jam'
     with open(project_path, 'w') as project_file:
         project_file.write("\n".join([
-            f'using python : {sysconfig.get_config_var("py_version_short")}',
-            f'  : "{Path(sys.executable).as_posix()}"',
-            f'  : "{Path(sysconfig.get_path("include")).as_posix()}"',
-            f'  : "{(Path(sysconfig.get_config_var("base")) / "libs").as_posix()}"',
+            f'using python : {py_ver}',
+            f'  : "{Path(py_exe).as_posix()}"',
+            f'  : "{Path(py_includes).as_posix()}"',
+            f'  : "{Path(py_libs).as_posix()}"',
             '  ;\n'
         ]))
 
@@ -808,7 +813,7 @@ def main():
             usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
 
         if OS == 'Windows' and (args.all or args.boost):
-            boost(bin_dir, args.clean)
+            boost(bl_libs_dir, bin_dir, args.clean)
 
         if args.all or args.hdrpr:
             hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
