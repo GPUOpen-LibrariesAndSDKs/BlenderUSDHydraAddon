@@ -20,8 +20,6 @@ import shutil
 import zipfile as zip
 import zlib
 import os
-import sys
-import sysconfig
 import re
 from urllib.request import urlopen
 
@@ -281,7 +279,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         os.chdir(cur_dir)
 
 
-def boost(bin_dir, clean):
+def boost(bl_libs_dir, bin_dir, clean):
     print_start("Building Boost")
 
     BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
@@ -292,6 +290,13 @@ def boost(bin_dir, clean):
     build_dir = boost_dir / "build"
     arch_filepath = deps_dir / Path(BOOST_URL).name
     src_dir = deps_dir / Path(BOOST_URL).stem
+    libdir = bl_libs_dir.as_posix()
+
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else f"{libdir}/python/bin/python3.10"
+    py_includes = f"{libdir}/python/310/include" if OS == 'Windows' else f"{libdir}/python/include/python3.10"
+    py_libs = f"{libdir}/python/310/libs" if OS == 'Windows' else f"{libdir}/python/libs/python3.10"
+    py_ver = subprocess.check_output([str(py_exe), "-c", "import sys; print('{}.{}'.format(*sys.version_info[0:2]))"]).decode().strip()
+
 
     cur_dir = os.getcwd()
     if clean:
@@ -323,10 +328,10 @@ def boost(bin_dir, clean):
     project_path = 'python-config.jam'
     with open(project_path, 'w') as project_file:
         project_file.write("\n".join([
-            f'using python : {sysconfig.get_config_var("py_version_short")}',
-            f'  : "{Path(sys.executable).as_posix()}"',
-            f'  : "{Path(sysconfig.get_path("include")).as_posix()}"',
-            f'  : "{(Path(sysconfig.get_config_var("base")) / "libs").as_posix()}"',
+            f'using python : {py_ver}',
+            f'  : "{Path(py_exe).as_posix()}"',
+            f'  : "{Path(py_includes).as_posix()}"',
+            f'  : "{Path(py_libs).as_posix()}"',
             '  ;\n'
         ]))
 
@@ -557,12 +562,15 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     openssl_dir = Path(os.environ["OPENSSL_ROOT_DIR"])
     libdir = bl_libs_dir.as_posix()
     usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
-
+    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else f"{libdir}/python/bin/python3.10"
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
     # Boost flags
     args = [
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
+        f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
+        f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
+        f"-DPYTHON_EXECUTABLE={py_exe}",
 
         "-DCMAKE_CXX_FLAGS=/Zc:inline- /EHsc /bigobj /DBOOST_ALL_NO_LIB",
         f"-DBoost_COMPILER:STRING=-vc142",
@@ -700,8 +708,10 @@ def zip_addon(bin_dir):
 
         print("-------------------------------------------------------------")
         yield from enumerate_hdrpr_data(bin_dir / "hdrpr")
-        print("-------------------------------------------------------------")
-        yield from enumerate_rs_data(bin_dir / "render_studio")
+
+        if OS == 'Windows':
+            print("-------------------------------------------------------------")
+            yield from enumerate_rs_data(bin_dir / "render_studio")
 
     install_dir = repo_dir / "install"
     if not install_dir.is_dir():
@@ -743,12 +753,14 @@ def main():
                     help="Build MaterialX")
     ap.add_argument("-usd", required=False, action="store_true",
                     help="Build USD")
-    ap.add_argument("-boost", required=False, action="store_true",
-                    help="Build Boost")
+    if OS == 'Windows':
+        ap.add_argument("-boost", required=False, action="store_true",
+                        help="Build Boost")
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
-    ap.add_argument("-rs", required=False, action="store_true",
-                    help="Build RenderStudioKit")
+    if OS == 'Windows':
+        ap.add_argument("-rs", required=False, action="store_true",
+                        help="Build RenderStudioKit")
     ap.add_argument("-addon", required=False, action="store_true",
                     help="Create zip addon")
 
@@ -800,13 +812,13 @@ def main():
         if args.all or args.usd:
             usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
 
-        if args.all or args.boost:
-            boost(bin_dir, args.clean)
+        if OS == 'Windows' and (args.all or args.boost):
+            boost(bl_libs_dir, bin_dir, args.clean)
 
         if args.all or args.hdrpr:
             hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
 
-        if args.all or args.rs:
+        if OS == 'Windows' and (args.all or args.rs):
             render_studio(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     finally:
