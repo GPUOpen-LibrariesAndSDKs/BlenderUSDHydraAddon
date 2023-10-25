@@ -21,6 +21,7 @@ import zipfile as zip
 import zlib
 import os
 import re
+import site
 from urllib.request import urlopen
 
 OS = platform.system()
@@ -63,20 +64,21 @@ def copy(src: Path, dest, ignore=()):
 
 
 def install_requirements(py_executable):
-    with open("requirements.txt", "r") as file:
-        required_modules = file.readlines()
+    os.environ['PATH'] += os.pathsep + str(Path(site.getusersitepackages()).parent / "Scripts")
 
     installed_modules = []
-    for m in required_modules:
-        try:
-            check_call(py_executable, '-c', f'import {m}')
+    with open("requirements.txt", "r") as file:
+        for m in file.readlines():
+            name, *_ = m.split("==")
+            try:
+                check_call(py_executable, '-c', f'import {name}')
 
-        except subprocess.CalledProcessError as e:
-            check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
-            installed_modules.append(m)
+            except subprocess.CalledProcessError:
+                check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
+                installed_modules.append(m)
 
-        except Exception as e:
-            raise e
+            except Exception as e:
+                raise e
 
     return installed_modules
 
@@ -567,6 +569,8 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
 
     # Boost flags
     args = [
+        "-DWITH_SHARED_WORKSPACE_SUPPORT=ON",
+        "-DWITH_PYTHON_DEPENDENCIES_INSTALL=OFF",
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
         f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
         f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
@@ -639,7 +643,7 @@ def zip_addon(bin_dir):
         assert plugin_dir.exists()
         for f in plugin_dir.glob("**/*"):
             rel_path = f.relative_to(plugin_dir.parent)
-            if any(p in rel_path.parts for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
+            if any(p in rel_path.parts and f.name not in ("README.md", ".git", ".gitattributes") for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
                 yield f, libs_rel_path.parent / rel_path
 
         # copy python rpr
@@ -679,6 +683,11 @@ def zip_addon(bin_dir):
         syncthing = plugin_dir / f'usd/syncthing{EXT}'
         assert syncthing.exists()
         yield syncthing, plugin_rel_path.parent / syncthing.name
+
+        # copy whatchdog
+        whatchdog = plugin_dir / f'usd/RenderStudioWatchdog{EXT}'
+        assert whatchdog.exists()
+        yield whatchdog, plugin_rel_path.parent / whatchdog.name
 
         # copy Boost library
         boost_log_lib = bin_dir.parent / f'boost/install/lib/boost_log-vc142-mt-x64-1_80{DLLEXT}'
@@ -806,7 +815,7 @@ def main():
         f"{bl_libs_dir}/python/bin/python3.10"
 
     try:
-        if args.all or args.usd or args.hdrpr:
+        if args.all or args.usd or args.hdrpr or args.rs:
             installed_modules = install_requirements(py_exe)
 
         if args.all or args.usd:
