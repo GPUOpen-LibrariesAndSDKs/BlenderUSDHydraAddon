@@ -807,13 +807,13 @@ def main():
         if args.all or args.usd:
             usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
 
-        if args.all or args.boost:
+        if OS == 'Windows' and (args.all or args.boost):
             boost(bin_dir, args.clean)
 
         if args.all or args.hdrpr:
             hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
 
-        if args.all or args.rs:
+        if OS == 'Windows' and (args.all or args.rs):
             render_studio(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
 
     finally:
