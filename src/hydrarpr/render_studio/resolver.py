@@ -16,7 +16,6 @@ from pathlib import Path
 
 import bpy
 
-from . import usd_hook
 from ..preferences import preferences
 
 from .. import logging
@@ -86,8 +85,7 @@ class Resolver:
 
         log("Syncing scene", usd_path)
         self._is_depsgraph_update = True
-        usd_hook.register()
-
+        USDSyncHook.enable()
         try:
             bpy.ops.wm.usd_export(
                 filepath=str(usd_path),
@@ -105,8 +103,40 @@ class Resolver:
                 root_prim_path=settings.root_prim_path,
             )
         finally:
+            USDSyncHook.disable()
             self._is_depsgraph_update = False
-            usd_hook.unregister()
+
+
+class USDSyncHook(bpy.types.USDHook):
+    bl_idname = "usd_sync_hook"
+    bl_label = "USD Sync Hook"
+
+    @staticmethod
+    def on_export(export_context):
+        stage = export_context.get_stage()
+        if not stage:
+            return False
+
+        from . import world
+        settings = bpy.context.scene.hydra_rpr.render_studio
+        try:
+            log("Exporting World")
+            if settings.export_world:
+                world.sync(stage, export_context.get_depsgraph())
+
+        except Exception as err:
+            log.error("Can't sync World", err)
+            return False
+
+        return True
+
+    @classmethod
+    def enable(cls):
+        bpy.utils.register_class(cls)
+
+    @classmethod
+    def disable(cls):
+        bpy.utils.unregister_class(cls)
 
 
 rs_resolver = Resolver()

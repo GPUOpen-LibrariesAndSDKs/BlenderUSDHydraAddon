@@ -141,7 +141,7 @@ def cache_image_file(image: bpy.types.Image):
             shutil.copy(image_path, filepath)
             return filepath.relative_to(root_dir)
 
-    filename = image_path.stem if image_path.stem else "untitled"
+    filename = image_path.stem if image_path.stem else image.name
     filename += DEFAULT_FORMAT
     filepath = world_dir / filename
 
