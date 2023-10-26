@@ -267,3 +267,16 @@ index bd2c7dc..7a862ed 100644
      }
  
      MaterialX::StringMap textureMap;
+diff --git a/pxr/imaging/rprUsd/materialRegistry.h b/pxr/imaging/rprUsd/materialRegistry.h
+index 3ded4e5..f3c9b00 100644
+--- a/pxr/imaging/rprUsd/materialRegistry.h
++++ b/pxr/imaging/rprUsd/materialRegistry.h
+@@ -149,7 +149,7 @@ private:
+     std::unique_ptr<RPRMtlxLoader> m_mtlxLoader;
+ #endif
+ 
+-    MaterialX::DocumentPtr m_stdLibraries;
++    MaterialX::ConstDocumentPtr m_stdLibraries;
+ 
+     std::vector<std::unique_ptr<RprUsd_MtlxNodeInfo>> m_mtlxInfos;
+     bool m_mtlxDefsDirty = true;
