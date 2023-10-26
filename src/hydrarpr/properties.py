@@ -342,6 +342,10 @@ class RenderStudioSettings(bpy.types.PropertyGroup):
         name="Normals",
         default=True,
     )
+    export_world: BoolProperty(
+        name="World",
+        default=True,
+    )
     export_materials: BoolProperty(
         name="Materials",
         default=True,
