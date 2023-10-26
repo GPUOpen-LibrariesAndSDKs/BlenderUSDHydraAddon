@@ -192,3 +192,78 @@ index db2b8ab..9d4f852 100644
  add_dependencies(rprUsd_headerfiles rprUsdSchema)
  
  if(HoudiniUSD_FOUND)
+diff --git a/pxr/imaging/rprUsd/hdMtlxFixed.cpp b/pxr/imaging/rprUsd/hdMtlxFixed.cpp
+index 4ddc559..abacac6 100644
+--- a/pxr/imaging/rprUsd/hdMtlxFixed.cpp
++++ b/pxr/imaging/rprUsd/hdMtlxFixed.cpp
+@@ -445,7 +445,7 @@ HdMtlxCreateMtlxDocumentFromHdNetwork_Fixed(
+     HdMaterialNode2 const* hdMaterialXSurfaceNodePtr,
+     HdMaterialNode2 const* hdMaterialXDisplacementNodePtr,
+     SdfPath const& materialPath,
+-    mx::DocumentPtr const& libraries,
++    mx::ConstDocumentPtr const& libraries,
+     std::set<SdfPath> * hdTextureNodes, // Paths to the Hd Texture Nodes
+     mx::StringMap * mxHdTextureMap)     // Mx-Hd texture name counterparts
+ {
+diff --git a/pxr/imaging/rprUsd/materialRegistry.cpp b/pxr/imaging/rprUsd/materialRegistry.cpp
+index bd2c7dc..7a862ed 100644
+--- a/pxr/imaging/rprUsd/materialRegistry.cpp
++++ b/pxr/imaging/rprUsd/materialRegistry.cpp
+@@ -33,6 +33,10 @@ limitations under the License.
+ #include "pxr/usd/usdShade/tokens.h"
+ #include "pxr/imaging/hd/sceneDelegate.h"
+ 
++#ifdef USE_USDSHADE_MTLX
++#include "pxr/usd/usdMtlx/utils.h"
++#endif
++
+ #include "materialNodes/usdNode.h"
+ #include "materialNodes/mtlxNode.h"
+ #include "materialNodes/rprApiMtlxNode.h"
+@@ -56,7 +60,7 @@ HdMtlxCreateMtlxDocumentFromHdNetwork_Fixed(
+     HdMaterialNode2 const* hdMaterialXSurfaceNodePtr,
+     HdMaterialNode2 const* hdMaterialXDisplacementNodePtr,
+     SdfPath const& materialPath,
+-    mx::DocumentPtr const& libraries,
++    mx::ConstDocumentPtr const& libraries,
+     std::set<SdfPath>* hdTextureNodes,
+     mx::StringMap* mxHdTextureMap);
+ #else
+@@ -428,7 +432,7 @@ HdMaterialNode2 const* GetTerminalNodeByToken(SdfPath const& materialPath, RprUs
+ RprUsdMaterial* CreateMaterialXFromUsdShade(
+     SdfPath const& materialPath,
+     RprUsd_MaterialBuilderContext const& context,
+-    mx::DocumentPtr& stdLibraries,
++    mx::ConstDocumentPtr& stdLibraries,
+     bool enableDisplacement) {
+ 
+ #ifdef USE_USDSHADE_MTLX
+@@ -445,27 +449,7 @@ RprUsdMaterial* CreateMaterialXFromUsdShade(
+ 
+     // TODO: move lib initialization to class constructor
+     if (!stdLibraries) {
+-        std::string materialXStdlibPath;
+-
+-        const TfType schemaBaseType = TfType::Find<UsdSchemaBase>();
+-        PlugPluginPtr usdPlugin = PlugRegistry::GetInstance().GetPluginForType(schemaBaseType);
+-        if (usdPlugin) {
+-            std::string usdLibPath = usdPlugin->GetPath();
+-            std::string usdDir = TfNormPath(TfGetPathName(usdLibPath) + "..");
+-            materialXStdlibPath = usdDir;
+-#ifdef __APPLE__
+-            materialXStdlibPath += "/Resources";
+-#endif
+-        }
+-
+-        stdLibraries = mx::createDocument();
+-
+-        if (!materialXStdlibPath.empty()) {
+-            mx::FilePathVec libraryFolders = {"libraries"};
+-            mx::FileSearchPath searchPath;
+-            searchPath.append(mx::FilePath(materialXStdlibPath));
+-            mx::loadLibraries(libraryFolders, searchPath, stdLibraries);
+-        }
++        stdLibraries = UsdMtlxGetDocument("");
+     }
+ 
+     MaterialX::StringMap textureMap;
