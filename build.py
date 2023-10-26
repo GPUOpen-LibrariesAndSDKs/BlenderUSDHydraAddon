@@ -66,19 +66,24 @@ def copy(src: Path, dest, ignore=()):
 def install_requirements(py_executable):
     os.environ['PATH'] += os.pathsep + str(Path(site.getusersitepackages()).parent / "Scripts")
 
-    installed_modules = []
     with open("requirements.txt", "r") as file:
-        for m in file.readlines():
-            name, *_ = m.split("==")
-            try:
-                check_call(py_executable, '-c', f'import {name}')
+        required_modules = file.readlines()
 
-            except subprocess.CalledProcessError:
-                check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
-                installed_modules.append(m)
+    installed_modules = []
+    for module in required_modules:
+        if not module:
+            continue
 
-            except Exception as e:
-                raise e
+        name, *_ = module.split("==")
+        try:
+            check_call(py_executable, '-c', f'import {name}')
+
+        except subprocess.CalledProcessError:
+            check_call(py_executable, "-m", "pip", "install", f"{module}", "--user")
+            installed_modules.append(module)
+
+        except Exception as e:
+            raise e
 
     return installed_modules
 
@@ -298,7 +303,6 @@ def boost(bl_libs_dir, bin_dir, clean):
     py_includes = f"{libdir}/python/310/include" if OS == 'Windows' else f"{libdir}/python/include/python3.10"
     py_libs = f"{libdir}/python/310/libs" if OS == 'Windows' else f"{libdir}/python/libs/python3.10"
     py_ver = subprocess.check_output([str(py_exe), "-c", "import sys; print('{}.{}'.format(*sys.version_info[0:2]))"]).decode().strip()
-
 
     cur_dir = os.getcwd()
     if clean:
@@ -642,8 +646,11 @@ def zip_addon(bin_dir):
         # copy plugin/usd folders
         assert plugin_dir.exists()
         for f in plugin_dir.glob("**/*"):
+            if f.name in ("README.md", ".git", ".gitattributes"):  # sanitizing plugin/rprUsd/resources/ns_kernels
+                continue
+
             rel_path = f.relative_to(plugin_dir.parent)
-            if any(p in rel_path.parts and f.name not in ("README.md", ".git", ".gitattributes") for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
+            if any(p in rel_path.parts for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
                 yield f, libs_rel_path.parent / rel_path
 
         # copy python rpr
