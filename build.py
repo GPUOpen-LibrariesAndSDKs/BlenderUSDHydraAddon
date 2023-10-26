@@ -824,7 +824,11 @@ def main():
         materialx()
 
     if args.all or args.usd:
-        usd()
+        installed_modules = install_requirements(["jinja2"])
+        try:
+            usd()
+        finally:
+            uninstall_requirements(installed_modules)
 
     if OS == 'Windows' and (args.all or args.boost):
         boost()
@@ -837,7 +841,11 @@ def main():
             uninstall_requirements(installed_modules)
 
     if OS == 'Windows' and (args.all or args.rs):
-        installed_modules = install_requirements(["uvicorn==0.22.0", "pyinstaller==5.13.2", "websockets==10.4"])
+        # deps/RenderStudioKit/Watchdog/requirements.txt
+        installed_modules = install_requirements(["uvicorn==0.22.0",
+                                                  "pyinstaller==5.13.2",
+                                                  "websockets==10.4",
+                                                  "httpx==0.24.1"])
         try:
             render_studio()
         finally:
