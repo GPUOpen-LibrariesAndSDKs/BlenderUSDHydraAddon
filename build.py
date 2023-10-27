@@ -21,6 +21,7 @@ import zipfile as zip
 import zlib
 import os
 import re
+import site
 from urllib.request import urlopen
 
 OS = platform.system()
@@ -33,6 +34,17 @@ LIBPREFIX = "" if OS == 'Windows' else "lib"
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
 diff_dir = repo_dir / "patches"
+
+bl_libs_dir = Path()
+bin_dir = Path()
+py_exe = Path()
+
+compiler = ""
+jobs = 0
+clean = False
+git_apply = True
+
+build_var = 'release'
 
 
 def rm_dir(d: Path):
@@ -62,18 +74,18 @@ def copy(src: Path, dest, ignore=()):
         shutil.copy(str(src), str(dest), follow_symlinks=False)
 
 
-def install_requirements(py_executable):
-    with open("requirements.txt", "r") as file:
-        required_modules = file.readlines()
+def install_requirements(modules):
+    os.environ['PATH'] += os.pathsep + str(Path(site.getusersitepackages()).parent / "Scripts")
 
     installed_modules = []
-    for m in required_modules:
+    for module in modules:
+        name, *_ = module.split("==")
         try:
-            check_call(py_executable, '-c', f'import {m}')
+            check_call(py_exe, '-c', f'import {name}')
 
-        except subprocess.CalledProcessError as e:
-            check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
-            installed_modules.append(m)
+        except subprocess.CalledProcessError:
+            check_call(py_exe, "-m", "pip", "install", module, "--user")
+            installed_modules.append(module)
 
         except Exception as e:
             raise e
@@ -81,10 +93,10 @@ def install_requirements(py_executable):
     return installed_modules
 
 
-def uninstall_requirements(py_executable, installed_modules):
-    for m in installed_modules:
+def uninstall_requirements(installed_modules):
+    for module in installed_modules:
         try:
-            check_call(py_executable, "-m", "pip", "uninstall", f"{m}", "-y")
+            check_call(py_exe, "-m", "pip", "uninstall", module, "-y")
         except Exception as e:
             print("Error:", e)
 
@@ -108,7 +120,7 @@ def print_start(msg):
 -------------------------------------------------------------""")
 
 
-def cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
+def cmake(src_dir, bin_dir, args):
     if clean:
         rm_dir(bin_dir)
 
@@ -141,14 +153,12 @@ def cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
     check_call('cmake', *compile_args)
 
 
-def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
+def materialx():
     print_start("Building MaterialX")
 
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else \
-        f"{libdir}/python/bin/python3.10"
 
-    cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
+    cmake(deps_dir / "MaterialX", bin_dir / "materialx", [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
         # '-DMATERIALX_BUILD_VIEWER=ON',
@@ -163,13 +173,11 @@ def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     ])
 
 
-def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
+def usd():
     print_start("Building USD")
 
     usd_dir = deps_dir / "USD"
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else \
-        f"{libdir}/python/bin/python3.10"
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -268,7 +276,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "usd_opengl_errors_fix.diff"))
 
         try:
-            cmake(usd_dir, bin_dir / "USD", compiler, jobs, build_var, clean, args)
+            cmake(usd_dir, bin_dir / "USD", args)
         finally:
             if git_apply:
                 print("Reverting USD repo")
@@ -279,7 +287,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         os.chdir(cur_dir)
 
 
-def boost(bl_libs_dir, bin_dir, clean):
+def boost():
     print_start("Building Boost")
 
     BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
@@ -292,11 +300,9 @@ def boost(bl_libs_dir, bin_dir, clean):
     src_dir = deps_dir / Path(BOOST_URL).stem
     libdir = bl_libs_dir.as_posix()
 
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else f"{libdir}/python/bin/python3.10"
     py_includes = f"{libdir}/python/310/include" if OS == 'Windows' else f"{libdir}/python/include/python3.10"
     py_libs = f"{libdir}/python/310/libs" if OS == 'Windows' else f"{libdir}/python/libs/python3.10"
     py_ver = subprocess.check_output([str(py_exe), "-c", "import sys; print('{}.{}'.format(*sys.version_info[0:2]))"]).decode().strip()
-
 
     cur_dir = os.getcwd()
     if clean:
@@ -360,7 +366,7 @@ def boost(bl_libs_dir, bin_dir, clean):
         os.chdir(cur_dir)
 
 
-def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
+def hdrpr():
     print_start("Building HdRPR")
 
     hdrpr_dir = deps_dir / "RadeonProRenderUSD"
@@ -369,9 +375,6 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     libdir = bl_libs_dir.as_posix()
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
-
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else \
-        f"{libdir}/python/bin/python3.10"
 
     # Boost flags
     args = [
@@ -389,8 +392,6 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     ]
 
     # HdRPR flags
-    usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
-
     args += [
         f'-Dpxr_DIR={usd_dir}',
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
@@ -402,7 +403,7 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f"-DIMATH_INCLUDE_DIR={libdir}/imath/include/Imath",
         '-DPXR_BUILD_MONOLITHIC=ON',
         f'-DUSD_LIBRARY_DIR={usd_dir / "lib"}',
-        f'-DUSD_MONOLITHIC_LIBRARY={usd_monolitic_path}',
+        f'-DUSD_MONOLITHIC_LIBRARY={usd_dir / "lib" / f"{LIBPREFIX}usd_ms{POSTFIX}{LIBEXT}"}',
         f"-DTBB_INCLUDE_DIR={libdir}/tbb/include",
         f"-DTBB_LIBRARY={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
         f"-DOPENVDB_LOCATION={libdir}/openvdb",
@@ -465,7 +466,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "hdrpr_libs.diff"))
 
         try:
-            cmake(hdrpr_dir, bin_dir / "hdrpr", compiler, jobs, build_var, clean, args)
+            cmake(hdrpr_dir, bin_dir / "hdrpr", args)
         finally:
             if git_apply:
                 print("Reverting HdRPR repo")
@@ -552,7 +553,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
                    "libRadeonImageFilters.so.1", "libRadeonImageFilters.so", str(hdrpr_lib))
 
 
-def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
+def render_studio():
     print_start("Building RenderStudioKit")
 
     deps_dir = repo_dir / "deps"
@@ -561,12 +562,13 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     usd_dir = bin_dir / "USD/install"
     openssl_dir = Path(os.environ["OPENSSL_ROOT_DIR"])
     libdir = bl_libs_dir.as_posix()
-    usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else f"{libdir}/python/bin/python3.10"
+
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
 
     # Boost flags
     args = [
+        "-DWITH_SHARED_WORKSPACE_SUPPORT=ON",
+        "-DWITH_PYTHON_DEPENDENCIES_INSTALL=OFF",
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
         f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
         f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
@@ -589,19 +591,19 @@ def render_studio(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
 
         f'-DUSD_LOCATION={usd_dir}',
         f'-DUSD_LIBRARY_DIR={usd_dir / "lib"}',
-        f'-DUSD_MONOLITHIC_LIBRARY={usd_monolitic_path}',
+        f'-DUSD_MONOLITHIC_LIBRARY={usd_dir / "lib" / f"{LIBPREFIX}usd_ms{POSTFIX}{LIBEXT}"}',
     ]
 
     cur_dir = os.getcwd()
     ch_dir(rs_dir)
     try:
-        cmake(rs_dir, bin_dir / "render_studio", compiler, jobs, build_var, clean, args)
+        cmake(rs_dir, bin_dir / "render_studio", args)
 
     finally:
         os.chdir(cur_dir)
 
 
-def zip_addon(bin_dir):
+def zip_addon():
     print_start("Creating zip Addon")
 
     def enumerate_hdrpr_data(bin_dir):
@@ -638,6 +640,9 @@ def zip_addon(bin_dir):
         # copy plugin/usd folders
         assert plugin_dir.exists()
         for f in plugin_dir.glob("**/*"):
+            if f.name in ("README.md", ".git", ".gitattributes"):  # sanitizing plugin/rprUsd/resources/ns_kernels
+                continue
+
             rel_path = f.relative_to(plugin_dir.parent)
             if any(p in rel_path.parts for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
                 yield f, libs_rel_path.parent / rel_path
@@ -679,6 +684,11 @@ def zip_addon(bin_dir):
         syncthing = plugin_dir / f'usd/syncthing{EXT}'
         assert syncthing.exists()
         yield syncthing, plugin_rel_path.parent / syncthing.name
+
+        # copy whatchdog
+        whatchdog = plugin_dir / f'usd/RenderStudioWatchdog{EXT}'
+        assert whatchdog.exists()
+        yield whatchdog, plugin_rel_path.parent / whatchdog.name
 
         # copy Boost library
         boost_log_lib = bin_dir.parent / f'boost/install/lib/boost_log-vc142-mt-x64-1_80{DLLEXT}'
@@ -789,44 +799,60 @@ def main():
 
     args = ap.parse_args()
 
+    global bl_libs_dir, bin_dir, py_exe, compiler, jobs, clean, git_apply, build_var, POSTFIX
+
     bl_libs_dir = Path(args.bl_libs_dir).absolute().resolve()
 
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
     bin_dir = bin_dir.absolute()
-    bin_dir.mkdir(parents=True, exist_ok=True)
-    global POSTFIX
-    if args.build_var == "debug":
-        POSTFIX = "_d"
 
-    if args.all or args.materialx:
-        materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
-
-    installed_modules = None
     py_exe = f"{bl_libs_dir}/python/310/bin/python.exe" if OS == 'Windows' else \
         f"{bl_libs_dir}/python/bin/python3.10"
 
-    try:
-        if args.all or args.usd or args.hdrpr:
-            installed_modules = install_requirements(py_exe)
+    compiler = args.G
+    jobs = args.j
+    clean = args.clean
+    git_apply = not args.no_git_apply
 
-        if args.all or args.usd:
-            usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+    build_var = args.build_var
+    if args.build_var == "debug":
+        POSTFIX = "_d"
 
-        if OS == 'Windows' and (args.all or args.boost):
-            boost(bl_libs_dir, bin_dir, args.clean)
+    bin_dir.mkdir(parents=True, exist_ok=True)
 
-        if args.all or args.hdrpr:
-            hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+    if args.all or args.materialx:
+        materialx()
 
-        if OS == 'Windows' and (args.all or args.rs):
-            render_studio(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
+    if args.all or args.usd:
+        installed_modules = install_requirements(["jinja2"])
+        try:
+            usd()
+        finally:
+            uninstall_requirements(installed_modules)
 
-    finally:
-        if installed_modules:
-            uninstall_requirements(py_exe, installed_modules)
+    if OS == 'Windows' and (args.all or args.boost):
+        boost()
+
+    if args.all or args.hdrpr:
+        installed_modules = install_requirements(["jinja2"])
+        try:
+            hdrpr()
+        finally:
+            uninstall_requirements(installed_modules)
+
+    if OS == 'Windows' and (args.all or args.rs):
+        # deps/RenderStudioKit/Watchdog/requirements.txt
+        installed_modules = install_requirements(["uvicorn==0.22.0",
+                                                  "pyinstaller==5.13.2",
+                                                  "websockets==10.4",
+                                                  "httpx==0.24.1"])
+        try:
+            render_studio()
+        finally:
+            uninstall_requirements(installed_modules)
 
     if args.all or args.addon:
-        zip_addon(bin_dir)
+        zip_addon()
 
     print_start("Finished")
 

@@ -16,8 +16,7 @@ from pxr import Plug
 
 
 def register():
-    usd_plugin = Plug.Registry().GetPluginWithName('RenderStudioResolver')
-    usd_plugin.Load()
+    Plug.Registry().GetPluginWithName('RenderStudioResolver').Load()
 
     from . import resolver, ui, operators
 

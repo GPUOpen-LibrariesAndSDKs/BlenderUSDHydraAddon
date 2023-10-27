@@ -42,8 +42,7 @@ LIBS_DIR = Path(__file__).parent / "libs"
 
 def register():
     if platform.system() == 'Windows':
-        os.environ['PATH'] = os.environ['PATH'] + \
-            os.pathsep + str(LIBS_DIR / "lib")
+        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + str(LIBS_DIR / "lib")
 
     sys.path.append(str(LIBS_DIR / "python"))
     Plug.Registry().RegisterPlugins(str(LIBS_DIR / "plugin"))

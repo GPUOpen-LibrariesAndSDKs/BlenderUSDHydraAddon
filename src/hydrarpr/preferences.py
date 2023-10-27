@@ -54,7 +54,7 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         name="Workspace Dir",
         description="Set directory which would be synchronized for all connected users",
         subtype='DIR_PATH',
-        default=str(Path(os.path.expandvars('%appdata%')) / "AMD RenderStudio"),
+        default=str(Path(os.path.expandvars('%programdata%')) / "AMD/AMD RenderStudio/Workspace"),
     )
     rs_workspace_url: bpy.props.StringProperty(
         name="Workspace Url",
