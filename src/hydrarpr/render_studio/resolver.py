@@ -28,12 +28,12 @@ class Resolver:
         self.is_connected = False
         self.is_live_sync = False
         self.filename = ""
-        self.listener_conn = Tf.Notice.RegisterGlobally(
-            "RenderStudioNotice::WorkspaceConnectionChanged", self.callback_conn)
+        self._connection_listener = Tf.Notice.RegisterGlobally(
+            "RenderStudioNotice::WorkspaceConnectionChanged", self._connection_callback)
 
         self._is_depsgraph_update = False
 
-    def callback_conn(self, notice, sender):
+    def _connection_callback(self, notice, sender):
         self.is_connected = notice.IsConnected()
         log("RenderStudioNotice::WorkspaceConnectionChanged", notice.IsConnected())
 

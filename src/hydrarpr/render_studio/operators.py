@@ -41,6 +41,10 @@ class RESOLVER_OP_disconnect(bpy.types.Operator):
     bl_label = "Disconnect"
     bl_description = "Disconnect from AMD RenderStudio"
 
+    @classmethod
+    def poll(cls, context):
+        return rs_resolver.is_connected
+
     def execute(self, context):
         rs_resolver.disconnect()
         tag_redraw()
