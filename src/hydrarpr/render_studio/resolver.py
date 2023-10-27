@@ -15,6 +15,7 @@
 from pathlib import Path
 
 import bpy
+from pxr import Tf
 
 from ..preferences import preferences
 
@@ -27,24 +28,25 @@ class Resolver:
         self.is_connected = False
         self.is_live_sync = False
         self.filename = ""
+        self.listener_conn = Tf.Notice.RegisterGlobally(
+            "RenderStudioNotice::WorkspaceConnectionChanged", self.callback_conn)
 
         self._is_depsgraph_update = False
+
+    def callback_conn(self, notice, sender):
+        self.is_connected = notice.IsConnected()
+        log("RenderStudioNotice::WorkspaceConnectionChanged", notice.IsConnected())
 
     def connect(self):
         from rs import RenderStudioKit
 
         log("Connecting")
         pref = preferences()
-        if not pref.rs_workspace_url:
-            log.warn("Remote server URL is empty")
-            return
-
         RenderStudioKit.SetWorkspaceUrl(pref.rs_workspace_url)
         RenderStudioKit.SetWorkspacePath(pref.rs_workspace_dir)
 
         try:
             RenderStudioKit.SharedWorkspaceConnect()
-            self.is_connected = True
             log.info("Connected")
 
         except RuntimeError:
@@ -58,7 +60,6 @@ class Resolver:
 
         log("Disconnecting")
         RenderStudioKit.SharedWorkspaceDisconnect()
-        self.is_connected = False
         self.filename = ""
         log.info("Disconnected")
 

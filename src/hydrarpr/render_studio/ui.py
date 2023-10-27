@@ -15,6 +15,7 @@
 import bpy
 
 from .resolver import rs_resolver
+from ..preferences import preferences
 from ..ui import Panel
 
 
@@ -28,34 +29,40 @@ class RS_RESOLVER_PT_resolver(Panel):
         layout.use_property_decorate = False
 
         settings = context.scene.hydra_rpr.render_studio
+        pref = preferences()
         if rs_resolver.is_connected:
             layout.operator("render_studio.disconnect", icon='UNLINKED')
         else:
             layout.operator("render_studio.connect", icon='LINKED')
 
-        col = layout.column()
-        col.enabled = rs_resolver.is_connected
-        col.separator()
+        layout.prop(settings, "channel")
 
-        col1 = col.column(align=True)
-        col1.use_property_split = False
+        if not pref.rs_workspace_url and not rs_resolver.is_connected:
+            layout.label(text="Workspace Url is required, check Addon Preferences", icon="ERROR")
+
+        if not pref.rs_workspace_dir and not rs_resolver.is_connected:
+            layout.label(text="Workspace Dir is required, check Addon Preferences", icon="ERROR")
+
+        layout.separator()
+
         if settings.live_sync:
             if rs_resolver.is_live_sync:
-                col1.operator("render_studio.stop_live_sync", icon='CANCEL')
+                layout.operator("render_studio.stop_live_sync", icon='CANCEL')
             else:
-                col1.operator("render_studio.start_live_sync", icon='FILE_REFRESH')
+                layout.operator("render_studio.start_live_sync", icon='FILE_REFRESH')
         else:
-            col1.operator("render_studio.sync_scene", icon='FILE_REFRESH')
+            layout.operator("render_studio.sync_scene", icon='FILE_REFRESH')
 
-        col1.prop(settings, "live_sync")
+        col = layout.column(align=True)
+        col.enabled = rs_resolver.is_connected
+        col.use_property_split = False
 
-        col.separator()
-        col.prop(settings, "channel")
+        col.prop(settings, "live_sync")
 
         if rs_resolver.filename:
-            col1 = col.column(align=True)
-            col1.label(text="Syncing to:")
-            col1.label(text=f"{settings.channel}/{rs_resolver.filename}")
+            col = col.column(align=True)
+            col.label(text="Syncing to:")
+            col.label(text=f"{settings.channel}/{rs_resolver.filename}")
 
 
 class RS_RESOLVER_PT_usd_settings(Panel):
