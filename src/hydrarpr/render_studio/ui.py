@@ -45,22 +45,22 @@ class RS_RESOLVER_PT_resolver(Panel):
 
         layout.separator()
 
+        col = layout.column(align=True)
         if settings.live_sync:
             if rs_resolver.is_live_sync:
-                layout.operator("render_studio.stop_live_sync", icon='CANCEL')
+                col.operator("render_studio.stop_live_sync", icon='CANCEL')
             else:
-                layout.operator("render_studio.start_live_sync", icon='FILE_REFRESH')
+                col.operator("render_studio.start_live_sync", icon='FILE_REFRESH')
         else:
-            layout.operator("render_studio.sync_scene", icon='FILE_REFRESH')
+            col.operator("render_studio.sync_scene", icon='FILE_REFRESH')
 
-        col = layout.column(align=True)
-        col.enabled = rs_resolver.is_connected
-        col.use_property_split = False
-
-        col.prop(settings, "live_sync")
+        row = col.row()
+        row.enabled = rs_resolver.is_connected
+        row.use_property_split = False
+        row.prop(settings, "live_sync")
 
         if rs_resolver.filename:
-            col = col.column(align=True)
+            col = layout.box().column(align=True)
             col.label(text="Syncing to:")
             col.label(text=f"{settings.channel}/{rs_resolver.filename}")
 
