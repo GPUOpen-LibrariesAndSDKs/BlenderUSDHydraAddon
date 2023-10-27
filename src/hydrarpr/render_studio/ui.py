@@ -35,14 +35,15 @@ class RS_RESOLVER_PT_resolver(Panel):
         else:
             layout.operator("render_studio.connect", icon='LINKED')
 
+        if (not pref.rs_workspace_url or not pref.rs_workspace_dir) and not rs_resolver.is_connected:
+            col = layout.box().column(align=True)
+            if not pref.rs_workspace_url:
+                col.label(text="Workspace Url is required, check Addon Preferences", icon="ERROR")
+
+            if not pref.rs_workspace_dir:
+                col.label(text="Workspace Dir is required, check Addon Preferences", icon="ERROR")
+
         layout.prop(settings, "channel")
-
-        if not pref.rs_workspace_url and not rs_resolver.is_connected:
-            layout.label(text="Workspace Url is required, check Addon Preferences", icon="ERROR")
-
-        if not pref.rs_workspace_dir and not rs_resolver.is_connected:
-            layout.label(text="Workspace Dir is required, check Addon Preferences", icon="ERROR")
-
         layout.separator()
 
         col = layout.column(align=True)
