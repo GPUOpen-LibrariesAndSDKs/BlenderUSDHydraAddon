@@ -26,12 +26,15 @@ log = logging.Log("rs.resolver")
 class Resolver:
     def __init__(self):
         self.is_connected = False
-        self.is_live_sync = False
         self.filename = ""
         self._connection_listener = Tf.Notice.RegisterGlobally(
             "RenderStudioNotice::WorkspaceConnectionChanged", self._connection_callback)
 
         self._is_depsgraph_update = False
+
+    @property
+    def is_live_sync(self):
+        return on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post
 
     def _connection_callback(self, notice, sender):
         self.is_connected = notice.IsConnected()
@@ -66,12 +69,10 @@ class Resolver:
     def start_live_sync(self):
         log("Start live sync")
         bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
-        self.is_live_sync = True
 
     def stop_live_sync(self):
         log("Stop live sync")
         bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
-        self.is_live_sync = False
 
     def sync_scene(self):
         if self._is_depsgraph_update:
