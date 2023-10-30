@@ -366,8 +366,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
     ch_dir(hdrpr_dir)
     try:
         if git_apply:
-            check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "hdrpr_matx.diff"))
-            check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "hdrpr_libs.diff"))
+            check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "hdrpr.diff"))
 
         try:
             _cmake(hdrpr_dir, bin_dir / "hdrpr", compiler, jobs, build_var, clean, args)
