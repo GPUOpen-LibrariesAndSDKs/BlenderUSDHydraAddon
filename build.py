@@ -680,14 +680,14 @@ def zip_addon():
         yield resolver_lib, plugin_rel_path.parent / resolver_lib.name
 
         # copy syncthing
-        syncthing = plugin_dir / f'usd/syncthing{EXT}'
+        syncthing = plugin_dir / f'usd/RenderStudioWorkspace/syncthing{EXT}'
         assert syncthing.exists()
         yield syncthing, plugin_rel_path.parent / syncthing.name
 
-        # copy whatchdog
-        whatchdog = plugin_dir / f'usd/RenderStudioWatchdog{EXT}'
-        assert whatchdog.exists()
-        yield whatchdog, plugin_rel_path.parent / whatchdog.name
+        # copy workspace
+        workspace = plugin_dir / f'usd/RenderStudioWorkspace/RenderStudioWorkspace{EXT}'
+        assert workspace.exists()
+        yield workspace, plugin_rel_path.parent / workspace.name
 
         # copy Boost library
         boost_log_lib = bin_dir.parent / f'boost/install/lib/boost_log-vc142-mt-x64-1_80{DLLEXT}'
