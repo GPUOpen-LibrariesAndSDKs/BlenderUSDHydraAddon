@@ -843,9 +843,9 @@ def main():
         # deps/RenderStudioKit/Watchdog/requirements.txt
         installed_modules = install_requirements(["fastapi==0.103.2",
                                                   "uvicorn==0.22.0",
-                                                  "pyinstaller==5.13.2",
                                                   "websockets==10.4",
-                                                  "httpx==0.24.1"])
+                                                  "httpx==0.24.1",
+                                                  "nuitka==1.8.5"])
         try:
             render_studio()
         finally:
