@@ -49,7 +49,7 @@ class Resolver:
         RenderStudioKit.SetWorkspacePath(pref.rs_workspace_dir)
 
         try:
-            RenderStudioKit.SharedWorkspaceConnect()
+            RenderStudioKit.SharedWorkspaceConnect(RenderStudioKit.Role.Client)
             log.info("Connected")
 
         except RuntimeError:
