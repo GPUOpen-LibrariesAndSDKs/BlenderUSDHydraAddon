@@ -679,16 +679,6 @@ def zip_addon():
         assert resolver_lib.exists()
         yield resolver_lib, plugin_rel_path.parent / resolver_lib.name
 
-        # copy syncthing
-        syncthing = plugin_dir / f'usd/RenderStudioWorkspace/syncthing{EXT}'
-        assert syncthing.exists()
-        yield syncthing, plugin_rel_path.parent / syncthing.name
-
-        # copy workspace
-        workspace = plugin_dir / f'usd/RenderStudioWorkspace/RenderStudioWorkspace{EXT}'
-        assert workspace.exists()
-        yield workspace, plugin_rel_path.parent / workspace.name
-
         # copy Boost library
         boost_log_lib = bin_dir.parent / f'boost/install/lib/boost_log-vc142-mt-x64-1_80{DLLEXT}'
         assert boost_log_lib.exists()
@@ -697,7 +687,7 @@ def zip_addon():
         # copy plugin/usd folders
         for f in plugin_dir.glob("**/*"):
             rel_path = f.relative_to(plugin_dir.parent)
-            if any(p in rel_path.parts for p in ("RenderStudioResolver",)):
+            if any(p in rel_path.parts for p in ("RenderStudioResolver", "RenderStudioWorkspace")):
                 yield f, libs_rel_path.parent / rel_path
 
     def enumerate_data():
