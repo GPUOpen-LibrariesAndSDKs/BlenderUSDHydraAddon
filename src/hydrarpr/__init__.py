@@ -25,7 +25,6 @@ bl_info = {
     "community": "",
     "downloads": "",
     "main_web": "",
-    "support": 'TESTING',
     "category": "Render"
 }
 
