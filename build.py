@@ -75,6 +75,7 @@ def copy(src: Path, dest, ignore=()):
 
 
 def install_requirements(modules):
+    print_start("Install python requirements")
     os.environ['PATH'] += os.pathsep + str(Path(site.getusersitepackages()).parent / "Scripts")
 
     installed_modules = []
@@ -94,6 +95,7 @@ def install_requirements(modules):
 
 
 def uninstall_requirements(installed_modules):
+    print_start("Uninstall python requirements")
     for module in installed_modules:
         try:
             check_call(py_exe, "-m", "pip", "uninstall", module, "-y")

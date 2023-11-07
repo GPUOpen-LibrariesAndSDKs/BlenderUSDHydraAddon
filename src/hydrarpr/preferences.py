@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
-import os
 import platform
 from pathlib import Path
 
 import bpy
 
 from . import logging
+
+
+DEFAULT_RS_DIR = Path("C:/" if platform.system() == 'Windows' else "/var/lib") / "AMD/AMD RenderStudio"
 
 
 class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
@@ -54,7 +56,7 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         name="Workspace Dir",
         description="Set directory which would be synchronized for all connected users",
         subtype='DIR_PATH',
-        default=str(Path(os.path.expandvars('%programdata%')) / "AMD/AMD RenderStudio/Workspace"),
+        default=str(DEFAULT_RS_DIR / "Workspace"),
     )
     rs_workspace_url: bpy.props.StringProperty(
         name="Workspace Url",
