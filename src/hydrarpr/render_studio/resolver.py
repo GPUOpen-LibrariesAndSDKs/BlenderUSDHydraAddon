@@ -81,12 +81,14 @@ class Resolver:
         if self._is_depsgraph_update:
             return
 
+        from rs import RenderStudioKit
+
         pref = preferences()
         settings = bpy.context.scene.hydra_rpr.render_studio
 
         self.filename = Path(bpy.data.filepath).stem if bpy.data.filepath else "untitled"
         self.filename += pref.rs_file_format
-        usd_path = Path(pref.rs_workspace_dir) / settings.channel / self.filename
+        usd_path = Path(RenderStudioKit.GetWorkspacePath()) / settings.channel / self.filename
 
         log("Syncing scene", usd_path)
         self._is_depsgraph_update = True
