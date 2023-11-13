@@ -37,8 +37,11 @@ class Resolver:
         return on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post
 
     def _connection_callback(self, notice, sender):
+        from .ui import tag_redraw
+
         self.is_connected = notice.IsConnected()
         log("RenderStudioNotice::WorkspaceConnectionChanged", notice.IsConnected())
+        tag_redraw()
 
     def connect(self):
         from rs import RenderStudioKit

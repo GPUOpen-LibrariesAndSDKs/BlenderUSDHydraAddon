@@ -309,7 +309,7 @@ class RenderStudioSettings(bpy.types.PropertyGroup):
     channel: StringProperty(
         name="Channel",
         description="Syncing Channel: directory to which the files will be synchronized",
-        default=platform.node(),
+        default=f"Blender/{platform.node()}",
     )
     filename: StringProperty(
         name="Custom File Name",

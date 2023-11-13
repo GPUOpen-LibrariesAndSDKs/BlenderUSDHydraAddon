@@ -569,7 +569,7 @@ def render_studio():
     # Boost flags
     args = [
         "-DWITH_SHARED_WORKSPACE_SUPPORT=ON",
-        "-DWITH_PYTHON_DEPENDENCIES_INSTALL=OFF",
+        "-DWITH_PYTHON_DEPENDENCIES_INSTALL=ON",
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
         f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
         f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
