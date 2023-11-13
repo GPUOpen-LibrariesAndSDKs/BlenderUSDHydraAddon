@@ -76,7 +76,7 @@ def copy(src: Path, dest, ignore=()):
 
 def install_requirements(modules):
     print_start("Install python requirements")
-    os.environ['PATH'] += os.pathsep + str(Path(site.getusersitepackages()).parent / "Scripts")
+    os.environ['PATH'] += os.pathsep + str(bl_libs_dir / "python/310/Scripts")
 
     installed_modules = []
     for module in modules:
@@ -85,7 +85,7 @@ def install_requirements(modules):
             check_call(py_exe, '-c', f'import {name}')
 
         except subprocess.CalledProcessError:
-            check_call(py_exe, "-m", "pip", "install", module, "--user")
+            check_call(py_exe, "-m", "pip", "install", module)
             installed_modules.append(module)
 
         except Exception as e:
@@ -569,7 +569,7 @@ def render_studio():
     # Boost flags
     args = [
         "-DWITH_SHARED_WORKSPACE_SUPPORT=ON",
-        "-DWITH_PYTHON_DEPENDENCIES_INSTALL=ON",
+        "-DWITH_PYTHON_DEPENDENCIES_INSTALL=OFF",
         "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
         f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
         f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
