@@ -86,7 +86,7 @@ class RPR_HYDRA_ADDON_PT_preferences(bpy.types.AddonPreferences):
         if self.rs_enable:
             col = box.column(align=True)
             col.prop(self, "rs_workspace_url")
-            col.prop(self, "rs_workspace_dir")
+            # col.prop(self, "rs_workspace_dir")
             col.prop(self, "rs_file_format")
 
 

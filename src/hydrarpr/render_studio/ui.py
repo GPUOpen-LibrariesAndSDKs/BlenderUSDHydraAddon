@@ -40,8 +40,8 @@ class RS_RESOLVER_PT_resolver(Panel):
             if not pref.rs_workspace_url:
                 col.label(text="Workspace Url is required, check Addon Preferences", icon="ERROR")
 
-            if not pref.rs_workspace_dir:
-                col.label(text="Workspace Dir is required, check Addon Preferences", icon="ERROR")
+            # if not pref.rs_workspace_dir:
+            #     col.label(text="Workspace Dir is required, check Addon Preferences", icon="ERROR")
 
         layout.prop(settings, "channel")
         layout.separator()

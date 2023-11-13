@@ -46,7 +46,7 @@ class Resolver:
         log("Connecting")
         pref = preferences()
         RenderStudioKit.SetWorkspaceUrl(pref.rs_workspace_url)
-        RenderStudioKit.SetWorkspacePath(pref.rs_workspace_dir)
+        # RenderStudioKit.SetWorkspacePath(pref.rs_workspace_dir)
 
         try:
             RenderStudioKit.SharedWorkspaceConnect(RenderStudioKit.Role.Client)
