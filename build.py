@@ -17,9 +17,12 @@ import subprocess
 import argparse
 import platform
 import shutil
-import zipfile
+import zipfile as zip
 import zlib
 import os
+import re
+import site
+from urllib.request import urlopen
 
 OS = platform.system()
 POSTFIX = ""
@@ -31,6 +34,17 @@ LIBPREFIX = "" if OS == 'Windows' else "lib"
 repo_dir = Path(__file__).parent.resolve()
 deps_dir = repo_dir / "deps"
 diff_dir = repo_dir / "patches"
+
+bl_libs_dir = Path()
+bin_dir = Path()
+py_exe = Path()
+
+compiler = ""
+jobs = 0
+clean = False
+git_apply = True
+
+build_var = 'release'
 
 
 def rm_dir(d: Path):
@@ -60,18 +74,19 @@ def copy(src: Path, dest, ignore=()):
         shutil.copy(str(src), str(dest), follow_symlinks=False)
 
 
-def install_requirements(py_executable):
-    with open("requirements.txt", "r") as file:
-        required_modules = file.readlines()
+def install_requirements(modules):
+    print_start("Install python requirements")
+    os.environ['PATH'] += os.pathsep + str(bl_libs_dir / "python/310/Scripts")
 
     installed_modules = []
-    for m in required_modules:
+    for module in modules:
+        name, *_ = module.split("==")
         try:
-            check_call(py_executable, '-c', f'import {m}')
+            check_call(py_exe, '-c', f'import {name}')
 
-        except subprocess.CalledProcessError as e:
-            check_call(py_executable, "-m", "pip", "install", f"{m}", "--user")
-            installed_modules.append(m)
+        except subprocess.CalledProcessError:
+            check_call(py_exe, "-m", "pip", "install", module)
+            installed_modules.append(module)
 
         except Exception as e:
             raise e
@@ -79,12 +94,25 @@ def install_requirements(py_executable):
     return installed_modules
 
 
-def uninstall_requirements(py_executable, installed_modules):
-    for m in installed_modules:
+def uninstall_requirements(installed_modules):
+    print_start("Uninstall python requirements")
+    for module in installed_modules:
         try:
-            check_call(py_executable, "-m", "pip", "uninstall", f"{m}", "-y")
+            check_call(py_exe, "-m", "pip", "uninstall", module, "-y")
         except Exception as e:
             print("Error:", e)
+
+
+def get_version():
+    # getting build version
+    build_ver = subprocess.getoutput("git rev-parse --short HEAD")
+
+    # getting plugin version
+    text = (repo_dir / "src/hydrarpr/__init__.py").read_text()
+    m = re.search(r'"version": \((\d+), (\d+), (\d+)\)', text)
+    plugin_ver = m.group(1), m.group(2), m.group(3)
+
+    return (*plugin_ver, build_ver)
 
 
 def print_start(msg):
@@ -94,7 +122,7 @@ def print_start(msg):
 -------------------------------------------------------------""")
 
 
-def _cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
+def cmake(src_dir, bin_dir, args):
     if clean:
         rm_dir(bin_dir)
 
@@ -127,14 +155,12 @@ def _cmake(src_dir, bin_dir, compiler, jobs, build_var, clean, args):
     check_call('cmake', *compile_args)
 
 
-def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
+def materialx():
     print_start("Building MaterialX")
 
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{libdir}/python/bin/python3.10"
 
-    _cmake(deps_dir / "MaterialX", bin_dir / "materialx", compiler, jobs, build_var, clean, [
+    cmake(deps_dir / "MaterialX", bin_dir / "materialx", [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
         # '-DMATERIALX_BUILD_VIEWER=ON',
@@ -149,13 +175,11 @@ def materialx(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var):
     ])
 
 
-def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
+def usd():
     print_start("Building USD")
 
     usd_dir = deps_dir / "USD"
     libdir = bl_libs_dir.as_posix()
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{libdir}/python/bin/python3.10"
 
     # USD_PLATFORM_FLAGS
     args = [
@@ -254,7 +278,7 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "usd_opengl_errors_fix.diff"))
 
         try:
-            _cmake(usd_dir, bin_dir / "USD", compiler, jobs, build_var, clean, args)
+            cmake(usd_dir, bin_dir / "USD", args)
         finally:
             if git_apply:
                 print("Reverting USD repo")
@@ -265,7 +289,86 @@ def usd(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         os.chdir(cur_dir)
 
 
-def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
+def boost():
+    print_start("Building Boost")
+
+    BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip"
+
+    boost_dir = bin_dir / "boost"
+    deps_dir = boost_dir / "deps"
+    install_dir = boost_dir / "install"
+    build_dir = boost_dir / "build"
+    arch_filepath = deps_dir / Path(BOOST_URL).name
+    src_dir = deps_dir / Path(BOOST_URL).stem
+    libdir = bl_libs_dir.as_posix()
+
+    py_includes = f"{libdir}/python/310/include" if OS == 'Windows' else f"{libdir}/python/include/python3.10"
+    py_libs = f"{libdir}/python/310/libs" if OS == 'Windows' else f"{libdir}/python/libs/python3.10"
+    py_ver = subprocess.check_output([str(py_exe), "-c", "import sys; print('{}.{}'.format(*sys.version_info[0:2]))"]).decode().strip()
+
+    cur_dir = os.getcwd()
+    if clean:
+        rm_dir(boost_dir)
+
+    os.makedirs(boost_dir, exist_ok=True)
+
+    # Download and extract Boost
+    if not deps_dir.exists():
+        deps_dir.mkdir()
+
+        print("Downloading Boost: ", arch_filepath)
+        data = urlopen(BOOST_URL)
+        with open(arch_filepath, "wb") as file:
+            file.write(data.read())
+
+        assert zip.is_zipfile(arch_filepath)
+
+        print("Extracting Boost to: ", src_dir)
+        archive = zip.ZipFile(arch_filepath)
+        with archive:
+            archive.extractall(deps_dir)
+
+    # Installing Boost
+    print("Installing Boost to: ", install_dir)
+    os.chdir(str(src_dir))
+
+    # python-config.jam is required for boost::python
+    project_path = 'python-config.jam'
+    with open(project_path, 'w') as project_file:
+        project_file.write("\n".join([
+            f'using python : {py_ver}',
+            f'  : "{Path(py_exe).as_posix()}"',
+            f'  : "{Path(py_includes).as_posix()}"',
+            f'  : "{Path(py_libs).as_posix()}"',
+            '  ;\n'
+        ]))
+
+    args = [
+        "b2",
+        f"--prefix={install_dir}",
+        f"--build-dir={build_dir}",
+        f"-j8",
+        "address-model=64",
+        "link=shared",
+        "runtime-link=shared",
+        "threading=multi",
+        "variant=release",
+        "--with-log",
+        "--with-python",
+        f"--user-config={project_path}",
+        "-sNO_BZIP2=1",
+        "toolset=msvc-14.2",
+        "install"
+    ]
+
+    try:
+        check_call("bootstrap.bat", f'--prefix="{install_dir}"')
+        check_call(*args)
+    finally:
+        os.chdir(cur_dir)
+
+
+def hdrpr():
     print_start("Building HdRPR")
 
     hdrpr_dir = deps_dir / "RadeonProRenderUSD"
@@ -274,9 +377,6 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     libdir = bl_libs_dir.as_posix()
 
     os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
-
-    py_exe = f"{libdir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{libdir}/python/bin/python3.10"
 
     # Boost flags
     args = [
@@ -294,8 +394,6 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
     ]
 
     # HdRPR flags
-    usd_monolitic_path = f'{usd_dir / "lib" / (f"{LIBPREFIX}usd_ms_d{LIBEXT}" if build_var == "debug" else f"{LIBPREFIX}usd_ms{LIBEXT}")}'
-
     args += [
         f'-Dpxr_DIR={usd_dir}',
         f"-DMaterialX_DIR={bin_dir / 'materialx/install/lib/cmake/MaterialX'}",
@@ -307,7 +405,7 @@ def hdrpr(bl_libs_dir, bin_dir, compiler, jobs, clean, build_var, git_apply):
         f"-DIMATH_INCLUDE_DIR={libdir}/imath/include/Imath",
         '-DPXR_BUILD_MONOLITHIC=ON',
         f'-DUSD_LIBRARY_DIR={usd_dir / "lib"}',
-        f'-DUSD_MONOLITHIC_LIBRARY={usd_monolitic_path}',
+        f'-DUSD_MONOLITHIC_LIBRARY={usd_dir / "lib" / f"{LIBPREFIX}usd_ms{POSTFIX}{LIBEXT}"}',
         f"-DTBB_INCLUDE_DIR={libdir}/tbb/include",
         f"-DTBB_LIBRARY={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
         f"-DOPENVDB_LOCATION={libdir}/openvdb",
@@ -359,7 +457,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
         pxr_init_py.write_text(text_new)
         print(text_new)
 
-    else:   # OS == 'Linux':
+    else:  # OS == 'Linux':
         os.environ['LD_LIBRARY_PATH'] = ':'.join(str(p) for p in paths)
 
     cur_dir = os.getcwd()
@@ -369,7 +467,7 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "hdrpr.diff"))
 
         try:
-            _cmake(hdrpr_dir, bin_dir / "hdrpr", compiler, jobs, build_var, clean, args)
+            cmake(hdrpr_dir, bin_dir / "hdrpr", args)
         finally:
             if git_apply:
                 print("Reverting HdRPR repo")
@@ -427,10 +525,10 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
                    "@rpath/libMaterialXCore.1.dylib", "@rpath/libMaterialXCore.dylib", str(hdrpr_lib))
         check_call('install_name_tool', '-change',
                    "@rpath/libRadeonImageFilters.1.dylib", "@rpath/libRadeonImageFilters.dylib", str(hdrpr_lib))
-                   
+
     elif OS == 'Linux':
         lib_dir = bin_dir / "hdrpr/install/lib"
-        
+
         # removing and renaming
         (lib_dir / "libRadeonImageFilters.so").unlink()
         (lib_dir / f"libRadeonImageFilters.so.{rif_ver[0]}").unlink()
@@ -456,32 +554,64 @@ ctypes.CDLL(r"{bl_libs_dir / 'openexr/lib/libOpenEXRCore.dylib'}")
                    "libRadeonImageFilters.so.1", "libRadeonImageFilters.so", str(hdrpr_lib))
 
 
+def render_studio():
+    print_start("Building RenderStudioKit")
 
-def zip_addon(bin_dir):
+    deps_dir = repo_dir / "deps"
+    rs_dir = deps_dir / "RenderStudioKit"
+    boost_dir = bin_dir / "boost/install"
+    usd_dir = bin_dir / "USD/install"
+    openssl_dir = Path(os.environ["OPENSSL_ROOT_DIR"])
+    libdir = bl_libs_dir.as_posix()
+
+    os.environ['PXR_PLUGINPATH_NAME'] = str(usd_dir / "lib/usd")
+
+    # Boost flags
+    args = [
+        "-DWITH_SHARED_WORKSPACE_SUPPORT=ON",
+        "-DWITH_PYTHON_DEPENDENCIES_INSTALL=OFF",
+        "-DPXR_ENABLE_PYTHON_SUPPORT=ON",
+        f"-DPYTHON_INCLUDE_DIR={libdir}/python/310/include",
+        f"-DPYTHON_LIBRARY={libdir}/python/310/libs/python310.lib",
+        f"-DPYTHON_EXECUTABLE={py_exe}",
+
+        "-DCMAKE_CXX_FLAGS=/Zc:inline- /EHsc /bigobj /DBOOST_ALL_NO_LIB",
+        f"-DBoost_COMPILER:STRING=-vc142",
+        "-DBoost_USE_MULTITHREADED=ON",
+        "-DBoost_USE_STATIC_LIBS=OFF",
+        "-DBoost_USE_STATIC_RUNTIME=OFF",
+        f"-DBOOST_ROOT={boost_dir}",
+        "-DBoost_NO_SYSTEM_PATHS=OFF",
+        "-DBoost_NO_BOOST_CMAKE=OFF",
+        f'-DBoost_INCLUDE_DIR={boost_dir / "include"}',
+
+        f"-DOPENSSL_ROOT_DIR={openssl_dir.as_posix()}",
+
+        f"-DTBB_INCLUDE_DIR={libdir}/tbb/include",
+        f"-DTBB_LIBRARY={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
+
+        f'-DUSD_LOCATION={usd_dir}',
+        f'-DUSD_LIBRARY_DIR={usd_dir / "lib"}',
+        f'-DUSD_MONOLITHIC_LIBRARY={usd_dir / "lib" / f"{LIBPREFIX}usd_ms{POSTFIX}{LIBEXT}"}',
+    ]
+
+    cur_dir = os.getcwd()
+    ch_dir(rs_dir)
+    try:
+        cmake(rs_dir, bin_dir / "render_studio", args)
+
+    finally:
+        os.chdir(cur_dir)
+
+
+def zip_addon():
     print_start("Creating zip Addon")
 
-    # region internal functions
-
-    def enumerate_addon_data(bin_dir):
+    def enumerate_hdrpr_data(bin_dir):
         libs_rel_path = Path('libs/lib')
         plugin_rel_path = Path('libs/plugin/usd/plugin')
         inst_dir = bin_dir / 'install'
         plugin_dir = inst_dir / 'plugin'
-
-        # copy addon scripts
-        hydrarpr_plugin_dir = repo_dir / 'src/hydrarpr'
-        assert hydrarpr_plugin_dir.exists()
-        for f in hydrarpr_plugin_dir.glob("**/*"):
-            if f.is_dir():
-                continue
-
-            rel_path = f.relative_to(hydrarpr_plugin_dir)
-            rel_path_parts = rel_path.parts
-            if rel_path_parts[0] in ("libs", "configdev.py", "hdusd.log") or \
-                    "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
-                continue
-
-            yield f, rel_path
 
         # copy libraries
         lib_dir = inst_dir / 'lib'
@@ -503,7 +633,7 @@ def zip_addon(bin_dir):
             assert oid_dll.exists()
             yield oid_dll, libs_rel_path / oid_dll.name
 
-        # copy plugInfo.json
+        # copy plugInfo.json library
         pluginfo = plugin_dir / 'plugInfo.json'
         assert pluginfo.exists()
         yield pluginfo, plugin_rel_path.parent.parent / pluginfo.name
@@ -511,6 +641,9 @@ def zip_addon(bin_dir):
         # copy plugin/usd folders
         assert plugin_dir.exists()
         for f in plugin_dir.glob("**/*"):
+            if f.name in ("README.md", ".git", ".gitattributes"):  # sanitizing plugin/rprUsd/resources/ns_kernels
+                continue
+
             rel_path = f.relative_to(plugin_dir.parent)
             if any(p in rel_path.parts for p in ("hdRpr", "rprUsd", 'rprUsdMetadata')):
                 yield f, libs_rel_path.parent / rel_path
@@ -522,61 +655,93 @@ def zip_addon(bin_dir):
         for f in (pyrpr_dir / "__init__.py", pyrpr_dir / "RprUsd/__init__.py"):
             yield f, Path("libs") / f.relative_to(pyrpr_dir.parent.parent)
 
-    def get_version():
-        # getting build version
-        build_ver = subprocess.getoutput("git rev-parse --short HEAD")
+    def enumerate_rs_data(bin_dir):
+        libs_rel_path = Path('libs/lib')
+        plugin_rel_path = Path('libs/plugin/usd/plugin')
+        inst_dir = bin_dir / 'install'
+        plugin_dir = inst_dir / 'plugin'
 
-        # # getting plugin version
-        # text = (repo_dir / "src/hdusd/__init__.py").read_text()
-        # m = re.search(r'"version": \((\d+), (\d+), (\d+)\)', text)
-        # plugin_ver = m.group(1), m.group(2), m.group(3)
-        #
-        # return (*plugin_ver, build_ver)
+        # copy core libraries
+        resolver_lib_dir = bin_dir / 'install/lib'
+        assert resolver_lib_dir.exists()
+        for f in resolver_lib_dir.glob("**/*"):
+            if f.suffix in (".dll") and f.is_file():
+                yield f, libs_rel_path / f.name
 
-        return build_ver
+        # copy python resolver
+        pyresolver_dir = bin_dir / 'install/lib/python'
+        assert pyresolver_dir.exists()
+        for f in pyresolver_dir.glob("**/*"):
+            if f.is_file() and f.suffix not in (".py", ".pyd"):
+                continue
+            yield f, Path("libs") / f.relative_to(pyresolver_dir.parent)
 
-    def create_zip_addon(install_dir, bin_dir, name, ver):
-        """ Pack addon files to zip archive """
-        zip_addon = install_dir / name
-        if zip_addon.is_file():
-            os.remove(zip_addon)
+        # copy RenderStudioResolver library
+        resolver_lib = plugin_dir / 'usd/RenderStudioResolver.dll'
+        assert resolver_lib.exists()
+        yield resolver_lib, plugin_rel_path.parent / resolver_lib.name
 
-        print(f"Compressing addon files to: {zip_addon}")
-        with zipfile.ZipFile(zip_addon, 'w', compression=zipfile.ZIP_DEFLATED,
-                             compresslevel=zlib.Z_BEST_COMPRESSION) as myzip:
-            for src, package_path in enumerate_addon_data(bin_dir):
-                print(f"adding {src} --> {package_path}")
+        # copy Boost library
+        boost_log_lib = bin_dir.parent / f'boost/install/lib/boost_log-vc142-mt-x64-1_80{DLLEXT}'
+        assert boost_log_lib.exists()
+        yield boost_log_lib, libs_rel_path / boost_log_lib.name
 
-                arcname = str(Path('hydrarpr') / package_path)
+        # copy plugin/usd folders
+        for f in plugin_dir.glob("**/*"):
+            rel_path = f.relative_to(plugin_dir.parent)
+            if any(p in rel_path.parts for p in ("RenderStudioResolver", "RenderStudioWorkspace")):
+                yield f, libs_rel_path.parent / rel_path
 
-                if str(package_path) == "__init__.py":
-                    print(f"    set version_build={ver[3]}")
-                    text = src.read_text(encoding='utf-8')
-                    text = text.replace('version_build = ""', f'version_build = "{ver[3]}"')
-                    myzip.writestr(arcname, text)
-                    continue
+    def enumerate_data():
+        # copy addon scripts
+        src_dir = repo_dir / 'src/hydrarpr'
+        for f in src_dir.glob("**/*"):
+            if f.is_dir():
+                continue
 
-                myzip.write(str(src), arcname=arcname)
+            rel_path = f.relative_to(src_dir)
+            rel_path_parts = rel_path.parts
+            if rel_path_parts[0] in ("configdev.py",) or \
+                    "__pycache__" in rel_path_parts or ".gitignore" in rel_path_parts:
+                continue
 
-        return zip_addon
+            yield f, rel_path
 
-    # endregion
+        print("-------------------------------------------------------------")
+        yield from enumerate_hdrpr_data(bin_dir / "hdrpr")
 
-    repo_dir = Path(__file__).parent
+        if OS == 'Windows':
+            print("-------------------------------------------------------------")
+            yield from enumerate_rs_data(bin_dir / "render_studio")
+
     install_dir = repo_dir / "install"
-    ver = get_version()
-    name = f"hydrarpr-{ver}-{OS.lower()}.zip"
-
-    if install_dir.is_dir():
-        for file in os.listdir(install_dir):
-            if file == name:
-                os.remove(install_dir / file)
-                break
-    else:
+    if not install_dir.is_dir():
         install_dir.mkdir()
 
-    zip_addon = create_zip_addon(install_dir, bin_dir / "hdrpr", name, ver)
-    print(f"Addon was compressed to: {zip_addon}")
+    ver = get_version()
+    addon_name = "hydrarpr"
+    zip_file = install_dir / f"{addon_name}-{ver[0]}.{ver[1]}.{ver[2]}-{ver[3]}-{OS.lower()}.zip"
+    if zip_file.is_file():
+        os.remove(zip_file)
+
+    print(f"Compressing addon files to: {zip_file}")
+    with zip.ZipFile(zip_file, 'w', compression=zip.ZIP_DEFLATED,
+                     compresslevel=zlib.Z_BEST_COMPRESSION) as myzip:
+        for src, package_path in enumerate_data():
+            print(f"adding {src} --> {package_path}")
+
+            arcname = str(Path(addon_name) / package_path)
+
+            if str(package_path) == "__init__.py":
+                print(f"    set version_build={ver[3]}")
+                text = src.read_text(encoding='utf-8')
+                text = text.replace('version_build = ""', f'version_build = "{ver[3]}"')
+                myzip.writestr(arcname, text)
+                continue
+
+            myzip.write(str(src), arcname=arcname)
+
+    print(f"Addon was compressed to: {zip_file}")
 
 
 def main():
@@ -589,8 +754,17 @@ def main():
                     help="Build MaterialX")
     ap.add_argument("-usd", required=False, action="store_true",
                     help="Build USD")
+    if OS == 'Windows':
+        ap.add_argument("-boost", required=False, action="store_true",
+                        help="Build Boost")
     ap.add_argument("-hdrpr", required=False, action="store_true",
                     help="Build HdRPR")
+    if OS == 'Windows':
+        ap.add_argument("-rs", required=False, action="store_true",
+                        help="Build RenderStudioKit")
+    ap.add_argument("-addon", required=False, action="store_true",
+                    help="Create zip addon")
+
     libs_dir_default = {'Windows': r"..\lib\win64_vc15",
                         'Darwin': "../lib/darwin",
                         'Linux': "../lib/linux_x86_64_glibc_228"}[OS]
@@ -599,8 +773,7 @@ def main():
                     help=f"Path to root of Blender libs directory. (default: {libs_dir_default})"),
     ap.add_argument("-bin-dir", required=False, type=str, default="bin",
                     help="Path to binary directory. (default: bin)")
-    ap.add_argument("-addon", required=False, action="store_true",
-                    help="Create zip addon")
+
     ap.add_argument("-G", required=False, type=str,
                     help="Compiler for HdRPR and MaterialX in cmake. "
                          'For example: -G "Visual Studio 16 2019" or -G "Xcode"',
@@ -617,38 +790,61 @@ def main():
 
     args = ap.parse_args()
 
+    global bl_libs_dir, bin_dir, py_exe, compiler, jobs, clean, git_apply, build_var, POSTFIX
+
     bl_libs_dir = Path(args.bl_libs_dir).absolute().resolve()
 
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else (repo_dir / "bin")
     bin_dir = bin_dir.absolute()
-    bin_dir.mkdir(parents=True, exist_ok=True)
-    global POSTFIX
+
+    py_exe = f"{bl_libs_dir}/python/310/bin/python.exe" if OS == 'Windows' else \
+        f"{bl_libs_dir}/python/bin/python3.10"
+
+    compiler = args.G
+    jobs = args.j
+    clean = args.clean
+    git_apply = not args.no_git_apply
+
+    build_var = args.build_var
     if args.build_var == "debug":
         POSTFIX = "_d"
 
+    bin_dir.mkdir(parents=True, exist_ok=True)
+
     if args.all or args.materialx:
-        materialx(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var)
+        materialx()
 
-    installed_modules = None
-    py_exe = f"{bl_libs_dir}/python/310/bin/python.exe" if OS == 'Windows' else\
-             f"{bl_libs_dir}/python/bin/python3.10"
+    if args.all or args.usd:
+        installed_modules = install_requirements(["jinja2"])
+        try:
+            usd()
+        finally:
+            uninstall_requirements(installed_modules)
 
-    try:
-        if args.all or args.usd or args.hdrpr:
-            installed_modules = install_requirements(py_exe)
+    if OS == 'Windows' and (args.all or args.boost):
+        boost()
 
-        if args.all or args.usd:
-            usd(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
+    if args.all or args.hdrpr:
+        installed_modules = install_requirements(["jinja2"])
+        try:
+            hdrpr()
+        finally:
+            uninstall_requirements(installed_modules)
 
-        if args.all or args.hdrpr:
-            hdrpr(bl_libs_dir, bin_dir, args.G, args.j, args.clean, args.build_var, not args.no_git_apply)
-
-    finally:
-        if installed_modules:
-            uninstall_requirements(py_exe, installed_modules)
+    if OS == 'Windows' and (args.all or args.rs):
+        # deps/RenderStudioKit/Watchdog/requirements.txt
+        installed_modules = install_requirements(["fastapi==0.103.2",
+                                                  "uvicorn==0.22.0",
+                                                  "websockets==10.4",
+                                                  "httpx==0.24.1",
+                                                  "nuitka==1.8.5"])
+        try:
+            render_studio()
+        finally:
+            uninstall_requirements(installed_modules)
 
     if args.all or args.addon:
-        zip_addon(bin_dir)
+        zip_addon()
 
     print_start("Finished")
 

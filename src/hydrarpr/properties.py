@@ -13,6 +13,7 @@
 # limitations under the License.
 # ********************************************************************
 import math
+import platform
 
 import bpy
 from bpy.props import (
@@ -21,6 +22,7 @@ from bpy.props import (
     FloatProperty,
     BoolProperty,
     IntProperty,
+    StringProperty,
 )
 
 
@@ -226,10 +228,8 @@ class RenderSettings(bpy.types.PropertyGroup):
     render_quality: EnumProperty(
         name="Render Quality",
         description="Render Quality",
-        items=(
-            ('Northstar', "Full", "Full render quality"),
-            ('HybridPro', "Interactive", "Interactive render quality"),
-        ),
+        items=(('Northstar', "Full", "Full render quality"),
+               ('HybridPro', "Interactive", "Interactive render quality")),
         default='Northstar',
     )
     render_mode: EnumProperty(
@@ -294,11 +294,96 @@ class RenderSettings(bpy.types.PropertyGroup):
     denoise: PointerProperty(type=DenoiseSettings)
 
 
+class RenderStudioSettings(bpy.types.PropertyGroup):
+    def live_sync_update(self, context):
+        from .render_studio.resolver import rs_resolver
+        if not self.live_sync and rs_resolver.is_live_sync:
+            rs_resolver.stop_live_sync()
+
+    live_sync: BoolProperty(
+        name="Live Sync",
+        description="Enable live syncing mode",
+        default=False,
+        update=live_sync_update,
+    )
+    channel: StringProperty(
+        name="Channel",
+        description="Syncing Channel: directory to which the files will be synchronized",
+        default=f"Blender/{platform.node()}",
+    )
+    filename: StringProperty(
+        name="Custom File Name",
+        description="The name of the synced Usd file: live empty to use current scene name",
+        default="",
+    )
+
+    # Blender Usd export settings
+    selected_objects_only: BoolProperty(
+        name="Selection Only",
+        default=False,
+    )
+    visible_objects_only: BoolProperty(
+        name="Visible Only",
+        default=True,
+    )
+    export_animation: BoolProperty(
+        name="Animation",
+        default=False,
+    )
+    export_hair: BoolProperty(
+        name="Hair",
+        default=False,
+    )
+    export_uvmaps: BoolProperty(
+        name="UV Maps",
+        default=True,
+    )
+    export_normals: BoolProperty(
+        name="Normals",
+        default=True,
+    )
+    export_world: BoolProperty(
+        name="World",
+        default=True,
+    )
+    export_materials: BoolProperty(
+        name="Materials",
+        default=True,
+    )
+    root_prim_path: StringProperty(
+        name="Root Prim",
+        default="",
+    )
+    generate_preview_surface: BoolProperty(
+        name="To Usd Preview",
+        default=True,
+    )
+    export_textures: BoolProperty(
+        name="Export Textures",
+        default=True,
+    )
+    overwrite_textures: BoolProperty(
+        name="Overwrite Textures",
+        default=False,
+    )
+    use_instancing: BoolProperty(
+        name="Instancing",
+        default=False,
+    )
+    evaluation_mode: EnumProperty(
+        name="Use Settings for",
+        items=(('RENDER', "Render", "Render evaluation mode"),
+               ('VIEWPORT', "Viewport", "Viewport evaluation mode")),
+        default='RENDER',
+    )
+
+
 class SceneProperties(Properties):
     bl_type = bpy.types.Scene
 
     final: bpy.props.PointerProperty(type=RenderSettings)
     viewport: bpy.props.PointerProperty(type=RenderSettings)
+    render_studio: bpy.props.PointerProperty(type=RenderStudioSettings)
 
 
 register, unregister = bpy.utils.register_classes_factory((
@@ -307,5 +392,6 @@ register, unregister = bpy.utils.register_classes_factory((
     InteractiveQualitySettings,
     QualitySettings,
     RenderSettings,
+    RenderStudioSettings,
     SceneProperties,
 ))

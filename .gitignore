@@ -1,5 +1,8 @@
 /install
 /bin*
+/src/hydrarpr/configdev.py
 
 .idea
+.vscode
+
 .DS_Store

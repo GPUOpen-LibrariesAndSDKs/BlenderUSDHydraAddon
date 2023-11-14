@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ********************************************************************
+from pathlib import Path
+import sys
+import os
+import platform
+
+from pxr import Plug
+
+from . import engine, properties, ui, preferences
+
 
 bl_info = {
     "name": "Hydra render engine: RPR",
@@ -28,17 +37,45 @@ bl_info = {
     "category": "Render"
 }
 
-
-from . import engine, properties, ui
+LIBS_DIR = Path(__file__).parent / "libs"
 
 
 def register():
+    if platform.system() == 'Windows':
+        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + str(LIBS_DIR / "lib")
+
+    sys.path.append(str(LIBS_DIR / "python"))
+    Plug.Registry().RegisterPlugins(str(LIBS_DIR / "plugin"))
+
+    preferences.register()
     engine.register()
     properties.register()
     ui.register()
 
+    if platform.system() == 'Windows' and preferences.preferences().rs_enable:
+        from . import render_studio
+        render_studio.register()
+
+    try:
+        from . import configdev
+        # Example of configdev.py file:
+        #
+        # from .preferences import preferences
+        # pref = preferences()
+        # pref.rs_workspace_url = "<workspace url>"
+        # pref.rs_file_format = '.usda'
+        # pref.log_level = 'DEBUG'
+
+    except ImportError:
+        pass
+
 
 def unregister():
+    if platform.system() == 'Windows' and preferences.preferences().rs_enable:
+        from . import render_studio
+        render_studio.unregister()
+
     ui.unregister()
     properties.unregister()
     engine.unregister()
+    preferences.unregister()
