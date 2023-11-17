@@ -43,6 +43,7 @@ compiler = ""
 jobs = 0
 clean = False
 git_apply = True
+viewer = False
 
 build_var = 'release'
 
@@ -157,13 +158,9 @@ def cmake(src_dir, bin_dir, args):
 
 def materialx():
     print_start("Building MaterialX")
-
-    libdir = bl_libs_dir.as_posix()
-
-    cmake(deps_dir / "MaterialX", bin_dir / "materialx", [
+    args = [
         '-DMATERIALX_BUILD_PYTHON=ON',
         '-DMATERIALX_BUILD_RENDER=ON',
-        # '-DMATERIALX_BUILD_VIEWER=ON',
         '-DMATERIALX_INSTALL_PYTHON=OFF',
         f'-DMATERIALX_PYTHON_EXECUTABLE={py_exe}',
         f'-DMATERIALX_PYTHON_VERSION=3.10',
@@ -172,8 +169,14 @@ def materialx():
         '-DCMAKE_DEBUG_POSTFIX=_d',
         f'-Dpybind11_ROOT=',
         f'-DPython_EXECUTABLE={py_exe}',
-    ])
+    ]
+    if viewer:
+        args += [
+            '-DMATERIALX_BUILD_VIEWER=ON',
+            '-DMATERIALX_BUILD_GRAPH_EDITOR=ON',
+        ]
 
+    cmake(deps_dir / "MaterialX", bin_dir / "materialx", args)
 
 def usd():
     print_start("Building USD")
@@ -233,7 +236,6 @@ def usd():
         "-DPXR_BUILD_TESTS=OFF",
         "-DPXR_BUILD_EXAMPLES=OFF",
         "-DPXR_BUILD_TUTORIALS=OFF",
-        "-DPXR_BUILD_USDVIEW=OFF",
         "-DPXR_ENABLE_HDF5_SUPPORT=OFF",
         "-DPXR_ENABLE_MATERIALX_SUPPORT=ON",
         "-DPXR_ENABLE_OPENVDB_SUPPORT=ON",
@@ -266,6 +268,10 @@ def usd():
         # Otherwise it will error out during the cmake configure phase.
         f"-DTBB_LIBRARIES_DEBUG={libdir}/tbb/lib/{LIBPREFIX}tbb{LIBEXT}",
     ]
+    if viewer:
+        args += [
+            "-DPXR_BUILD_USDVIEW=ON",
+        ]
 
     cur_dir = os.getcwd()
     os.chdir(str(usd_dir))
@@ -786,7 +792,9 @@ def main():
     ap.add_argument("-clean", required=False, action="store_true",
                     help="Clean build dirs before start USD or HdRPR build")
     ap.add_argument("-no-git-apply", required=False, action="store_true",
-                    help="Do not use `git apply usd.diff for USD repo`")
+                    help="Do not use 'git apply usd.diff' for USD repo")
+    ap.add_argument("-viewer", required=False, action="store_true",
+                    help="Build viewer programs")
 
     args = ap.parse_args()
 
@@ -804,6 +812,7 @@ def main():
     jobs = args.j
     clean = args.clean
     git_apply = not args.no_git_apply
+    viewer = args.viewer
 
     build_var = args.build_var
     if args.build_var == "debug":
