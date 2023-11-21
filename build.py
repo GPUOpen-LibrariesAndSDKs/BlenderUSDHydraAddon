@@ -21,7 +21,6 @@ import zipfile as zip
 import zlib
 import os
 import re
-import site
 from urllib.request import urlopen
 
 OS = platform.system()
@@ -280,9 +279,6 @@ def usd():
         if git_apply:
             check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "usd.diff"))
 
-            # Remove patch after merging https://github.com/PixarAnimationStudios/OpenUSD/pull/2550
-            check_call('git', 'apply', '--whitespace=nowarn', str(diff_dir / "usd_opengl_errors_fix.diff"))
-
         try:
             cmake(usd_dir, bin_dir / "USD", args)
         finally:
@@ -349,6 +345,8 @@ def boost():
             '  ;\n'
         ]))
 
+    toolset = {"Visual Studio 16 2019": "msvc-14.2",
+               "Visual Studio 17 2022": "msvc-14.3"}[compiler]
     args = [
         "b2",
         f"--prefix={install_dir}",
@@ -363,7 +361,7 @@ def boost():
         "--with-python",
         f"--user-config={project_path}",
         "-sNO_BZIP2=1",
-        "toolset=msvc-14.2",
+        f"toolset={toolset}",
         "install"
     ]
 
@@ -599,6 +597,7 @@ def render_studio():
         f'-DUSD_LOCATION={usd_dir}',
         f'-DUSD_LIBRARY_DIR={usd_dir / "lib"}',
         f'-DUSD_MONOLITHIC_LIBRARY={usd_dir / "lib" / f"{LIBPREFIX}usd_ms{POSTFIX}{LIBEXT}"}',
+        "--compile-no-warning-as-error",
     ]
 
     cur_dir = os.getcwd()
@@ -798,7 +797,7 @@ def main():
 
     args = ap.parse_args()
 
-    global bl_libs_dir, bin_dir, py_exe, compiler, jobs, clean, git_apply, build_var, POSTFIX
+    global bl_libs_dir, bin_dir, py_exe, compiler, jobs, clean, git_apply, build_var, viewer, POSTFIX
 
     bl_libs_dir = Path(args.bl_libs_dir).absolute().resolve()
 
@@ -815,7 +814,7 @@ def main():
     viewer = args.viewer
 
     build_var = args.build_var
-    if args.build_var == "debug":
+    if build_var == "debug":
         POSTFIX = "_d"
 
     bin_dir.mkdir(parents=True, exist_ok=True)
