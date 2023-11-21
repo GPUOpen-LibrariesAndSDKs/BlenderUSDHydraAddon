@@ -1,261 +1,415 @@
-diff --git a/cmake/defaults/Packages.cmake b/cmake/defaults/Packages.cmake
-index 2bb1f30d0..adcc7422e 100644
---- a/cmake/defaults/Packages.cmake
-+++ b/cmake/defaults/Packages.cmake
-@@ -152,7 +152,7 @@ endif()
- 
- 
- # --TBB
--find_package(TBB REQUIRED COMPONENTS tbb)
-+find_package(TBB)
- add_definitions(${TBB_DEFINITIONS})
- 
- # --math
-diff --git a/cmake/defaults/msvcdefaults.cmake b/cmake/defaults/msvcdefaults.cmake
-index 1c4cb369d..f5d2064dd 100644
---- a/cmake/defaults/msvcdefaults.cmake
-+++ b/cmake/defaults/msvcdefaults.cmake
-@@ -124,9 +124,6 @@ _add_define("WIN32_LEAN_AND_MEAN")
- # for all translation units.
- set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /bigobj")
- 
--# Enable PDB generation.
--set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /Zi")
--
- # Enable multiprocessor builds.
- set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /MP")
- set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /Gm-")
-diff --git a/cmake/macros/Private.cmake b/cmake/macros/Private.cmake
-index 23172745e..8c595b1a1 100644
---- a/cmake/macros/Private.cmake
-+++ b/cmake/macros/Private.cmake
-@@ -919,12 +919,14 @@ function(_pxr_python_module NAME)
-         return()
-     endif()
- 
--    if (WIN32 AND PXR_USE_DEBUG_PYTHON)
-+    if (WIN32 AND PXR_USE_DEBUG_PYTHON AND NOT CMAKE_DEBUG_POSTFIX)
-         # On Windows when compiling with debug python the library must be named with _d.
--        set(LIBRARY_NAME "_${NAME}_d")
--    else()
--        set(LIBRARY_NAME "_${NAME}")
--    endif()
-+        # Blender: but this can be skipped if CMAKE_DEBUG_POSTFIX is set, it knows
-+        # what it is doing and we don't want libraries ending in _d_d.pyd
-+         set(LIBRARY_NAME "_${NAME}_d")
-+     else()
-+         set(LIBRARY_NAME "_${NAME}")
-+     endif()
- 
-     # Install .py files.
-     if(args_PYTHON_FILES)
-diff --git a/pxr/base/arch/timing.h b/pxr/base/arch/timing.h
-index d78598a84..289ec08d2 100644
---- a/pxr/base/arch/timing.h
-+++ b/pxr/base/arch/timing.h
-@@ -84,6 +84,10 @@ ArchGetTickTime()
- inline uint64_t
- ArchGetStartTickTime()
+diff --git a/pxr/imaging/hdSt/indirectDrawBatch.cpp b/pxr/imaging/hdSt/indirectDrawBatch.cpp
+index 547e22e5d..1e1649b18 100644
+--- a/pxr/imaging/hdSt/indirectDrawBatch.cpp
++++ b/pxr/imaging/hdSt/indirectDrawBatch.cpp
+@@ -109,11 +109,17 @@ HdSt_IndirectDrawBatch::HdSt_IndirectDrawBatch(
+     , _allowGpuFrustumCulling(allowGpuFrustumCulling)
+     , _instanceCountOffset(0)
+     , _cullInstanceCountOffset(0)
++    , _vao(0)
  {
-+    // BLENDER: avoid using rdtsc instruction that is not supported on older CPUs.
-+    return ArchGetTickTime();
-+
-+#if 0
-     uint64_t t;
- #if defined (ARCH_OS_DARWIN)
-     return ArchGetTickTime();
-@@ -116,6 +120,7 @@ ArchGetStartTickTime()
- #error "Unsupported architecture."
- #endif
-   return t;
-+#endif
+     _Init(drawItemInstance);
  }
  
- /// Get a "stop" tick time for measuring an interval of time.  See
-@@ -125,6 +130,10 @@ ArchGetStartTickTime()
- inline uint64_t
- ArchGetStopTickTime()
- {
-+    // BLENDER: avoid using rdtsc instruction that is not supported on older CPUs.
-+    return ArchGetTickTime();
-+
-+#if 0
-     uint64_t t;
- #if defined (ARCH_OS_DARWIN)
-     return ArchGetTickTime();
-@@ -155,11 +164,11 @@ ArchGetStopTickTime()
- #error "Unsupported architecture."
- #endif
-   return t;
-+#endif
- }
- 
--#if defined (doxygen) ||                                                       \
--    (!defined(ARCH_OS_DARWIN) && defined(ARCH_CPU_INTEL) &&                    \
--     (defined(ARCH_COMPILER_CLANG) || defined(ARCH_COMPILER_GCC)))
-+// BLENDER: avoid using rdtsc instruction that is not supported on older CPUs.
-+#if 0
- 
- /// A simple timer class for measuring an interval of time using the
- /// ArchTickTimer facilities.
-diff --git a/pxr/imaging/hdSt/materialXShaderGen.cpp b/pxr/imaging/hdSt/materialXShaderGen.cpp
-index be80426a5..a9d60476b 100644
---- a/pxr/imaging/hdSt/materialXShaderGen.cpp
-+++ b/pxr/imaging/hdSt/materialXShaderGen.cpp
-@@ -137,8 +137,7 @@ HdStMaterialXShaderGen::HdStMaterialXShaderGen(
-                             "st" : mxHdInfo.defaultTexcoordName;
- 
-     // Register the customized version of the Surface node generator
--    registerImplementation("IM_surface_" + GlslShaderGenerator::TARGET, 
--        HdStMaterialXSurfaceNodeGen::create);
-+    registerImplementation("IM_surface_genglsl", HdStMaterialXSurfaceNodeGen::create);
- }
- 
- // Based on GlslShaderGenerator::generate()
-@@ -275,8 +274,7 @@ HdStMaterialXShaderGen::_EmitMxFunctions(
-     mx::ShaderStage& mxStage) const
- {
-     // Add global constants and type definitions
--    emitLibraryInclude("stdlib/" + mx::GlslShaderGenerator::TARGET
--                       + "/lib/mx_math.glsl", mxContext, mxStage);
-+    emitLibraryInclude("stdlib/genglsl/lib/mx_math.glsl", mxContext, mxStage);
-     emitLine("#if NUM_LIGHTS > 0", mxStage, false);
-     emitLine("#define MAX_LIGHT_SOURCES NUM_LIGHTS", mxStage, false);
-     emitLine("#else", mxStage, false);
-@@ -396,16 +394,24 @@ HdStMaterialXShaderGen::_EmitMxFunctions(
-         emitSpecularEnvironment(mxContext, mxStage);
-     }
-     if (shadowing) {
--        emitLibraryInclude("pbrlib/" + mx::GlslShaderGenerator::TARGET
--                           + "/lib/mx_shadow.glsl", mxContext, mxStage);
-+        emitLibraryInclude("pbrlib/genglsl/lib/mx_shadow.glsl", mxContext, mxStage);
-     }
- 
-+#if MATERIALX_MAJOR_VERSION > 1 || \
-+    (MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 38) || \
-+    (MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION == 38 && MATERIALX_BUILD_VERSION > 4)
-+    // MaterialX 1.38.5 changes the default transmission method to "refraction".
-+    mxContext.getOptions().hwTransmissionRenderMethod = mx::TRANSMISSION_OPACITY;
-+
-+    // Emit transmission code
-+    emitTransmissionRender(mxContext, mxStage);
-+#endif
-+
-     // Emit directional albedo table code.
-     if (mxContext.getOptions().hwDirectionalAlbedoMethod == 
-             mx::HwDirectionalAlbedoMethod::DIRECTIONAL_ALBEDO_TABLE ||
-         mxContext.getOptions().hwWriteAlbedoTable) {
--        emitLibraryInclude("pbrlib/" + mx::GlslShaderGenerator::TARGET
--                           + "/lib/mx_table.glsl", mxContext, mxStage);
-+        emitLibraryInclude("pbrlib/genglsl/lib/mx_table.glsl", mxContext, mxStage);
-         emitLineBreak(mxStage);
-     }
- 
-@@ -423,7 +429,7 @@ HdStMaterialXShaderGen::_EmitMxFunctions(
-     // Emit uv transform code globally if needed.
-     if (mxContext.getOptions().hwAmbientOcclusion) {
-         emitLibraryInclude(
--            "stdlib/" + mx::GlslShaderGenerator::TARGET + "/lib/" +
-+            "stdlib/genglsl/lib/" +
-             _tokenSubstitutions[ShaderGenerator::T_FILE_TRANSFORM_UV],
-             mxContext, mxStage);
-     }
-@@ -492,10 +498,31 @@ HdStMaterialXShaderGen::_EmitMxSurfaceShader(
-             // closure/shader nodes and need to be emitted first.
-             emitFunctionCalls(mxGraph, mxContext, mxStage, mx::ShaderNode::Classification::TEXTURE);
- 
-+#if MATERIALX_MAJOR_VERSION == 1 &&  \
-+    MATERIALX_MINOR_VERSION == 38 && \
-+    MATERIALX_BUILD_VERSION <= 4
-+
-             // Emit function calls for all surface shader nodes.
-             // These will internally emit their closure function calls.
-             emitFunctionCalls(mxGraph, mxContext, mxStage, mx::ShaderNode::Classification::SHADER | 
-                                                            mx::ShaderNode::Classification::SURFACE);
-+#else
-+            // Emit function calls for "root" closure/shader nodes.
-+            // These will internally emit function calls for any dependent closure nodes upstream.
-+            for (mx::ShaderGraphOutputSocket* socket : mxGraph.getOutputSockets())
-+            {
-+                if (socket->getConnection())
-+                {
-+                    const mx::ShaderNode* upstream = socket->getConnection()->getNode();
-+                    if (upstream->getParent() == &mxGraph &&
-+                        (upstream->hasClassification(mx::ShaderNode::Classification::CLOSURE) ||
-+                            upstream->hasClassification(mx::ShaderNode::Classification::SHADER)))
-+                    {
-+                        emitFunctionCall(*upstream, mxContext, mxStage);
-+                    }
-+                }
-+            }
-+#endif
-         }
-         else
-         {
-diff --git a/pxr/imaging/hioOpenVDB/CMakeLists.txt b/pxr/imaging/hioOpenVDB/CMakeLists.txt
-index e32762cea..d2c08d3da 100644
---- a/pxr/imaging/hioOpenVDB/CMakeLists.txt
-+++ b/pxr/imaging/hioOpenVDB/CMakeLists.txt
-@@ -20,6 +20,12 @@ else()
-     LIST(APPEND __VDB_IMATH_LIBS ${OPENEXR_Half_LIBRARY})
- endif()
- 
-+if (WIN32)
-+    # OpenVDB uses constants from <cmath> that aren't available on
-+    # Windows unless this is defined.
-+    add_definitions(-D_USE_MATH_DEFINES)
-+endif()
-+
- pxr_library(hioOpenVDB
-     LIBRARIES
-         ar
-diff --git a/pxr/usd/usdMtlx/reader.cpp b/pxr/usd/usdMtlx/reader.cpp
-index 29e901816..e6fc68b20 100644
---- a/pxr/usd/usdMtlx/reader.cpp
-+++ b/pxr/usd/usdMtlx/reader.cpp
-@@ -797,6 +797,15 @@ _NodeGraphBuilder::_CreateInterfaceInputs(
-     // We deliberately ignore tokens here.
- }
- 
-+mx::StringSet _GetStdlibIncludes() {
-+    mx::StringSet stdlibIncludes = UsdMtlxGetDocument("")->getReferencedSourceUris();
-+    mx::StringSet normStdlibIncludes;
-+    for (std::string const& entry : stdlibIncludes) {
-+        normStdlibIncludes.insert(TfNormPath(entry));
+-HdSt_IndirectDrawBatch::~HdSt_IndirectDrawBatch() = default;
++HdSt_IndirectDrawBatch::~HdSt_IndirectDrawBatch()
++{
++    if (_vao) {
++        glDeleteVertexArrays(1, &_vao);
 +    }
-+    return normStdlibIncludes;
++}
+ 
+ /*virtual*/
+ void
+@@ -1146,6 +1152,14 @@ HdSt_IndirectDrawBatch::_ExecuteDraw(
+                                state.instancePrimvarBars);
+     }
+ 
++    // OpenGL core profile requries a VAO for binding buffers.
++    if (capabilities->GetCoreProfile()) {
++        if (!_vao) {
++            glCreateVertexArrays(1, &_vao);
++        }
++        glBindVertexArray(_vao);
++    }
++
+     state.BindResourcesForDrawing(renderPassState, *capabilities);
+ 
+     HdSt_GeometricShaderSharedPtr geometricShader = state.geometricShader;
+@@ -1374,6 +1388,15 @@ HdSt_IndirectDrawBatch::_ExecuteFrustumCull(
+             cullingProgram.GetGeometricShader());
+ 
+     Hgi * hgi = resourceRegistry->GetHgi();
++    HgiCapabilities const *capabilities = hgi->GetCapabilities();
++
++    // OpenGL core profile requries a VAO for binding buffers.
++    if (capabilities->GetCoreProfile()) {
++        if (!_vao) {
++            glCreateVertexArrays(1, &_vao);
++        }
++        glBindVertexArray(_vao);
++    }
+ 
+     HgiGraphicsPipelineSharedPtr const & pso =
+         _GetCullPipeline(resourceRegistry,
+diff --git a/pxr/imaging/hdSt/indirectDrawBatch.h b/pxr/imaging/hdSt/indirectDrawBatch.h
+index 44971f5e6..4292aa350 100644
+--- a/pxr/imaging/hdSt/indirectDrawBatch.h
++++ b/pxr/imaging/hdSt/indirectDrawBatch.h
+@@ -195,6 +195,8 @@ private:
+ 
+     int _instanceCountOffset;
+     int _cullInstanceCountOffset;
++
++    uint32_t _vao;
+ };
+ 
+ 
+diff --git a/pxr/imaging/hdSt/renderPassState.cpp b/pxr/imaging/hdSt/renderPassState.cpp
+index 44f464008..c96806c56 100644
+--- a/pxr/imaging/hdSt/renderPassState.cpp
++++ b/pxr/imaging/hdSt/renderPassState.cpp
+@@ -759,7 +759,9 @@ HdStRenderPassState::Bind(HgiCapabilities const &hgiCapabilities)
+         // If not using GL_MULTISAMPLE, use GL_POINT_SMOOTH to render points as 
+         // circles instead of square.
+         // XXX Switch points rendering to emit quad with FS that draws circle.
+-        glEnable(GL_POINT_SMOOTH);
++        if (!hgiCapabilities.GetCoreProfile()) {
++            glEnable(GL_POINT_SMOOTH);
++        }
+     }
+ }
+ 
+@@ -803,7 +805,9 @@ HdStRenderPassState::Unbind(HgiCapabilities const &hgiCapabilities)
+     }
+ 
+     glEnable(GL_MULTISAMPLE);
+-    glDisable(GL_POINT_SMOOTH);
++    if (!hgiCapabilities.GetCoreProfile()) {
++        glDisable(GL_POINT_SMOOTH);
++    }
+ }
+ 
+ void
+diff --git a/pxr/imaging/hgi/capabilities.h b/pxr/imaging/hgi/capabilities.h
+index ae2ecb4e5..c86afcb38 100644
+--- a/pxr/imaging/hgi/capabilities.h
++++ b/pxr/imaging/hgi/capabilities.h
+@@ -52,6 +52,11 @@ public:
+     HGI_API
+     virtual int GetShaderVersion() const = 0;
+ 
++    HGI_API
++    virtual bool GetCoreProfile() const {
++        return false;
++    }
++
+     HGI_API
+     size_t GetMaxUniformBlockSize() const {
+         return _maxUniformBlockSize;
+diff --git a/pxr/imaging/hgiGL/blitCmds.cpp b/pxr/imaging/hgiGL/blitCmds.cpp
+index ce62f41a5..20888a110 100644
+--- a/pxr/imaging/hgiGL/blitCmds.cpp
++++ b/pxr/imaging/hgiGL/blitCmds.cpp
+@@ -136,7 +136,7 @@ HgiGLBlitCmds::_Submit(Hgi* hgi, HgiSubmitWaitType wait)
+     // Capture OpenGL state before executing the 'ops' and restore it when this
+     // function ends. We do this defensively because parts of our pipeline may
+     // not set and restore all relevant gl state.
+-    HgiGL_ScopedStateHolder openglStateGuard;
++    HgiGL_ScopedStateHolder openglStateGuard(*hgi->GetCapabilities());
+ 
+     HgiGL* hgiGL = static_cast<HgiGL*>(hgi);
+     HgiGLDevice* device = hgiGL->GetPrimaryDevice();
+diff --git a/pxr/imaging/hgiGL/capabilities.cpp b/pxr/imaging/hgiGL/capabilities.cpp
+index 8711a6238..e11324b9f 100644
+--- a/pxr/imaging/hgiGL/capabilities.cpp
++++ b/pxr/imaging/hgiGL/capabilities.cpp
+@@ -57,6 +57,7 @@ static const int _DefaultMaxClipDistances             = 8;
+ HgiGLCapabilities::HgiGLCapabilities()
+     : _glVersion(0)
+     , _glslVersion(_DefaultGLSLVersion)
++    , _coreProfile(false)
+ {
+     _LoadCapabilities();
+ }
+@@ -131,6 +132,11 @@ HgiGLCapabilities::_LoadCapabilities()
+                       &uniformBufferOffsetAlignment);
+         _uniformBufferOffsetAlignment = uniformBufferOffsetAlignment;
+     }
++    if (_glVersion >= 320) {
++        GLint profileMask = 0;
++        glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profileMask);
++        _coreProfile = (profileMask & GL_CONTEXT_CORE_PROFILE_BIT);
++    }
+     if (_glVersion >= 430) {
+         GLint maxShaderStorageBlockSize = 0;
+         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,
+@@ -259,4 +265,9 @@ HgiGLCapabilities::GetShaderVersion() const {
+     return _glslVersion;
+ }
+ 
++bool
++HgiGLCapabilities::GetCoreProfile() const {
++    return _coreProfile;
 +}
 +
- // Returns True if the mtlxNodeDef corresponds to a locally defined custom node
- // with an associated nodegraph.
- // XXX Locally defined custom nodes without nodegraphs are not supported
-@@ -818,13 +827,14 @@ _NodeGraphBuilder::_IsLocalCustomNode(const mx::ConstNodeDefPtr &mtlxNodeDef)
-         }
-         // Combine with the nodeDef relative path
-         nodeDefUri = TfNormPath(fullMtlxPath + nodeDefUri);
-+    } else {
-+        nodeDefUri = TfNormPath(nodeDefUri);
-     }
+ PXR_NAMESPACE_CLOSE_SCOPE
+diff --git a/pxr/imaging/hgiGL/capabilities.h b/pxr/imaging/hgiGL/capabilities.h
+index 3c8f02642..2f25b4493 100644
+--- a/pxr/imaging/hgiGL/capabilities.h
++++ b/pxr/imaging/hgiGL/capabilities.h
+@@ -52,6 +52,9 @@ public:
+     HGIGL_API
+     int GetShaderVersion() const override;
+ 
++    HGIGL_API
++    bool GetCoreProfile() const override;
++
+ private:
+     void _LoadCapabilities();
+ 
+@@ -60,6 +63,9 @@ private:
      
-     // This is a locally defined custom node if the absolute path to the
-     // nodedef is not included in the stdlibDoc.
-     static mx::StringSet customNodeDefNames;
--    static const mx::StringSet stdlibIncludes =
--        UsdMtlxGetDocument("")->getReferencedSourceUris();
-+    static const mx::StringSet stdlibIncludes = _GetStdlibIncludes();
-     if (stdlibIncludes.find(nodeDefUri) == stdlibIncludes.end()) {
-         // Check if we already used this custom node
-         if (std::find(customNodeDefNames.begin(), customNodeDefNames.end(),
-diff --git a/pxr/usdImaging/CMakeLists.txt b/pxr/usdImaging/CMakeLists.txt
-index d35c59df0..dbf40cc68 100644
---- a/pxr/usdImaging/CMakeLists.txt
-+++ b/pxr/usdImaging/CMakeLists.txt
-@@ -7,7 +7,7 @@ set(DIRS
-     usdVolImaging
-     usdAppUtils
-     usdviewq
--    bin
-+    #bin
-     plugin
- )
+     // GLSL version 
+     int _glslVersion; // 400, 410, ...
++
++    // Core Profile
++    bool _coreProfile;
+ };
+ 
+ PXR_NAMESPACE_CLOSE_SCOPE
+diff --git a/pxr/imaging/hgiGL/graphicsCmds.cpp b/pxr/imaging/hgiGL/graphicsCmds.cpp
+index 5e174165d..e59ae3502 100644
+--- a/pxr/imaging/hgiGL/graphicsCmds.cpp
++++ b/pxr/imaging/hgiGL/graphicsCmds.cpp
+@@ -249,7 +249,7 @@ HgiGLGraphicsCmds::_Submit(Hgi* hgi, HgiSubmitWaitType wait)
+     // Capture OpenGL state before executing the 'ops' and restore it when this
+     // function ends. We do this defensively because parts of our pipeline may
+     // not set and restore all relevant gl state.
+-    HgiGL_ScopedStateHolder openglStateGuard;
++    HgiGL_ScopedStateHolder openglStateGuard(*hgi->GetCapabilities());
+ 
+     // Resolve multisample textures
+     HgiGL* hgiGL = static_cast<HgiGL*>(hgi);
+diff --git a/pxr/imaging/hgiGL/graphicsPipeline.cpp b/pxr/imaging/hgiGL/graphicsPipeline.cpp
+index 6983dd11e..a1c7af754 100644
+--- a/pxr/imaging/hgiGL/graphicsPipeline.cpp
++++ b/pxr/imaging/hgiGL/graphicsPipeline.cpp
+@@ -42,7 +42,12 @@ HgiGLGraphicsPipeline::HgiGLGraphicsPipeline(
+ {
+ }
+ 
+-HgiGLGraphicsPipeline::~HgiGLGraphicsPipeline() = default;
++HgiGLGraphicsPipeline::~HgiGLGraphicsPipeline()
++{
++    if (_vao) {
++        glDeleteVertexArrays(1, &_vao);
++    }
++}
+ 
+ void
+ HgiGLGraphicsPipeline::BindPipeline()
+@@ -50,6 +55,7 @@ HgiGLGraphicsPipeline::BindPipeline()
+     if (_vao) {
+         glBindVertexArray(0);
+         glDeleteVertexArrays(1, &_vao);
++        _vao = 0;
+     }
+ 
+     if (!_descriptor.vertexBuffers.empty()) {
+@@ -108,6 +114,8 @@ HgiGLGraphicsPipeline::BindPipeline()
+         glBindVertexArray(_vao);
+     }
+ 
++    const bool coreProfile = _hgi->GetCapabilities()->GetCoreProfile();
++
+     //
+     // Depth Stencil State
+     //
+@@ -172,7 +180,9 @@ HgiGLGraphicsPipeline::BindPipeline()
+         // If not using GL_MULTISAMPLE, use GL_POINT_SMOOTH to render points as 
+         // circles instead of square.
+         // XXX Switch points rendering to emit quad with FS that draws circle.
+-        glEnable(GL_POINT_SMOOTH);
++        if (!coreProfile) {
++            glEnable(GL_POINT_SMOOTH);
++        }
+     }
+     if (_descriptor.multiSampleState.alphaToCoverageEnable) {
+         glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+@@ -207,7 +217,7 @@ HgiGLGraphicsPipeline::BindPipeline()
+         glFrontFace(GL_CCW);
+     }
+ 
+-    if (_descriptor.rasterizationState.lineWidth != 1.0f) {
++    if (!coreProfile && _descriptor.rasterizationState.lineWidth != 1.0f) {
+         glLineWidth(_descriptor.rasterizationState.lineWidth);
+     }
+ 
+diff --git a/pxr/imaging/hgiGL/scopedStateHolder.cpp b/pxr/imaging/hgiGL/scopedStateHolder.cpp
+index 89cd0ac22..5c6575330 100644
+--- a/pxr/imaging/hgiGL/scopedStateHolder.cpp
++++ b/pxr/imaging/hgiGL/scopedStateHolder.cpp
+@@ -26,6 +26,7 @@
+ #include "pxr/imaging/hgiGL/scopedStateHolder.h"
+ #include "pxr/imaging/hgiGL/conversions.h"
+ #include "pxr/imaging/hgiGL/diagnostic.h"
++#include "pxr/imaging/hgiGL/hgi.h"
+ 
+ #include "pxr/base/trace/trace.h"
+ #include "pxr/base/tf/diagnostic.h"
+@@ -33,8 +34,10 @@
+ 
+ PXR_NAMESPACE_OPEN_SCOPE
+ 
+-HgiGL_ScopedStateHolder::HgiGL_ScopedStateHolder()
+-    : _restoreRenderBuffer(0)
++HgiGL_ScopedStateHolder::HgiGL_ScopedStateHolder(
++    HgiCapabilities const& capabilities)
++    : _coreProfile(capabilities.GetCoreProfile())
++    , _restoreRenderBuffer(0)
+     , _restoreVao(0)
+     , _restoreDepthTest(false)
+     , _restoreDepthWriteMask(false)
+@@ -115,7 +118,9 @@ HgiGL_ScopedStateHolder::HgiGL_ScopedStateHolder()
+     glGetBooleanv(
+         GL_SAMPLE_ALPHA_TO_ONE,
+         (GLboolean*)&_restoreSampleAlphaToOne);
+-    glGetFloatv(GL_LINE_WIDTH, &_lineWidth);
++    if (!_coreProfile) {
++        glGetFloatv(GL_LINE_WIDTH, &_lineWidth);
++    }
+     glGetBooleanv(GL_CULL_FACE, (GLboolean*)&_cullFace);
+     glGetIntegerv(GL_CULL_FACE_MODE, &_cullMode);
+     glGetIntegerv(GL_FRONT_FACE, &_frontFace);
+@@ -139,7 +144,9 @@ HgiGL_ScopedStateHolder::HgiGL_ScopedStateHolder()
+     }
+ 
+     glGetBooleanv(GL_MULTISAMPLE, (GLboolean*)&_restoreMultiSample);
+-    glGetBooleanv(GL_POINT_SMOOTH, (GLboolean*)&_restorePointSmooth);
++    if (!_coreProfile) {
++        glGetBooleanv(GL_POINT_SMOOTH, (GLboolean*)&_restorePointSmooth);
++    }
+ 
+     HGIGL_POST_PENDING_GL_ERRORS();
+     #if defined(GL_KHR_debug)
+@@ -235,7 +242,9 @@ HgiGL_ScopedStateHolder::~HgiGL_ScopedStateHolder()
+                _restoreViewport[2], _restoreViewport[3]);
+     glBindVertexArray(_restoreVao);
+     glBindRenderbuffer(GL_RENDERBUFFER, _restoreRenderBuffer);
+-    glLineWidth(_lineWidth);
++    if (!_coreProfile) {
++        glLineWidth(_lineWidth);
++    }
+     if (_cullFace) {
+         glEnable(GL_CULL_FACE);
+     } else {
+@@ -285,10 +294,12 @@ HgiGL_ScopedStateHolder::~HgiGL_ScopedStateHolder()
+         glDisable(GL_MULTISAMPLE);
+     }
+ 
+-    if (_restorePointSmooth) {
+-        glEnable(GL_POINT_SMOOTH);
+-    } else {
+-        glDisable(GL_POINT_SMOOTH);
++    if (!_coreProfile) {
++        if (_restorePointSmooth) {
++            glEnable(GL_POINT_SMOOTH);
++        } else {
++            glDisable(GL_POINT_SMOOTH);
++        }
+     }
+ 
+     static const GLuint samplers[8] = {0};
+diff --git a/pxr/imaging/hgiGL/scopedStateHolder.h b/pxr/imaging/hgiGL/scopedStateHolder.h
+index d006480b9..be6698e04 100644
+--- a/pxr/imaging/hgiGL/scopedStateHolder.h
++++ b/pxr/imaging/hgiGL/scopedStateHolder.h
+@@ -32,6 +32,7 @@
+ 
+ PXR_NAMESPACE_OPEN_SCOPE
+ 
++class HgiCapabilities;
+ 
+ /// \class HgiGLScopedStateHolder
+ ///
+@@ -50,7 +51,7 @@ class HgiGL_ScopedStateHolder final
+ {
+ public:
+     HGIGL_API
+-    HgiGL_ScopedStateHolder();
++    HgiGL_ScopedStateHolder(HgiCapabilities const& capabilities);
+ 
+     HGIGL_API
+     ~HgiGL_ScopedStateHolder();
+@@ -59,6 +60,8 @@ private:
+     HgiGL_ScopedStateHolder& operator=(const HgiGL_ScopedStateHolder&) = delete;
+     HgiGL_ScopedStateHolder(const HgiGL_ScopedStateHolder&) = delete;
+ 
++    bool _coreProfile;
++
+     int32_t _restoreRenderBuffer;
+     int32_t _restoreVao;
+ 
+diff --git a/pxr/imaging/hgiInterop/opengl.cpp b/pxr/imaging/hgiInterop/opengl.cpp
+index 95736721f..4f970ed60 100644
+--- a/pxr/imaging/hgiInterop/opengl.cpp
++++ b/pxr/imaging/hgiInterop/opengl.cpp
+@@ -110,6 +110,7 @@ HgiInteropOpenGL::HgiInteropOpenGL()
+     , _fsDepth(0)
+     , _prgNoDepth(0)
+     , _prgDepth(0)
++    , _vao(0)
+     , _vertexBuffer(0)
+ {
+     _vs = _CompileShader(_vertexFullscreen, GL_VERTEX_SHADER);
+@@ -117,6 +118,7 @@ HgiInteropOpenGL::HgiInteropOpenGL()
+     _fsDepth = _CompileShader(_fragmentDepthFullscreen, GL_FRAGMENT_SHADER);
+     _prgNoDepth = _LinkProgram(_vs, _fsNoDepth);
+     _prgDepth = _LinkProgram(_vs, _fsDepth);
++    glCreateVertexArrays(1, &_vao);
+     _vertexBuffer = _CreateVertexBuffer();
+     TF_VERIFY(glGetError() == GL_NO_ERROR);
+ }
+@@ -129,6 +131,7 @@ HgiInteropOpenGL::~HgiInteropOpenGL()
+     glDeleteProgram(_prgNoDepth);
+     glDeleteProgram(_prgDepth);
+     glDeleteBuffers(1, &_vertexBuffer);
++    glDeleteVertexArrays(1, &_vao);
+     TF_VERIFY(glGetError() == GL_NO_ERROR);
+ }
+ 
+@@ -202,10 +205,13 @@ HgiInteropOpenGL::CompositeToInterop(
+     }
+ 
+     // Get the current array buffer binding state
++    GLint restoreVao = 0;
++    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &restoreVao);
+     GLint restoreArrayBuffer = 0;
+     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &restoreArrayBuffer);
+ 
+     // Vertex attributes
++    glBindVertexArray(_vao);
+     const GLint locPosition = glGetAttribLocation(prg, "position");
+     glBindBuffer(GL_ARRAY_BUFFER, _vertexBuffer);
+     glVertexAttribPointer(locPosition, 4, GL_FLOAT, GL_FALSE,
+@@ -271,6 +277,7 @@ HgiInteropOpenGL::CompositeToInterop(
+     glDisableVertexAttribArray(locPosition);
+     glDisableVertexAttribArray(locUv);
+     glBindBuffer(GL_ARRAY_BUFFER, restoreArrayBuffer);
++    glBindVertexArray(restoreVao);
+     
+     if (!blendEnabled) {
+         glDisable(GL_BLEND);
+diff --git a/pxr/imaging/hgiInterop/opengl.h b/pxr/imaging/hgiInterop/opengl.h
+index 18840a92b..27434ac36 100644
+--- a/pxr/imaging/hgiInterop/opengl.h
++++ b/pxr/imaging/hgiInterop/opengl.h
+@@ -62,6 +62,7 @@ private:
+     uint32_t _fsDepth;
+     uint32_t _prgNoDepth;
+     uint32_t _prgDepth;
++    uint32_t _vao;
+     uint32_t _vertexBuffer;
+ };
  
